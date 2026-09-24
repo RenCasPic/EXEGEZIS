@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "exegezis.plan/v1",
+  "name": "BUG-002 coupon ignores quantity",
+  "description": "Add the same product twice, apply SAVE10, observe totals and the /api/cart/coupon response.",
+  "steps": [
+    { "type": "click", "target": { "role": "button", "name": "Add Mechanical Keyboard to cart" } },
+    { "type": "wait", "condition": { "kind": "element", "target": { "text": "Mechanical Keyboard × 1" }, "state": "visible" } },
+    { "type": "click", "target": { "role": "button", "name": "Add Mechanical Keyboard to cart" } },
+    { "type": "wait", "condition": { "kind": "element", "target": { "text": "Mechanical Keyboard × 2" }, "state": "visible" } },
+    { "type": "fill", "target": { "label": "Coupon code" }, "value": "SAVE10" },
+    { "type": "click", "target": { "role": "button", "name": "Apply coupon" } },
+    { "type": "wait", "condition": { "kind": "element", "target": { "text": "Coupon SAVE10 applied" }, "state": "visible" } }
+  ]
+}

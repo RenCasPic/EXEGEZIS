@@ -1,0 +1,22 @@
+{
+  "name": "@exegezis/adapter-browser",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EXEGEZIS browser adapter built on Playwright.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "dependencies": {
+    "@exegezis/core": "workspace:*",
+    "fflate": "^0.8.3",
+    "playwright": "1.63.0",
+    "zod": "^4.6.5"
+  }
+}

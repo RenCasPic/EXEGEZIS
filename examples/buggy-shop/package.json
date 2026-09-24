@@ -1,0 +1,19 @@
+{
+  "name": "buggy-shop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A deliberately defective shop used as the EXEGEZIS evidence lab. Contains exactly 3 seeded bugs (see docs/KNOWN_BUGS.md).",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/server.ts",
+    "start": "node src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test --project=conventional",
+    "test:known-bugs": "playwright test --project=known-bugs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^24.13.6",
+    "typescript": "~6.0.3"
+  }
+}

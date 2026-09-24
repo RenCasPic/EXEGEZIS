@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# EXEGEZIS run output (evidence may contain sensitive data from the target app)
+runs/
+
+# Playwright
+test-results/
+playwright-report/

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "exegezis.plan/v1",
+  "name": "BUG-001 stale cart badge",
+  "description": "Add a product, remove it, observe the cart badge.",
+  "steps": [
+    { "type": "click", "target": { "role": "button", "name": "Add Wireless Mouse to cart" } },
+    { "type": "wait", "condition": { "kind": "element", "target": { "text": "Wireless Mouse × 1" }, "state": "visible" } },
+    { "type": "observe", "label": "after-add" },
+    { "type": "click", "target": { "role": "button", "name": "Remove Wireless Mouse" } },
+    { "type": "wait", "condition": { "kind": "element", "target": { "text": "Your cart is empty" }, "state": "visible" } }
+  ]
+}

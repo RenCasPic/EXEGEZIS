@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "exegezis.plan/v1",
+  "name": "BUG-003 purchased items return to the cart",
+  "description": "Buy a keyboard, continue shopping, add a mouse, observe the cart.",
+  "steps": [
+    { "type": "click", "target": { "role": "button", "name": "Add Mechanical Keyboard to cart" } },
+    { "type": "wait", "condition": { "kind": "element", "target": { "text": "Mechanical Keyboard × 1" }, "state": "visible" } },
+    { "type": "click", "target": { "role": "button", "name": "Checkout" } },
+    { "type": "wait", "condition": { "kind": "element", "target": { "role": "heading", "name": "Order confirmed" }, "state": "visible" } },
+    { "type": "observe", "label": "order-confirmed" },
+    { "type": "click", "target": { "role": "button", "name": "Continue shopping" } },
+    { "type": "click", "target": { "role": "button", "name": "Add Wireless Mouse to cart" } },
+    { "type": "wait", "condition": { "kind": "element", "target": { "text": "Wireless Mouse × 1" }, "state": "visible" } }
+  ]
+}

@@ -1,0 +1,39 @@
+body {
+  font-family: system-ui, sans-serif;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+  color: #1d1d1f;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+nav a {
+  margin-left: 12px;
+}
+ul {
+  padding-left: 0;
+  list-style: none;
+}
+li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid #ddd;
+}
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+}
+dd {
+  margin: 0;
+  text-align: right;
+}
+#confirmation {
+  padding: 12px;
+  border: 1px solid #2e7d32;
+}

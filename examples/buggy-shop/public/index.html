@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Buggy Shop</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Buggy Shop</h1>
+      <nav aria-label="Main">
+        <a href="#products">Products</a>
+        <a href="#cart" id="cart-badge">Cart (0)</a>
+      </nav>
+    </header>
+
+    <main>
+      <section id="products" aria-labelledby="products-heading">
+        <h2 id="products-heading">Products</h2>
+        <ul id="product-list"></ul>
+      </section>
+
+      <section id="cart" aria-labelledby="cart-heading">
+        <h2 id="cart-heading">Shopping Cart</h2>
+        <p id="cart-empty">Your cart is empty</p>
+        <ul id="cart-items"></ul>
+
+        <form id="coupon-form">
+          <label for="coupon-code">Coupon code</label>
+          <input id="coupon-code" name="code" autocomplete="off" />
+          <button type="submit">Apply coupon</button>
+        </form>
+        <p id="coupon-message" role="status"></p>
+
+        <dl id="totals">
+          <dt>Subtotal</dt>
+          <dd id="subtotal">$0.00</dd>
+          <dt>Discount</dt>
+          <dd id="discount">$0.00</dd>
+          <dt>Total</dt>
+          <dd id="total">$0.00</dd>
+        </dl>
+        <button type="button" id="checkout" disabled>Checkout</button>
+      </section>
+
+      <section id="confirmation" aria-labelledby="confirmation-heading" hidden>
+        <h2 id="confirmation-heading">Order confirmed</h2>
+        <p id="confirmation-text"></p>
+        <button type="button" id="continue">Continue shopping</button>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
