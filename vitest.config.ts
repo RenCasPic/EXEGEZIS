@@ -39,6 +39,13 @@ export default defineConfig({
       },
       {
         test: {
+          name: "web",
+          root: "apps/web",
+          include: ["test/**/*.test.ts"],
+        },
+      },
+      {
+        test: {
           name: "cli",
           root: "apps/cli",
           include: ["test/**/*.test.ts"],

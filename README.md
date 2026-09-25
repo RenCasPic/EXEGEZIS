@@ -50,6 +50,13 @@ Other commands: `generate-plan` (symptom → validated plan, not executed), `run
 classified), `compile` (plan → standalone `.spec.ts`), `validate` (semantic
 validation against a preflight observation). See `pnpm exegezis --help`.
 
+Browse everything in the local web UI (reads `runs/` and the archived benchmark
+results; no demo data):
+
+```bash
+pnpm web                              # http://127.0.0.1:4100
+```
+
 Open a run's trace:
 
 ```bash
@@ -65,6 +72,7 @@ pnpm --filter @exegezis/adapter-browser exec playwright show-trace <absolute-pat
 | `packages/compiler-playwright` | Test plan → standalone Playwright spec; runs specs with the standard Playwright runner |
 | `packages/planner` | Symptom → TestPlan proposal (provider-agnostic `PlanGenerator`, Anthropic and mock providers, versioned prompt). Never decides verdicts; core does not depend on it |
 | `apps/cli` | `exegezis` command |
+| `apps/web` | Local UI (Next.js): investigations, reproductions, evidence, AI plans, benchmarks. Reads run artifacts with the core schemas; stages not built yet (investigation, root cause, fix, fix verification) are shown as NOT IMPLEMENTED |
 | `examples/buggy-shop` | Evidence lab: a shop with exactly 3 seeded bugs that its own test suite does not catch |
 | `benchmarks/buggy-shop` | Benchmark A: human-authored plans — symptom, reference plan, expected outcome (and compiled spec) per case |
 | `benchmarks/buggy-shop-ai` | Benchmark B: plans generated from symptoms by a planner; results and metrics kept separate |
@@ -78,8 +86,11 @@ pnpm --filter @exegezis/adapter-browser exec playwright show-trace <absolute-pat
 | `pnpm typecheck` | Type-checks packages, tests, the example and its compiled specs |
 | `pnpm lint` | ESLint with type-aware rules |
 | `pnpm verify` | All of the above |
+| `pnpm web` | Builds the packages and starts the local UI on 127.0.0.1:4100 |
+| `pnpm build:web` | Production build of the UI |
 
 Design notes: [docs/01-evidence-engine.md](docs/01-evidence-engine.md) (evidence and run format),
 [docs/02-verification-engine.md](docs/02-verification-engine.md) (assertions, reproduction, Verified Bug, compiler),
 [docs/03-verification-hardening.md](docs/03-verification-hardening.md) (outcomes, validation, anchoring, timeouts, provenance, benchmark) and
-[docs/04-ai-planner.md](docs/04-ai-planner.md) (planner, providers, prompt, benchmark B).
+[docs/04-ai-planner.md](docs/04-ai-planner.md) (planner, providers, prompt, benchmark B) and
+[docs/05-web-ui.md](docs/05-web-ui.md) (local UI, data sources, what is not implemented).

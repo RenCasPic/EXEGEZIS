@@ -1,7 +1,7 @@
 {
   "name": "exegezis",
   "private": true,
-  "description": "EXEGEZIS — Software that explains itself.",
+  "description": "EXEGEZIS \u2014 Software that explains itself.",
   "type": "module",
   "packageManager": "pnpm@10.34.5",
   "engines": {
@@ -9,14 +9,16 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b && tsc -p tsconfig.tests.json && pnpm --filter buggy-shop typecheck",
+    "typecheck": "tsc -b && tsc -p tsconfig.tests.json && pnpm --filter buggy-shop typecheck && pnpm --filter @exegezis/web typecheck",
     "lint": "eslint .",
     "test": "tsc -b && vitest run && pnpm --filter buggy-shop test && pnpm --filter buggy-shop test:known-bugs",
     "test:exegezis": "tsc -b && vitest run",
     "verify": "pnpm typecheck && pnpm lint && pnpm test",
     "exegezis": "exegezis",
     "clean": "tsc -b --clean",
-    "benchmark": "exegezis benchmark --suite buggy-shop"
+    "benchmark": "exegezis benchmark --suite buggy-shop",
+    "web": "pnpm build && pnpm --filter @exegezis/web dev",
+    "build:web": "pnpm build && pnpm --filter @exegezis/web build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

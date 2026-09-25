@@ -13,5 +13,6 @@
     "benchmarks/**/*.spec.ts",
     "vitest.config.ts",
     "eslint.config.js"
-  ]
+  ],
+  "exclude": ["apps/web"]
 }

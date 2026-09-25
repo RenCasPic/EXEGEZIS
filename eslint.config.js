@@ -13,10 +13,10 @@ const browserGlobals = {
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "runs/**", "**/test-results/**", "**/playwright-report/**"],
+    ignores: ["**/dist/**", "**/node_modules/**", "runs/**", "**/test-results/**", "**/playwright-report/**", "**/.next/**", "**/next-env.d.ts"],
   },
   {
-    files: ["**/*.ts"],
+    files: ["**/*.ts", "**/*.tsx"],
     extends: [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       parserOptions: {
