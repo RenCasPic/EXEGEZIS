@@ -2,14 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   Action,
   ArtifactManifest,
-  computeReproduction,
   describeTarget,
   Evidence,
   Plan,
   redactAction,
   REDACTED,
   RelativePath,
-  Reproduction,
   RunMetadata,
   TimelineEvent,
   ulid,
@@ -116,31 +114,6 @@ describe("Evidence", () => {
     });
     expect(evidence.kind).toBe("accessibility_snapshot");
     if (evidence.kind === "accessibility_snapshot") expect(evidence.tree[0]?.["url"]).toBe("/products");
-  });
-});
-
-describe("Reproduction", () => {
-  it("computes rate from outcomes", () => {
-    expect(computeReproduction(Array<boolean>(10).fill(true))).toEqual({
-      attempts: 10,
-      successes: 10,
-      failures: 0,
-      rate: 1,
-    });
-    expect(computeReproduction([true, false, true, false]).rate).toBe(0.5);
-    expect(computeReproduction([]).rate).toBeNull();
-  });
-
-  it("rejects inconsistent counts", () => {
-    expect(Reproduction.safeParse({ attempts: 10, successes: 9, failures: 0, rate: 0.9 }).success).toBe(false);
-    expect(Reproduction.safeParse({ attempts: 2, successes: 1, failures: 1, rate: 1 }).success).toBe(false);
-    expect(Reproduction.safeParse({ attempts: 0, successes: 0, failures: 0, rate: 0 }).success).toBe(false);
-  });
-
-  it("requires one run id per attempt when run ids are given", () => {
-    const [a, b] = [ulid(), ulid()];
-    expect(computeReproduction([true, true], [a, b]).runIds).toEqual([a, b]);
-    expect(() => computeReproduction([true, true], [a])).toThrow();
   });
 });
 

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "WEAK-ANCHOR-001",
+  "kind": "negative",
+  "title": "The cart badge shows one item",
+  "symptom": "The cart badge shows the wrong number of items.",
+  "expectedBug": null,
+  "plan": "plan.json",
+  "expected": {
+    "outcome": "INCONCLUSIVE",
+    "step": null,
+    "value": null
+  }
+}

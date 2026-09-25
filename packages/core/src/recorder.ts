@@ -100,6 +100,9 @@ export class RunRecorder {
   }
 
   emit<T extends TimelineEventType>(type: T, source: EventSource, payload: TimelinePayload<T>): TimelineEvent {
+    // A step abandoned by the run deadline may still be running: it must not
+    // write into a run that is already consolidated.
+    if (this.finalized) throw new Error(`Run ${this.runId} is finalized; event ${type} discarded`);
     this.seq += 1;
     const event = TimelineEvent.parse({
       id: `evt-${String(this.seq).padStart(6, "0")}`,

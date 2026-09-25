@@ -24,6 +24,17 @@ tesis que el laboratorio demuestra:
   pnpm exegezis observe --url http://localhost:3000 --actions examples/buggy-shop/scenarios/<escenario>.json
   ```
 
+- Cada bug es un caso del benchmark `benchmarks/buggy-shop/cases/BUG-00N/`:
+  su **plan de verificación** (`plan.json`, con acciones, anchors y la expectation)
+  más assertions que expresan el comportamiento esperado. `exegezis verify` lo
+  convierte en un Verified Bug. Su spec compilado está versionado en
+  en el mismo directorio (`BUG-00N.spec.ts`) y se ejecuta con `npx playwright test`,
+  sin EXEGEZIS. El benchmark completo: `pnpm benchmark`.
+
+  ```bash
+  pnpm exegezis verify --plan benchmarks/buggy-shop/cases/BUG-001/plan.json --runs 10
+  ```
+
 | ID | Tipo | Capa | Escenario |
 |---|---|---|---|
 | BUG-001 | UI/state | Frontend (`public/app.js`) | `scenarios/bug-001-stale-badge.json` |

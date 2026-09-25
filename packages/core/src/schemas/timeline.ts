@@ -1,7 +1,9 @@
 import { z } from "zod";
-import { PlanStep } from "./action.js";
+import { Assertion, AssertionErrorKind, AssertionPurpose, AssertionTimeoutReason } from "./assertion.js";
 import { ErrorInfo, RelativePath, RunId, Timestamp } from "./common.js";
 import { ConsoleLevel } from "./evidence.js";
+import { RunVerdict } from "./run.js";
+import { PlanStep } from "./test-plan.js";
 
 /**
  * Who produced an event. `runner` is EXEGEZIS itself; the rest are observed
@@ -28,7 +30,13 @@ export const TimelinePayloads = {
     details: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
   }),
   ADAPTER_STOPPED: z.strictObject({ adapterId: z.string() }),
-  ACTION_STARTED: z.strictObject({ actionId: z.string(), step: PlanStep }),
+  PLAN_STARTED: z.strictObject({ planId: z.string(), title: z.string(), steps: z.int().positive() }),
+  PLAN_FINISHED: z.strictObject({
+    planId: z.string(),
+    verdict: RunVerdict,
+    stoppedAtStep: z.int().positive().optional(),
+  }),
+  ACTION_STARTED: z.strictObject({ actionId: z.string(), stepIndex: z.int().positive().optional(), step: PlanStep }),
   ACTION_SUCCEEDED: z.strictObject({ actionId: z.string(), durationMs: z.number().nonnegative() }),
   ACTION_FAILED: z.strictObject({
     actionId: z.string(),
@@ -37,6 +45,34 @@ export const TimelinePayloads = {
     error: ErrorInfo,
   }),
   ACTION_REJECTED: z.strictObject({ actionId: z.string(), reason: z.string() }),
+  ASSERTION_STARTED: z.strictObject({
+    assertionId: z.string(),
+    stepIndex: z.int().positive(),
+    purpose: AssertionPurpose,
+    description: z.string(),
+    assertion: Assertion,
+  }),
+  ASSERTION_PASSED: z.strictObject({ assertionId: z.string(), actual: z.json(), durationMs: z.number().nonnegative() }),
+  ASSERTION_FAILED: z.strictObject({
+    assertionId: z.string(),
+    expected: z.json(),
+    actual: z.json(),
+    message: z.string(),
+    durationMs: z.number().nonnegative(),
+  }),
+  ASSERTION_TIMEOUT: z.strictObject({
+    assertionId: z.string(),
+    timeoutReason: AssertionTimeoutReason,
+    actual: z.json(),
+    message: z.string(),
+    durationMs: z.number().nonnegative(),
+  }),
+  ASSERTION_ERROR: z.strictObject({
+    assertionId: z.string(),
+    errorKind: AssertionErrorKind,
+    message: z.string(),
+    durationMs: z.number().nonnegative(),
+  }),
   PAGE_NAVIGATED: z.strictObject({ url: z.string() }),
   PAGE_LOADED: z.strictObject({ url: z.string() }),
   PAGE_CRASHED: z.strictObject({ url: z.string() }),
@@ -91,10 +127,17 @@ export const TimelineEvent = z.discriminatedUnion("type", [
   eventSchema("RUN_FINISHED"),
   eventSchema("ADAPTER_STARTED"),
   eventSchema("ADAPTER_STOPPED"),
+  eventSchema("PLAN_STARTED"),
+  eventSchema("PLAN_FINISHED"),
   eventSchema("ACTION_STARTED"),
   eventSchema("ACTION_SUCCEEDED"),
   eventSchema("ACTION_FAILED"),
   eventSchema("ACTION_REJECTED"),
+  eventSchema("ASSERTION_STARTED"),
+  eventSchema("ASSERTION_PASSED"),
+  eventSchema("ASSERTION_FAILED"),
+  eventSchema("ASSERTION_TIMEOUT"),
+  eventSchema("ASSERTION_ERROR"),
   eventSchema("PAGE_NAVIGATED"),
   eventSchema("PAGE_LOADED"),
   eventSchema("PAGE_CRASHED"),

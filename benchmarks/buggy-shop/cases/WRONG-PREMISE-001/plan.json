@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "exegezis.test-plan/v1",
+  "id": "WRONG-PREMISE-001",
+  "title": "Removing one of two items updates the badge",
+  "description": "An anchor fails: the plan believes adding one mouse makes Cart (2). Its premise is wrong, so its failure is not a bug.",
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://localhost:3000/"
+  },
+  "preconditions": [
+    "buggy-shop is running at the target URL",
+    "Every execution starts from a fresh browser context"
+  ],
+  "provenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "steps": [
+    {
+      "type": "navigate",
+      "url": "/"
+    },
+    {
+      "type": "assert",
+      "id": "badge-initial",
+      "purpose": "anchor",
+      "description": "The cart badge starts at Cart (0)",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (0)"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Wireless Mouse to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "badge-after-add",
+      "purpose": "anchor",
+      "description": "The cart badge displays Cart (2)",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (2)"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Remove Wireless Mouse"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "badge-after-remove",
+      "purpose": "expectation",
+      "description": "The cart badge displays Cart (1)",
+      "timeoutMs": 2000,
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (1)"
+      }
+    }
+  ],
+  "metadata": {
+    "lab": "buggy-shop",
+    "category": "negative"
+  }
+}

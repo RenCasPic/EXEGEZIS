@@ -1,8 +1,17 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/core" },
-    { "path": "packages/adapter-browser" },
-    { "path": "apps/cli" }
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/adapter-browser"
+    },
+    {
+      "path": "packages/compiler-playwright"
+    },
+    {
+      "path": "apps/cli"
+    }
   ]
 }

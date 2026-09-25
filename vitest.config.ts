@@ -22,6 +22,16 @@ export default defineConfig({
       },
       {
         test: {
+          name: "compiler-playwright",
+          root: "packages/compiler-playwright",
+          include: ["test/**/*.test.ts"],
+          // Runs compiled specs with the real Playwright runner.
+          testTimeout: 120_000,
+          hookTimeout: 60_000,
+        },
+      },
+      {
+        test: {
           name: "cli",
           root: "apps/cli",
           include: ["test/**/*.test.ts"],

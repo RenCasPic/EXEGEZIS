@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "BAD-SELECTOR-001",
+  "kind": "negative",
+  "title": "Removing an item (with a selector that does not exist)",
+  "symptom": "After removing the only item from the cart, the cart badge still shows one item.",
+  "expectedBug": null,
+  "plan": "plan.json",
+  "expected": {
+    "outcome": "INVALID_PLAN",
+    "step": null,
+    "value": null
+  }
+}

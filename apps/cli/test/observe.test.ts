@@ -66,7 +66,7 @@ describe("exegezis observe", () => {
     const manifest = readManifest(dir);
     expect(manifest.complete).toBe(true);
     expect(manifest.runId).toBe(runId);
-    for (const path of ["metadata.json", "timeline.json", "console.json", "network.json", "accessibility.json", "trace.zip", "exegezis.log.jsonl"]) {
+    for (const path of ["metadata.json", "timeline.json", "assertions.json", "console.json", "network.json", "accessibility.json", "trace.zip", "exegezis.log.jsonl"]) {
       expect(manifest.artifacts.some((a) => a.path === path), path).toBe(true);
     }
     expect(manifest.artifacts.some((a) => a.type === "screenshot")).toBe(true);
@@ -87,7 +87,7 @@ describe("exegezis observe", () => {
     expect(records.some((r) => r.message === "run started" && r.eventId === "evt-000001")).toBe(true);
   });
 
-  it("exits 1 and keeps the evidence when an action fails", async () => {
+  it("exits 4 (inconclusive) and keeps the evidence when an action fails", async () => {
     const plan = join(workDir, "failing-plan.json");
     await writeFile(
       plan,
@@ -97,7 +97,7 @@ describe("exegezis observe", () => {
       }),
     );
     const { code, stdout } = await cli(["observe", "--url", baseUrl, "--output", "runs-fail", "--actions", plan]);
-    expect(code).toBe(1);
+    expect(code).toBe(4);
     expect(stdout).toContain("Run failed during action");
     expect(stdout).toContain("Evidence captured up to the failure was kept.");
 
@@ -127,21 +127,22 @@ describe("exegezis observe", () => {
   });
 
   it("prints help and version", async () => {
-    expect((await cli(["--help"])).stdout).toContain("exegezis observe --url <url>");
+    expect((await cli(["--help"])).stdout).toMatch(/exegezis observe +--url <url>/);
     expect((await cli(["--version"])).stdout).toMatch(/^\d+\.\d+\.\d+\n$/);
   });
 });
 
 describe("buildObservePlan", () => {
   it("navigates then observes when no actions are given", async () => {
-    const plan = await buildObservePlan("http://x/", undefined, workDir);
+    const plan = await buildObservePlan("http://x/", undefined, { cwd: workDir });
     expect(plan.steps).toEqual([{ type: "navigate", url: "http://x/" }, { type: "observe", label: "page" }]);
+    expect(plan.target.baseUrl).toBe("http://x/");
   });
 
   it("wraps user actions between navigation and a final observation", async () => {
     const file = join(workDir, "plan.json");
     await writeFile(file, JSON.stringify({ schemaVersion: "exegezis.plan/v1", steps: [{ type: "press", key: "Tab" }] }));
-    const plan = await buildObservePlan("http://x/", "plan.json", workDir);
+    const plan = await buildObservePlan("http://x/", "plan.json", { cwd: workDir });
     expect(plan.steps.map((s) => s.type)).toEqual(["navigate", "press", "observe"]);
   });
 });

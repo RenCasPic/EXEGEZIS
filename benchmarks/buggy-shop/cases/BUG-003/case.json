@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "BUG-003",
+  "kind": "positive",
+  "title": "Purchased items reappear in the cart after checkout",
+  "symptom": "After placing an order and continuing to shop, the items I already bought show up in my cart again.",
+  "expectedBug": "BUG-003",
+  "plan": "plan.json",
+  "expected": {
+    "outcome": "VERIFIED",
+    "step": 10,
+    "value": "present"
+  }
+}

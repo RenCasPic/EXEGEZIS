@@ -5,6 +5,7 @@ export const ArtifactType = z.enum([
   "metadata",
   "plan",
   "timeline",
+  "assertions",
   "console",
   "execution_errors",
   "network",

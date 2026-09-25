@@ -15,8 +15,9 @@ import {
   RunRecorder,
   silentLogger,
   Timeline,
+  UNKNOWN_PROVENANCE,
   type AccessibilityNode,
-  type Plan,
+  type TestPlan,
   type RunOutcome,
 } from "@exegezis/core";
 import { unzipSync } from "fflate";
@@ -38,12 +39,20 @@ afterAll(async () => {
   await rm(outputDir, { recursive: true, force: true });
 });
 
-async function run(steps: Plan["steps"], options: ConstructorParameters<typeof BrowserAdapter>[0] = {}): Promise<RunOutcome> {
+async function run(steps: TestPlan["steps"], options: ConstructorParameters<typeof BrowserAdapter>[0] = {}): Promise<RunOutcome> {
   const recorder = await RunRecorder.create({ outputDir });
   return executeRun({
     adapter: new BrowserAdapter({ settleTimeoutMs: 2_000, ...options }),
-    plan: { schemaVersion: "exegezis.plan/v1", steps },
-    target: { kind: "web", url: server.url },
+    plan: {
+      schemaVersion: "exegezis.test-plan/v1",
+      id: "adapter-test",
+      title: "adapter test",
+      target: { kind: "web", baseUrl: `${server.url}/` },
+      preconditions: [],
+      provenance: UNKNOWN_PROVENANCE,
+      steps,
+      metadata: {},
+    },
     recorder,
     logger: silentLogger,
     command: "observe",
@@ -109,7 +118,7 @@ describe("observe a page", () => {
     expect(manifest.complete).toBe(true);
     expect(manifest.missing).toEqual([]);
     expect(new Set(manifest.artifacts.map((a) => a.type))).toEqual(
-      new Set(["metadata", "plan", "timeline", "console", "network", "accessibility", "observations", "dom_snapshot", "screenshot", "trace", "execution_errors"]),
+      new Set(["metadata", "plan", "timeline", "console", "network", "accessibility", "observations", "dom_snapshot", "screenshot", "trace", "execution_errors", "assertions"]),
     );
   });
 

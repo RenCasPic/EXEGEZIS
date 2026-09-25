@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "TIMEOUT-001",
+  "kind": "negative",
+  "title": "Order shipping status appears after checkout",
+  "symptom": "After checkout I never see that my order has shipped.",
+  "expectedBug": null,
+  "plan": "plan.json",
+  "expected": {
+    "outcome": "INCONCLUSIVE",
+    "step": null,
+    "value": null
+  }
+}

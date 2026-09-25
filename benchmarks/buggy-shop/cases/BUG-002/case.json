@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "BUG-002",
+  "kind": "positive",
+  "title": "Coupon discount ignores item quantity",
+  "symptom": "With two units of the same product in the cart, the 10% coupon discounts only the price of one unit.",
+  "expectedBug": "BUG-002",
+  "plan": "plan.json",
+  "expected": {
+    "outcome": "VERIFIED",
+    "step": 10,
+    "value": {
+      "status": 200,
+      "body": {
+        "pointer": "/discountCents",
+        "value": 899
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "exegezis.test-plan/v1",
+  "id": "WEAK-ANCHOR-001",
+  "title": "The cart badge shows one item",
+  "description": "Reproducible expected != actual, but nothing establishes the state it checks: not a Verified Bug.",
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://localhost:3000/"
+  },
+  "preconditions": [
+    "buggy-shop is running at the target URL",
+    "Every execution starts from a fresh browser context"
+  ],
+  "provenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "steps": [
+    {
+      "type": "navigate",
+      "url": "/"
+    },
+    {
+      "type": "assert",
+      "id": "badge-one",
+      "purpose": "expectation",
+      "description": "The cart badge displays Cart (1)",
+      "timeoutMs": 2000,
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (1)"
+      }
+    }
+  ],
+  "metadata": {
+    "lab": "buggy-shop",
+    "category": "negative"
+  }
+}

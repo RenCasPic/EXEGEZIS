@@ -15,9 +15,13 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["bin", "dist"],
+  "files": [
+    "bin",
+    "dist"
+  ],
   "dependencies": {
     "@exegezis/adapter-browser": "workspace:*",
-    "@exegezis/core": "workspace:*"
+    "@exegezis/core": "workspace:*",
+    "@exegezis/compiler-playwright": "workspace:*"
   }
 }

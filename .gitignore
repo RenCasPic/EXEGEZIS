@@ -9,3 +9,9 @@ runs/
 # Playwright
 test-results/
 playwright-report/
+
+# Compiler tests write specs inside the repo so @playwright/test resolves
+packages/compiler-playwright/test/.tmp/
+
+# CLI end-to-end tests write runs and compiled specs inside the repo
+apps/cli/test/.tmp/

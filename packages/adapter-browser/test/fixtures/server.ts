@@ -58,6 +58,27 @@ const ERROR_PAGE = `<!doctype html>
 <script>setTimeout(() => { throw new TypeError("fixture uncaught error"); }, 0);</script>
 </body></html>`;
 
+const ASSERTIONS_PAGE = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Assertions</title></head>
+<body>
+  <h1>Assertions</h1>
+  <p role="status">Loading</p>
+  <ul aria-label="Items"><li>One</li><li>Two</li><li>Three</li></ul>
+  <a href="/next" data-kind="primary">Next page</a>
+  <label>Email <input type="email" placeholder="you@example.com"></label>
+  <p hidden>Hidden note</p>
+  <button>Duplicate</button><button>Duplicate</button>
+  <p role="timer">0</p>
+  <script>
+    let ticks = 0;
+    setInterval(() => { document.querySelector("[role=timer]").textContent = String(++ticks); }, 50);
+    setTimeout(() => { document.querySelector("[role=status]").textContent = "Ready"; }, 400);
+    fetch("/api/total", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  </script>
+</body>
+</html>`;
+
 export interface FixtureServer {
   url: string;
   close(): Promise<void>;
@@ -74,6 +95,16 @@ export async function startFixtureServer(): Promise<FixtureServer> {
     if (url.pathname === "/error") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(ERROR_PAGE);
+      return;
+    }
+    if (url.pathname === "/assertions") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(ASSERTIONS_PAGE);
+      return;
+    }
+    if (url.pathname === "/api/total" && req.method === "POST") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ totalCents: 1234, items: [{ id: "a" }], token: FIXTURE_SECRETS.responseToken }));
       return;
     }
     if (url.pathname === "/api/data") {

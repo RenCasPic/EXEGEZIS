@@ -9,6 +9,9 @@ import {
   type AccessibilitySnapshotEvidence,
   type Action,
   type AdapterSession,
+  type Assertion,
+  type AssertionEvaluation,
+  type AssertOptions,
   type BodyCapture,
   type CollectorStatus,
   type ConsoleLevel,
@@ -25,6 +28,7 @@ import {
 } from "@exegezis/core";
 import type { Browser, BrowserContext, ConsoleMessage, Page, Request, Response, WebError } from "playwright";
 import { z } from "zod";
+import { evaluateAssertion } from "./assertions.js";
 import { toLocator } from "./locator.js";
 import type { BrowserAdapterOptions } from "./options.js";
 import { sanitizeTraceArchive } from "./trace-redaction.js";
@@ -116,6 +120,28 @@ export class BrowserSession implements AdapterSession {
         await this.captureScreenshot("action", action.name ?? actionId, action.fullPage ?? true);
         return;
     }
+  }
+
+  async assert(assertion: Assertion, options: AssertOptions): Promise<AssertionEvaluation> {
+    return evaluateAssertion(
+      {
+        page: this.page,
+        baseUrl: options.baseUrl,
+        lastResponse: async (method, path) => {
+          // Response bodies are captured asynchronously; let them land first.
+          await this.drainPending();
+          for (let i = this.exchanges.length - 1; i >= 0; i--) {
+            const exchange = this.exchanges[i];
+            if (exchange?.response === undefined) continue;
+            if (method !== undefined && exchange.request.method !== method) continue;
+            if (new URL(exchange.request.url).pathname === path) return exchange;
+          }
+          return undefined;
+        },
+      },
+      assertion,
+      { timeoutMs: options.timeoutMs, stabilityMs: options.stabilityMs },
+    );
   }
 
   async observe(request: ObserveRequest): Promise<Observation> {

@@ -5,8 +5,10 @@
 EXEGEZIS reproduces software behavior, explains why it happens and proves when
 it is fixed. Every claim it makes must trace back to evidence.
 
-**Current stage:** Phase 0 / Iteration 1 — *Evidence Engine*. Deterministic
-observation of web apps, no AI yet. *Evidence first. Intelligence later.*
+**Current stage:** Phase 0 / Iteration 2.5 — *Verification hardening*. Deterministic
+observation, assertions, reproduction, Verified Bugs, compilation to standalone
+Playwright tests, semantic plan validation, anchoring, timeout policy, plan
+provenance and a benchmark. No AI yet. *Don't trust the model. Verify the claim.*
 
 ## Quick start
 
@@ -21,12 +23,21 @@ pnpm --filter buggy-shop dev          # http://localhost:3000
 pnpm exegezis observe --url http://localhost:3000 --output ./runs
 ```
 
-Reproduce a known bug from a plan (actions as data):
+Verify a known bug (plan → 10 isolated runs → compiled Playwright spec → report):
 
 ```bash
-pnpm exegezis observe --url http://localhost:3000 \
-  --actions examples/buggy-shop/scenarios/bug-002-coupon-quantity.json
+pnpm exegezis verify --plan benchmarks/buggy-shop/cases/BUG-001/plan.json --runs 10
 ```
+
+Run the benchmark (3 bugs that must be VERIFIED, 6 negative cases that must never be):
+
+```bash
+pnpm benchmark
+```
+
+Other commands: `run` (one execution, step by step), `reproduce` (N runs,
+classified), `compile` (plan → standalone `.spec.ts`), `validate` (semantic
+validation against a preflight observation). See `pnpm exegezis --help`.
 
 Open a run's trace:
 
@@ -38,19 +49,23 @@ pnpm --filter @exegezis/adapter-browser exec playwright show-trace <absolute-pat
 
 | Path | Responsibility |
 |---|---|
-| `packages/core` | Zod schemas (source of truth), actions as data, adapter contract, run recorder, plan executor, redaction, structured logging |
-| `packages/adapter-browser` | Playwright/Chromium adapter: actions, observations, console, network, accessibility, screenshots, trace |
+| `packages/core` | Zod schemas (source of truth): actions, assertions, test plans, evidence, reproduction, verification; run recorder, plan executor, reproduction loop, bug reports, redaction, structured logging |
+| `packages/adapter-browser` | Playwright/Chromium adapter: actions, assertion evaluators, observations, console, network, accessibility, screenshots, trace |
+| `packages/compiler-playwright` | Test plan → standalone Playwright spec; runs specs with the standard Playwright runner |
 | `apps/cli` | `exegezis` command |
 | `examples/buggy-shop` | Evidence lab: a shop with exactly 3 seeded bugs that its own test suite does not catch |
+| `benchmarks/buggy-shop` | Benchmark dataset: symptom, reference plan, expected outcome (and compiled spec) per case |
 | `docs/` | Product deep dive and engineering notes |
 
 ## Scripts
 
 | Command | What it does |
 |---|---|
-| `pnpm test` | EXEGEZIS tests + buggy-shop conventional suite + known-bugs ground truth |
-| `pnpm typecheck` | Type-checks packages, tests and the example |
+| `pnpm test` | EXEGEZIS tests (incl. end-to-end verification of the 3 lab bugs) + buggy-shop conventional suite + known-bugs ground truth |
+| `pnpm typecheck` | Type-checks packages, tests, the example and its compiled specs |
 | `pnpm lint` | ESLint with type-aware rules |
 | `pnpm verify` | All of the above |
 
-See [docs/01-evidence-engine.md](docs/01-evidence-engine.md) for the run format and design decisions.
+Design notes: [docs/01-evidence-engine.md](docs/01-evidence-engine.md) (evidence and run format),
+[docs/02-verification-engine.md](docs/02-verification-engine.md) (assertions, reproduction, Verified Bug, compiler) and
+[docs/03-verification-hardening.md](docs/03-verification-hardening.md) (outcomes, validation, anchoring, timeouts, provenance, benchmark).

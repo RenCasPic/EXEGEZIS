@@ -1,7 +1,14 @@
 import { createRequire } from "node:module";
 import { toErrorInfo } from "@exegezis/core";
-import { HELP, parseCliArgs, UsageError } from "./args.js";
-import { observeCommand, type CliIo } from "./observe.js";
+import { EXIT, HELP, parseCliArgs, UsageError } from "./args.js";
+import { compileCommand } from "./compile.js";
+import { observeCommand } from "./observe.js";
+import { reproduceCommand } from "./reproduce.js";
+import { runCommand } from "./run.js";
+import type { CliIo } from "./shared.js";
+import { validateCommand } from "./validate.js";
+import { verifyCommand } from "./verify.js";
+import { benchmarkCommand } from "./benchmark.js";
 
 const require = createRequire(import.meta.url);
 export const VERSION = (require("../package.json") as { version: string }).version;
@@ -9,24 +16,37 @@ export const VERSION = (require("../package.json") as { version: string }).versi
 export async function main(argv: readonly string[], io: CliIo): Promise<number> {
   try {
     const command = parseCliArgs(argv);
+    const exegezisVersion = VERSION;
     switch (command.kind) {
       case "help":
         io.stdout.write(HELP);
-        return 0;
+        return EXIT.ok;
       case "version":
         io.stdout.write(`${VERSION}\n`);
-        return 0;
+        return EXIT.ok;
       case "observe":
-        return await observeCommand({ ...command, exegezisVersion: VERSION }, io);
+        return await observeCommand({ ...command, exegezisVersion }, io);
+      case "run":
+        return await runCommand({ ...command, exegezisVersion }, io);
+      case "reproduce":
+        return await reproduceCommand({ ...command, exegezisVersion }, io);
+      case "compile":
+        return await compileCommand({ ...command, exegezisVersion }, io);
+      case "verify":
+        return await verifyCommand({ ...command, exegezisVersion }, io);
+      case "validate":
+        return await validateCommand({ ...command, exegezisVersion }, io);
+      case "benchmark":
+        return await benchmarkCommand({ ...command, exegezisVersion }, io);
     }
   } catch (error) {
     if (error instanceof UsageError) {
       io.stderr.write(`Error: ${error.message}\n`);
-      return 2;
+      return EXIT.usage;
     }
     const info = toErrorInfo(error);
     io.stderr.write(`Internal error: ${info.message}\n${info.stack ?? ""}\n`);
-    return 3;
+    return EXIT.internal;
   }
 }
 

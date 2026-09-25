@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "exegezis.benchmark-suite/v1",
+  "id": "buggy-shop",
+  "description": "The buggy-shop evidence lab: 3 seeded bugs that must be VERIFIED, and negative cases (healthy behavior, wrong selector, timeout, unsupported assertion, weak anchoring, wrong premise) that must never be.",
+  "app": {
+    "command": [
+      "node",
+      "src/server.ts"
+    ],
+    "cwd": "../../examples/buggy-shop",
+    "portEnv": "PORT",
+    "healthPath": "/api/health"
+  },
+  "runs": 10,
+  "cases": [
+    "cases/BUG-001",
+    "cases/BUG-002",
+    "cases/BUG-003",
+    "cases/HEALTHY-001",
+    "cases/BAD-SELECTOR-001",
+    "cases/TIMEOUT-001",
+    "cases/UNSUPPORTED-001",
+    "cases/WEAK-ANCHOR-001",
+    "cases/WRONG-PREMISE-001"
+  ]
+}

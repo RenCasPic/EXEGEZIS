@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "exegezis.test-plan/v1",
+  "id": "TIMEOUT-001",
+  "title": "Order shipping status appears after checkout",
+  "description": "The plan expects an element that never appears: absence is not evidence of a bug.",
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://localhost:3000/"
+  },
+  "preconditions": [
+    "buggy-shop is running at the target URL",
+    "Every execution starts from a fresh browser context"
+  ],
+  "provenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "steps": [
+    {
+      "type": "navigate",
+      "url": "/"
+    },
+    {
+      "type": "assert",
+      "id": "badge-initial",
+      "purpose": "anchor",
+      "description": "The cart badge starts at Cart (0)",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (0)"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Mechanical Keyboard to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "keyboard-in-cart",
+      "purpose": "anchor",
+      "description": "The keyboard is in the cart",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "text": "Mechanical Keyboard × 1"
+        },
+        "expected": "visible"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Checkout"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "order-confirmed",
+      "purpose": "anchor",
+      "description": "The order is confirmed",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "role": "heading",
+          "name": "Order confirmed"
+        },
+        "expected": "visible"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "order-shipped",
+      "purpose": "expectation",
+      "description": "The order shows as shipped",
+      "timeoutMs": 1500,
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "role": "heading",
+          "name": "Order shipped"
+        },
+        "expected": "visible"
+      }
+    }
+  ],
+  "metadata": {
+    "lab": "buggy-shop",
+    "category": "negative"
+  }
+}

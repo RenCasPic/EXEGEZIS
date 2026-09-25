@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "exegezis.test-plan/v1",
+  "id": "BAD-SELECTOR-001",
+  "title": "Removing an item (with a selector that does not exist)",
+  "description": "The plan clicks a button that does not exist on the page: a wrong plan, not a bug.",
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://localhost:3000/"
+  },
+  "preconditions": [
+    "buggy-shop is running at the target URL",
+    "Every execution starts from a fresh browser context"
+  ],
+  "provenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "steps": [
+    {
+      "type": "navigate",
+      "url": "/"
+    },
+    {
+      "type": "assert",
+      "id": "badge-initial",
+      "purpose": "anchor",
+      "description": "The cart badge starts at Cart (0)",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (0)"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Wireless Mouse to basket"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "badge-after-add",
+      "purpose": "anchor",
+      "description": "The cart badge displays Cart (1)",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (1)"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Remove Wireless Mouse"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "badge-after-remove",
+      "purpose": "expectation",
+      "description": "The cart badge displays Cart (0)",
+      "timeoutMs": 2000,
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (0)"
+      }
+    }
+  ],
+  "metadata": {
+    "lab": "buggy-shop",
+    "category": "negative"
+  }
+}

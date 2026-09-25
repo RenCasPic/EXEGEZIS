@@ -52,7 +52,7 @@ export const ExecutionErrorEvidence = z.strictObject({
   kind: z.literal("execution_error"),
   id: z.string(),
   timestamp: Timestamp,
-  phase: z.enum(["start", "action", "observe", "collect", "close"]),
+  phase: z.enum(["start", "action", "assertion", "observe", "run", "collect", "close"]),
   actionId: z.string().optional(),
   error: ErrorInfo,
 });

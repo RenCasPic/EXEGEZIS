@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "HEALTHY-001",
+  "kind": "negative",
+  "title": "Adding a product updates the cart badge",
+  "symptom": "Adding a product should update the cart badge (this works correctly).",
+  "expectedBug": null,
+  "plan": "plan.json",
+  "expected": {
+    "outcome": "NOT_VERIFIED",
+    "step": null,
+    "value": null
+  }
+}

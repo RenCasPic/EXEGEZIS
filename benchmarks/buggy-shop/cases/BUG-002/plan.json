@@ -1,0 +1,141 @@
+{
+  "schemaVersion": "exegezis.test-plan/v1",
+  "id": "BUG-002",
+  "title": "Coupon discount ignores item quantity",
+  "description": "With two units of the same product, the 10% coupon should discount 10% of the subtotal. The API computes the discount from the unit prices only.",
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://localhost:3000/"
+  },
+  "preconditions": [
+    "buggy-shop is running at the target URL",
+    "Every execution starts from a fresh browser context, hence a new session with an empty cart",
+    "Coupon SAVE10 grants 10% off; Mechanical Keyboard costs $89.90"
+  ],
+  "provenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "steps": [
+    {
+      "type": "navigate",
+      "url": "/"
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Mechanical Keyboard to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "one-keyboard",
+      "description": "The cart holds one keyboard",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "text": "Mechanical Keyboard × 1"
+        },
+        "expected": "visible"
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Mechanical Keyboard to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "two-keyboards",
+      "description": "The cart holds two keyboards",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "text": "Mechanical Keyboard × 2"
+        },
+        "expected": "visible"
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "fill",
+      "target": {
+        "label": "Coupon code"
+      },
+      "value": "SAVE10"
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Apply coupon"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "coupon-accepted",
+      "description": "The coupon is accepted",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "status"
+        },
+        "expected": "Coupon SAVE10 applied"
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "assert",
+      "id": "api-subtotal",
+      "description": "The API computes the subtotal of two keyboards ($179.80)",
+      "assertion": {
+        "kind": "http",
+        "request": {
+          "method": "POST",
+          "path": "/api/cart/coupon"
+        },
+        "expected": {
+          "status": 200,
+          "body": {
+            "pointer": "/subtotalCents",
+            "equals": 17980
+          }
+        }
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "assert",
+      "id": "api-discount",
+      "description": "The API applies 10% of the subtotal as discount ($17.98)",
+      "timeoutMs": 2000,
+      "assertion": {
+        "kind": "http",
+        "request": {
+          "method": "POST",
+          "path": "/api/cart/coupon"
+        },
+        "expected": {
+          "body": {
+            "pointer": "/discountCents",
+            "equals": 1798
+          }
+        }
+      },
+      "purpose": "expectation"
+    }
+  ],
+  "metadata": {
+    "lab": "buggy-shop",
+    "knownBug": "BUG-002",
+    "category": "api-data"
+  }
+}

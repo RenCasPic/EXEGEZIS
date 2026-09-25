@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "UNSUPPORTED-001",
+  "kind": "negative",
+  "title": "The cart looks right after adding an item",
+  "symptom": "The cart looks broken after adding an item.",
+  "expectedBug": null,
+  "plan": "plan.json",
+  "expected": {
+    "outcome": "UNSUPPORTED",
+    "step": null,
+    "value": null
+  }
+}

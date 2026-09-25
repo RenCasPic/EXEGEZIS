@@ -1,8 +1,13 @@
 import { z } from "zod";
 import { ErrorInfo, RelativePath, RunId, Timestamp, Viewport } from "./common.js";
+import { Provenance, TimeoutPolicy } from "./policy.js";
 
+/** Whether EXEGEZIS itself managed to execute and record the run. */
 export const RunStatus = z.enum(["running", "completed", "failed"]);
 export type RunStatus = z.infer<typeof RunStatus>;
+
+export const RunVerdict = z.enum(["passed", "failed", "timeout", "error", "no_assertions"]);
+export type RunVerdict = z.infer<typeof RunVerdict>;
 
 export const Target = z.strictObject({
   kind: z.literal("web"),
@@ -44,44 +49,6 @@ export const RunEnvironment = z.strictObject({
 });
 export type RunEnvironment = z.infer<typeof RunEnvironment>;
 
-export const Reproduction = z
-  .strictObject({
-    /** Number of executions of the same plan. */
-    attempts: z.int().nonnegative(),
-    /** Executions in which the behavior under study was reproduced. */
-    successes: z.int().nonnegative(),
-    /** Executions in which it was not reproduced. */
-    failures: z.int().nonnegative(),
-    /** successes / attempts, or null when there were no attempts. */
-    rate: z.number().min(0).max(1).nullable(),
-    runIds: z.array(RunId).optional(),
-  })
-  .refine((r) => r.successes + r.failures === r.attempts, {
-    message: "successes + failures must equal attempts",
-  })
-  .refine(
-    (r) =>
-      r.attempts === 0 ? r.rate === null : r.rate !== null && Math.abs(r.rate - r.successes / r.attempts) < 1e-9,
-    { message: "rate must equal successes / attempts (null when attempts is 0)" },
-  )
-  .refine((r) => r.runIds === undefined || r.runIds.length === r.attempts, {
-    message: "runIds must list one run per attempt",
-  });
-export type Reproduction = z.infer<typeof Reproduction>;
-
-/** Builds a Reproduction from per-attempt outcomes (true = reproduced). */
-export function computeReproduction(outcomes: readonly boolean[], runIds?: readonly string[]): Reproduction {
-  const successes = outcomes.filter(Boolean).length;
-  const attempts = outcomes.length;
-  return Reproduction.parse({
-    attempts,
-    successes,
-    failures: attempts - successes,
-    rate: attempts === 0 ? null : successes / attempts,
-    ...(runIds === undefined ? {} : { runIds: [...runIds] }),
-  });
-}
-
 export const RunMetadata = z.strictObject({
   schemaVersion: z.literal("exegezis.run/v1"),
   runId: RunId,
@@ -100,7 +67,34 @@ export const RunMetadata = z.strictObject({
   environment: RunEnvironment.optional(),
   collectors: z.record(z.string(), CollectorStatus),
   error: ErrorInfo.extend({ phase: z.string() }).optional(),
-  reproduction: Reproduction.optional(),
+  /**
+   * What the plan concluded, independent of `status`:
+   * - `passed`: every assertion held.
+   * - `failed`: an assertion was evaluated, its value was stable, and it did not hold.
+   * - `timeout`: an assertion reached its timeout without a conclusion.
+   * - `error`: the plan could not be evaluated (action failed, target not found,
+   *   app unreachable...). Never evidence of a bug.
+   * - `no_assertions`: the plan only observes; there is nothing to conclude.
+   */
+  verdict: RunVerdict.optional(),
+  plan: z
+    .strictObject({ id: z.string(), title: z.string(), steps: z.int().positive(), provenance: Provenance })
+    .optional(),
+  /** Effective timeout policy (defaults + plan overrides). */
+  timeouts: TimeoutPolicy.optional(),
+  assertions: z
+    .strictObject({
+      total: z.int().nonnegative(),
+      passed: z.int().nonnegative(),
+      failed: z.int().nonnegative(),
+      timedOut: z.int().nonnegative(),
+      errored: z.int().nonnegative(),
+      /** Declared in the plan but not reached because an earlier step stopped the run. */
+      notRun: z.int().nonnegative(),
+    })
+    .optional(),
+  /** 1-based index of the step that stopped the plan (failed assertion or error). */
+  stoppedAtStep: z.int().positive().optional(),
   redaction: z.strictObject({
     policy: z.string(),
     /** Number of distinct secret values that were scrubbed from artifacts. */

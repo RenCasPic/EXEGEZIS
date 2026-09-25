@@ -15,11 +15,13 @@
     "test:exegezis": "tsc -b && vitest run",
     "verify": "pnpm typecheck && pnpm lint && pnpm test",
     "exegezis": "exegezis",
-    "clean": "tsc -b --clean"
+    "clean": "tsc -b --clean",
+    "benchmark": "exegezis benchmark --suite buggy-shop"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@exegezis/cli": "workspace:*",
+    "@playwright/test": "1.63.0",
     "@types/node": "^24.13.6",
     "eslint": "^10.11.0",
     "typescript": "~6.0.3",

@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "exegezis.test-plan/v1",
+  "id": "BUG-003",
+  "title": "Purchased items reappear in the cart after checkout",
+  "description": "After a successful checkout the UI shows an empty cart, but the server cart is never cleared: continuing to shop brings the purchased items back.",
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://localhost:3000/"
+  },
+  "preconditions": [
+    "buggy-shop is running at the target URL",
+    "Every execution starts from a fresh browser context, hence a new session with an empty cart"
+  ],
+  "provenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "steps": [
+    {
+      "type": "navigate",
+      "url": "/"
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Mechanical Keyboard to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "keyboard-in-cart",
+      "description": "The keyboard is in the cart",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "text": "Mechanical Keyboard × 1"
+        },
+        "expected": "visible"
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Checkout"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "order-confirmed",
+      "description": "The order is confirmed",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "role": "heading",
+          "name": "Order confirmed"
+        },
+        "expected": "visible"
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "assert",
+      "id": "order-created",
+      "description": "The server created the order",
+      "assertion": {
+        "kind": "http",
+        "request": {
+          "method": "POST",
+          "path": "/api/checkout"
+        },
+        "expected": {
+          "status": 201
+        }
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Continue shopping"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Wireless Mouse to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "mouse-in-cart",
+      "description": "The newly added mouse is in the cart",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "text": "Wireless Mouse × 1"
+        },
+        "expected": "visible"
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "assert",
+      "id": "purchased-item-gone",
+      "description": "The already purchased keyboard is no longer in the cart",
+      "timeoutMs": 2000,
+      "assertion": {
+        "kind": "existence",
+        "target": {
+          "text": "Mechanical Keyboard ×"
+        },
+        "expected": "absent"
+      },
+      "purpose": "expectation"
+    }
+  ],
+  "metadata": {
+    "lab": "buggy-shop",
+    "knownBug": "BUG-003",
+    "category": "workflow"
+  }
+}

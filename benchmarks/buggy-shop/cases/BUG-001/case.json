@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "BUG-001",
+  "kind": "positive",
+  "title": "Cart badge is not updated after removing an item",
+  "symptom": "After removing the only item from the cart, the cart badge in the header still shows one item.",
+  "expectedBug": "BUG-001",
+  "plan": "plan.json",
+  "expected": {
+    "outcome": "VERIFIED",
+    "step": 9,
+    "value": "Cart (1)"
+  }
+}

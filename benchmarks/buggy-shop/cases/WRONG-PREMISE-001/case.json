@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "WRONG-PREMISE-001",
+  "kind": "negative",
+  "title": "Removing one of two items updates the badge",
+  "symptom": "After removing an item the cart badge is wrong.",
+  "expectedBug": null,
+  "plan": "plan.json",
+  "expected": {
+    "outcome": "INCONCLUSIVE",
+    "step": null,
+    "value": null
+  }
+}

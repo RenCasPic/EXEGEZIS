@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Logger } from "./logger.js";
 import type { RunRecorder } from "./recorder.js";
 import { ActionType, type Action } from "./schemas/action.js";
+import { AssertionKind, type Assertion, type AssertionEvaluation } from "./schemas/assertion.js";
 import type { Observation } from "./schemas/evidence.js";
 import { ArtifactType } from "./schemas/manifest.js";
 import type { CollectorStatus, RunEnvironment } from "./schemas/run.js";
@@ -34,6 +35,8 @@ export const AdapterDescriptor = z.strictObject({
   description: z.string(),
   capabilities: z.array(Capability),
   actions: z.array(ActionType),
+  /** Assertion kinds this adapter can evaluate. */
+  assertions: z.array(AssertionKind),
   /** Artifact types this adapter produces on a successful run. */
   produces: z.array(ArtifactType),
 });
@@ -42,6 +45,14 @@ export type AdapterDescriptor = z.infer<typeof AdapterDescriptor>;
 export interface AdapterContext {
   recorder: RunRecorder;
   logger: Logger;
+}
+
+export interface AssertOptions {
+  timeoutMs: number;
+  /** A failure requires the observed value to be unchanged for this long. */
+  stabilityMs: number;
+  /** Base URL used to resolve relative expectations (e.g. URL assertions). */
+  baseUrl: string;
 }
 
 export interface ObserveRequest {
@@ -54,6 +65,12 @@ export interface AdapterSession {
   readonly environment: Pick<RunEnvironment, "adapter" | "browser" | "automation">;
   /** Executes one validated action. Throws if the action fails. */
   execute(action: Action, actionId: string): Promise<void>;
+  /**
+   * Evaluates one assertion deterministically, retrying until it holds or
+   * `timeoutMs` elapses (the semantics of Playwright's `expect`). Never throws
+   * for a failed expectation: that is a result, not an exception.
+   */
+  assert(assertion: Assertion, options: AssertOptions): Promise<AssertionEvaluation>;
   /** Captures the full current state of the target as evidence. */
   observe(request: ObserveRequest): Promise<Observation>;
   /**
@@ -69,6 +86,10 @@ export interface Adapter {
   /** Validated, JSON-serializable configuration; part of the run's configHash. */
   readonly config: Readonly<Record<string, unknown>>;
   start(context: AdapterContext): Promise<AdapterSession>;
+}
+
+export function supportsAssertion(descriptor: AdapterDescriptor, assertion: Assertion): boolean {
+  return descriptor.assertions.includes(assertion.kind);
 }
 
 export function supportsAction(descriptor: AdapterDescriptor, action: Action): boolean {

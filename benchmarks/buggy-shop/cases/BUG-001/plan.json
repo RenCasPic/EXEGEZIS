@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "exegezis.test-plan/v1",
+  "id": "BUG-001",
+  "title": "Cart badge is not updated after removing an item",
+  "description": "After removing the only item from the cart, the server reports an empty cart and the cart list is empty, but the header badge keeps the previous count.",
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://localhost:3000/"
+  },
+  "preconditions": [
+    "buggy-shop is running at the target URL",
+    "Every execution starts from a fresh browser context, hence a new session with an empty cart"
+  ],
+  "provenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "steps": [
+    {
+      "type": "navigate",
+      "url": "/"
+    },
+    {
+      "type": "assert",
+      "id": "catalog-loaded",
+      "description": "The catalog is loaded",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "role": "button",
+          "name": "Add Wireless Mouse to cart"
+        },
+        "expected": "visible"
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "assert",
+      "id": "badge-initial",
+      "description": "The cart badge starts at Cart (0)",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (0)"
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Wireless Mouse to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "badge-after-add",
+      "description": "The cart badge displays Cart (1) after adding one item",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (1)"
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Remove Wireless Mouse"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "server-cart-empty",
+      "description": "The server confirms the cart is empty after the removal",
+      "assertion": {
+        "kind": "http",
+        "request": {
+          "method": "DELETE",
+          "path": "/api/cart/items/mouse"
+        },
+        "expected": {
+          "status": 200,
+          "body": {
+            "pointer": "/itemCount",
+            "equals": 0
+          }
+        }
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "assert",
+      "id": "cart-list-empty",
+      "description": "The cart list shows it is empty",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "text": "Your cart is empty"
+        },
+        "expected": "visible"
+      },
+      "purpose": "anchor"
+    },
+    {
+      "type": "assert",
+      "id": "badge-after-remove",
+      "description": "Cart badge displays \"Cart (0)\" after removing the only item",
+      "timeoutMs": 2000,
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (0)"
+      },
+      "purpose": "expectation"
+    }
+  ],
+  "metadata": {
+    "lab": "buggy-shop",
+    "knownBug": "BUG-001",
+    "category": "ui-state"
+  }
+}

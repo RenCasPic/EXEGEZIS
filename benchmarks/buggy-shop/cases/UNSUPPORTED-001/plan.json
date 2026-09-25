@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "exegezis.test-plan/v1",
+  "id": "UNSUPPORTED-001",
+  "title": "The cart looks right after adding an item",
+  "description": "Visual comparison is part of the model but no adapter implements it yet.",
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://localhost:3000/"
+  },
+  "preconditions": [
+    "buggy-shop is running at the target URL",
+    "Every execution starts from a fresh browser context"
+  ],
+  "provenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "steps": [
+    {
+      "type": "navigate",
+      "url": "/"
+    },
+    {
+      "type": "assert",
+      "id": "badge-initial",
+      "purpose": "anchor",
+      "description": "The cart badge starts at Cart (0)",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "expected": "Cart (0)"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Wireless Mouse to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "cart-looks-right",
+      "purpose": "expectation",
+      "description": "The cart matches its visual baseline",
+      "timeoutMs": 2000,
+      "assertion": {
+        "kind": "visual",
+        "baseline": "cart-with-one-item"
+      }
+    }
+  ],
+  "metadata": {
+    "lab": "buggy-shop",
+    "category": "negative"
+  }
+}

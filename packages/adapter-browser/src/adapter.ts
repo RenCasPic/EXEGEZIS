@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import type { Adapter, AdapterContext, AdapterDescriptor, AdapterSession } from "@exegezis/core";
 import { chromium, type Browser } from "playwright";
+import { SUPPORTED_ASSERTIONS } from "./assertions.js";
 import { BrowserAdapterOptions, type BrowserAdapterOptionsInput } from "./options.js";
 import { BrowserSession } from "./session.js";
 
@@ -14,6 +15,7 @@ export const BROWSER_ADAPTER_DESCRIPTOR: AdapterDescriptor = {
   description: "Web applications in Chromium, driven by Playwright",
   capabilities: ["browser", "dom", "accessibility", "network", "console", "page_errors", "screenshots", "trace"],
   actions: ["navigate", "click", "fill", "press", "wait", "screenshot"],
+  assertions: SUPPORTED_ASSERTIONS,
   produces: ["console", "network", "accessibility", "observations", "screenshot", "trace"],
 };
 
