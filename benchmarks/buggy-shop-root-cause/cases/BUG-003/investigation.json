@@ -1,0 +1,123 @@
+{
+  "schemaVersion": "exegezis.root-cause-investigation/v1",
+  "bugId": "BUG-003",
+  "plan": "../../../buggy-shop/cases/BUG-003/plan.json",
+  "app": {
+    "dir": "../../../../examples/buggy-shop",
+    "include": [
+      "package.json",
+      "src",
+      "public"
+    ],
+    "command": [
+      "node",
+      "src/server.ts"
+    ],
+    "portEnv": "PORT",
+    "healthPath": "/api/health"
+  },
+  "policy": {
+    "runsPerArm": 5,
+    "minRefutedAlternatives": 1
+  },
+  "observations": [
+    {
+      "id": "checkout-ok",
+      "statement": "POST /api/checkout answers 201 with an order, and the UI shows an empty cart.",
+      "source": "network.json and observations.json after checkout"
+    },
+    {
+      "id": "cart-comes-back",
+      "statement": "The next POST /api/cart/items answers with two lines: the purchased keyboard and the mouse.",
+      "source": "network.json; assertions.json step 10"
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Shop.checkout() creates the order without emptying the session cart on the server.",
+      "rationale": "The server returns the purchased line after checkout, so the server cart was never cleared.",
+      "observations": [
+        "checkout-ok",
+        "cart-comes-back"
+      ],
+      "location": {
+        "file": "src/shop.ts",
+        "symbol": "Shop.checkout"
+      },
+      "intervention": {
+        "kind": "replace",
+        "file": "src/shop.ts",
+        "find": "    session.orders.push(order);\n    return order;",
+        "replace": "    session.orders.push(order);\n    session.cart = emptyCart();\n    return order;",
+        "description": "Empty the session cart in Shop.checkout() after recording the order."
+      },
+      "prediction": "eliminates",
+      "provenance": {
+        "source": "human",
+        "generator": "exegezis-dev",
+        "model": null,
+        "version": null,
+        "promptVersion": null,
+        "createdAt": "2026-09-25T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "The client's checkout() never calls DELETE /api/cart, which exists to clear the server cart.",
+      "rationale": "The UI draws an empty cart locally after checkout without telling the server.",
+      "observations": [
+        "checkout-ok",
+        "cart-comes-back"
+      ],
+      "location": {
+        "file": "public/app.js",
+        "symbol": "checkout"
+      },
+      "intervention": {
+        "kind": "replace",
+        "file": "public/app.js",
+        "find": "  const order = await api(\"/api/checkout\", { method: \"POST\" });",
+        "replace": "  const order = await api(\"/api/checkout\", { method: \"POST\" });\n  await api(\"/api/cart\", { method: \"DELETE\" });",
+        "description": "Call DELETE /api/cart right after a successful checkout."
+      },
+      "prediction": "eliminates",
+      "provenance": {
+        "source": "human",
+        "generator": "exegezis-dev",
+        "model": null,
+        "version": null,
+        "promptVersion": null,
+        "createdAt": "2026-09-25T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "continueShopping() restores the previous cart view on the client.",
+      "rationale": "The keyboard reappears right after pressing Continue shopping.",
+      "observations": [
+        "cart-comes-back"
+      ],
+      "location": {
+        "file": "public/app.js",
+        "symbol": "continueShopping"
+      },
+      "intervention": {
+        "kind": "replace",
+        "file": "public/app.js",
+        "find": "  $(\"confirmation\").hidden = true;",
+        "replace": "  $(\"confirmation\").hidden = true;\n  $(\"cart-items\").replaceChildren();",
+        "description": "Clear the rendered cart list when continuing to shop."
+      },
+      "prediction": "eliminates",
+      "provenance": {
+        "source": "human",
+        "generator": "exegezis-dev",
+        "model": null,
+        "version": null,
+        "promptVersion": null,
+        "createdAt": "2026-09-25T00:00:00.000Z"
+      }
+    }
+  ]
+}

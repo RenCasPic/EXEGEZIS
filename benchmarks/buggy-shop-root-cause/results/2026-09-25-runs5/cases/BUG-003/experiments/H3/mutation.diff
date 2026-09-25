@@ -1,0 +1,5 @@
+--- a/public/app.js
++++ b/public/app.js
+-  $("confirmation").hidden = true;
++  $("confirmation").hidden = true;
++  $("cart-items").replaceChildren();

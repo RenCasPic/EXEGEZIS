@@ -5,10 +5,13 @@
 EXEGEZIS reproduces software behavior, explains why it happens and proves when
 it is fixed. Every claim it makes must trace back to evidence.
 
-**Current stage:** Phase 0 / Iteration 3 — *Symptom → AI → TestPlan → deterministic
-verification*. A planner (LLM) turns a user's symptom into a TestPlan; the
-deterministic Verification Engine alone decides the outcome. *The AI proposes
-the test. EXEGEZIS decides whether the evidence proves the claim.*
+**Current stage:** Phase 0 — *Root cause by intervention*. A planner (LLM)
+turns a user's symptom into a TestPlan and the deterministic Verification
+Engine decides whether the bug is real. For a verified bug, competing
+hypotheses are tested by applying each one's code mutation to an isolated copy
+of the app: a cause is VALIDATED only if its intervention removed the bug in
+every run and its alternatives were refuted. *The AI proposes. EXEGEZIS
+decides whether the evidence proves the claim.*
 
 ## Quick start
 
@@ -50,6 +53,14 @@ Other commands: `generate-plan` (symptom → validated plan, not executed), `run
 classified), `compile` (plan → standalone `.spec.ts`), `validate` (semantic
 validation against a preflight observation). See `pnpm exegezis --help`.
 
+Root cause by intervention (each hypothesis' code mutation runs on an isolated
+copy of the app; a cause is VALIDATED only if it removes the bug in every run
+and its alternatives are refuted):
+
+```bash
+pnpm exegezis root-cause                 # benchmarks/buggy-shop-root-cause, 5 runs per arm
+```
+
 Browse everything in the local web UI (reads `runs/` and the archived benchmark
 results; no demo data):
 
@@ -72,10 +83,11 @@ pnpm --filter @exegezis/adapter-browser exec playwright show-trace <absolute-pat
 | `packages/compiler-playwright` | Test plan → standalone Playwright spec; runs specs with the standard Playwright runner |
 | `packages/planner` | Symptom → TestPlan proposal (provider-agnostic `PlanGenerator`, Anthropic and mock providers, versioned prompt). Never decides verdicts; core does not depend on it |
 | `apps/cli` | `exegezis` command |
-| `apps/web` | Local UI (Next.js): investigations, reproductions, evidence, AI plans, benchmarks. Reads run artifacts with the core schemas; stages not built yet (investigation, root cause, fix, fix verification) are shown as NOT IMPLEMENTED |
+| `apps/web` | Local UI (Next.js): investigations, reproductions, evidence, AI plans, root causes, benchmarks. Reads run artifacts with the core schemas; stages not built yet (fix, fix verification) are shown as NOT IMPLEMENTED |
 | `examples/buggy-shop` | Evidence lab: a shop with exactly 3 seeded bugs that its own test suite does not catch |
 | `benchmarks/buggy-shop` | Benchmark A: human-authored plans — symptom, reference plan, expected outcome (and compiled spec) per case |
 | `benchmarks/buggy-shop-ai` | Benchmark B: plans generated from symptoms by a planner; results and metrics kept separate |
+| `benchmarks/buggy-shop-root-cause` | Root-cause benchmark: competing hypotheses with a code mutation each (engine input) and an independent ground truth (evaluation only) |
 | `docs/` | Product deep dive and engineering notes |
 
 ## Scripts
@@ -93,4 +105,5 @@ Design notes: [docs/01-evidence-engine.md](docs/01-evidence-engine.md) (evidence
 [docs/02-verification-engine.md](docs/02-verification-engine.md) (assertions, reproduction, Verified Bug, compiler),
 [docs/03-verification-hardening.md](docs/03-verification-hardening.md) (outcomes, validation, anchoring, timeouts, provenance, benchmark) and
 [docs/04-ai-planner.md](docs/04-ai-planner.md) (planner, providers, prompt, benchmark B) and
-[docs/05-web-ui.md](docs/05-web-ui.md) (local UI, data sources, what is not implemented).
+[docs/05-web-ui.md](docs/05-web-ui.md) (local UI, data sources, what is not implemented) and
+[docs/06-root-cause-engine.md](docs/06-root-cause-engine.md) (root cause by intervention: criterion, experiments, isolation, benchmark).

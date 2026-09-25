@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "exegezis.root-cause-ground-truth/v1",
+  "bugId": "BUG-003",
+  "statement": "A contract bug between layers: Shop.checkout() does not empty the session cart and the client's checkout() does not call DELETE /api/cart. Either change removes the symptom.",
+  "locations": [
+    {
+      "file": "src/shop.ts",
+      "excerpt": "    session.orders.push(order);\n    return order;"
+    },
+    {
+      "file": "public/app.js",
+      "excerpt": "  const order = await api(\"/api/checkout\", { method: \"POST\" });"
+    }
+  ],
+  "expectedStatus": "INSUFFICIENT_EVIDENCE",
+  "note": "Two sufficient interventions exist; intervention alone cannot single out one cause. KNOWN_BUGS.md prefers the server fix for robustness, which is a design judgement, not an experimental result."
+}

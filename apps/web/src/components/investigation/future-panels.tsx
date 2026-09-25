@@ -2,16 +2,40 @@ import { ArrowDown, FlaskConical, GitPullRequestDraft, ShieldCheck } from "lucid
 import type { BugReport } from "@exegezis/core";
 import { Panel } from "@/components/ui/primitives";
 import { NotImplemented, OutcomePill, StatusPill } from "@/components/ui/status";
-import { NOT_IMPLEMENTED_DETAIL } from "@/lib/evidence/stages";
+import Link from "next/link";
+import { RootCauseView } from "@/components/root-cause/root-cause-view";
+import type { RootCauseEntry } from "@/lib/evidence/root-causes";
+import { NO_ROOT_CAUSE_RUN, NOT_IMPLEMENTED_DETAIL } from "@/lib/evidence/stages";
 
-export function RootCausePanel() {
+export function RootCausePanel({ entry, bugId }: { entry: RootCauseEntry | null; bugId: string | null }) {
+  const report = entry?.report.status === "ok" ? entry.report.value : null;
   return (
-    <Panel id="root-cause" title="Root Cause" icon={<FlaskConical />} actions={<NotImplemented size="xs" />}>
-      <p className="text-[13px] text-muted">{NOT_IMPLEMENTED_DETAIL.root_cause}</p>
-      <div className="mt-3 rounded-md border border-dashed border-line-strong p-3 text-xs text-faint">
-        No root cause has been proposed or validated for this investigation. When this stage exists, a cause will only be shown as VALIDATED if an experiment
-        confirmed its prediction; otherwise it will read INSUFFICIENT EVIDENCE.
-      </div>
+    <Panel
+      id="root-cause"
+      title="Root Cause"
+      icon={<FlaskConical />}
+      subtitle={report === null ? undefined : `root-cause investigation of ${report.bugId} · plan ${report.planPath}`}
+      actions={
+        report === null ? (
+          <StatusPill status="NOT RUN" tone="neutral" size="xs" />
+        ) : (
+          <Link href={`/verification/root-causes/${entry?.ref.id ?? ""}`} className="text-xs text-accent hover:underline">
+            Open
+          </Link>
+        )
+      }
+    >
+      {entry !== null && report !== null ? (
+        <RootCauseView entry={entry} report={report} />
+      ) : (
+        <div className="flex flex-col gap-2 text-[13px] text-muted">
+          <p>{NO_ROOT_CAUSE_RUN}</p>
+          <p className="text-xs text-faint">
+            A cause is only shown as VALIDATED when an intervention on an isolated copy removed the bug in every run and the competing hypotheses were refuted.
+            {bugId === null ? "" : ` Run: pnpm exegezis root-cause --case ${bugId}`}
+          </p>
+        </div>
+      )}
     </Panel>
   );
 }
@@ -22,7 +46,7 @@ export function FixPanel({ spec }: { spec: { path: string } | null }) {
       <p className="text-[13px] text-muted">{NOT_IMPLEMENTED_DETAIL.fix}</p>
       <dl className="mt-3 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1.5 text-[13px]">
         <dt className="text-muted">Proposed change</dt>
-        <dd className="text-faint">None</dd>
+        <dd className="text-faint">None (root-cause mutations are experiments, discarded after each run; they are not fixes)</dd>
         <dt className="text-muted">Files changed</dt>
         <dd className="text-faint">None</dd>
         <dt className="text-muted">Regression test</dt>

@@ -1,0 +1,4 @@
+--- a/src/shop.ts
++++ b/src/shop.ts
+-    session.cart.lines.splice(index, 1);
++    session.cart.lines = session.cart.lines.filter((l) => l.productId !== productId);

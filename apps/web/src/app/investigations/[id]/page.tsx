@@ -13,7 +13,7 @@ import { AutoRefresh } from "@/components/ui/auto-refresh";
 import { Meta, Mono, Panel } from "@/components/ui/primitives";
 import { OutcomePill, SourceTag, StatusPill } from "@/components/ui/status";
 import { loadAttempt } from "@/lib/evidence/attempt";
-import { loadInvestigation } from "@/lib/evidence/investigations";
+import { getRootCauses, loadInvestigation } from "@/lib/evidence/investigations";
 import { absoluteTime, relativeTime } from "@/lib/format";
 import { environmentOf } from "@/lib/projects";
 import { artifactUrl } from "@/lib/urls";
@@ -44,6 +44,8 @@ export default async function InvestigationPage({
     attempts.find((a) => a.onDisk) ??
     null;
   const evidence = selected === null ? null : await loadAttempt(summary.ref, selected.runPath);
+  const rootCause = summary.rootCause === null ? null : ((await getRootCauses()).find((e) => e.ref.id === summary.rootCause?.entryId) ?? null);
+  const rootCauseReport = rootCause?.report.status === "ok" ? rootCause.report.value : null;
   const tab: EvidenceTab = EVIDENCE_TABS.includes(query.tab as EvidenceTab) ? (query.tab as EvidenceTab) : "timeline";
 
   const title = summary.outcome === "VERIFIED" ? "Verified Bug" : null;
@@ -128,8 +130,8 @@ export default async function InvestigationPage({
             investigationId={id}
           />
           <EvidencePanel summary={summary} report={report} attempts={attempts} evidence={evidence} tab={tab} investigationId={id} />
-          <ClaimsPanel report={report} investigationId={id} attemptRunId={detail.representativeRunId} />
-          <RootCausePanel />
+          <ClaimsPanel report={report} rootCause={rootCauseReport} investigationId={id} attemptRunId={detail.representativeRunId} />
+          <RootCausePanel entry={rootCause} bugId={summary.ref.caseId ?? report?.bugId ?? null} />
           <FixPanel spec={detail.spec} />
           <VerificationPanel report={report} />
         </div>

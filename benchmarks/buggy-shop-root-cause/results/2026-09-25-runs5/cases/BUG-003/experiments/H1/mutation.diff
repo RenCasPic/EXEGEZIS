@@ -1,0 +1,7 @@
+--- a/src/shop.ts
++++ b/src/shop.ts
+-    session.orders.push(order);
+-    return order;
++    session.orders.push(order);
++    session.cart = emptyCart();
++    return order;

@@ -33,11 +33,13 @@ El único archivo que no tiene schema en core es `generation.json`, que el CLI e
 | AI Plan | GENERATED / DECLINED / INVALID GENERATION / ERROR / HUMAN PLAN | `generation.json`, provenance |
 | Reproduction | VERIFIED / NOT VERIFIED / INCONCLUSIVE / FLAKY / INVALID PLAN / UNSUPPORTED / NOT RUN | `bug-report.json` |
 | Evidence | AVAILABLE / NOT ARCHIVED / AWAITING EVIDENCE | directorios `attempts/` |
-| Investigation, Root Cause, Fix, Verification | NOT IMPLEMENTED | — |
+| Investigation | N EXPERIMENTS / NOT RUN | `root-cause-report.json` del mismo caso |
+| Root Cause | VALIDATED / REFUTED / INSUFFICIENT EVIDENCE / NOT RUN | `root-cause-report.json` (la decisión se re-deriva al cargar) |
+| Fix, Verification | NOT IMPLEMENTED | — |
 
 Un caso que el planner rechazó muestra Reproduction `NOT RUN`, aunque el benchmark registre `INCONCLUSIVE`: no se ejecutó nada.
 
-El panel de **Claims** muestra la `evidenceChain` del BugReport, con la expectativa como `DECLARED` y lo demás como `OBSERVED`. Hipótesis, experimento y causa validada se dibujan con trazo discontinuo como `NOT IMPLEMENTED`.
+El panel de **Claims** muestra la `evidenceChain` del BugReport, con la expectativa como `DECLARED` y lo demás como `OBSERVED`. Cuando existe una investigación de causa raíz del mismo caso, añade cada hipótesis con su experimento (línea base → intervención) y la decisión. `/verification/root-causes` lista todas las ejecuciones; sus estadísticas usan el último resultado de cada caso. Ver [06-root-cause-engine.md](06-root-cause-engine.md).
 
 ## Nueva investigación
 

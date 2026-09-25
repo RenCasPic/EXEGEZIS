@@ -1,6 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { BenchmarkResult } from "@exegezis/core";
+import { BenchmarkResult, RootCauseSuiteResult } from "@exegezis/core";
 import { benchmarksDir, displayPath, runsDir } from "../workspace";
 import { readArtifact, type Loaded } from "./read";
 
@@ -34,13 +34,34 @@ export interface BenchmarkRef {
   result: Loaded<BenchmarkResult>;
 }
 
+/** A run of `exegezis root-cause`: one report per case. */
+export interface RootCauseRunRef {
+  id: string;
+  dir: string;
+  relDir: string;
+  archived: boolean;
+  result: Loaded<RootCauseSuiteResult>;
+}
+
+/** One case of a root-cause run (`<run>/cases/<id>/root-cause-report.json`). */
+export interface RootCauseRef {
+  id: string;
+  runId: string;
+  caseId: string;
+  dir: string;
+  relDir: string;
+  archived: boolean;
+}
+
 export interface WorkspaceIndex {
   investigations: InvestigationRef[];
   benchmarks: BenchmarkRef[];
+  rootCauseRuns: RootCauseRunRef[];
+  rootCauses: RootCauseRef[];
 }
 
 /** Evidence subdirectories: never investigations themselves. */
-const SKIP = new Set(["attempts", "preflight", "compiled-test-results", "dom", "screenshots", "node_modules", "cases"]);
+const SKIP = new Set(["attempts", "preflight", "compiled-test-results", "dom", "screenshots", "node_modules", "cases", "workspaces"]);
 const MAX_DEPTH = 6;
 
 async function listDir(dir: string): Promise<{ files: Set<string>; dirs: string[] }> {
@@ -74,6 +95,8 @@ function jobIdFor(relDir: string): string | null {
 export async function discover(): Promise<WorkspaceIndex> {
   const investigations: InvestigationRef[] = [];
   const benchmarks: BenchmarkRef[] = [];
+  const rootCauseRuns: RootCauseRunRef[] = [];
+  const rootCauses: RootCauseRef[] = [];
   const used = new Set<string>();
   const uniqueId = (wanted: string): string => {
     let id = wanted;
@@ -102,8 +125,23 @@ export async function discover(): Promise<WorkspaceIndex> {
     }
   }
 
+  async function addRootCauseRun(dir: string, archived: boolean, suiteDir: string | null): Promise<void> {
+    const result = await readArtifact(join(dir, "root-cause-result.json"), RootCauseSuiteResult);
+    const id = uniqueId(archived && suiteDir !== null ? `${suiteDir}~${basename(dir)}` : basename(dir));
+    rootCauseRuns.push({ id, dir, relDir: displayPath(dir), archived, result });
+    if (result.status !== "ok") return;
+    for (const c of result.value.cases) {
+      const caseDir = join(dir, "cases", c.id);
+      rootCauses.push({ id: uniqueId(`${id}~${c.id}`), runId: id, caseId: c.id, dir: caseDir, relDir: displayPath(caseDir), archived });
+    }
+  }
+
   async function walk(dir: string, depth: number, archived: boolean, suiteDir: string | null): Promise<void> {
     const { files, dirs } = await listDir(dir);
+    if (files.has("root-cause-result.json")) {
+      await addRootCauseRun(dir, archived, suiteDir);
+      return;
+    }
     if (files.has("benchmark-result.json")) {
       await addBenchmark(dir, archived, suiteDir);
       return;
@@ -139,5 +177,7 @@ export async function discover(): Promise<WorkspaceIndex> {
   const newestFirst = (a: { relDir: string }, b: { relDir: string }) => (a.relDir < b.relDir ? 1 : a.relDir > b.relDir ? -1 : 0);
   investigations.sort(newestFirst);
   benchmarks.sort(newestFirst);
-  return { investigations, benchmarks };
+  rootCauseRuns.sort(newestFirst);
+  rootCauses.sort(newestFirst);
+  return { investigations, benchmarks, rootCauseRuns, rootCauses };
 }

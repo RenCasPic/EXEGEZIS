@@ -7,6 +7,7 @@ import {
   BugReport,
   PlanValidation,
   Reproduction,
+  type RootCauseReport,
   TestPlan,
   ulidTime,
   type BenchmarkCaseResult,
@@ -18,6 +19,7 @@ import { benchmarksDir, isInside, repoRoot } from "../workspace";
 import { discover, type BenchmarkRef, type InvestigationRef, type WorkspaceIndex } from "./discover";
 import { generationDetail, GenerationRecord } from "./generation";
 import { exists, readArtifact, readText, valueOf, type Loaded } from "./read";
+import { latestFor, loadRootCauses, type RootCauseEntry } from "./root-causes";
 import { deriveStages, type StageState } from "./stages";
 
 /** One discovery per request. */
@@ -59,6 +61,8 @@ export interface InvestigationSummary {
   /** Present when this benchmark case has an expected outcome. */
   benchmark: { expected: VerificationOutcome; passed: boolean; kind: "positive" | "negative" } | null;
   job: { id: string; status: JobStatus } | null;
+  /** Latest root-cause investigation of the same bug id. */
+  rootCause: { entryId: string; status: RootCauseReport["decision"]["status"]; hypothesisId: string | null; statement: string | null } | null;
   /** Artifacts that exist but failed schema validation. */
   problems: string[];
   stages: StageState[];
@@ -106,7 +110,7 @@ function problem<T>(name: string, loaded: Loaded<T>): string[] {
   return loaded.status === "invalid" ? [`${name}: ${loaded.issues.join("; ")}`] : [];
 }
 
-async function buildSummary(index: WorkspaceIndex, ref: InvestigationRef): Promise<InvestigationSummary> {
+async function buildSummary(index: WorkspaceIndex, ref: InvestigationRef, rootCauses: readonly RootCauseEntry[]): Promise<InvestigationSummary> {
   const [reportLoaded, generationLoaded, reproductionLoaded, jobInfo, context] = await Promise.all([
     readArtifact(join(ref.dir, "bug-report.json"), BugReport),
     readArtifact(join(ref.dir, "generation.json"), GenerationRecord),
@@ -172,9 +176,15 @@ async function buildSummary(index: WorkspaceIndex, ref: InvestigationRef): Promi
         ? { expected: context.spec.expected.outcome, passed: context.result.passed, kind: context.spec.kind }
         : null,
     job: jobInfo === null ? null : { id: jobInfo.job.id, status: jobInfo.status },
+    rootCause: null,
     problems: [...problem("bug-report.json", reportLoaded), ...problem("generation.json", generationLoaded)],
     stages: [],
   };
+  const rc = latestFor(rootCauses, ref.caseId ?? report?.bugId ?? null);
+  if (rc !== null) {
+    const d = rc.report.value.decision;
+    summary.rootCause = { entryId: rc.ref.id, status: d.status, hypothesisId: d.hypothesisId, statement: d.statement };
+  }
   summary.stages = deriveStages({
     symptom,
     planSource: provenance?.source ?? null,
@@ -187,13 +197,23 @@ async function buildSummary(index: WorkspaceIndex, ref: InvestigationRef): Promi
     running,
     evidenceOnDisk,
     archived: ref.archived,
+    rootCause:
+      rc === null
+        ? null
+        : {
+            status: rc.report.value.decision.status,
+            experiments: rc.report.value.experiments.length,
+            hypotheses: rc.report.value.hypotheses.length,
+            reason: rc.report.value.decision.reason,
+          },
   });
   return summary;
 }
 
 /** Summaries of every discovered investigation, newest first. */
 export async function loadSummaries(index: WorkspaceIndex): Promise<InvestigationSummary[]> {
-  const summaries = await Promise.all(index.investigations.map((ref) => buildSummary(index, ref)));
+  const rootCauses = await loadRootCauses(index);
+  const summaries = await Promise.all(index.investigations.map((ref) => buildSummary(index, ref, rootCauses)));
   return summaries.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 }
 
@@ -202,6 +222,12 @@ export const getSummaries = cache(async (): Promise<InvestigationSummary[]> => l
 export async function findInvestigation(id: string): Promise<InvestigationRef | null> {
   const index = await getIndex();
   return index.investigations.find((i) => i.id === id) ?? null;
+}
+
+export const getRootCauses = cache(async (): Promise<RootCauseEntry[]> => loadRootCauses(await getIndex()));
+
+export async function findRootCause(id: string): Promise<RootCauseEntry | null> {
+  return (await getRootCauses()).find((e) => e.ref.id === id) ?? null;
 }
 
 export async function findBenchmark(id: string): Promise<BenchmarkRef | null> {

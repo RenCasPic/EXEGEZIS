@@ -1,8 +1,8 @@
 import { ChevronDown, Network } from "lucide-react";
 import Link from "next/link";
-import type { BugReport } from "@exegezis/core";
+import type { BugReport, RootCauseReport } from "@exegezis/core";
 import { Panel } from "@/components/ui/primitives";
-import { NotImplemented, StatusPill } from "@/components/ui/status";
+import { StatusPill } from "@/components/ui/status";
 import { cn } from "@/lib/cn";
 
 const STAGE_LABEL: Record<BugReport["evidenceChain"][number]["stage"], { title: string; claim: "declared" | "observed" }> = {
@@ -15,17 +15,30 @@ const STAGE_LABEL: Record<BugReport["evidenceChain"][number]["stage"], { title: 
 };
 
 const FUTURE = [
-  { title: "Hypothesis", detail: "A candidate cause, stated as a testable prediction." },
-  { title: "Experiment", detail: "An intervention (e.g. a mutation or a controlled change) that confirms or refutes the prediction, with a negative control." },
-  { title: "Validated root cause", detail: "Only a hypothesis whose experiment confirmed it, with alternatives ruled out." },
+  { title: "Hypothesis", detail: "A candidate cause, stated with an intervention and a prediction." },
+  { title: "Experiment", detail: "The intervention applied to an isolated copy, reproduced against the baseline." },
+  { title: "Root cause decision", detail: "VALIDATED only if one hypothesis survives and its alternatives were refuted." },
 ];
+
+const EXPERIMENT_TONE = { CONFIRMED: "positive", FALSIFIED: "critical", INCONCLUSIVE: "warning" } as const;
+const DECISION_TONE = { VALIDATED: "positive", REFUTED: "critical", INSUFFICIENT_EVIDENCE: "warning" } as const;
 
 /**
  * The claims EXEGEZIS makes today are the BugReport's evidence chain: one
  * declared expectation and what the engine observed. Anything beyond that
  * (hypotheses, experiments, causes) is not produced yet, and is drawn as such.
  */
-export function ClaimsPanel({ report, investigationId, attemptRunId }: { report: BugReport | null; investigationId: string; attemptRunId: string | null }) {
+export function ClaimsPanel({
+  report,
+  rootCause,
+  investigationId,
+  attemptRunId,
+}: {
+  report: BugReport | null;
+  rootCause: RootCauseReport | null;
+  investigationId: string;
+  attemptRunId: string | null;
+}) {
   const chain = report?.evidenceChain ?? [];
   const linkFor = (ref: string): string | null => {
     const evt = /^(evt-\d+)/.exec(ref)?.[1];
@@ -39,10 +52,16 @@ export function ClaimsPanel({ report, investigationId, attemptRunId }: { report:
       title="Investigation · Claims"
       icon={<Network />}
       subtitle="What is claimed, and on what basis"
-      actions={<NotImplemented size="xs" />}
+      actions={
+        rootCause === null ? (
+          <StatusPill status="NOT RUN" tone="neutral" size="xs" />
+        ) : (
+          <StatusPill status={`${rootCause.experiments.length} EXPERIMENTS`} tone="positive" size="xs" />
+        )
+      }
     >
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <ol className="relative flex flex-col">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <ol className="relative flex min-w-0 flex-col">
           {chain.length === 0 && (
             <li className="mb-3 rounded-md border border-line p-3 text-[13px] text-muted">
               No evidence chain: the report has no failing attempt to explain{report === null ? " (no plan was executed)" : ` (${report.outcome.replaceAll("_", " ")})`}.
@@ -87,19 +106,56 @@ export function ClaimsPanel({ report, investigationId, attemptRunId }: { report:
               </li>
             );
           })}
-          {FUTURE.map((node, i) => (
-            <li key={node.title} className="relative flex gap-3 pb-3 last:pb-0">
-              {i < FUTURE.length - 1 && <span aria-hidden className="absolute top-7 bottom-0 left-[11px] w-px border-l border-dashed border-line-strong" />}
-              <span className="relative z-10 mt-1 grid size-6 shrink-0 place-items-center rounded-full border border-dashed border-line-strong font-mono text-[10px] text-faint">
-                {chain.length + i + 1}
-              </span>
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-2">
-                <span className="text-[13px] font-medium text-muted">{node.title}</span>
-                <NotImplemented size="xs" />
-                <span className="w-full text-xs text-faint">{node.detail}</span>
-              </div>
-            </li>
-          ))}
+          {rootCause === null
+            ? FUTURE.map((node, i) => (
+                <li key={node.title} className="relative flex gap-3 pb-3 last:pb-0">
+                  {i < FUTURE.length - 1 && <span aria-hidden className="absolute top-7 bottom-0 left-[11px] w-px border-l border-dashed border-line-strong" />}
+                  <span className="relative z-10 mt-1 grid size-6 shrink-0 place-items-center rounded-full border border-dashed border-line-strong font-mono text-[10px] text-faint">
+                    {chain.length + i + 1}
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-2">
+                    <span className="text-[13px] font-medium text-muted">{node.title}</span>
+                    <StatusPill status="NOT RUN" tone="neutral" size="xs" />
+                    <span className="w-full text-xs text-faint">{node.detail}</span>
+                  </div>
+                </li>
+              ))
+            : [
+                ...rootCause.experiments.map((e, i) => {
+                  const h = rootCause.hypotheses.find((x) => x.id === e.hypothesisId);
+                  return (
+                    <li key={e.id} className="relative flex gap-3 pb-3">
+                      <span aria-hidden className="absolute top-7 bottom-0 left-[11px] w-px bg-line-strong" />
+                      <span className="relative z-10 mt-1 grid size-6 shrink-0 place-items-center rounded-full border border-line-strong bg-panel-2 font-mono text-[10px] text-muted">
+                        {chain.length + i + 1}
+                      </span>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-md border border-line bg-panel-2 px-3 py-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[13px] font-medium text-fg">Hypothesis {e.hypothesisId} → Experiment</span>
+                          <StatusPill status="HYPOTHESIS" tone="neutral" size="xs" />
+                          <StatusPill status={e.result.status} tone={EXPERIMENT_TONE[e.result.status]} size="xs" />
+                        </div>
+                        <span className="text-xs text-muted">{h?.statement}</span>
+                        <span className="font-mono text-[11px] text-faint">
+                          baseline {e.baseline.reproduced}/{e.baseline.runs} → intervention {e.arm.counts.reproduced}/{e.arm.counts.runs}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                }),
+                <li key="decision" className="relative flex gap-3">
+                  <span className="relative z-10 mt-1 grid size-6 shrink-0 place-items-center rounded-full border border-line-strong bg-panel-2 font-mono text-[10px] text-muted">
+                    {chain.length + rootCause.experiments.length + 1}
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-md border border-line bg-panel-2 px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[13px] font-medium text-fg">Root cause decision</span>
+                      <StatusPill status={rootCause.decision.status.replaceAll("_", " ")} tone={DECISION_TONE[rootCause.decision.status]} size="xs" />
+                    </div>
+                    <span className="text-xs text-muted">{rootCause.decision.reason}</span>
+                  </div>
+                </li>,
+              ]}
         </ol>
         <aside className="flex flex-col gap-2 text-xs text-muted">
           <div className="text-[11px] font-medium uppercase tracking-wider text-faint">Who may claim what</div>
@@ -110,7 +166,7 @@ export function ClaimsPanel({ report, investigationId, attemptRunId }: { report:
             <span className="text-fg">The engine</span> records observations and derives the verdict from six deterministic criteria.
           </p>
           <p>
-            <span className="text-fg">No component</span> may yet claim a cause, a fix or that a fix works. Those claims will need an experiment, and there is none.
+            <span className="text-fg">A cause</span> is claimed only by the deterministic decision over intervention experiments. Nothing may yet claim a fix or that a fix works.
           </p>
         </aside>
       </div>

@@ -1,0 +1,4 @@
+--- a/src/shop.ts
++++ b/src/shop.ts
+-  return items.reduce((sum, item) => sum + item.unitPriceCents, 0);
++  return items.reduce((sum, item) => sum + item.lineTotalCents, 0);

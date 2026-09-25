@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "exegezis.root-cause-investigation/v1",
+  "bugId": "BUG-001",
+  "plan": "../../../buggy-shop/cases/BUG-001/plan.json",
+  "app": {
+    "dir": "../../../../examples/buggy-shop",
+    "include": [
+      "package.json",
+      "src",
+      "public"
+    ],
+    "command": [
+      "node",
+      "src/server.ts"
+    ],
+    "portEnv": "PORT",
+    "healthPath": "/api/health"
+  },
+  "policy": {
+    "runsPerArm": 5,
+    "minRefutedAlternatives": 1
+  },
+  "observations": [
+    {
+      "id": "server-empty",
+      "statement": "DELETE /api/cart/items/mouse answers 200 with itemCount 0: the server state is correct.",
+      "source": "network.json, the DELETE exchange of the failing attempt"
+    },
+    {
+      "id": "badge-stale",
+      "statement": "After the removal the header link still reads \"Cart (1)\" while the cart shows \"Your cart is empty\".",
+      "source": "assertions.json step 9 and accessibility.json at the failure"
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "removeFromCart() re-renders the cart list but never re-renders the header badge.",
+      "rationale": "The server returns the correct count, so the stale value must come from the client not updating the badge after a removal; addToCart() updates both.",
+      "observations": [
+        "server-empty",
+        "badge-stale"
+      ],
+      "location": {
+        "file": "public/app.js",
+        "symbol": "removeFromCart"
+      },
+      "intervention": {
+        "kind": "replace",
+        "file": "public/app.js",
+        "find": "  const cart = await api(`/api/cart/items/${productId}`, { method: \"DELETE\" });\n  renderCart(cart);",
+        "replace": "  const cart = await api(`/api/cart/items/${productId}`, { method: \"DELETE\" });\n  renderCart(cart);\n  renderBadge(cart);",
+        "description": "Call renderBadge(cart) after renderCart(cart) in removeFromCart()."
+      },
+      "prediction": "eliminates",
+      "provenance": {
+        "source": "human",
+        "generator": "exegezis-dev",
+        "model": null,
+        "version": null,
+        "promptVersion": null,
+        "createdAt": "2026-09-25T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "renderBadge() shows a stale count because it trusts cart.itemCount instead of counting the items.",
+      "rationale": "The badge is the element that is wrong, and it is rendered from a precomputed field that could be out of date.",
+      "observations": [
+        "badge-stale"
+      ],
+      "location": {
+        "file": "public/app.js",
+        "symbol": "renderBadge"
+      },
+      "intervention": {
+        "kind": "replace",
+        "file": "public/app.js",
+        "find": "  $(\"cart-badge\").textContent = `Cart (${cart.itemCount})`;",
+        "replace": "  $(\"cart-badge\").textContent = `Cart (${cart.items.reduce((n, item) => n + item.quantity, 0)})`;",
+        "description": "Make renderBadge() count the quantities of cart.items instead of reading cart.itemCount."
+      },
+      "prediction": "eliminates",
+      "provenance": {
+        "source": "human",
+        "generator": "exegezis-dev",
+        "model": null,
+        "version": null,
+        "promptVersion": null,
+        "createdAt": "2026-09-25T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "The server's removeItem() leaves the removed line in the session cart.",
+      "rationale": "Removal bugs usually live in the mutation of the collection; if the line stayed, the count would stay at 1.",
+      "observations": [
+        "badge-stale"
+      ],
+      "location": {
+        "file": "src/shop.ts",
+        "symbol": "Shop.removeItem"
+      },
+      "intervention": {
+        "kind": "replace",
+        "file": "src/shop.ts",
+        "find": "    session.cart.lines.splice(index, 1);",
+        "replace": "    session.cart.lines = session.cart.lines.filter((l) => l.productId !== productId);",
+        "description": "Rebuild the cart lines without the product instead of splicing by index."
+      },
+      "prediction": "eliminates",
+      "provenance": {
+        "source": "human",
+        "generator": "exegezis-dev",
+        "model": null,
+        "version": null,
+        "promptVersion": null,
+        "createdAt": "2026-09-25T00:00:00.000Z"
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "exegezis.root-cause-suite/v1",
+  "id": "buggy-shop-root-cause",
+  "description": "Root cause by intervention on the buggy-shop lab. Each case gives the engine competing hypotheses with a code mutation each; the engine never sees ground-truth.json. The hypotheses were written by the developers of EXEGEZIS, who know the true causes: this suite tests whether the validation protocol separates true causes from plausible ones, not how hypotheses are generated.",
+  "cases": [
+    "cases/BUG-001",
+    "cases/BUG-002",
+    "cases/BUG-003",
+    "cases/BUG-001-ADVERSARIAL"
+  ]
+}

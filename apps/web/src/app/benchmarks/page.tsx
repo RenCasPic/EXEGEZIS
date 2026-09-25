@@ -2,14 +2,17 @@ import { Beaker, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EmptyState, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
-import { NotImplemented, SourceTag, StatusPill } from "@/components/ui/status";
-import { getIndex } from "@/lib/evidence/investigations";
+import { SourceTag, StatusPill } from "@/components/ui/status";
+import { getIndex, getRootCauses } from "@/lib/evidence/investigations";
+import { latestPerCase } from "@/lib/evidence/root-causes";
 import { absoluteTime, percent, relativeTime } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Benchmarks" };
 
 export default async function BenchmarksPage() {
-  const index = await getIndex();
+  const [index, rootCauses] = await Promise.all([getIndex(), getRootCauses()]);
+  const latestRootCauses = latestPerCase(rootCauses).flatMap((e) => (e.report.status === "ok" ? [{ report: e.report.value, evaluation: e.evaluation }] : []));
+  const rcFalse = latestRootCauses.filter((r) => r.evaluation?.falseValidation === true).length;
   const runs = index.benchmarks.flatMap((b) => (b.result.status === "ok" ? [{ ref: b, r: b.result.value }] : []));
   const broken = index.benchmarks.filter((b) => b.result.status !== "ok");
   const sum = (f: (r: (typeof runs)[number]["r"]) => number) => runs.reduce((n, x) => n + f(x.r), 0);
@@ -24,7 +27,15 @@ export default async function BenchmarksPage() {
         <Stat label="Benchmark runs" value={runs.length} hint={`${runs.filter((x) => x.ref.archived).length} archived in the repository`} />
         <Stat label="Cases evaluated" value={sum((r) => r.summary.total)} hint={`${sum((r) => r.summary.passed)} matched the expected outcome`} />
         <Stat label="Verified reproductions" value={sum((r) => r.summary.truePositives)} hint={`${sum((r) => r.summary.falseNegatives)} seeded bugs missed`} />
-        <Stat label="Validated root causes" value={<span className="text-faint">—</span>} footer={<div className="mt-1"><NotImplemented size="xs" /></div>} />
+        <Stat
+          label="Validated root causes"
+          value={latestRootCauses.filter((r) => r.report.decision.status === "VALIDATED").length}
+          hint={
+            <Link href="/verification/root-causes" className={rcFalse > 0 ? "text-critical hover:underline" : "hover:underline"}>
+              {latestRootCauses.length} root-cause cases · {rcFalse} false validation{rcFalse === 1 ? "" : "s"}
+            </Link>
+          }
+        />
         <Stat
           label="False validations"
           value={<span className={sum((r) => r.summary.falsePositives) === 0 ? "text-positive" : "text-critical"}>{sum((r) => r.summary.falsePositives)}</span>}

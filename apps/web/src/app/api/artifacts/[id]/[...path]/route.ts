@@ -1,6 +1,6 @@
 import { readFile, stat } from "node:fs/promises";
 import { extname, join } from "node:path";
-import { findInvestigation } from "@/lib/evidence/investigations";
+import { findInvestigation, findRootCause } from "@/lib/evidence/investigations";
 import { isInside } from "@/lib/workspace";
 
 /**
@@ -17,12 +17,13 @@ const TYPES: Record<string, { type: string; download?: boolean }> = {
   ".html": { type: "text/html; charset=utf-8" },
   ".ts": { type: "text/plain; charset=utf-8" },
   ".log": { type: "text/plain; charset=utf-8" },
+  ".diff": { type: "text/plain; charset=utf-8" },
   ".zip": { type: "application/zip", download: true },
 };
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string; path: string[] }> }) {
   const { id, path } = await params;
-  const ref = await findInvestigation(id);
+  const ref = (await findInvestigation(id)) ?? (await findRootCause(id))?.ref ?? null;
   if (ref === null) return new Response("Not found", { status: 404 });
   const file = join(ref.dir, ...path.map((p) => decodeURIComponent(p)));
   const kind = TYPES[extname(file).toLowerCase()];

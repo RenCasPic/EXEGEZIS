@@ -1,0 +1,234 @@
+{
+  "schemaVersion": "exegezis.root-cause-result/v1",
+  "suite": "buggy-shop-root-cause",
+  "exegezisVersion": "0.1.0",
+  "startedAt": "2026-09-25T16:11:42.963Z",
+  "finishedAt": "2026-09-25T16:16:30.100Z",
+  "runsPerArm": 5,
+  "cases": [
+    {
+      "id": "BUG-001",
+      "report": "cases/BUG-001/root-cause-report.json",
+      "status": "VALIDATED",
+      "baseline": {
+        "runs": 5,
+        "reproduced": 5,
+        "notReproduced": 0,
+        "invalid": 0
+      },
+      "experiments": [
+        {
+          "hypothesisId": "H1",
+          "counts": {
+            "runs": 5,
+            "reproduced": 0,
+            "notReproduced": 5,
+            "invalid": 0
+          },
+          "status": "CONFIRMED"
+        },
+        {
+          "hypothesisId": "H2",
+          "counts": {
+            "runs": 5,
+            "reproduced": 5,
+            "notReproduced": 0,
+            "invalid": 0
+          },
+          "status": "FALSIFIED"
+        },
+        {
+          "hypothesisId": "H3",
+          "counts": {
+            "runs": 5,
+            "reproduced": 5,
+            "notReproduced": 0,
+            "invalid": 0
+          },
+          "status": "FALSIFIED"
+        }
+      ],
+      "evaluation": {
+        "bugId": "BUG-001",
+        "status": "VALIDATED",
+        "expectedStatus": "VALIDATED",
+        "correct": true,
+        "falseValidation": false,
+        "matchesExpected": true,
+        "detail": "H1 intervenes at the true cause (public/app.js)"
+      },
+      "durationMs": 72012
+    },
+    {
+      "id": "BUG-002",
+      "report": "cases/BUG-002/root-cause-report.json",
+      "status": "VALIDATED",
+      "baseline": {
+        "runs": 5,
+        "reproduced": 5,
+        "notReproduced": 0,
+        "invalid": 0
+      },
+      "experiments": [
+        {
+          "hypothesisId": "H1",
+          "counts": {
+            "runs": 5,
+            "reproduced": 0,
+            "notReproduced": 5,
+            "invalid": 0
+          },
+          "status": "CONFIRMED"
+        },
+        {
+          "hypothesisId": "H2",
+          "counts": {
+            "runs": 5,
+            "reproduced": 5,
+            "notReproduced": 0,
+            "invalid": 0
+          },
+          "status": "FALSIFIED"
+        },
+        {
+          "hypothesisId": "H3",
+          "counts": {
+            "runs": 5,
+            "reproduced": 5,
+            "notReproduced": 0,
+            "invalid": 0
+          },
+          "status": "FALSIFIED"
+        }
+      ],
+      "evaluation": {
+        "bugId": "BUG-002",
+        "status": "VALIDATED",
+        "expectedStatus": "VALIDATED",
+        "correct": true,
+        "falseValidation": false,
+        "matchesExpected": true,
+        "detail": "H1 intervenes at the true cause (src/shop.ts)"
+      },
+      "durationMs": 76665
+    },
+    {
+      "id": "BUG-003",
+      "report": "cases/BUG-003/root-cause-report.json",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "baseline": {
+        "runs": 5,
+        "reproduced": 5,
+        "notReproduced": 0,
+        "invalid": 0
+      },
+      "experiments": [
+        {
+          "hypothesisId": "H1",
+          "counts": {
+            "runs": 5,
+            "reproduced": 0,
+            "notReproduced": 5,
+            "invalid": 0
+          },
+          "status": "CONFIRMED"
+        },
+        {
+          "hypothesisId": "H2",
+          "counts": {
+            "runs": 5,
+            "reproduced": 0,
+            "notReproduced": 5,
+            "invalid": 0
+          },
+          "status": "CONFIRMED"
+        },
+        {
+          "hypothesisId": "H3",
+          "counts": {
+            "runs": 5,
+            "reproduced": 5,
+            "notReproduced": 0,
+            "invalid": 0
+          },
+          "status": "FALSIFIED"
+        }
+      ],
+      "evaluation": {
+        "bugId": "BUG-003",
+        "status": "INSUFFICIENT_EVIDENCE",
+        "expectedStatus": "INSUFFICIENT_EVIDENCE",
+        "correct": null,
+        "falseValidation": false,
+        "matchesExpected": true,
+        "detail": "no root cause validated (INSUFFICIENT_EVIDENCE); expected INSUFFICIENT_EVIDENCE"
+      },
+      "durationMs": 67334
+    },
+    {
+      "id": "BUG-001-ADVERSARIAL",
+      "report": "cases/BUG-001-ADVERSARIAL/root-cause-report.json",
+      "status": "VALIDATED",
+      "baseline": {
+        "runs": 5,
+        "reproduced": 5,
+        "notReproduced": 0,
+        "invalid": 0
+      },
+      "experiments": [
+        {
+          "hypothesisId": "H1",
+          "counts": {
+            "runs": 5,
+            "reproduced": 0,
+            "notReproduced": 5,
+            "invalid": 0
+          },
+          "status": "CONFIRMED"
+        },
+        {
+          "hypothesisId": "H2",
+          "counts": {
+            "runs": 5,
+            "reproduced": 5,
+            "notReproduced": 0,
+            "invalid": 0
+          },
+          "status": "FALSIFIED"
+        },
+        {
+          "hypothesisId": "H3",
+          "counts": {
+            "runs": 5,
+            "reproduced": 5,
+            "notReproduced": 0,
+            "invalid": 0
+          },
+          "status": "FALSIFIED"
+        }
+      ],
+      "evaluation": {
+        "bugId": "BUG-001",
+        "status": "VALIDATED",
+        "expectedStatus": "INSUFFICIENT_EVIDENCE",
+        "correct": false,
+        "falseValidation": true,
+        "matchesExpected": false,
+        "detail": "H1 was validated but does not touch the true cause: FALSE VALIDATION"
+      },
+      "durationMs": 71125
+    }
+  ],
+  "summary": {
+    "cases": 4,
+    "baselineReproduced": 4,
+    "validated": 3,
+    "correct": 2,
+    "falseValidations": 1,
+    "insufficientEvidence": 1,
+    "refuted": 0,
+    "matchesExpected": 3,
+    "hypothesesTested": 12,
+    "hypothesesRefuted": 7
+  }
+}

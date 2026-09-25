@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "exegezis.root-cause-ground-truth/v1",
+  "bugId": "BUG-002",
+  "statement": "discountBase() in src/shop.ts sums item.unitPriceCents instead of item.lineTotalCents.",
+  "locations": [
+    {
+      "file": "src/shop.ts",
+      "excerpt": "  return items.reduce((sum, item) => sum + item.unitPriceCents, 0);"
+    }
+  ],
+  "expectedStatus": "VALIDATED"
+}

@@ -64,7 +64,7 @@ export function SidebarNav({ counts, onNavigate }: { counts: SidebarCounts; onNa
       items: [
         { href: "/verification/reproductions", label: "Reproductions", icon: <Repeat />, match: (p) => p.startsWith("/verification/reproductions") },
         { href: "/planner", label: "AI Plans", icon: <Bot />, match: (p) => p.startsWith("/planner") },
-        { href: "/verification/root-causes", label: "Root Causes", icon: <Microscope />, tag: "N/I", match: (p) => p.startsWith("/verification/root-causes") },
+        { href: "/verification/root-causes", label: "Root Causes", icon: <Microscope />, match: (p) => p.startsWith("/verification/root-causes") },
         { href: "/verification/fixes", label: "Fixes", icon: <GitPullRequestDraft />, tag: "N/I", match: (p) => p.startsWith("/verification/fixes") },
       ],
     },

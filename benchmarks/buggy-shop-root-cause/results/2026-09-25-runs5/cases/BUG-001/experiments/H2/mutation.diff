@@ -1,0 +1,4 @@
+--- a/public/app.js
++++ b/public/app.js
+-  $("cart-badge").textContent = `Cart (${cart.itemCount})`;
++  $("cart-badge").textContent = `Cart (${cart.items.reduce((n, item) => n + item.quantity, 0)})`;

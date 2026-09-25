@@ -44,7 +44,9 @@ export default async function OverviewPage() {
 
       <div className="flex items-center gap-2 rounded-md border border-line bg-panel-2 px-3 py-2 text-xs text-muted">
         <Database className="size-3.5 shrink-0 text-faint" />
-        Every number here is computed from run artifacts on disk (<code className="font-mono">runs/</code> and archived benchmark results). There is no demo data.
+        <span>
+          Every number here is computed from run artifacts on disk (<code className="font-mono">runs/</code> and archived benchmark results). There is no demo data.
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
@@ -73,7 +75,7 @@ export default async function OverviewPage() {
         </ol>
       </Panel>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <Panel
           title="Recent investigations"
           bodyClassName="p-0"

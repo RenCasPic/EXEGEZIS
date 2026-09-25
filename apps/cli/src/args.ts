@@ -30,7 +30,8 @@ export type Command =
       examples: boolean;
     } & Common)
   | ({ kind: "generate-plan"; symptom: string; baseUrl: string; examples?: string } & PlannerArgs & Common)
-  | ({ kind: "ai-verify"; symptom: string; baseUrl: string; runs: number; examples?: string } & PlannerArgs & Common);
+  | ({ kind: "ai-verify"; symptom: string; baseUrl: string; runs: number; examples?: string } & PlannerArgs & Common)
+  | ({ kind: "root-cause"; suite: string; runs?: number; caseIds?: string[] } & Common);
 
 export type Planner = "anthropic" | "mock";
 
@@ -72,6 +73,7 @@ Usage:
                      [--planner anthropic|mock] [--model <id>] [--no-examples] [options]
   exegezis generate-plan --symptom "<text>" [--base-url <url>] [--planner ...] [--examples <suite>] [options]
   exegezis ai-verify     --symptom "<text>" [--runs 10] [--base-url <url>] [--planner ...] [--examples <suite>] [options]
+  exegezis root-cause    [--suite buggy-shop-root-cause] [--case <id>]... [--runs 5] [options]
   exegezis --help | --version
 
 Commands:
@@ -92,6 +94,11 @@ Commands:
               validated but NOT executed.
   ai-verify   symptom -> planner -> TestPlan -> the same verification as
               "verify". The planner proposes; only the engine decides.
+  root-cause  For each case: reproduce the bug on an isolated copy of the app
+              (baseline), then apply each hypothesis' code mutation to its own
+              copy and reproduce again. A cause is VALIDATED only if its
+              intervention removed the bug in every run and the competing
+              hypotheses were refuted. The source tree is never modified.
 
 Options:
   --output <dir>     Where results are written. Default: ./runs
@@ -121,7 +128,7 @@ Exit codes:
   6  unsupported plan (not executed)
 `;
 
-const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify"] as const;
+const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify", "root-cause"] as const;
 const PLANNERS: readonly Planner[] = ["anthropic", "mock"];
 
 export function parseCliArgs(argv: readonly string[]): Command {
@@ -178,6 +185,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
     benchmark: ["suite", "base-url", "runs", "case", "planner", "model", "no-examples"],
     "generate-plan": ["symptom", "base-url", "planner", "model", "mock-response", "examples"],
     "ai-verify": ["symptom", "base-url", "runs", "planner", "model", "mock-response", "examples"],
+    "root-cause": ["suite", "runs", "case"],
   };
   for (const option of ["url", "plan", "base-url", "runs", "actions", "suite", "case", "symptom", "planner", "model", "mock-response", "examples", "no-examples"] as const) {
     if (option === "no-examples" ? values[option] === false : values[option] === undefined) continue;
@@ -246,6 +254,14 @@ export function parseCliArgs(argv: readonly string[]): Command {
       };
       return command === "ai-verify" ? { kind: "ai-verify", runs: parseRuns(values.runs), ...shared } : { kind: "generate-plan", ...shared };
     }
+    case "root-cause":
+      return {
+        kind: "root-cause",
+        suite: values.suite === undefined || values.suite === "" ? "buggy-shop-root-cause" : values.suite,
+        ...(values.runs === undefined ? {} : { runs: parseRuns(values.runs) }),
+        ...(values.case === undefined ? {} : { caseIds: values.case }),
+        ...common,
+      };
     default:
       throw new UsageError(`Unknown command "${command}".`);
   }

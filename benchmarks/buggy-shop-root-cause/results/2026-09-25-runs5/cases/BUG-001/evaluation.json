@@ -1,0 +1,9 @@
+{
+  "bugId": "BUG-001",
+  "status": "VALIDATED",
+  "expectedStatus": "VALIDATED",
+  "correct": true,
+  "falseValidation": false,
+  "matchesExpected": true,
+  "detail": "H1 intervenes at the true cause (public/app.js)"
+}

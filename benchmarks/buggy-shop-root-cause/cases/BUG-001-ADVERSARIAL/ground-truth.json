@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "exegezis.root-cause-ground-truth/v1",
+  "bugId": "BUG-001",
+  "statement": "removeFromCart() in public/app.js calls renderCart(cart) but not renderBadge(cart), unlike addToCart().",
+  "locations": [
+    {
+      "file": "public/app.js",
+      "excerpt": "  const cart = await api(`/api/cart/items/${productId}`, { method: \"DELETE\" });\n  renderCart(cart);\n}"
+    }
+  ],
+  "expectedStatus": "INSUFFICIENT_EVIDENCE",
+  "note": "Adversarial case: the hypothesis naming the defect (removeFromCart) is not offered. H1 removes the symptom from a different function. An intervention shows that a change is sufficient, not where the defect is; an honest engine should not validate H1 as the root cause."
+}

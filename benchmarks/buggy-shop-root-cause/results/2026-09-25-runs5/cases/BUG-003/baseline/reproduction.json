@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "exegezis.reproduction/v1",
+  "planId": "BUG-003",
+  "planHash": "sha256:4b2587d8c2d47c43db37c42cc5eb0003f1e4b4f0e80a58701ac90adca899f00b",
+  "planProvenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "targetUrl": "http://127.0.0.1:65395/",
+  "startedAt": "2026-09-25T16:14:11.897Z",
+  "finishedAt": "2026-09-25T16:14:33.721Z",
+  "attempts": 5,
+  "passes": 0,
+  "failures": 5,
+  "timeouts": 0,
+  "errors": 0,
+  "rate": 1,
+  "status": "REPRODUCED",
+  "reason": "all 5 attempts failed identically",
+  "runs": [
+    {
+      "attempt": 1,
+      "runId": "01M3CNH0XSMEV4BC9YM6QR1NZD",
+      "runPath": "attempts/01M3CNH0XSMEV4BC9YM6QR1NZD",
+      "verdict": "failed",
+      "stoppedAtStep": 10,
+      "failureSignature": "step:10|purchased-item-gone|actual=\"present\"",
+      "durationMs": 4208
+    },
+    {
+      "attempt": 2,
+      "runId": "01M3CNH51AF3X12RDHNGM0NXEX",
+      "runPath": "attempts/01M3CNH51AF3X12RDHNGM0NXEX",
+      "verdict": "failed",
+      "stoppedAtStep": 10,
+      "failureSignature": "step:10|purchased-item-gone|actual=\"present\"",
+      "durationMs": 4186
+    },
+    {
+      "attempt": 3,
+      "runId": "01M3CNH94579VYVC7V8PKXY1FH",
+      "runPath": "attempts/01M3CNH94579VYVC7V8PKXY1FH",
+      "verdict": "failed",
+      "stoppedAtStep": 10,
+      "failureSignature": "step:10|purchased-item-gone|actual=\"present\"",
+      "durationMs": 4281
+    },
+    {
+      "attempt": 4,
+      "runId": "01M3CNHD9ZVHFH8W8BYKPDW0Y8",
+      "runPath": "attempts/01M3CNHD9ZVHFH8W8BYKPDW0Y8",
+      "verdict": "failed",
+      "stoppedAtStep": 10,
+      "failureSignature": "step:10|purchased-item-gone|actual=\"present\"",
+      "durationMs": 4730
+    },
+    {
+      "attempt": 5,
+      "runId": "01M3CNHHXTMRYFAQE1YZZAMM94",
+      "runPath": "attempts/01M3CNHHXTMRYFAQE1YZZAMM94",
+      "verdict": "failed",
+      "stoppedAtStep": 10,
+      "failureSignature": "step:10|purchased-item-gone|actual=\"present\"",
+      "durationMs": 4414
+    }
+  ]
+}

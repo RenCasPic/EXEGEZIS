@@ -1,0 +1,7 @@
+--- a/public/app.js
++++ b/public/app.js
+-  const cart = await api(`/api/cart/items/${productId}`, { method: "DELETE" });
+-  renderCart(cart);
++  const cart = await api(`/api/cart/items/${productId}`, { method: "DELETE" });
++  renderCart(cart);
++  renderBadge(cart);

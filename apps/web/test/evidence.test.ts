@@ -21,24 +21,24 @@ const BASE: StageInput = {
   running: false,
   evidenceOnDisk: true,
   archived: false,
+  rootCause: null,
 };
 
 const statusOf = (input: StageInput, id: string) => deriveStages(input).find((s) => s.id === id)?.status;
 
 describe("deriveStages", () => {
-  it("shows the real verdict and marks every missing capability NOT IMPLEMENTED", () => {
+  it("shows the real verdict, NOT RUN for an uninvestigated root cause and NOT IMPLEMENTED for fixes", () => {
     const stages = deriveStages(BASE);
-    expect(stages.map((s) => s.status)).toEqual([
-      "PROVIDED",
-      "GENERATED",
-      "VERIFIED",
-      "AVAILABLE",
-      "NOT IMPLEMENTED",
-      "NOT IMPLEMENTED",
-      "NOT IMPLEMENTED",
-      "NOT IMPLEMENTED",
-    ]);
+    expect(stages.map((s) => s.status)).toEqual(["PROVIDED", "GENERATED", "VERIFIED", "AVAILABLE", "NOT RUN", "NOT RUN", "NOT IMPLEMENTED", "NOT IMPLEMENTED"]);
+    expect(NOT_IMPLEMENTED_STAGES).toEqual(["fix", "verification"]);
     for (const id of NOT_IMPLEMENTED_STAGES) expect(stages.find((s) => s.id === id)?.tone).toBe("unimplemented");
+  });
+
+  it("shows the root-cause decision exactly as recorded", () => {
+    const rc = { status: "VALIDATED" as const, experiments: 3, hypotheses: 3, reason: "H1 is the only hypothesis..." };
+    expect(statusOf({ ...BASE, rootCause: rc }, "investigation")).toBe("3 EXPERIMENTS");
+    expect(statusOf({ ...BASE, rootCause: rc }, "root_cause")).toBe("VALIDATED");
+    expect(statusOf({ ...BASE, rootCause: { ...rc, status: "INSUFFICIENT_EVIDENCE" } }, "root_cause")).toBe("INSUFFICIENT EVIDENCE");
   });
 
   it("never reports a reproduction for a plan that was not executed", () => {
@@ -113,10 +113,14 @@ describe("discovery of the archived Benchmark B results", () => {
     expect(summaries.filter((s) => s.benchmark?.kind === "negative" && s.outcome === "VERIFIED")).toHaveLength(0);
   });
 
-  it("keeps model provenance and marks root cause, fix and fix verification NOT IMPLEMENTED", () => {
+  it("keeps model provenance, links the archived root-cause result and marks fixes NOT IMPLEMENTED", () => {
     const bug = summaries.find((s) => s.ref.caseId === "BUG-002");
     expect(bug?.provenance).toMatchObject({ source: "model", generator: "anthropic", model: "claude-opus-5", promptVersion: "planner-v1" });
     expect(bug?.project).toBe("buggy-shop");
+    expect(bug?.rootCause).toMatchObject({ status: "VALIDATED", hypothesisId: "H1" });
+    expect(bug?.stages.find((st) => st.id === "root_cause")?.status).toBe("VALIDATED");
+    expect(summaries.find((s) => s.ref.caseId === "BUG-003")?.rootCause?.status).toBe("INSUFFICIENT_EVIDENCE");
+    expect(summaries.find((s) => s.ref.caseId === "HEALTHY-001")?.rootCause).toBeNull();
     for (const s of summaries) {
       for (const id of NOT_IMPLEMENTED_STAGES) expect(s.stages.find((st) => st.id === id)?.status).toBe("NOT IMPLEMENTED");
     }

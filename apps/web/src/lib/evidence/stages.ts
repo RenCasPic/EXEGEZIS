@@ -1,4 +1,4 @@
-import type { VerificationOutcome } from "@exegezis/core";
+import type { RootCauseStatus, VerificationOutcome } from "@exegezis/core";
 import type { GenerationRecord } from "./generation";
 
 /**
@@ -30,14 +30,18 @@ export interface StageState {
 }
 
 /** Capabilities EXEGEZIS does not have yet. Shown as such everywhere. */
-export const NOT_IMPLEMENTED_STAGES: readonly StageId[] = ["investigation", "root_cause", "fix", "verification"];
+export const NOT_IMPLEMENTED_STAGES: readonly StageId[] = ["fix", "verification"];
 
-export const NOT_IMPLEMENTED_DETAIL: Record<"investigation" | "root_cause" | "fix" | "verification", string> = {
-  investigation: "No investigation engine yet: nothing inspects code, logs or state beyond the reproduction.",
-  root_cause: "No root-cause analysis yet. A root cause will require an experiment that confirms a prediction; none has been run.",
-  fix: "No fix generation yet. EXEGEZIS has not proposed or applied any code change.",
-  verification: "No before/after fix verification yet. Only the bug reproduction itself is verified.",
+export const NOT_IMPLEMENTED_DETAIL: Record<"fix" | "verification", string> = {
+  fix: "No fix generation yet. EXEGEZIS has not proposed or applied any code change as a fix (experimental mutations are discarded).",
+  verification: "No before/after fix verification yet. Only the bug reproduction and root-cause experiments are verified.",
 };
+
+export const NO_ROOT_CAUSE_RUN = "No root-cause experiment has been run for this bug (exegezis root-cause).";
+
+export function rootCauseTone(status: RootCauseStatus): Tone {
+  return status === "VALIDATED" ? "positive" : status === "REFUTED" ? "critical" : "warning";
+}
 
 export interface StageInput {
   symptom: string | null;
@@ -55,6 +59,8 @@ export interface StageInput {
   /** Attempt directories exist on disk (false for archived results). */
   evidenceOnDisk: boolean;
   archived: boolean;
+  /** The latest root-cause investigation of this bug, if one was run. */
+  rootCause: { status: RootCauseStatus; experiments: number; hypotheses: number; reason: string } | null;
 }
 
 export function outcomeTone(outcome: VerificationOutcome): Tone {
@@ -132,8 +138,17 @@ export function deriveStages(input: StageInput): StageState[] {
     plan,
     reproduction,
     evidence,
-    stage("investigation", "NOT IMPLEMENTED", "unimplemented", NOT_IMPLEMENTED_DETAIL.investigation),
-    stage("root_cause", "NOT IMPLEMENTED", "unimplemented", NOT_IMPLEMENTED_DETAIL.root_cause),
+    input.rootCause === null
+      ? stage("investigation", "NOT RUN", "neutral", NO_ROOT_CAUSE_RUN)
+      : stage(
+          "investigation",
+          `${input.rootCause.experiments} EXPERIMENTS`,
+          input.rootCause.experiments > 0 ? "positive" : "warning",
+          `${input.rootCause.hypotheses} hypotheses, ${input.rootCause.experiments} intervention experiments on isolated copies.`,
+        ),
+    input.rootCause === null
+      ? stage("root_cause", "NOT RUN", "neutral", NO_ROOT_CAUSE_RUN)
+      : stage("root_cause", label(input.rootCause.status), rootCauseTone(input.rootCause.status), input.rootCause.reason),
     stage("fix", "NOT IMPLEMENTED", "unimplemented", NOT_IMPLEMENTED_DETAIL.fix),
     stage("verification", "NOT IMPLEMENTED", "unimplemented", NOT_IMPLEMENTED_DETAIL.verification),
   ];

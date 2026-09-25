@@ -12,6 +12,7 @@ import { validateCommand } from "./validate.js";
 import { verifyCommand } from "./verify.js";
 import { benchmarkCommand } from "./benchmark.js";
 import { aiVerifyCommand, generatePlanCommand } from "./ai-commands.js";
+import { rootCauseCommand } from "./root-cause.js";
 
 const require = createRequire(import.meta.url);
 export const VERSION = (require("../package.json") as { version: string }).version;
@@ -45,6 +46,8 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         return await generatePlanCommand({ ...command, exegezisVersion }, io);
       case "ai-verify":
         return await aiVerifyCommand({ ...command, exegezisVersion }, io);
+      case "root-cause":
+        return await rootCauseCommand({ ...command, exegezisVersion }, io);
     }
   } catch (error) {
     if (error instanceof UsageError) {

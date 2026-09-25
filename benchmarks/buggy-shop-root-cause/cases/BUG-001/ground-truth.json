@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "exegezis.root-cause-ground-truth/v1",
+  "bugId": "BUG-001",
+  "statement": "removeFromCart() in public/app.js calls renderCart(cart) but not renderBadge(cart), unlike addToCart().",
+  "locations": [
+    {
+      "file": "public/app.js",
+      "excerpt": "  const cart = await api(`/api/cart/items/${productId}`, { method: \"DELETE\" });\n  renderCart(cart);\n}"
+    }
+  ],
+  "expectedStatus": "VALIDATED"
+}

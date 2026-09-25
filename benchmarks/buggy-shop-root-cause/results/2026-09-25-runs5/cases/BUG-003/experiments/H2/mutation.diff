@@ -1,0 +1,5 @@
+--- a/public/app.js
++++ b/public/app.js
+-  const order = await api("/api/checkout", { method: "POST" });
++  const order = await api("/api/checkout", { method: "POST" });
++  await api("/api/cart", { method: "DELETE" });

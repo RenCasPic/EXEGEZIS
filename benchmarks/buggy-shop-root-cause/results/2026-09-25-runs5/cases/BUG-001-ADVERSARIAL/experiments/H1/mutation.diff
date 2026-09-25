@@ -1,0 +1,5 @@
+--- a/public/app.js
++++ b/public/app.js
+-  $("checkout").disabled = cart.items.length === 0;
++  $("checkout").disabled = cart.items.length === 0;
++  renderBadge(cart);
