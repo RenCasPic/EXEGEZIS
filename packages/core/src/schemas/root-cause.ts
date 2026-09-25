@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { RelativePath, Timestamp } from "./common.js";
 import { Provenance } from "./policy.js";
+import { executionsAt, footprintDiff, ScriptCoverage } from "./coverage.js";
 import { ReproductionStatus } from "./reproduction.js";
 import { RunVerdict } from "./run.js";
+import type { TestPlan } from "./test-plan.js";
 
 /*
  * Root cause by intervention (see docs/06-root-cause-engine.md).
@@ -75,8 +77,25 @@ export const RootCausePolicy = z.strictObject({
   runsPerArm: z.int().min(2).max(50).default(5),
   /** A single confirmed hypothesis is not enough: at least this many competitors must be refuted. */
   minRefutedAlternatives: z.int().min(0).default(1),
+  /** Runs of the control scenario (the plan's prefix, where the baseline is correct) per arm. */
+  controlRuns: z.int().min(1).max(20).default(2),
+  /** The intervention site must have executed in the baseline's failing scenario (relevance). */
+  requireExecutedSite: z.boolean().default(true),
+  /** Reverting the intervention must bring the bug back (A-B-A reversal). */
+  requireReversal: z.boolean().default(true),
+  /** The intervention must not change what executes where the baseline was already correct. */
+  requireSurgical: z.boolean().default(true),
 });
 export type RootCausePolicy = z.infer<typeof RootCausePolicy>;
+
+export const DEFAULT_ROOT_CAUSE_POLICY: RootCausePolicy = {
+  runsPerArm: 5,
+  minRefutedAlternatives: 1,
+  controlRuns: 2,
+  requireExecutedSite: true,
+  requireReversal: true,
+  requireSurgical: true,
+};
 
 /** The investigation input: everything the engine is given. Never the ground truth. */
 export const RootCauseInvestigation = z
@@ -94,7 +113,7 @@ export const RootCauseInvestigation = z
       portEnv: z.string().regex(/^[A-Z_][A-Z0-9_]*$/),
       healthPath: z.string().regex(/^\//),
     }),
-    policy: RootCausePolicy.default({ runsPerArm: 5, minRefutedAlternatives: 1 }),
+    policy: RootCausePolicy.default(DEFAULT_ROOT_CAUSE_POLICY),
     observations: z.array(CausalObservation).default([]),
     hypotheses: z.array(Hypothesis).min(1),
   })
@@ -142,9 +161,30 @@ export const ArmCounts = z.strictObject({
 });
 export type ArmCounts = z.infer<typeof ArmCounts>;
 
+const FootprintSchema = z.record(z.string(), z.int().nonnegative());
+
+/**
+ * The control scenario of an arm: the reproduction plan cut before the steps
+ * where the bug happens (see `controlPlan`), run with execution coverage.
+ * In the baseline every assertion of it holds: it is where the application
+ * is already correct.
+ */
+export const ControlArm = z.strictObject({
+  path: z.string(),
+  runs: z.int().nonnegative(),
+  /** Runs in which every assertion of the control scenario held. */
+  passed: z.int().nonnegative(),
+  /** Function execution counts (browser + server), summed over the runs. */
+  footprint: FootprintSchema.nullable(),
+  /** The browser footprint was identical in every run (determinism of the measure). */
+  stable: z.boolean(),
+  error: z.string().nullable(),
+});
+export type ControlArm = z.infer<typeof ControlArm>;
+
 export const ExperimentArm = z
   .strictObject({
-    label: z.enum(["baseline", "intervention"]),
+    label: z.enum(["baseline", "intervention", "reversal"]),
     /** Directory of the arm's reproduction, relative to the case directory. */
     path: z.string(),
     mutation: AppliedMutation.nullable(),
@@ -153,6 +193,11 @@ export const ExperimentArm = z
     rate: z.number().min(0).max(1),
     reproductionStatus: ReproductionStatus,
     attempts: z.array(ArmAttempt),
+    /** Function execution counts of the full scenario (browser + server), summed over the runs. */
+    footprint: FootprintSchema.nullable(),
+    /** Per-file block coverage of the full scenario (baseline only; used to locate intervention sites). */
+    coverage: z.array(ScriptCoverage).nullable(),
+    control: ControlArm.nullable(),
     error: z.string().nullable(),
   })
   .refine((a) => a.counts.reproduced + a.counts.notReproduced + a.counts.invalid === a.counts.runs, {
@@ -169,16 +214,37 @@ export type ExperimentArm = z.infer<typeof ExperimentArm>;
 export const ExperimentStatus = z.enum(["CONFIRMED", "FALSIFIED", "INCONCLUSIVE"]);
 export type ExperimentStatus = z.infer<typeof ExperimentStatus>;
 
+export const Specificity = z.strictObject({
+  /**
+   * - `surgical`: the control scenario executes exactly the same functions, the
+   *   same number of times, with and without the intervention.
+   * - `not_surgical`: the intervention changed execution (or broke an
+   *   assertion) where the baseline was already correct.
+   * - `unknown`: no control scenario or no coverage to compare.
+   */
+  status: z.enum(["surgical", "not_surgical", "unknown"]),
+  changed: z.array(z.strictObject({ key: z.string(), baseline: z.int(), other: z.int() })),
+  reason: z.string(),
+});
+export type Specificity = z.infer<typeof Specificity>;
+
 export const Experiment = z.strictObject({
   id: z.string(),
   hypothesisId: z.string(),
   intervention: CodeMutation,
   prediction: Prediction,
   baseline: ArmCounts,
+  /** SUFFICIENCY: the intervention applied, the full reproduction run. */
   arm: ExperimentArm,
   /** intervention rate − baseline rate. */
   delta: z.number(),
   result: z.strictObject({ status: ExperimentStatus, reason: z.string() }),
+  /** RELEVANCE: executions, in the baseline's failing scenario, of the block the intervention modifies. */
+  site: z.strictObject({ file: RelativePath, offset: z.int().nonnegative().nullable(), executions: z.int().nonnegative().nullable() }),
+  /** SPECIFICITY: does the intervention change execution where the baseline was correct? */
+  specificity: Specificity,
+  /** REVERSAL (A-B-A): the original code again, after the intervention; the bug must return. Only for confirmed interventions. */
+  reversal: ExperimentArm.nullable(),
   startedAt: Timestamp,
   finishedAt: Timestamp,
 });
@@ -199,9 +265,64 @@ export const HypothesisOutcome = z.strictObject({
 });
 export type HypothesisOutcome = z.infer<typeof HypothesisOutcome>;
 
+/**
+ * One line of the evidence matrix. Every status is computed from recorded
+ * measurements by `evidenceMatrix`; `unknown` means the measurement is missing
+ * or cannot be made, and it never counts as met.
+ */
+export const EvidenceId = z.enum([
+  "bug_reproduced",
+  "site_executed",
+  "intervention_removes_bug",
+  "prediction_confirmed",
+  "reversal_restores_bug",
+  "intervention_surgical",
+  "alternatives_refuted",
+  "unique_survivor",
+  "hypothesis_space_complete",
+]);
+export type EvidenceId = z.infer<typeof EvidenceId>;
+
+export const EvidenceItem = z.strictObject({
+  id: EvidenceId,
+  label: z.string(),
+  status: z.enum(["met", "not_met", "unknown", "not_applicable"]),
+  /** Whether the current policy requires it for VALIDATED. */
+  required: z.boolean(),
+  detail: z.string(),
+});
+export type EvidenceItem = z.infer<typeof EvidenceItem>;
+
+/**
+ * - `NONE`: the bug was not reproduced in every baseline run.
+ * - `REPRODUCED`: reproduced, but no intervention removed it.
+ * - `SUFFICIENT`: an intervention removes the bug, but it is not the only one
+ *   or its alternatives were not refuted.
+ * - `CANDIDATE`: the only surviving hypothesis, alternatives refuted, but
+ *   evidence that the intervention hits the cause (and not a compensating
+ *   change) is missing. A root cause candidate, not a root cause.
+ * - `VALIDATED`: every required evidence item is met.
+ */
+export const EvidenceLevel = z.enum(["NONE", "REPRODUCED", "SUFFICIENT", "CANDIDATE", "VALIDATED"]);
+export type EvidenceLevel = z.infer<typeof EvidenceLevel>;
+
+export const RootCauseDecision = z.strictObject({
+  status: RootCauseStatus,
+  /** Set only when VALIDATED. */
+  hypothesisId: z.string().nullable(),
+  /** The surviving hypothesis when there is exactly one, validated or not. */
+  candidateHypothesisId: z.string().nullable(),
+  evidenceLevel: EvidenceLevel,
+  statement: z.string().nullable(),
+  reason: z.string(),
+  /** Required evidence that is not met (empty when VALIDATED). */
+  missing: z.array(EvidenceId),
+});
+export type RootCauseDecision = z.infer<typeof RootCauseDecision>;
+
 export const RootCauseReport = z
   .strictObject({
-    schemaVersion: z.literal("exegezis.root-cause-report/v1"),
+    schemaVersion: z.literal("exegezis.root-cause-report/v2"),
     bugId: z.string(),
     planId: z.string(),
     planPath: z.string(),
@@ -213,12 +334,9 @@ export const RootCauseReport = z
     baseline: ExperimentArm,
     experiments: z.array(Experiment),
     outcomes: z.array(HypothesisOutcome),
-    decision: z.strictObject({
-      status: RootCauseStatus,
-      hypothesisId: z.string().nullable(),
-      statement: z.string().nullable(),
-      reason: z.string(),
-    }),
+    /** Evidence of the surviving hypothesis (if exactly one), item by item. */
+    evidence: z.array(EvidenceItem),
+    decision: RootCauseDecision,
     /** Proof that the source application was never modified. */
     isolation: z.strictObject({
       sourceDir: z.string(),
@@ -230,11 +348,20 @@ export const RootCauseReport = z
   })
   .refine(
     (r) => {
-      const derived = decideRootCause(r.baseline.counts, r.outcomes, r.policy);
-      return derived.status === r.decision.status && derived.hypothesisId === r.decision.hypothesisId;
+      const derived = decideRootCause(r.baseline, r.experiments, r.outcomes, r.policy);
+      return (
+        derived.status === r.decision.status &&
+        derived.hypothesisId === r.decision.hypothesisId &&
+        derived.candidateHypothesisId === r.decision.candidateHypothesisId &&
+        derived.evidenceLevel === r.decision.evidenceLevel
+      );
     },
-    { message: "the decision must follow deterministically from the baseline and the hypothesis outcomes", path: ["decision"] },
+    { message: "the decision must follow deterministically from the recorded measurements", path: ["decision"] },
   )
+  .refine((r) => r.experiments.every((e) => e.specificity.status === specificityOf(r.baseline.control, e.arm.control).status), {
+    message: "each experiment's specificity must follow from the recorded control footprints",
+    path: ["experiments"],
+  })
   .refine((r) => r.decision.status !== "VALIDATED" || r.isolation.unchanged, {
     message: "a root cause cannot be VALIDATED if the source tree changed during the investigation",
     path: ["decision"],
@@ -322,62 +449,264 @@ export function hypothesisOutcome(hypothesis: Pick<Hypothesis, "id" | "statement
   }
 }
 
-/**
- * The minimum criterion for a VALIDATED root cause (all required):
- * 1. The baseline reproduces the bug in every run (≥ runsPerArm runs).
- * 2. Exactly one hypothesis is SUPPORTED: neutralizing its cause removed the
- *    bug in every run, with no invalid run.
- * 3. No hypothesis is left UNRESOLVED (untested or inconclusive).
- * 4. At least `minRefutedAlternatives` competing hypotheses were REFUTED by
- *    their own intervention, showing that changing related code is not enough
- *    to make the bug disappear.
- * Otherwise: REFUTED if every hypothesis was refuted, INSUFFICIENT_EVIDENCE
- * in every other case.
- */
-export function decideRootCause(
-  baseline: ArmCounts,
-  outcomes: readonly Pick<HypothesisOutcome, "id" | "status" | "statement">[],
-  policy: RootCausePolicy,
-): { status: RootCauseStatus; hypothesisId: string | null; statement: string | null; reason: string } {
-  const none = { hypothesisId: null, statement: null };
-  if (!baselineReproduced(baseline, policy.runsPerArm)) {
+/** Innermost-block executions at a hypothesis' intervention site, in the baseline's coverage. */
+export function siteExecutions(coverage: readonly ScriptCoverage[] | null, file: string, offset: number | null): number | null {
+  if (coverage === null || offset === null) return null;
+  const script = coverage.find((c) => c.file === file);
+  // A file missing from the coverage is unmeasured, not unexecuted.
+  return script === undefined ? null : executionsAt(script, offset);
+}
+
+/** Compares the control scenario of an intervention arm with the baseline's. */
+export function specificityOf(baseline: ControlArm | null, arm: ControlArm | null): Specificity {
+  if (baseline === null || arm === null) return { status: "unknown", changed: [], reason: "no control scenario was run" };
+  if (baseline.error !== null || arm.error !== null) {
+    return { status: "unknown", changed: [], reason: `control scenario failed: ${baseline.error ?? arm.error ?? ""}` };
+  }
+  if (baseline.runs === 0 || baseline.passed !== baseline.runs) {
+    return { status: "unknown", changed: [], reason: `the control scenario does not hold even in the baseline (${baseline.passed}/${baseline.runs})` };
+  }
+  if (arm.passed !== arm.runs) {
     return {
-      status: "INSUFFICIENT_EVIDENCE",
-      ...none,
-      reason: `the baseline did not reproduce the bug in every run (${baseline.reproduced}/${baseline.runs}, ${policy.runsPerArm} required)`,
+      status: "not_surgical",
+      changed: [],
+      reason: `the intervention broke the control scenario, where the baseline is correct (${arm.passed}/${arm.runs} passed)`,
     };
   }
+  if (baseline.footprint === null || arm.footprint === null || !baseline.stable || !arm.stable) {
+    return { status: "unknown", changed: [], reason: "execution coverage of the control scenario is missing or unstable" };
+  }
+  // A whole file present in one measure and absent in the other is a measurement gap, not a behaviour change.
+  const files = (f: Record<string, number>) => new Set(Object.keys(f).map((k) => k.slice(0, k.lastIndexOf("#"))));
+  const a = files(baseline.footprint);
+  const b = files(arm.footprint);
+  const gaps = [...a].filter((f) => !b.has(f)).concat([...b].filter((f) => !a.has(f)));
+  if (gaps.length > 0) return { status: "unknown", changed: [], reason: `coverage of ${gaps.join(", ")} is missing in one of the two measures` };
+  const changed = footprintDiff(baseline.footprint, arm.footprint);
+  return changed.length === 0
+    ? { status: "surgical", changed, reason: "the control scenario executes the same functions the same number of times" }
+    : {
+        status: "not_surgical",
+        changed,
+        reason: `the intervention changes execution where the baseline is already correct: ${changed
+          .slice(0, 4)
+          .map((c) => `${c.key} ${c.baseline}→${c.other}`)
+          .join(", ")}`,
+      };
+}
+
+interface MatrixInput {
+  baseline: Pick<ExperimentArm, "counts">;
+  experiments: readonly Pick<Experiment, "hypothesisId" | "result" | "site" | "specificity" | "reversal">[];
+  outcomes: readonly Pick<HypothesisOutcome, "id" | "status" | "statement">[];
+  policy: RootCausePolicy;
+}
+
+/**
+ * The evidence matrix of the surviving hypothesis (or of the investigation
+ * when there is none). Pure: computed from recorded measurements only.
+ */
+export function evidenceMatrix({ baseline, experiments, outcomes, policy }: MatrixInput): { candidate: string | null; items: EvidenceItem[] } {
   const supported = outcomes.filter((o) => o.status === "SUPPORTED");
   const refuted = outcomes.filter((o) => o.status === "REFUTED");
   const unresolved = outcomes.filter((o) => o.status === "UNRESOLVED");
+  const candidate = supported.length === 1 ? (supported[0]?.id ?? null) : null;
+  const e = candidate === null ? undefined : experiments.find((x) => x.hypothesisId === candidate);
+  const item = (id: EvidenceId, label: string, status: EvidenceItem["status"], required: boolean, detail: string): EvidenceItem => ({
+    id,
+    label,
+    status,
+    required,
+    detail,
+  });
+  const na = (id: EvidenceId, label: string, required: boolean) => item(id, label, "not_applicable", required, "no single surviving hypothesis");
+
+  const reproduced = baselineReproduced(baseline.counts, policy.runsPerArm);
+  const items: EvidenceItem[] = [
+    item("bug_reproduced", "Bug reproduced in every baseline run", reproduced ? "met" : "not_met", true, `${baseline.counts.reproduced}/${baseline.counts.runs}`),
+  ];
+  if (e === undefined) {
+    items.push(
+      na("site_executed", "Intervention site executed in the failing scenario", policy.requireExecutedSite),
+      na("intervention_removes_bug", "Intervention removes the bug (sufficiency)", true),
+      na("prediction_confirmed", "Prediction confirmed", true),
+      na("reversal_restores_bug", "Reverting the intervention brings the bug back (A-B-A)", policy.requireReversal),
+      na("intervention_surgical", "Intervention is surgical (no change where the baseline is correct)", policy.requireSurgical),
+    );
+  } else {
+    const executions = e.site.executions;
+    const reversalMet = e.reversal !== null && e.reversal.counts.runs >= policy.runsPerArm && e.reversal.counts.reproduced === e.reversal.counts.runs;
+    items.push(
+      item(
+        "site_executed",
+        "Intervention site executed in the failing scenario",
+        executions === null ? "unknown" : executions > 0 ? "met" : "not_met",
+        policy.requireExecutedSite,
+        executions === null ? "no coverage of the site" : `${executions} execution(s) of the modified block (relevance, not causality)`,
+      ),
+      item("intervention_removes_bug", "Intervention removes the bug (sufficiency)", e.result.status === "CONFIRMED" ? "met" : "not_met", true, e.result.reason),
+      item("prediction_confirmed", "Prediction confirmed", e.result.status === "CONFIRMED" ? "met" : "not_met", true, e.result.status),
+      item(
+        "reversal_restores_bug",
+        "Reverting the intervention brings the bug back (A-B-A)",
+        e.reversal === null ? "unknown" : reversalMet ? "met" : "not_met",
+        policy.requireReversal,
+        e.reversal === null ? "not run" : `${e.reversal.counts.reproduced}/${e.reversal.counts.runs} reproduced after reverting`,
+      ),
+      item(
+        "intervention_surgical",
+        "Intervention is surgical (no change where the baseline is correct)",
+        e.specificity.status === "surgical" ? "met" : e.specificity.status === "not_surgical" ? "not_met" : "unknown",
+        policy.requireSurgical,
+        e.specificity.reason,
+      ),
+    );
+  }
+  items.push(
+    item(
+      "alternatives_refuted",
+      "Alternative hypotheses refuted",
+      refuted.length >= policy.minRefutedAlternatives && unresolved.length === 0 ? "met" : "not_met",
+      true,
+      `${refuted.length} refuted, ${unresolved.length} unresolved (${policy.minRefutedAlternatives} refutation(s) required)`,
+    ),
+    item("unique_survivor", "Exactly one hypothesis survives", supported.length === 1 ? "met" : "not_met", true, `${supported.length} supported`),
+    item(
+      "hypothesis_space_complete",
+      "Every plausible cause was among the hypotheses",
+      "unknown",
+      false,
+      "cannot be established by experiments: VALIDATED means validated against the alternatives tested",
+    ),
+  );
+  return { candidate, items };
+}
+
+/**
+ * The criterion for a VALIDATED root cause: every REQUIRED item of the
+ * evidence matrix is met. In words (docs/06-root-cause-engine.md): the bug
+ * reproduces in every baseline run; exactly one hypothesis survives and its
+ * intervention removes the bug in every run (sufficiency, prediction
+ * confirmed); its alternatives were refuted and none is unresolved; the
+ * modified code executed in the failing scenario (relevance); reverting the
+ * intervention brings the bug back (A-B-A); and the intervention is surgical:
+ * it changes nothing where the baseline was already correct. The last one is
+ * what separates removing a cause from adding a compensating change.
+ * Otherwise REFUTED if every hypothesis was refuted, else INSUFFICIENT_EVIDENCE,
+ * with the survivor (if any) reported as a candidate.
+ */
+export function decideRootCause(
+  baseline: Pick<ExperimentArm, "counts">,
+  experiments: MatrixInput["experiments"],
+  outcomes: MatrixInput["outcomes"],
+  policy: RootCausePolicy,
+): RootCauseDecision {
+  const { candidate, items } = evidenceMatrix({ baseline, experiments, outcomes, policy });
+  const base = { hypothesisId: null, candidateHypothesisId: null, statement: null };
+  const refuted = outcomes.filter((o) => o.status === "REFUTED");
+  const supported = outcomes.filter((o) => o.status === "SUPPORTED");
+  const unresolved = outcomes.filter((o) => o.status === "UNRESOLVED");
+  const missing = items.filter((i) => i.required && i.status !== "met").map((i) => i.id);
+
+  if (!baselineReproduced(baseline.counts, policy.runsPerArm)) {
+    return {
+      status: "INSUFFICIENT_EVIDENCE",
+      ...base,
+      evidenceLevel: "NONE",
+      missing,
+      reason: `the baseline did not reproduce the bug in every run (${baseline.counts.reproduced}/${baseline.counts.runs}, ${policy.runsPerArm} required)`,
+    };
+  }
   if (outcomes.length > 0 && refuted.length === outcomes.length) {
-    return { status: "REFUTED", ...none, reason: `every hypothesis was refuted (${refuted.map((o) => o.id).join(", ")}): the cause is still unknown` };
+    return {
+      status: "REFUTED",
+      ...base,
+      evidenceLevel: "REPRODUCED",
+      missing,
+      reason: `every hypothesis was refuted (${refuted.map((o) => o.id).join(", ")}): the cause is still unknown`,
+    };
   }
   if (supported.length > 1) {
     return {
       status: "INSUFFICIENT_EVIDENCE",
-      ...none,
+      ...base,
+      evidenceLevel: "SUFFICIENT",
+      missing,
       reason: `the experiments do not discriminate: ${supported.map((o) => o.id).join(" and ")} each removed the bug when neutralized`,
     };
   }
-  if (unresolved.length > 0) {
-    return { status: "INSUFFICIENT_EVIDENCE", ...none, reason: `unresolved hypotheses remain: ${unresolved.map((o) => o.id).join(", ")}` };
-  }
-  const winner = supported[0];
-  if (winner === undefined) return { status: "INSUFFICIENT_EVIDENCE", ...none, reason: "no hypothesis was supported" };
-  if (refuted.length < policy.minRefutedAlternatives) {
+  if (candidate === null) {
     return {
       status: "INSUFFICIENT_EVIDENCE",
-      ...none,
-      reason: `${winner.id} was supported, but only ${refuted.length} alternative(s) were refuted (${policy.minRefutedAlternatives} required): one confirming experiment is not enough`,
+      ...base,
+      evidenceLevel: "REPRODUCED",
+      missing,
+      reason: unresolved.length > 0 ? `unresolved hypotheses remain: ${unresolved.map((o) => o.id).join(", ")}` : "no hypothesis was supported",
+    };
+  }
+  const statement = supported[0]?.statement ?? null;
+  if (missing.includes("alternatives_refuted") || missing.includes("unique_survivor")) {
+    return {
+      status: "INSUFFICIENT_EVIDENCE",
+      ...base,
+      candidateHypothesisId: candidate,
+      statement,
+      evidenceLevel: "SUFFICIENT",
+      missing,
+      reason:
+        unresolved.length > 0
+          ? `${candidate} removed the bug, but unresolved hypotheses remain: ${unresolved.map((o) => o.id).join(", ")}`
+          : `${candidate} removed the bug, but only ${refuted.length} alternative(s) were refuted (${policy.minRefutedAlternatives} required): one confirming experiment is not enough`,
+    };
+  }
+  if (missing.length > 0) {
+    const details = items
+      .filter((i) => missing.includes(i.id))
+      .map((i) => `${i.label.charAt(0).toLowerCase()}${i.label.slice(1)}: ${i.status === "unknown" ? "unknown" : "not met"} (${i.detail})`);
+    return {
+      status: "INSUFFICIENT_EVIDENCE",
+      ...base,
+      candidateHypothesisId: candidate,
+      statement,
+      evidenceLevel: "CANDIDATE",
+      missing,
+      reason: `${candidate} is a root cause candidate — its intervention removes the bug and its alternatives were refuted — but ${details.join("; ")}`,
     };
   }
   return {
     status: "VALIDATED",
-    hypothesisId: winner.id,
-    statement: winner.statement,
-    reason: `${winner.id} is the only hypothesis whose intervention removed the bug in every run; ${refuted.map((o) => o.id).join(", ")} were refuted by their own interventions`,
+    hypothesisId: candidate,
+    candidateHypothesisId: candidate,
+    statement,
+    evidenceLevel: "VALIDATED",
+    missing,
+    reason: `${candidate}: its intervention removes the bug in every run, reverting it brings the bug back, its modified code ran in the failing scenario, it changes nothing where the baseline is correct, and ${refuted
+      .map((o) => o.id)
+      .join(", ")} were refuted by their own interventions`,
   };
+}
+
+/**
+ * The control scenario of a plan: its steps up to the last anchor that holds
+ * before the last action preceding the failing step. In the baseline the
+ * application is correct there (every assertion of it holds), so an
+ * intervention that changes what executes in it is acting where there is no
+ * defect. null when the plan has no such prefix.
+ */
+export function controlPlan(plan: TestPlan, failingStep: number): TestPlan | null {
+  const isAction = (s: TestPlan["steps"][number]) => s.type === "navigate" || s.type === "click" || s.type === "fill" || s.type === "press";
+  let lastAction = -1;
+  for (let i = 0; i < Math.min(failingStep - 1, plan.steps.length); i++) {
+    const step = plan.steps[i];
+    if (step !== undefined && isAction(step)) lastAction = i;
+  }
+  let lastAnchor = -1;
+  for (let i = 0; i < lastAction; i++) {
+    const step = plan.steps[i];
+    if (step?.type === "assert" && step.purpose === "anchor") lastAnchor = i;
+  }
+  if (lastAnchor < 0) return null;
+  return { ...plan, id: `${plan.id.slice(0, 56)}-control`, title: `${plan.title} (control prefix)`, steps: plan.steps.slice(0, lastAnchor + 1) };
 }
 
 /**
@@ -424,6 +753,8 @@ export const RootCauseEvaluation = z.strictObject({
   expectedStatus: RootCauseStatus,
   /** For VALIDATED: whether the validated cause is the true one. null otherwise. */
   correct: z.boolean().nullable(),
+  /** Whether the surviving candidate (validated or not) intervenes at the true cause. null if there is none. */
+  candidateCorrect: z.boolean().nullable(),
   falseValidation: z.boolean(),
   matchesExpected: z.boolean(),
   detail: z.string(),
@@ -447,7 +778,17 @@ export function evaluateRootCause(
   truth: RootCauseGroundTruth,
   sources: Readonly<Record<string, string>>,
 ): RootCauseEvaluation {
-  const base = { bugId: report.bugId, status: report.decision.status, expectedStatus: truth.expectedStatus };
+  const touches = (id: string | null): boolean | null => {
+    const m = report.hypotheses.find((h) => h.id === id)?.intervention;
+    if (id === null || m === undefined) return null;
+    return truth.locations.some((l) => l.file === m.file && interventionTouches(sources[l.file] ?? "", m.find, l.excerpt));
+  };
+  const base = {
+    bugId: report.bugId,
+    status: report.decision.status,
+    expectedStatus: truth.expectedStatus,
+    candidateCorrect: touches(report.decision.candidateHypothesisId),
+  };
   if (report.decision.status !== "VALIDATED") {
     return {
       ...base,
@@ -491,6 +832,7 @@ export const RootCauseSuiteCase = z.strictObject({
   id: z.string(),
   report: z.string().nullable(),
   status: RootCauseStatus,
+  evidenceLevel: EvidenceLevel,
   baseline: ArmCounts.nullable(),
   experiments: z.array(z.strictObject({ hypothesisId: z.string(), counts: ArmCounts, status: ExperimentStatus })),
   evaluation: RootCauseEvaluation.nullable(),
@@ -499,7 +841,7 @@ export const RootCauseSuiteCase = z.strictObject({
 export type RootCauseSuiteCase = z.infer<typeof RootCauseSuiteCase>;
 
 export const RootCauseSuiteResult = z.strictObject({
-  schemaVersion: z.literal("exegezis.root-cause-result/v1"),
+  schemaVersion: z.literal("exegezis.root-cause-result/v2"),
   suite: z.string(),
   exegezisVersion: z.string(),
   startedAt: Timestamp,
@@ -517,6 +859,18 @@ export const RootCauseSuiteResult = z.strictObject({
     matchesExpected: z.int().nonnegative(),
     hypothesesTested: z.int().nonnegative(),
     hypothesesRefuted: z.int().nonnegative(),
+    candidates: z.int().nonnegative(),
+  }),
+  /**
+   * Small-sample metrics, always reported next to their counts. Precision =
+   * correct / validated; false validation rate = false validations / cases
+   * evaluated; honest unknown rate = INSUFFICIENT_EVIDENCE / cases. null when
+   * the denominator is 0.
+   */
+  metrics: z.strictObject({
+    rootCausePrecision: z.number().nullable(),
+    falseValidationRate: z.number().nullable(),
+    honestUnknownRate: z.number().nullable(),
   }),
 });
 export type RootCauseSuiteResult = z.infer<typeof RootCauseSuiteResult>;

@@ -1,9 +1,0 @@
-{
-  "bugId": "BUG-001",
-  "status": "VALIDATED",
-  "expectedStatus": "INSUFFICIENT_EVIDENCE",
-  "correct": false,
-  "falseValidation": true,
-  "matchesExpected": false,
-  "detail": "H1 was validated but does not touch the true cause: FALSE VALIDATION"
-}

@@ -77,13 +77,23 @@ describe("root-cause end to end (BUG-002)", () => {
     expect(h1?.result.status).toBe("CONFIRMED");
     expect(h2?.arm.counts.reproduced).toBe(2);
     expect(h2?.result.status).toBe("FALSIFIED");
-    expect(report.decision).toMatchObject({ status: "VALIDATED", hypothesisId: "H1" });
+    expect(report.decision).toMatchObject({ status: "VALIDATED", hypothesisId: "H1", evidenceLevel: "VALIDATED", missing: [] });
     expect(report.outcomes.find((o) => o.id === "H2")?.status).toBe("REFUTED");
+    // The new causal evidence, measured, not declared.
+    expect(h1?.site.executions).toBeGreaterThan(0);
+    expect(h1?.specificity.status).toBe("surgical");
+    expect(h1?.reversal?.counts).toEqual({ runs: 2, reproduced: 2, notReproduced: 0, invalid: 0 });
+    expect(report.baseline.control).toMatchObject({ runs: 2, passed: 2, stable: true });
+    expect(report.evidence.filter((e) => e.required).every((e) => e.status === "met")).toBe(true);
+    expect(report.evidence.find((e) => e.id === "hypothesis_space_complete")?.status).toBe("unknown");
   });
 
   it("keeps the artifacts of every arm and discards the mutated copies", () => {
     const caseDir = join(resultDir, "cases/BUG-002");
     expect(existsSync(join(caseDir, "baseline/reproduction.json"))).toBe(true);
+    expect(existsSync(join(caseDir, "baseline/control/reproduction.json"))).toBe(true);
+    expect(existsSync(join(caseDir, "reversal/H1/reproduction.json"))).toBe(true);
+    expect(existsSync(join(caseDir, "coverage"))).toBe(false);
     expect(readFileSync(join(caseDir, "experiments/H1/mutation.diff"), "utf8")).toContain("+  return items.reduce((sum, item) => sum + item.lineTotalCents, 0);");
     expect(existsSync(join(caseDir, "workspaces"))).toBe(true);
     expect(readdirSync(join(caseDir, "workspaces"))).toEqual([]);

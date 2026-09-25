@@ -18,7 +18,11 @@
   },
   "policy": {
     "runsPerArm": 5,
-    "minRefutedAlternatives": 1
+    "minRefutedAlternatives": 1,
+    "controlRuns": 2,
+    "requireExecutedSite": true,
+    "requireReversal": true,
+    "requireSurgical": true
   },
   "observations": [
     {

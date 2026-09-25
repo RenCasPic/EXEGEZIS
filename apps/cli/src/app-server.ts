@@ -8,6 +8,10 @@ export interface AppSpec {
   healthPath: string;
   /** Environment of the process. Defaults to the current environment. */
   env?: NodeJS.ProcessEnv;
+  /** Extra Node.js flags (only for `node` commands), placed before the script. */
+  nodeArgs?: readonly string[];
+  /** Open an IPC channel to the process (for coverage control). */
+  ipc?: boolean;
 }
 
 export interface RunningApp {
@@ -15,16 +19,25 @@ export interface RunningApp {
   stop(): void;
   /** Stops the process and resolves once it has exited (its files are released). */
   stopAndWait(): Promise<void>;
+  /** Sends an IPC message and waits for the reply `<message>:done` (requires `ipc`). */
+  request(message: string, timeoutMs?: number): Promise<void>;
+  /** Resolves when the process has exited on its own. */
+  readonly exited: Promise<void>;
 }
 
 /** Starts an application on a free port and waits for its health check. */
 export async function startApp(app: AppSpec, name: string): Promise<RunningApp> {
   const port = await freePort();
   const [command, ...args] = app.command as [string, ...string[]];
-  const child: ChildProcess = spawn(command === "node" ? process.execPath : command, args, {
+  const isNode = command === "node";
+  const child: ChildProcess = spawn(isNode ? process.execPath : command, [...(isNode ? (app.nodeArgs ?? []) : []), ...args], {
     cwd: app.cwd,
     env: { ...(app.env ?? process.env), [app.portEnv]: String(port) },
-    stdio: "ignore",
+    stdio: app.ipc === true ? ["ignore", "ignore", "ignore", "ipc"] : "ignore",
+  });
+  const exited = new Promise<void>((done) => {
+    if (child.exitCode !== null || child.signalCode !== null) done();
+    else child.once("exit", () => done());
   });
   const baseUrl = `http://127.0.0.1:${port}/`;
   const deadline = Date.now() + 20_000;
@@ -40,17 +53,33 @@ export async function startApp(app: AppSpec, name: string): Promise<RunningApp> 
     }
     await new Promise((r) => setTimeout(r, 200));
   }
-  const exited = new Promise<void>((done) => {
-    if (child.exitCode !== null || child.signalCode !== null) done();
-    else child.once("exit", () => done());
-  });
   return {
     baseUrl,
+    exited,
     stop: () => child.kill(),
     stopAndWait: async () => {
       child.kill();
       await exited;
     },
+    request: (message, timeoutMs = 10_000) =>
+      new Promise<void>((resolveRequest, reject) => {
+        if (child.send === undefined) {
+          reject(new Error("the application has no IPC channel"));
+          return;
+        }
+        const timer = setTimeout(() => {
+          child.off("message", onMessage);
+          reject(new Error(`no reply to ${message} within ${timeoutMs} ms`));
+        }, timeoutMs);
+        const onMessage = (reply: unknown) => {
+          if (reply !== `${message}:done`) return;
+          clearTimeout(timer);
+          child.off("message", onMessage);
+          resolveRequest();
+        };
+        child.on("message", onMessage);
+        child.send(message);
+      }),
   };
 }
 

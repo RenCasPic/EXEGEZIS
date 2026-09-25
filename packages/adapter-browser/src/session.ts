@@ -270,6 +270,25 @@ export class BrowserSession implements AdapterSession {
         ? { status: "ok", detail: `${this.screenshots.length} captured` }
         : { status: "failed", detail: "no screenshot was captured" };
 
+    if (this.options.coverage) {
+      await write("coverage", async () => {
+        const entries = await this.page.coverage.stopJSCoverage();
+        const scripts = entries
+          .filter((e) => /^https?:/.test(e.url))
+          .map((e) => ({
+            // The URL path; the caller maps it to a source file if it can.
+            file: new URL(e.url).pathname,
+            url: e.url,
+            functions: e.functions.map((f) => ({ functionName: f.functionName, ranges: f.ranges, isBlockCoverage: f.isBlockCoverage })),
+          }));
+        await this.recorder.writeJson(
+          "coverage",
+          "coverage.json",
+          { schemaVersion: "exegezis.coverage/v1", runtime: "browser", scripts },
+          { description: "JavaScript execution coverage of the page (V8)" },
+        );
+      });
+    }
     collectors["trace"] = await this.saveTrace();
     for (const [name, detail] of this.collectorFailures) {
       collectors[name] ??= { status: "failed", detail };

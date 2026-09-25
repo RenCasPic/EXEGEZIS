@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "exegezis.reproduction/v1",
+  "planId": "BUG-002",
+  "planHash": "sha256:cbd7fb4a773c43546314f9a9c03c95889359b1ed10e2744e53438de5e4b8b0cd",
+  "planProvenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "targetUrl": "http://127.0.0.1:52133/",
+  "startedAt": "2026-09-25T20:36:16.557Z",
+  "finishedAt": "2026-09-25T20:36:38.118Z",
+  "attempts": 5,
+  "passes": 0,
+  "failures": 5,
+  "timeouts": 0,
+  "errors": 0,
+  "rate": 1,
+  "status": "REPRODUCED",
+  "reason": "all 5 attempts failed identically",
+  "runs": [
+    {
+      "attempt": 1,
+      "runId": "01M3D4GX1DP4XJYVNWJ806AQDP",
+      "runPath": "attempts/01M3D4GX1DP4XJYVNWJ806AQDP",
+      "verdict": "failed",
+      "stoppedAtStep": 10,
+      "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+      "durationMs": 4507
+    },
+    {
+      "attempt": 2,
+      "runId": "01M3D4H1EAVV9GJPT99D68EKWJ",
+      "runPath": "attempts/01M3D4H1EAVV9GJPT99D68EKWJ",
+      "verdict": "failed",
+      "stoppedAtStep": 10,
+      "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+      "durationMs": 4272
+    },
+    {
+      "attempt": 3,
+      "runId": "01M3D4H5KTTG0QP9AVG0DZHT6H",
+      "runPath": "attempts/01M3D4H5KTTG0QP9AVG0DZHT6H",
+      "verdict": "failed",
+      "stoppedAtStep": 10,
+      "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+      "durationMs": 4184
+    },
+    {
+      "attempt": 4,
+      "runId": "01M3D4H9PS454HPR2M0QFXXTVM",
+      "runPath": "attempts/01M3D4H9PS454HPR2M0QFXXTVM",
+      "verdict": "failed",
+      "stoppedAtStep": 10,
+      "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+      "durationMs": 4295
+    },
+    {
+      "attempt": 5,
+      "runId": "01M3D4HDX1RRNX5QHJ3B2VNGYV",
+      "runPath": "attempts/01M3D4HDX1RRNX5QHJ3B2VNGYV",
+      "verdict": "failed",
+      "stoppedAtStep": 10,
+      "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+      "durationMs": 4293
+    }
+  ]
+}

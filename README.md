@@ -10,7 +10,11 @@ turns a user's symptom into a TestPlan and the deterministic Verification
 Engine decides whether the bug is real. For a verified bug, competing
 hypotheses are tested by applying each one's code mutation to an isolated copy
 of the app: a cause is VALIDATED only if its intervention removed the bug in
-every run and its alternatives were refuted. *The AI proposes. EXEGEZIS
+every run, reverting it brings the bug back, the modified code ran in the
+failing scenario, the change is surgical (execution coverage shows nothing
+changes where the app was already correct) and its alternatives were refuted.
+Otherwise the survivor is reported as a root cause candidate. Known limit: a
+compensating change gated to the failure window still passes (ADV-002). *The AI proposes. EXEGEZIS
 decides whether the evidence proves the claim.*
 
 ## Quick start

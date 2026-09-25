@@ -23,4 +23,5 @@ export * from "./validation.js";
 export * from "./preflight.js";
 export * from "./schemas/benchmark.js";
 export * from "./schemas/root-cause.js";
+export * from "./schemas/coverage.js";
 export * from "./experiment.js";

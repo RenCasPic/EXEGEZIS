@@ -1,0 +1,4 @@
+--- a/src/shop.ts
++++ b/src/shop.ts
+-  const discountCents = Math.round((discountBase(items) * percent) / 100);
++  const discountCents = Math.round((subtotalCents * percent) / 100);

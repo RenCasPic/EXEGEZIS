@@ -18,6 +18,11 @@ export const BrowserAdapterOptions = z.strictObject({
   /** Max wait for network idle before an observation; not reaching it is recorded, not fatal. */
   settleTimeoutMs: z.int().nonnegative().default(3_000),
   trace: z.boolean().default(true),
+  /**
+   * Record JavaScript execution coverage of the page (V8 block coverage) as
+   * coverage.json. Off by default; the root-cause engine turns it on.
+   */
+  coverage: z.boolean().default(false),
   /** Capture request/response bodies of fetch/XHR calls (redacted). */
   captureBodies: z.boolean().default(true),
   maxBodyBytes: z.int().nonnegative().default(64 * 1024),

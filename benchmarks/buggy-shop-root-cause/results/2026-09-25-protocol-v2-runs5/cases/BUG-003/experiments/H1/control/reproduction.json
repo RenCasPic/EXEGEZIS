@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "exegezis.reproduction/v1",
+  "planId": "BUG-003-control",
+  "planHash": "sha256:8982754d56238b02ac6d64cf6f257dc4af79a380ae7f8ae6328ac9c558bb357b",
+  "planProvenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "targetUrl": "http://127.0.0.1:51896/",
+  "startedAt": "2026-09-25T20:31:58.512Z",
+  "finishedAt": "2026-09-25T20:32:02.381Z",
+  "attempts": 2,
+  "passes": 2,
+  "failures": 0,
+  "timeouts": 0,
+  "errors": 0,
+  "rate": 0,
+  "status": "NOT_REPRODUCED",
+  "reason": "all 2 attempts met every expectation",
+  "runs": [
+    {
+      "attempt": 1,
+      "runId": "01M3D4911GG89PNCKT4DZC9ECA",
+      "runPath": "attempts/01M3D4911GG89PNCKT4DZC9ECA",
+      "verdict": "passed",
+      "durationMs": 1877
+    },
+    {
+      "attempt": 2,
+      "runId": "01M3D492W62ZRFSDV360J3HZR3",
+      "runPath": "attempts/01M3D492W62ZRFSDV360J3HZR3",
+      "verdict": "passed",
+      "durationMs": 1990
+    }
+  ]
+}

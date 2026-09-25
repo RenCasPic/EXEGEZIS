@@ -48,6 +48,7 @@ export class BrowserAdapter implements Adapter {
         await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
       }
       const page = await context.newPage();
+      if (options.coverage) await page.coverage.startJSCoverage({ resetOnNavigation: false });
       const userAgent = await page.evaluate(() => navigator.userAgent);
 
       const environment = {

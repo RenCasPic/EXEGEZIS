@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "exegezis.reproduction/v1",
+  "planId": "BUG-001",
+  "planHash": "sha256:0513d70002d51f4a145117517fe9dcaed513723734be0a7531e46ad7e8b726cf",
+  "planProvenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "targetUrl": "http://127.0.0.1:52208/",
+  "startedAt": "2026-09-25T20:37:39.384Z",
+  "finishedAt": "2026-09-25T20:37:59.269Z",
+  "attempts": 5,
+  "passes": 0,
+  "failures": 5,
+  "timeouts": 0,
+  "errors": 0,
+  "rate": 1,
+  "status": "REPRODUCED",
+  "reason": "all 5 attempts failed identically",
+  "runs": [
+    {
+      "attempt": 1,
+      "runId": "01M3D4KDXRJK2JCQTZ84T5GGBC",
+      "runPath": "attempts/01M3D4KDXRJK2JCQTZ84T5GGBC",
+      "verdict": "failed",
+      "stoppedAtStep": 9,
+      "failureSignature": "step:9|badge-after-remove|actual=\"Cart (1)\"",
+      "durationMs": 3963
+    },
+    {
+      "attempt": 2,
+      "runId": "01M3D4KHSMX91NCK6ES45A1PT3",
+      "runPath": "attempts/01M3D4KHSMX91NCK6ES45A1PT3",
+      "verdict": "failed",
+      "stoppedAtStep": 9,
+      "failureSignature": "step:9|badge-after-remove|actual=\"Cart (1)\"",
+      "durationMs": 3983
+    },
+    {
+      "attempt": 3,
+      "runId": "01M3D4KNP31GHQC0H3G3KNRZ6E",
+      "runPath": "attempts/01M3D4KNP31GHQC0H3G3KNRZ6E",
+      "verdict": "failed",
+      "stoppedAtStep": 9,
+      "failureSignature": "step:9|badge-after-remove|actual=\"Cart (1)\"",
+      "durationMs": 3956
+    },
+    {
+      "attempt": 4,
+      "runId": "01M3D4KSHYSVRZWBR26HFDFGBE",
+      "runPath": "attempts/01M3D4KSHYSVRZWBR26HFDFGBE",
+      "verdict": "failed",
+      "stoppedAtStep": 9,
+      "failureSignature": "step:9|badge-after-remove|actual=\"Cart (1)\"",
+      "durationMs": 3956
+    },
+    {
+      "attempt": 5,
+      "runId": "01M3D4KXDK1YXFQCP4VXTH0QX9",
+      "runPath": "attempts/01M3D4KXDK1YXFQCP4VXTH0QX9",
+      "verdict": "failed",
+      "stoppedAtStep": 9,
+      "failureSignature": "step:9|badge-after-remove|actual=\"Cart (1)\"",
+      "durationMs": 4017
+    }
+  ]
+}

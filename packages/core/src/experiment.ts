@@ -24,6 +24,11 @@ async function listFiles(root: string, entry: string): Promise<string[]> {
   return nested.flat();
 }
 
+/** Every file of the included entries, as sorted forward-slash relative paths. */
+export async function listTree(dir: string, include: readonly string[]): Promise<string[]> {
+  return (await Promise.all(include.map((entry) => listFiles(dir, entry)))).flat().sort();
+}
+
 /** sha256 over the sorted paths and contents of the included entries. */
 export async function hashTree(dir: string, include: readonly string[]): Promise<{ files: number; hash: string }> {
   const files = (await Promise.all(include.map((entry) => listFiles(dir, entry)))).flat().sort();

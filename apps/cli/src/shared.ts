@@ -63,8 +63,8 @@ export async function loadTestPlan(io: CliIo, file: string): Promise<LoadedPlan>
   return { plan: result.data, path: file.replaceAll("\\", "/"), hash: hashJson(redactPlan(result.data)) };
 }
 
-export function createAdapter(headed: boolean): BrowserAdapter {
-  return new BrowserAdapter({ headless: !headed });
+export function createAdapter(headed: boolean, options: { coverage?: boolean } = {}): BrowserAdapter {
+  return new BrowserAdapter({ headless: !headed, ...(options.coverage === true ? { coverage: true } : {}) });
 }
 
 /** Spec settings mirroring the adapter, so the compiled test runs like EXEGEZIS did. */

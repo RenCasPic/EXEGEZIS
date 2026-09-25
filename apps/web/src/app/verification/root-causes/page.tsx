@@ -48,6 +48,7 @@ export default async function RootCausesPage() {
                 <tr>
                   <th className={tableClass.th}>Case</th>
                   <th className={tableClass.th}>Decision</th>
+                  <th className={tableClass.th}>Evidence</th>
                   <th className={tableClass.th}>Root cause</th>
                   <th className={tableClass.th}>Experiment</th>
                   <th className={tableClass.th}>Refuted</th>
@@ -57,7 +58,7 @@ export default async function RootCausesPage() {
               </thead>
               <tbody>
                 {valid.map(({ entry, report }) => {
-                  const win = report.experiments.find((e) => e.hypothesisId === report.decision.hypothesisId);
+                  const win = report.experiments.find((e) => e.hypothesisId === (report.decision.hypothesisId ?? report.decision.candidateHypothesisId));
                   const refuted = report.outcomes.filter((o) => o.status === "REFUTED").length;
                   const evaluation = entry.evaluation;
                   return (
@@ -73,7 +74,10 @@ export default async function RootCausesPage() {
                       <td className={tableClass.td}>
                         <StatusPill status={label(report.decision.status)} tone={rootCauseTone(report.decision.status)} size="xs" />
                       </td>
-                      <td className={`${tableClass.td} max-w-[26rem] text-[12px] text-muted`}>{report.decision.statement ?? report.decision.reason}</td>
+                      <td className={`${tableClass.td} font-mono text-[11px] text-muted`}>{report.decision.evidenceLevel}</td>
+                      <td className={`${tableClass.td} max-w-[26rem] text-[12px] text-muted`}>
+                        {report.decision.status === "VALIDATED" ? report.decision.statement : report.decision.candidateHypothesisId !== null ? `Candidate ${report.decision.candidateHypothesisId}: ${report.decision.statement ?? ""}` : report.decision.reason}
+                      </td>
                       <td className={`${tableClass.td} whitespace-nowrap font-mono text-[12px]`}>
                         {win === undefined ? "—" : `${win.baseline.reproduced}/${win.baseline.runs} → ${win.arm.counts.reproduced}/${win.arm.counts.runs}`}
                       </td>

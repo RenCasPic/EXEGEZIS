@@ -1,0 +1,4 @@
+--- a/public/app.js
++++ b/public/app.js
+-  $("discount").textContent = cart.discountCents > 0 ? `-${formatMoney(cart.discountCents)}` : formatMoney(0);
++  $("discount").textContent = cart.subtotalCents > cart.totalCents ? `-${formatMoney(cart.subtotalCents - cart.totalCents)}` : formatMoney(0);

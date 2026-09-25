@@ -1,0 +1,7 @@
+--- a/public/app.js
++++ b/public/app.js
+-  return body;
+-}
++  if (options.method === "DELETE") renderBadge(body);
++  return body;
++}

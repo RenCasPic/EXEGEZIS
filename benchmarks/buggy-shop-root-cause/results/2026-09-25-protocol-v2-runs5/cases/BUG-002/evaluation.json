@@ -1,0 +1,10 @@
+{
+  "bugId": "BUG-002",
+  "status": "VALIDATED",
+  "expectedStatus": "VALIDATED",
+  "candidateCorrect": true,
+  "correct": true,
+  "falseValidation": false,
+  "matchesExpected": true,
+  "detail": "H1 intervenes at the true cause (src/shop.ts)"
+}

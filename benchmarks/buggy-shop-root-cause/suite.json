@@ -6,6 +6,8 @@
     "cases/BUG-001",
     "cases/BUG-002",
     "cases/BUG-003",
+    "cases/ADV-002",
+    "cases/ADV-003",
     "cases/BUG-001-ADVERSARIAL"
   ]
 }

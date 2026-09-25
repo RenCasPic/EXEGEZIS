@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "exegezis.root-cause-ground-truth/v1",
+  "bugId": "BUG-002",
+  "statement": "discountBase() in src/shop.ts sums item.unitPriceCents instead of item.lineTotalCents.",
+  "locations": [
+    {
+      "file": "src/shop.ts",
+      "excerpt": "  return items.reduce((sum, item) => sum + item.unitPriceCents, 0);"
+    }
+  ],
+  "expectedStatus": "INSUFFICIENT_EVIDENCE",
+  "note": "Adversarial case: the true hypothesis (discountBase) is withheld; H1 bypasses discountBase() from priceCart(). It removes the symptom but stops calling discountBase() everywhere, including where the baseline was correct."
+}

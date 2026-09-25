@@ -62,7 +62,14 @@ export interface InvestigationSummary {
   benchmark: { expected: VerificationOutcome; passed: boolean; kind: "positive" | "negative" } | null;
   job: { id: string; status: JobStatus } | null;
   /** Latest root-cause investigation of the same bug id. */
-  rootCause: { entryId: string; status: RootCauseReport["decision"]["status"]; hypothesisId: string | null; statement: string | null } | null;
+  rootCause: {
+    entryId: string;
+    status: RootCauseReport["decision"]["status"];
+    evidenceLevel: RootCauseReport["decision"]["evidenceLevel"];
+    hypothesisId: string | null;
+    candidateHypothesisId: string | null;
+    statement: string | null;
+  } | null;
   /** Artifacts that exist but failed schema validation. */
   problems: string[];
   stages: StageState[];
@@ -183,7 +190,14 @@ async function buildSummary(index: WorkspaceIndex, ref: InvestigationRef, rootCa
   const rc = latestFor(rootCauses, ref.caseId ?? report?.bugId ?? null);
   if (rc !== null) {
     const d = rc.report.value.decision;
-    summary.rootCause = { entryId: rc.ref.id, status: d.status, hypothesisId: d.hypothesisId, statement: d.statement };
+    summary.rootCause = {
+      entryId: rc.ref.id,
+      status: d.status,
+      evidenceLevel: d.evidenceLevel,
+      hypothesisId: d.hypothesisId,
+      candidateHypothesisId: d.candidateHypothesisId,
+      statement: d.statement,
+    };
   }
   summary.stages = deriveStages({
     symptom,

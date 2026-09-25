@@ -119,6 +119,7 @@ describe("discovery of the archived Benchmark B results", () => {
     expect(bug?.project).toBe("buggy-shop");
     expect(bug?.rootCause).toMatchObject({ status: "VALIDATED", hypothesisId: "H1" });
     expect(bug?.stages.find((st) => st.id === "root_cause")?.status).toBe("VALIDATED");
+    expect(bug?.rootCause?.evidenceLevel).toBe("VALIDATED");
     expect(summaries.find((s) => s.ref.caseId === "BUG-003")?.rootCause?.status).toBe("INSUFFICIENT_EVIDENCE");
     expect(summaries.find((s) => s.ref.caseId === "HEALTHY-001")?.rootCause).toBeNull();
     for (const s of summaries) {

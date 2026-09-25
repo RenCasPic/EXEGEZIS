@@ -1,0 +1,10 @@
+{
+  "bugId": "BUG-003",
+  "status": "INSUFFICIENT_EVIDENCE",
+  "expectedStatus": "INSUFFICIENT_EVIDENCE",
+  "candidateCorrect": null,
+  "correct": null,
+  "falseValidation": false,
+  "matchesExpected": true,
+  "detail": "no root cause validated (INSUFFICIENT_EVIDENCE); expected INSUFFICIENT_EVIDENCE"
+}

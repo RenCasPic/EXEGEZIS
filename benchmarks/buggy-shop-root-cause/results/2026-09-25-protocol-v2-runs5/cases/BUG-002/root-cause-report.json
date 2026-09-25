@@ -1,0 +1,1671 @@
+{
+  "schemaVersion": "exegezis.root-cause-report/v2",
+  "bugId": "BUG-002",
+  "planId": "BUG-002",
+  "planPath": "./benchmarks/buggy-shop/cases/BUG-002/plan.json",
+  "policy": {
+    "runsPerArm": 5,
+    "minRefutedAlternatives": 1,
+    "controlRuns": 2,
+    "requireExecutedSite": true,
+    "requireReversal": true,
+    "requireSurgical": true
+  },
+  "generatedAt": "2026-09-25T20:31:20.642Z",
+  "exegezisVersion": "0.1.0",
+  "observations": [
+    {
+      "id": "api-discount",
+      "statement": "POST /api/cart/coupon answers subtotalCents 17980 and discountCents 899: the wrong value is produced by the API.",
+      "source": "network.json, the coupon exchange; assertions.json step 10"
+    },
+    {
+      "id": "single-unit",
+      "statement": "The discount equals 10% of one keyboard (899 = 10% of 8990).",
+      "source": "arithmetic on the observed values"
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "discountBase() sums unit prices instead of line totals, so quantity is ignored.",
+      "rationale": "899 is exactly 10% of one unit price; the base of the percentage must be missing the quantity.",
+      "observations": [
+        "api-discount",
+        "single-unit"
+      ],
+      "location": {
+        "file": "src/shop.ts",
+        "symbol": "discountBase"
+      },
+      "intervention": {
+        "kind": "replace",
+        "file": "src/shop.ts",
+        "find": "  return items.reduce((sum, item) => sum + item.unitPriceCents, 0);",
+        "replace": "  return items.reduce((sum, item) => sum + item.lineTotalCents, 0);",
+        "description": "Use lineTotalCents instead of unitPriceCents as the discount base."
+      },
+      "prediction": "eliminates",
+      "provenance": {
+        "source": "human",
+        "generator": "exegezis-dev",
+        "model": null,
+        "version": null,
+        "promptVersion": null,
+        "createdAt": "2026-09-25T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "The rounding of the discount (Math.round) truncates it.",
+      "rationale": "Money bugs often come from rounding; the discount is computed with Math.round on cents.",
+      "observations": [
+        "api-discount"
+      ],
+      "location": {
+        "file": "src/shop.ts",
+        "symbol": "priceCart"
+      },
+      "intervention": {
+        "kind": "replace",
+        "file": "src/shop.ts",
+        "find": "  const discountCents = Math.round((discountBase(items) * percent) / 100);",
+        "replace": "  const discountCents = Math.floor((discountBase(items) * percent + 50) / 100);",
+        "description": "Replace Math.round with an explicit half-up integer rounding."
+      },
+      "prediction": "eliminates",
+      "provenance": {
+        "source": "human",
+        "generator": "exegezis-dev",
+        "model": null,
+        "version": null,
+        "promptVersion": null,
+        "createdAt": "2026-09-25T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "The UI renders the discount of a single line instead of the cart's discount.",
+      "rationale": "The user sees the wrong discount in the cart summary, which the client formats itself.",
+      "observations": [
+        "single-unit"
+      ],
+      "location": {
+        "file": "public/app.js",
+        "symbol": "renderCart"
+      },
+      "intervention": {
+        "kind": "replace",
+        "file": "public/app.js",
+        "find": "  $(\"discount\").textContent = cart.discountCents > 0 ? `-${formatMoney(cart.discountCents)}` : formatMoney(0);",
+        "replace": "  $(\"discount\").textContent = cart.subtotalCents > cart.totalCents ? `-${formatMoney(cart.subtotalCents - cart.totalCents)}` : formatMoney(0);",
+        "description": "Render the discount as subtotal minus total."
+      },
+      "prediction": "eliminates",
+      "provenance": {
+        "source": "human",
+        "generator": "exegezis-dev",
+        "model": null,
+        "version": null,
+        "promptVersion": null,
+        "createdAt": "2026-09-25T00:00:00.000Z"
+      }
+    }
+  ],
+  "baseline": {
+    "label": "baseline",
+    "path": "baseline",
+    "mutation": null,
+    "counts": {
+      "runs": 5,
+      "reproduced": 5,
+      "notReproduced": 0,
+      "invalid": 0
+    },
+    "rate": 1,
+    "reproductionStatus": "REPRODUCED",
+    "attempts": [
+      {
+        "attempt": 1,
+        "runId": "01M3D44CW5X3ACWDK5YQKXHSF1",
+        "runPath": "attempts/01M3D44CW5X3ACWDK5YQKXHSF1",
+        "verdict": "failed",
+        "stoppedAtStep": 10,
+        "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+        "classification": "reproduced"
+      },
+      {
+        "attempt": 2,
+        "runId": "01M3D44H8KK9CAQ70CFGZB4W0K",
+        "runPath": "attempts/01M3D44H8KK9CAQ70CFGZB4W0K",
+        "verdict": "failed",
+        "stoppedAtStep": 10,
+        "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+        "classification": "reproduced"
+      },
+      {
+        "attempt": 3,
+        "runId": "01M3D44N88XCRJYN8XQY508NCR",
+        "runPath": "attempts/01M3D44N88XCRJYN8XQY508NCR",
+        "verdict": "failed",
+        "stoppedAtStep": 10,
+        "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+        "classification": "reproduced"
+      },
+      {
+        "attempt": 4,
+        "runId": "01M3D44SDX98JTGB45Z4PJQHXA",
+        "runPath": "attempts/01M3D44SDX98JTGB45Z4PJQHXA",
+        "verdict": "failed",
+        "stoppedAtStep": 10,
+        "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+        "classification": "reproduced"
+      },
+      {
+        "attempt": 5,
+        "runId": "01M3D44XME4XJ5K4S926YMYPRN",
+        "runPath": "attempts/01M3D44XME4XJ5K4S926YMYPRN",
+        "verdict": "failed",
+        "stoppedAtStep": 10,
+        "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+        "classification": "reproduced"
+      }
+    ],
+    "footprint": {
+      "src/server.ts#sendJson": 30,
+      "src/server.ts#readJsonBody": 15,
+      "src/server.ts#stringField": 15,
+      "src/server.ts#bearerToken": 20,
+      "src/server.ts#handleApi": 30,
+      "src/server.ts#serveStatic": 15,
+      "src/server.ts#(anonymous)": 45,
+      "src/shop.ts#emptyCart": 5,
+      "src/shop.ts#findProduct": 25,
+      "src/shop.ts#(anonymous)": 90,
+      "src/shop.ts#discountBase": 20,
+      "src/shop.ts#priceCart": 20,
+      "src/shop.ts#createSession": 5,
+      "src/shop.ts#getSession": 20,
+      "src/shop.ts#viewCart": 5,
+      "src/shop.ts#addItem": 10,
+      "src/shop.ts#applyCoupon": 5,
+      "public/app.js#$": 165,
+      "public/app.js#formatMoney": 90,
+      "public/app.js#api": 30,
+      "public/app.js#ensureSession": 5,
+      "public/app.js#renderProducts": 5,
+      "public/app.js#(anonymous)": 40,
+      "public/app.js#renderCart": 20,
+      "public/app.js#renderBadge": 15,
+      "public/app.js#addToCart": 10,
+      "public/app.js#removeFromCart": 0,
+      "public/app.js#applyCoupon": 5,
+      "public/app.js#checkout": 0,
+      "public/app.js#continueShopping": 0,
+      "public/app.js#init": 5
+    },
+    "coverage": [
+      {
+        "file": "public/app.js",
+        "url": "http://127.0.0.1:51760/app.js",
+        "functions": [
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 0,
+                "endOffset": 4571,
+                "count": 1
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "$",
+            "ranges": [
+              {
+                "startOffset": 160,
+                "endOffset": 195,
+                "count": 33
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "formatMoney",
+            "ranges": [
+              {
+                "startOffset": 198,
+                "endOffset": 270,
+                "count": 18
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "api",
+            "ranges": [
+              {
+                "startOffset": 272,
+                "endOffset": 702,
+                "count": 6
+              },
+              {
+                "startOffset": 447,
+                "endOffset": 491,
+                "count": 5
+              },
+              {
+                "startOffset": 492,
+                "endOffset": 496,
+                "count": 1
+              },
+              {
+                "startOffset": 596,
+                "endOffset": 685,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "ensureSession",
+            "ranges": [
+              {
+                "startOffset": 704,
+                "endOffset": 979,
+                "count": 1
+              },
+              {
+                "startOffset": 801,
+                "endOffset": 843,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "renderProducts",
+            "ranges": [
+              {
+                "startOffset": 981,
+                "endOffset": 1626,
+                "count": 1
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 1093,
+                "endOffset": 1617,
+                "count": 3
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 1529,
+                "endOffset": 1556,
+                "count": 2
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "renderCart",
+            "ranges": [
+              {
+                "startOffset": 1628,
+                "endOffset": 2607,
+                "count": 4
+              },
+              {
+                "startOffset": 2439,
+                "endOffset": 2478,
+                "count": 1
+              },
+              {
+                "startOffset": 2479,
+                "endOffset": 2495,
+                "count": 3
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 1734,
+                "endOffset": 2265,
+                "count": 3
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 2170,
+                "endOffset": 2206,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": false
+          },
+          {
+            "functionName": "renderBadge",
+            "ranges": [
+              {
+                "startOffset": 2609,
+                "endOffset": 2699,
+                "count": 3
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "addToCart",
+            "ranges": [
+              {
+                "startOffset": 2701,
+                "endOffset": 2907,
+                "count": 2
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "removeFromCart",
+            "ranges": [
+              {
+                "startOffset": 2909,
+                "endOffset": 3053,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": false
+          },
+          {
+            "functionName": "applyCoupon",
+            "ranges": [
+              {
+                "startOffset": 3055,
+                "endOffset": 3495,
+                "count": 1
+              },
+              {
+                "startOffset": 3361,
+                "endOffset": 3493,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "checkout",
+            "ranges": [
+              {
+                "startOffset": 3497,
+                "endOffset": 3983,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": false
+          },
+          {
+            "functionName": "continueShopping",
+            "ranges": [
+              {
+                "startOffset": 3985,
+                "endOffset": 4051,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": false
+          },
+          {
+            "functionName": "init",
+            "ranges": [
+              {
+                "startOffset": 4053,
+                "endOffset": 4488,
+                "count": 1
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 4503,
+                "endOffset": 4568,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": false
+          }
+        ]
+      },
+      {
+        "file": "src/server.ts",
+        "url": "file:///C:/Users/PC_SYSTEM/Documents/GitHub/EXEGEZIS/runs/root-cause/01M3D418HEQZ9Z1KTEEXS7GTST-buggy-shop-root-cause/cases/BUG-002/workspaces/baseline-baseline/src/server.ts",
+        "functions": [
+          {
+            "functionName": "sendJson",
+            "ranges": [
+              {
+                "startOffset": 651,
+                "endOffset": 872,
+                "count": 30
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "readJsonBody",
+            "ranges": [
+              {
+                "startOffset": 874,
+                "endOffset": 1359,
+                "count": 15
+              },
+              {
+                "startOffset": 1049,
+                "endOffset": 1059,
+                "count": 0
+              },
+              {
+                "startOffset": 1240,
+                "endOffset": 1358,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "stringField",
+            "ranges": [
+              {
+                "startOffset": 1361,
+                "endOffset": 1513,
+                "count": 15
+              },
+              {
+                "startOffset": 1506,
+                "endOffset": 1510,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "bearerToken",
+            "ranges": [
+              {
+                "startOffset": 1515,
+                "endOffset": 1723,
+                "count": 20
+              },
+              {
+                "startOffset": 1661,
+                "endOffset": 1667,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "handleApi",
+            "ranges": [
+              {
+                "startOffset": 1725,
+                "endOffset": 3208,
+                "count": 30
+              },
+              {
+                "startOffset": 1850,
+                "endOffset": 1858,
+                "count": 0
+              },
+              {
+                "startOffset": 1914,
+                "endOffset": 1954,
+                "count": 0
+              },
+              {
+                "startOffset": 1992,
+                "endOffset": 2028,
+                "count": 5
+              },
+              {
+                "startOffset": 2028,
+                "endOffset": 2066,
+                "count": 25
+              },
+              {
+                "startOffset": 2066,
+                "endOffset": 2125,
+                "count": 5
+              },
+              {
+                "startOffset": 2125,
+                "endOffset": 2213,
+                "count": 20
+              },
+              {
+                "startOffset": 2213,
+                "endOffset": 2263,
+                "count": 5
+              },
+              {
+                "startOffset": 2263,
+                "endOffset": 2300,
+                "count": 15
+              },
+              {
+                "startOffset": 2300,
+                "endOffset": 2351,
+                "count": 0
+              },
+              {
+                "startOffset": 2351,
+                "endOffset": 2392,
+                "count": 15
+              },
+              {
+                "startOffset": 2392,
+                "endOffset": 2619,
+                "count": 10
+              },
+              {
+                "startOffset": 2488,
+                "endOffset": 2491,
+                "count": 0
+              },
+              {
+                "startOffset": 2619,
+                "endOffset": 2712,
+                "count": 5
+              },
+              {
+                "startOffset": 2712,
+                "endOffset": 2717,
+                "count": 0
+              },
+              {
+                "startOffset": 2733,
+                "endOffset": 2801,
+                "count": 0
+              },
+              {
+                "startOffset": 2801,
+                "endOffset": 2975,
+                "count": 5
+              },
+              {
+                "startOffset": 2975,
+                "endOffset": 3207,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "serveStatic",
+            "ranges": [
+              {
+                "startOffset": 3210,
+                "endOffset": 3841,
+                "count": 15
+              },
+              {
+                "startOffset": 3333,
+                "endOffset": 3347,
+                "count": 5
+              },
+              {
+                "startOffset": 3348,
+                "endOffset": 3392,
+                "count": 10
+              },
+              {
+                "startOffset": 3512,
+                "endOffset": 3604,
+                "count": 0
+              },
+              {
+                "startOffset": 3753,
+                "endOffset": 3839,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 3871,
+                "endOffset": 4333,
+                "count": 45
+              },
+              {
+                "startOffset": 3917,
+                "endOffset": 3923,
+                "count": 0
+              },
+              {
+                "startOffset": 3952,
+                "endOffset": 3966,
+                "count": 0
+              },
+              {
+                "startOffset": 4022,
+                "endOffset": 4048,
+                "count": 30
+              },
+              {
+                "startOffset": 4049,
+                "endOffset": 4081,
+                "count": 15
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 4099,
+                "endOffset": 4329,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": false
+          }
+        ]
+      },
+      {
+        "file": "src/shop.ts",
+        "url": "file:///C:/Users/PC_SYSTEM/Documents/GitHub/EXEGEZIS/runs/root-cause/01M3D418HEQZ9Z1KTEEXS7GTST-buggy-shop-root-cause/cases/BUG-002/workspaces/baseline-baseline/src/shop.ts",
+        "functions": [
+          {
+            "functionName": "emptyCart",
+            "ranges": [
+              {
+                "startOffset": 1342,
+                "endOffset": 1410,
+                "count": 5
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "findProduct",
+            "ranges": [
+              {
+                "startOffset": 1412,
+                "endOffset": 1631,
+                "count": 25
+              },
+              {
+                "startOffset": 1552,
+                "endOffset": 1611,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 1495,
+                "endOffset": 1520,
+                "count": 25
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "discountBase",
+            "ranges": [
+              {
+                "startOffset": 1633,
+                "endOffset": 1766,
+                "count": 20
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 1719,
+                "endOffset": 1759,
+                "count": 15
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "priceCart",
+            "ranges": [
+              {
+                "startOffset": 1775,
+                "endOffset": 2560,
+                "count": 20
+              },
+              {
+                "startOffset": 2244,
+                "endOffset": 2247,
+                "count": 15
+              },
+              {
+                "startOffset": 2248,
+                "endOffset": 2277,
+                "count": 5
+              },
+              {
+                "startOffset": 2272,
+                "endOffset": 2276,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 1849,
+                "endOffset": 2119,
+                "count": 15
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 2159,
+                "endOffset": 2199,
+                "count": 15
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 2404,
+                "endOffset": 2438,
+                "count": 15
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "createSession",
+            "ranges": [
+              {
+                "startOffset": 2751,
+                "endOffset": 2920,
+                "count": 5
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "getSession",
+            "ranges": [
+              {
+                "startOffset": 2924,
+                "endOffset": 3169,
+                "count": 20
+              },
+              {
+                "startOffset": 3013,
+                "endOffset": 3024,
+                "count": 0
+              },
+              {
+                "startOffset": 3084,
+                "endOffset": 3145,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "viewCart",
+            "ranges": [
+              {
+                "startOffset": 3173,
+                "endOffset": 3251,
+                "count": 5
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "addItem",
+            "ranges": [
+              {
+                "startOffset": 3255,
+                "endOffset": 3769,
+                "count": 10
+              },
+              {
+                "startOffset": 3400,
+                "endOffset": 3487,
+                "count": 0
+              },
+              {
+                "startOffset": 3620,
+                "endOffset": 3729,
+                "count": 5
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 3557,
+                "endOffset": 3589,
+                "count": 5
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "applyCoupon",
+            "ranges": [
+              {
+                "startOffset": 4092,
+                "endOffset": 4377,
+                "count": 5
+              },
+              {
+                "startOffset": 4241,
+                "endOffset": 4299,
+                "count": 0
+              }
+            ],
+            "isBlockCoverage": true
+          }
+        ]
+      }
+    ],
+    "control": {
+      "path": "baseline/control",
+      "runs": 2,
+      "passed": 2,
+      "footprint": {
+        "src/server.ts#sendJson": 10,
+        "src/server.ts#readJsonBody": 4,
+        "src/server.ts#stringField": 4,
+        "src/server.ts#bearerToken": 6,
+        "src/server.ts#handleApi": 10,
+        "src/server.ts#serveStatic": 6,
+        "src/server.ts#(anonymous)": 16,
+        "src/shop.ts#emptyCart": 2,
+        "src/shop.ts#findProduct": 8,
+        "src/shop.ts#(anonymous)": 26,
+        "src/shop.ts#discountBase": 6,
+        "src/shop.ts#priceCart": 6,
+        "src/shop.ts#createSession": 2,
+        "src/shop.ts#getSession": 6,
+        "src/shop.ts#viewCart": 2,
+        "src/shop.ts#addItem": 4,
+        "public/app.js#$": 50,
+        "public/app.js#formatMoney": 28,
+        "public/app.js#api": 10,
+        "public/app.js#ensureSession": 2,
+        "public/app.js#renderProducts": 2,
+        "public/app.js#(anonymous)": 14,
+        "public/app.js#renderCart": 6,
+        "public/app.js#renderBadge": 6,
+        "public/app.js#addToCart": 4,
+        "public/app.js#removeFromCart": 0,
+        "public/app.js#applyCoupon": 0,
+        "public/app.js#checkout": 0,
+        "public/app.js#continueShopping": 0,
+        "public/app.js#init": 2
+      },
+      "stable": true,
+      "error": null
+    },
+    "error": null
+  },
+  "experiments": [
+    {
+      "id": "EXP-H1",
+      "hypothesisId": "H1",
+      "intervention": {
+        "kind": "replace",
+        "file": "src/shop.ts",
+        "find": "  return items.reduce((sum, item) => sum + item.unitPriceCents, 0);",
+        "replace": "  return items.reduce((sum, item) => sum + item.lineTotalCents, 0);",
+        "description": "Use lineTotalCents instead of unitPriceCents as the discount base."
+      },
+      "prediction": "eliminates",
+      "baseline": {
+        "runs": 5,
+        "reproduced": 5,
+        "notReproduced": 0,
+        "invalid": 0
+      },
+      "arm": {
+        "label": "intervention",
+        "path": "experiments/H1",
+        "mutation": {
+          "file": "src/shop.ts",
+          "sha256Before": "ffa582a6c031576cf91298aab1f6148bdab0d83e0b21091c83273371770b88b9",
+          "sha256After": "88c589838127393a287c22cdd9469bbcc9c041ec40c83e30f27c98b1d7da4c1c",
+          "diff": "--- a/src/shop.ts\n+++ b/src/shop.ts\n-  return items.reduce((sum, item) => sum + item.unitPriceCents, 0);\n+  return items.reduce((sum, item) => sum + item.lineTotalCents, 0);"
+        },
+        "counts": {
+          "runs": 5,
+          "reproduced": 0,
+          "notReproduced": 5,
+          "invalid": 0
+        },
+        "rate": 0,
+        "reproductionStatus": "NOT_REPRODUCED",
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "01M3D4566EXS7H1TKN4VD8H188",
+            "runPath": "attempts/01M3D4566EXS7H1TKN4VD8H188",
+            "verdict": "passed",
+            "classification": "not_reproduced"
+          },
+          {
+            "attempt": 2,
+            "runId": "01M3D4586ADDDPB6RZ8D8AZCST",
+            "runPath": "attempts/01M3D4586ADDDPB6RZ8D8AZCST",
+            "verdict": "passed",
+            "classification": "not_reproduced"
+          },
+          {
+            "attempt": 3,
+            "runId": "01M3D45A8Q0ZMGY0PPGF4RB5DV",
+            "runPath": "attempts/01M3D45A8Q0ZMGY0PPGF4RB5DV",
+            "verdict": "passed",
+            "classification": "not_reproduced"
+          },
+          {
+            "attempt": 4,
+            "runId": "01M3D45CBD67KBVXK72QEPBSPN",
+            "runPath": "attempts/01M3D45CBD67KBVXK72QEPBSPN",
+            "verdict": "passed",
+            "classification": "not_reproduced"
+          },
+          {
+            "attempt": 5,
+            "runId": "01M3D45E8JYCDQ30S2W2MHKVN0",
+            "runPath": "attempts/01M3D45E8JYCDQ30S2W2MHKVN0",
+            "verdict": "passed",
+            "classification": "not_reproduced"
+          }
+        ],
+        "footprint": {
+          "src/server.ts#sendJson": 30,
+          "src/server.ts#readJsonBody": 15,
+          "src/server.ts#stringField": 15,
+          "src/server.ts#bearerToken": 20,
+          "src/server.ts#handleApi": 30,
+          "src/server.ts#serveStatic": 15,
+          "src/server.ts#(anonymous)": 45,
+          "src/shop.ts#emptyCart": 5,
+          "src/shop.ts#findProduct": 25,
+          "src/shop.ts#(anonymous)": 90,
+          "src/shop.ts#discountBase": 20,
+          "src/shop.ts#priceCart": 20,
+          "src/shop.ts#createSession": 5,
+          "src/shop.ts#getSession": 20,
+          "src/shop.ts#viewCart": 5,
+          "src/shop.ts#addItem": 10,
+          "src/shop.ts#applyCoupon": 5,
+          "public/app.js#$": 165,
+          "public/app.js#formatMoney": 90,
+          "public/app.js#api": 30,
+          "public/app.js#ensureSession": 5,
+          "public/app.js#renderProducts": 5,
+          "public/app.js#(anonymous)": 40,
+          "public/app.js#renderCart": 20,
+          "public/app.js#renderBadge": 15,
+          "public/app.js#addToCart": 10,
+          "public/app.js#removeFromCart": 0,
+          "public/app.js#applyCoupon": 5,
+          "public/app.js#checkout": 0,
+          "public/app.js#continueShopping": 0,
+          "public/app.js#init": 5
+        },
+        "coverage": null,
+        "control": {
+          "path": "experiments/H1/control",
+          "runs": 2,
+          "passed": 2,
+          "footprint": {
+            "src/server.ts#sendJson": 10,
+            "src/server.ts#readJsonBody": 4,
+            "src/server.ts#stringField": 4,
+            "src/server.ts#bearerToken": 6,
+            "src/server.ts#handleApi": 10,
+            "src/server.ts#serveStatic": 6,
+            "src/server.ts#(anonymous)": 16,
+            "src/shop.ts#emptyCart": 2,
+            "src/shop.ts#findProduct": 8,
+            "src/shop.ts#(anonymous)": 26,
+            "src/shop.ts#discountBase": 6,
+            "src/shop.ts#priceCart": 6,
+            "src/shop.ts#createSession": 2,
+            "src/shop.ts#getSession": 6,
+            "src/shop.ts#viewCart": 2,
+            "src/shop.ts#addItem": 4,
+            "public/app.js#$": 50,
+            "public/app.js#formatMoney": 28,
+            "public/app.js#api": 10,
+            "public/app.js#ensureSession": 2,
+            "public/app.js#renderProducts": 2,
+            "public/app.js#(anonymous)": 14,
+            "public/app.js#renderCart": 6,
+            "public/app.js#renderBadge": 6,
+            "public/app.js#addToCart": 4,
+            "public/app.js#removeFromCart": 0,
+            "public/app.js#applyCoupon": 0,
+            "public/app.js#checkout": 0,
+            "public/app.js#continueShopping": 0,
+            "public/app.js#init": 2
+          },
+          "stable": true,
+          "error": null
+        },
+        "error": null
+      },
+      "delta": -1,
+      "result": {
+        "status": "CONFIRMED",
+        "reason": "predicted the bug disappears; it did: baseline 5/5 reproduced, intervention 0/5 reproduced (0 invalid)"
+      },
+      "site": {
+        "file": "src/shop.ts",
+        "offset": 1697,
+        "executions": 20
+      },
+      "specificity": {
+        "status": "surgical",
+        "changed": [],
+        "reason": "the control scenario executes the same functions the same number of times"
+      },
+      "reversal": {
+        "label": "reversal",
+        "path": "reversal/H1",
+        "mutation": null,
+        "counts": {
+          "runs": 5,
+          "reproduced": 5,
+          "notReproduced": 0,
+          "invalid": 0
+        },
+        "rate": 1,
+        "reproductionStatus": "REPRODUCED",
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "01M3D477B6BPA3F6ZMWXZKWF5V",
+            "runPath": "attempts/01M3D477B6BPA3F6ZMWXZKWF5V",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 2,
+            "runId": "01M3D47BEBBJZF14FW8PF8CDBJ",
+            "runPath": "attempts/01M3D47BEBBJZF14FW8PF8CDBJ",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 3,
+            "runId": "01M3D47FK8T4516BAMYR6EJGTT",
+            "runPath": "attempts/01M3D47FK8T4516BAMYR6EJGTT",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 4,
+            "runId": "01M3D47KPVK257HV3R5JZMCC7E",
+            "runPath": "attempts/01M3D47KPVK257HV3R5JZMCC7E",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 5,
+            "runId": "01M3D47QWBSK2JDANYBW2GT48D",
+            "runPath": "attempts/01M3D47QWBSK2JDANYBW2GT48D",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          }
+        ],
+        "footprint": {
+          "src/server.ts#sendJson": 30,
+          "src/server.ts#readJsonBody": 15,
+          "src/server.ts#stringField": 15,
+          "src/server.ts#bearerToken": 20,
+          "src/server.ts#handleApi": 30,
+          "src/server.ts#serveStatic": 15,
+          "src/server.ts#(anonymous)": 45,
+          "src/shop.ts#emptyCart": 5,
+          "src/shop.ts#findProduct": 25,
+          "src/shop.ts#(anonymous)": 90,
+          "src/shop.ts#discountBase": 20,
+          "src/shop.ts#priceCart": 20,
+          "src/shop.ts#createSession": 5,
+          "src/shop.ts#getSession": 20,
+          "src/shop.ts#viewCart": 5,
+          "src/shop.ts#addItem": 10,
+          "src/shop.ts#applyCoupon": 5,
+          "public/app.js#$": 165,
+          "public/app.js#formatMoney": 90,
+          "public/app.js#api": 30,
+          "public/app.js#ensureSession": 5,
+          "public/app.js#renderProducts": 5,
+          "public/app.js#(anonymous)": 40,
+          "public/app.js#renderCart": 20,
+          "public/app.js#renderBadge": 15,
+          "public/app.js#addToCart": 10,
+          "public/app.js#removeFromCart": 0,
+          "public/app.js#applyCoupon": 5,
+          "public/app.js#checkout": 0,
+          "public/app.js#continueShopping": 0,
+          "public/app.js#init": 5
+        },
+        "coverage": null,
+        "control": null,
+        "error": null
+      },
+      "startedAt": "2026-09-25T20:29:52.444Z",
+      "finishedAt": "2026-09-25T20:30:07.247Z"
+    },
+    {
+      "id": "EXP-H2",
+      "hypothesisId": "H2",
+      "intervention": {
+        "kind": "replace",
+        "file": "src/shop.ts",
+        "find": "  const discountCents = Math.round((discountBase(items) * percent) / 100);",
+        "replace": "  const discountCents = Math.floor((discountBase(items) * percent + 50) / 100);",
+        "description": "Replace Math.round with an explicit half-up integer rounding."
+      },
+      "prediction": "eliminates",
+      "baseline": {
+        "runs": 5,
+        "reproduced": 5,
+        "notReproduced": 0,
+        "invalid": 0
+      },
+      "arm": {
+        "label": "intervention",
+        "path": "experiments/H2",
+        "mutation": {
+          "file": "src/shop.ts",
+          "sha256Before": "ffa582a6c031576cf91298aab1f6148bdab0d83e0b21091c83273371770b88b9",
+          "sha256After": "1f4bb4bd135270f5718df75df2cdef42e43f9269cd5e7814304fe0f812f672fb",
+          "diff": "--- a/src/shop.ts\n+++ b/src/shop.ts\n-  const discountCents = Math.round((discountBase(items) * percent) / 100);\n+  const discountCents = Math.floor((discountBase(items) * percent + 50) / 100);"
+        },
+        "counts": {
+          "runs": 5,
+          "reproduced": 5,
+          "notReproduced": 0,
+          "invalid": 0
+        },
+        "rate": 1,
+        "reproductionStatus": "REPRODUCED",
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "01M3D45MMH8ZPBP7PKEVENWQK5",
+            "runPath": "attempts/01M3D45MMH8ZPBP7PKEVENWQK5",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 2,
+            "runId": "01M3D45RPMAZ4A4X9BV0CXG6RW",
+            "runPath": "attempts/01M3D45RPMAZ4A4X9BV0CXG6RW",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 3,
+            "runId": "01M3D45X6ARTWFAGA1H17GRYPV",
+            "runPath": "attempts/01M3D45X6ARTWFAGA1H17GRYPV",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 4,
+            "runId": "01M3D461CNNWVQYX7G8R2R7TDW",
+            "runPath": "attempts/01M3D461CNNWVQYX7G8R2R7TDW",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 5,
+            "runId": "01M3D465GBBKVW76H7XRJ16R42",
+            "runPath": "attempts/01M3D465GBBKVW76H7XRJ16R42",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          }
+        ],
+        "footprint": {
+          "src/server.ts#sendJson": 30,
+          "src/server.ts#readJsonBody": 15,
+          "src/server.ts#stringField": 15,
+          "src/server.ts#bearerToken": 20,
+          "src/server.ts#handleApi": 30,
+          "src/server.ts#serveStatic": 15,
+          "src/server.ts#(anonymous)": 45,
+          "src/shop.ts#emptyCart": 5,
+          "src/shop.ts#findProduct": 25,
+          "src/shop.ts#(anonymous)": 90,
+          "src/shop.ts#discountBase": 20,
+          "src/shop.ts#priceCart": 20,
+          "src/shop.ts#createSession": 5,
+          "src/shop.ts#getSession": 20,
+          "src/shop.ts#viewCart": 5,
+          "src/shop.ts#addItem": 10,
+          "src/shop.ts#applyCoupon": 5,
+          "public/app.js#$": 165,
+          "public/app.js#formatMoney": 90,
+          "public/app.js#api": 30,
+          "public/app.js#ensureSession": 5,
+          "public/app.js#renderProducts": 5,
+          "public/app.js#(anonymous)": 40,
+          "public/app.js#renderCart": 20,
+          "public/app.js#renderBadge": 15,
+          "public/app.js#addToCart": 10,
+          "public/app.js#removeFromCart": 0,
+          "public/app.js#applyCoupon": 5,
+          "public/app.js#checkout": 0,
+          "public/app.js#continueShopping": 0,
+          "public/app.js#init": 5
+        },
+        "coverage": null,
+        "control": {
+          "path": "experiments/H2/control",
+          "runs": 2,
+          "passed": 2,
+          "footprint": {
+            "src/server.ts#sendJson": 10,
+            "src/server.ts#readJsonBody": 4,
+            "src/server.ts#stringField": 4,
+            "src/server.ts#bearerToken": 6,
+            "src/server.ts#handleApi": 10,
+            "src/server.ts#serveStatic": 6,
+            "src/server.ts#(anonymous)": 16,
+            "src/shop.ts#emptyCart": 2,
+            "src/shop.ts#findProduct": 8,
+            "src/shop.ts#(anonymous)": 26,
+            "src/shop.ts#discountBase": 6,
+            "src/shop.ts#priceCart": 6,
+            "src/shop.ts#createSession": 2,
+            "src/shop.ts#getSession": 6,
+            "src/shop.ts#viewCart": 2,
+            "src/shop.ts#addItem": 4,
+            "public/app.js#$": 50,
+            "public/app.js#formatMoney": 28,
+            "public/app.js#api": 10,
+            "public/app.js#ensureSession": 2,
+            "public/app.js#renderProducts": 2,
+            "public/app.js#(anonymous)": 14,
+            "public/app.js#renderCart": 6,
+            "public/app.js#renderBadge": 6,
+            "public/app.js#addToCart": 4,
+            "public/app.js#removeFromCart": 0,
+            "public/app.js#applyCoupon": 0,
+            "public/app.js#checkout": 0,
+            "public/app.js#continueShopping": 0,
+            "public/app.js#init": 2
+          },
+          "stable": true,
+          "error": null
+        },
+        "error": null
+      },
+      "delta": 0,
+      "result": {
+        "status": "FALSIFIED",
+        "reason": "predicted the bug disappears; it persisted: baseline 5/5 reproduced, intervention 5/5 reproduced (0 invalid)"
+      },
+      "site": {
+        "file": "src/shop.ts",
+        "offset": 2279,
+        "executions": 20
+      },
+      "specificity": {
+        "status": "surgical",
+        "changed": [],
+        "reason": "the control scenario executes the same functions the same number of times"
+      },
+      "reversal": null,
+      "startedAt": "2026-09-25T20:30:07.247Z",
+      "finishedAt": "2026-09-25T20:30:33.419Z"
+    },
+    {
+      "id": "EXP-H3",
+      "hypothesisId": "H3",
+      "intervention": {
+        "kind": "replace",
+        "file": "public/app.js",
+        "find": "  $(\"discount\").textContent = cart.discountCents > 0 ? `-${formatMoney(cart.discountCents)}` : formatMoney(0);",
+        "replace": "  $(\"discount\").textContent = cart.subtotalCents > cart.totalCents ? `-${formatMoney(cart.subtotalCents - cart.totalCents)}` : formatMoney(0);",
+        "description": "Render the discount as subtotal minus total."
+      },
+      "prediction": "eliminates",
+      "baseline": {
+        "runs": 5,
+        "reproduced": 5,
+        "notReproduced": 0,
+        "invalid": 0
+      },
+      "arm": {
+        "label": "intervention",
+        "path": "experiments/H3",
+        "mutation": {
+          "file": "public/app.js",
+          "sha256Before": "ab2342e0c34d9ebcd9d803f31f7adb650160e1dfb3a65374de8a6458e628686c",
+          "sha256After": "1af21ce333e9d422d06ebfce95544f3dbda0d67bde3db0ce0b86020d6a53dd81",
+          "diff": "--- a/public/app.js\n+++ b/public/app.js\n-  $(\"discount\").textContent = cart.discountCents > 0 ? `-${formatMoney(cart.discountCents)}` : formatMoney(0);\n+  $(\"discount\").textContent = cart.subtotalCents > cart.totalCents ? `-${formatMoney(cart.subtotalCents - cart.totalCents)}` : formatMoney(0);"
+        },
+        "counts": {
+          "runs": 5,
+          "reproduced": 5,
+          "notReproduced": 0,
+          "invalid": 0
+        },
+        "rate": 1,
+        "reproductionStatus": "REPRODUCED",
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "01M3D46E6HJASBVMVGN5F8AF2V",
+            "runPath": "attempts/01M3D46E6HJASBVMVGN5F8AF2V",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 2,
+            "runId": "01M3D46J7Z5TB379GVKSMSQ3VV",
+            "runPath": "attempts/01M3D46J7Z5TB379GVKSMSQ3VV",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 3,
+            "runId": "01M3D46PEAAJQMZJZBD5TSD5KS",
+            "runPath": "attempts/01M3D46PEAAJQMZJZBD5TSD5KS",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 4,
+            "runId": "01M3D46TJV1P21MQ1C6DW6551W",
+            "runPath": "attempts/01M3D46TJV1P21MQ1C6DW6551W",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          },
+          {
+            "attempt": 5,
+            "runId": "01M3D46YS92AB646HDW1DPFPK2",
+            "runPath": "attempts/01M3D46YS92AB646HDW1DPFPK2",
+            "verdict": "failed",
+            "stoppedAtStep": 10,
+            "failureSignature": "step:10|api-discount|actual={\"body\":{\"pointer\":\"/discountCents\",\"value\":899},\"status\":200}",
+            "classification": "reproduced"
+          }
+        ],
+        "footprint": {
+          "src/server.ts#sendJson": 30,
+          "src/server.ts#readJsonBody": 15,
+          "src/server.ts#stringField": 15,
+          "src/server.ts#bearerToken": 20,
+          "src/server.ts#handleApi": 30,
+          "src/server.ts#serveStatic": 15,
+          "src/server.ts#(anonymous)": 45,
+          "src/shop.ts#emptyCart": 5,
+          "src/shop.ts#findProduct": 25,
+          "src/shop.ts#(anonymous)": 90,
+          "src/shop.ts#discountBase": 20,
+          "src/shop.ts#priceCart": 20,
+          "src/shop.ts#createSession": 5,
+          "src/shop.ts#getSession": 20,
+          "src/shop.ts#viewCart": 5,
+          "src/shop.ts#addItem": 10,
+          "src/shop.ts#applyCoupon": 5,
+          "public/app.js#$": 165,
+          "public/app.js#formatMoney": 90,
+          "public/app.js#api": 30,
+          "public/app.js#ensureSession": 5,
+          "public/app.js#renderProducts": 5,
+          "public/app.js#(anonymous)": 40,
+          "public/app.js#renderCart": 20,
+          "public/app.js#renderBadge": 15,
+          "public/app.js#addToCart": 10,
+          "public/app.js#removeFromCart": 0,
+          "public/app.js#applyCoupon": 5,
+          "public/app.js#checkout": 0,
+          "public/app.js#continueShopping": 0,
+          "public/app.js#init": 5
+        },
+        "coverage": null,
+        "control": {
+          "path": "experiments/H3/control",
+          "runs": 2,
+          "passed": 2,
+          "footprint": {
+            "src/server.ts#sendJson": 10,
+            "src/server.ts#readJsonBody": 4,
+            "src/server.ts#stringField": 4,
+            "src/server.ts#bearerToken": 6,
+            "src/server.ts#handleApi": 10,
+            "src/server.ts#serveStatic": 6,
+            "src/server.ts#(anonymous)": 16,
+            "src/shop.ts#emptyCart": 2,
+            "src/shop.ts#findProduct": 8,
+            "src/shop.ts#(anonymous)": 26,
+            "src/shop.ts#discountBase": 6,
+            "src/shop.ts#priceCart": 6,
+            "src/shop.ts#createSession": 2,
+            "src/shop.ts#getSession": 6,
+            "src/shop.ts#viewCart": 2,
+            "src/shop.ts#addItem": 4,
+            "public/app.js#$": 50,
+            "public/app.js#formatMoney": 28,
+            "public/app.js#api": 10,
+            "public/app.js#ensureSession": 2,
+            "public/app.js#renderProducts": 2,
+            "public/app.js#(anonymous)": 14,
+            "public/app.js#renderCart": 6,
+            "public/app.js#renderBadge": 6,
+            "public/app.js#addToCart": 4,
+            "public/app.js#removeFromCart": 0,
+            "public/app.js#applyCoupon": 0,
+            "public/app.js#checkout": 0,
+            "public/app.js#continueShopping": 0,
+            "public/app.js#init": 2
+          },
+          "stable": true,
+          "error": null
+        },
+        "error": null
+      },
+      "delta": 0,
+      "result": {
+        "status": "FALSIFIED",
+        "reason": "predicted the bug disappears; it persisted: baseline 5/5 reproduced, intervention 5/5 reproduced (0 invalid)"
+      },
+      "site": {
+        "file": "public/app.js",
+        "offset": 2386,
+        "executions": 4
+      },
+      "specificity": {
+        "status": "surgical",
+        "changed": [],
+        "reason": "the control scenario executes the same functions the same number of times"
+      },
+      "reversal": null,
+      "startedAt": "2026-09-25T20:30:33.419Z",
+      "finishedAt": "2026-09-25T20:30:59.165Z"
+    }
+  ],
+  "outcomes": [
+    {
+      "id": "H1",
+      "statement": "discountBase() sums unit prices instead of line totals, so quantity is ignored.",
+      "status": "SUPPORTED",
+      "experimentId": "EXP-H1",
+      "reason": "predicted the bug disappears; it did: baseline 5/5 reproduced, intervention 0/5 reproduced (0 invalid)"
+    },
+    {
+      "id": "H2",
+      "statement": "The rounding of the discount (Math.round) truncates it.",
+      "status": "REFUTED",
+      "experimentId": "EXP-H2",
+      "reason": "predicted the bug disappears; it persisted: baseline 5/5 reproduced, intervention 5/5 reproduced (0 invalid)"
+    },
+    {
+      "id": "H3",
+      "statement": "The UI renders the discount of a single line instead of the cart's discount.",
+      "status": "REFUTED",
+      "experimentId": "EXP-H3",
+      "reason": "predicted the bug disappears; it persisted: baseline 5/5 reproduced, intervention 5/5 reproduced (0 invalid)"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "bug_reproduced",
+      "label": "Bug reproduced in every baseline run",
+      "status": "met",
+      "required": true,
+      "detail": "5/5"
+    },
+    {
+      "id": "site_executed",
+      "label": "Intervention site executed in the failing scenario",
+      "status": "met",
+      "required": true,
+      "detail": "20 execution(s) of the modified block (relevance, not causality)"
+    },
+    {
+      "id": "intervention_removes_bug",
+      "label": "Intervention removes the bug (sufficiency)",
+      "status": "met",
+      "required": true,
+      "detail": "predicted the bug disappears; it did: baseline 5/5 reproduced, intervention 0/5 reproduced (0 invalid)"
+    },
+    {
+      "id": "prediction_confirmed",
+      "label": "Prediction confirmed",
+      "status": "met",
+      "required": true,
+      "detail": "CONFIRMED"
+    },
+    {
+      "id": "reversal_restores_bug",
+      "label": "Reverting the intervention brings the bug back (A-B-A)",
+      "status": "met",
+      "required": true,
+      "detail": "5/5 reproduced after reverting"
+    },
+    {
+      "id": "intervention_surgical",
+      "label": "Intervention is surgical (no change where the baseline is correct)",
+      "status": "met",
+      "required": true,
+      "detail": "the control scenario executes the same functions the same number of times"
+    },
+    {
+      "id": "alternatives_refuted",
+      "label": "Alternative hypotheses refuted",
+      "status": "met",
+      "required": true,
+      "detail": "2 refuted, 0 unresolved (1 refutation(s) required)"
+    },
+    {
+      "id": "unique_survivor",
+      "label": "Exactly one hypothesis survives",
+      "status": "met",
+      "required": true,
+      "detail": "1 supported"
+    },
+    {
+      "id": "hypothesis_space_complete",
+      "label": "Every plausible cause was among the hypotheses",
+      "status": "unknown",
+      "required": false,
+      "detail": "cannot be established by experiments: VALIDATED means validated against the alternatives tested"
+    }
+  ],
+  "decision": {
+    "status": "VALIDATED",
+    "hypothesisId": "H1",
+    "candidateHypothesisId": "H1",
+    "evidenceLevel": "VALIDATED",
+    "statement": "discountBase() sums unit prices instead of line totals, so quantity is ignored.",
+    "reason": "H1: its intervention removes the bug in every run, reverting it brings the bug back, its modified code ran in the failing scenario, it changes nothing where the baseline is correct, and H2, H3 were refuted by their own interventions",
+    "missing": []
+  },
+  "isolation": {
+    "sourceDir": "./examples/buggy-shop",
+    "files": 6,
+    "treeHashBefore": "59be80520506b1485d3e2cacbb60983b8391e09cb87319c953d84aee5f4f6eba",
+    "treeHashAfter": "59be80520506b1485d3e2cacbb60983b8391e09cb87319c953d84aee5f4f6eba",
+    "unchanged": true
+  }
+}

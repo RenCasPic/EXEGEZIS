@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "exegezis.reproduction/v1",
+  "planId": "BUG-002",
+  "planHash": "sha256:cbd7fb4a773c43546314f9a9c03c95889359b1ed10e2744e53438de5e4b8b0cd",
+  "planProvenance": {
+    "source": "human",
+    "generator": "exegezis-team",
+    "model": null,
+    "version": null,
+    "promptVersion": null,
+    "createdAt": null
+  },
+  "targetUrl": "http://127.0.0.1:51782/",
+  "startedAt": "2026-09-25T20:29:52.718Z",
+  "finishedAt": "2026-09-25T20:30:02.993Z",
+  "attempts": 5,
+  "passes": 5,
+  "failures": 0,
+  "timeouts": 0,
+  "errors": 0,
+  "rate": 0,
+  "status": "NOT_REPRODUCED",
+  "reason": "all 5 attempts met every expectation",
+  "runs": [
+    {
+      "attempt": 1,
+      "runId": "01M3D4566EXS7H1TKN4VD8H188",
+      "runPath": "attempts/01M3D4566EXS7H1TKN4VD8H188",
+      "verdict": "passed",
+      "durationMs": 2043
+    },
+    {
+      "attempt": 2,
+      "runId": "01M3D4586ADDDPB6RZ8D8AZCST",
+      "runPath": "attempts/01M3D4586ADDDPB6RZ8D8AZCST",
+      "verdict": "passed",
+      "durationMs": 2125
+    },
+    {
+      "attempt": 3,
+      "runId": "01M3D45A8Q0ZMGY0PPGF4RB5DV",
+      "runPath": "attempts/01M3D45A8Q0ZMGY0PPGF4RB5DV",
+      "verdict": "passed",
+      "durationMs": 2127
+    },
+    {
+      "attempt": 4,
+      "runId": "01M3D45CBD67KBVXK72QEPBSPN",
+      "runPath": "attempts/01M3D45CBD67KBVXK72QEPBSPN",
+      "verdict": "passed",
+      "durationMs": 1956
+    },
+    {
+      "attempt": 5,
+      "runId": "01M3D45E8JYCDQ30S2W2MHKVN0",
+      "runPath": "attempts/01M3D45E8JYCDQ30S2W2MHKVN0",
+      "verdict": "passed",
+      "durationMs": 2013
+    }
+  ]
+}
