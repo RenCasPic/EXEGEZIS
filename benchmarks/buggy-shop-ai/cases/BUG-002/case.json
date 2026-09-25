@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "BUG-002",
+  "kind": "positive",
+  "title": "Coupon discount with two units",
+  "symptom": "I added the same keyboard to my cart twice and applied the coupon SAVE10 (10% off), but the discount only took 10% off one keyboard instead of both.",
+  "expectedBug": "BUG-002",
+  "mockResponse": "mock-response.json",
+  "expected": {
+    "outcome": "VERIFIED",
+    "step": null,
+    "value": null
+  },
+  "acceptableOutcomes": []
+}

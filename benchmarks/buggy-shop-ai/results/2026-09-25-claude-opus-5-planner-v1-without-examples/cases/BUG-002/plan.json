@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "exegezis.test-plan/v1",
+  "id": "BUG-002",
+  "title": "Coupon SAVE10 discount on two units of the same product",
+  "description": "Adds the Mechanical Keyboard ($89.90) to the cart twice, confirms the cart holds 2 units with a subtotal of $179.80, applies the coupon SAVE10 (10% off), and checks that the cart shows a 10% discount on the full subtotal (17.98).",
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://127.0.0.1:60726/"
+  },
+  "preconditions": [
+    "The shop front page is reachable at / with an empty cart",
+    "The coupon code SAVE10 grants 10% off"
+  ],
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:09:15.926Z"
+  },
+  "steps": [
+    {
+      "type": "navigate",
+      "url": "/"
+    },
+    {
+      "type": "assert",
+      "id": "cart-initially-empty",
+      "description": "The cart starts empty",
+      "purpose": "anchor",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "operator": "contains",
+        "expected": "(0)"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Mechanical Keyboard to cart"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Mechanical Keyboard to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "cart-has-two-units",
+      "description": "The cart counter reports 2 items after adding the keyboard twice",
+      "purpose": "anchor",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "operator": "contains",
+        "expected": "(2)"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "subtotal-two-keyboards",
+      "description": "The shopping cart shows a subtotal of 179.80 (2 x 89.90)",
+      "purpose": "anchor",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "region",
+          "name": "Shopping Cart"
+        },
+        "operator": "contains",
+        "expected": "179.80"
+      }
+    },
+    {
+      "type": "fill",
+      "target": {
+        "label": "Coupon code"
+      },
+      "value": "SAVE10"
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Apply coupon"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "discount-ten-percent-of-subtotal",
+      "description": "After applying SAVE10, the shopping cart shows a discount of 17.98, i.e. 10% of the full 179.80 subtotal",
+      "purpose": "expectation",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "region",
+          "name": "Shopping Cart"
+        },
+        "operator": "contains",
+        "expected": "17.98"
+      }
+    }
+  ],
+  "metadata": {
+    "generatedFrom": "symptom",
+    "symptom": "I added the same keyboard to my cart twice and applied the coupon SAVE10 (10% off), but the discount only took 10% off one keyboard instead of both."
+  }
+}

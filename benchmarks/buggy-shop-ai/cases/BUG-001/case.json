@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "BUG-001",
+  "kind": "positive",
+  "title": "Cart badge after removing the only item",
+  "symptom": "After I remove the only item from my cart, the cart counter at the top of the page still says there is one item.",
+  "expectedBug": "BUG-001",
+  "mockResponse": "mock-response.json",
+  "expected": {
+    "outcome": "VERIFIED",
+    "step": null,
+    "value": null
+  },
+  "acceptableOutcomes": []
+}

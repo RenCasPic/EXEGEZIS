@@ -1,0 +1,26 @@
+{
+  "promptVersion": "planner-v1",
+  "status": "declined",
+  "reason": "The reported symptom is purely about visual layout (prices overlapping the \"Add to cart\" buttons in the product list). The engine for this application supports only text, visibility, existence, attribute, url, count and http assertions; none of these can observe element geometry, overlap or alignment. A visual/baseline assertion is not among the supported assertions here, and there is no stated baseline image to compare against. The accessibility tree also shows no DOM-level signal (no error text, attribute or class) that would deterministically distinguish a correctly laid out product list from an overlapping one, so any plan would rest on invented selectors or invented expected style values. No concrete, testable expectation can be written without guessing.",
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:06:51.929Z"
+  },
+  "meta": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "latencyMs": 7207,
+    "usage": {
+      "inputTokens": 6316,
+      "outputTokens": 389
+    },
+    "redactions": 0,
+    "examples": 3,
+    "raw": "{\"cannotPlanReason\":\"The reported symptom is purely about visual layout (prices overlapping the \\\"Add to cart\\\" buttons in the product list). The engine for this application supports only text, visibility, existence, attribute, url, count and http assertions; none of these can observe element geometry, overlap or alignment. A visual/baseline assertion is not among the supported assertions here, and there is no stated baseline image to compare against. The accessibility tree also shows no DOM-level signal (no error text, attribute or class) that would deterministically distinguish a correctly laid out product list from an overlapping one, so any plan would rest on invented selectors or invented expected style values. No concrete, testable expectation can be written without guessing.\"}"
+  }
+}

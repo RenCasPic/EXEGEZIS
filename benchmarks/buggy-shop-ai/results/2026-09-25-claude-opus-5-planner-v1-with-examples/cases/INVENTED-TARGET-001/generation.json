@@ -1,0 +1,26 @@
+{
+  "promptVersion": "planner-v1",
+  "status": "declined",
+  "reason": "The reported symptom refers to an 'Add to wishlist' button next to each product, but no such control exists in the accessibility tree of the loaded page. Each product listitem exposes only an 'Add to cart' button (e.g. 'Add Mechanical Keyboard to cart'), and the header/navigation contains only 'Products' and 'Cart (0)'. There is also no wishlist region, list or indicator anywhere in the page from which a correct post-click state could be derived. Planning a test would require inventing both the trigger element and the expected observable effect (a wishlist count, a wishlist list entry, or an API endpoint), none of which can be seen in the provided material. Please supply an accessibility tree or example that shows the wishlist control and the state it is supposed to change, and a plan can be written.",
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:06:44.716Z"
+  },
+  "meta": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "latencyMs": 5466,
+    "usage": {
+      "inputTokens": 6313,
+      "outputTokens": 310
+    },
+    "redactions": 0,
+    "examples": 3,
+    "raw": "{\"cannotPlanReason\":\"The reported symptom refers to an 'Add to wishlist' button next to each product, but no such control exists in the accessibility tree of the loaded page. Each product listitem exposes only an 'Add to cart' button (e.g. 'Add Mechanical Keyboard to cart'), and the header/navigation contains only 'Products' and 'Cart (0)'. There is also no wishlist region, list or indicator anywhere in the page from which a correct post-click state could be derived. Planning a test would require inventing both the trigger element and the expected observable effect (a wishlist count, a wishlist list entry, or an API endpoint), none of which can be seen in the provided material. Please supply an accessibility tree or example that shows the wishlist control and the state it is supposed to change, and a plan can be written.\"}"
+  }
+}

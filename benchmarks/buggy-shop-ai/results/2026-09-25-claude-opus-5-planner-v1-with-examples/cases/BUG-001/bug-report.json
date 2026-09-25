@@ -1,0 +1,234 @@
+{
+  "schemaVersion": "exegezis.bug-report/v1",
+  "bugId": "BUG-001",
+  "title": "Cart counter not reset after removing the last item",
+  "description": "After adding a product and then removing it, the cart is empty but the header counter should also return to zero. The plan adds one keyboard, removes it, anchors that the cart is empty, and checks the header counter.",
+  "outcome": "VERIFIED",
+  "outcomeReason": "every verification criterion is met",
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:01:05.843Z"
+  },
+  "validation": {
+    "status": "valid",
+    "issues": [],
+    "reference": {
+      "pages": [
+        "http://127.0.0.1:60595/"
+      ],
+      "targetsChecked": 2,
+      "targetsUnchecked": 5
+    }
+  },
+  "generatedAt": "2026-09-25T12:02:27.547Z",
+  "exegezisVersion": "0.1.0",
+  "policy": {
+    "minAttempts": 3,
+    "requireStrongAnchoring": true
+  },
+  "criteria": [
+    {
+      "id": "plan_valid",
+      "description": "A semantically valid plan",
+      "met": true,
+      "detail": "semantic validation: valid, 2 target(s) checked against the observed page"
+    },
+    {
+      "id": "expectation_defined",
+      "description": "A defined expected behavior",
+      "met": true,
+      "detail": "1 expectation(s) and 5 anchor(s) declared in plan BUG-001"
+    },
+    {
+      "id": "anchored",
+      "description": "An expectation anchored in a verified state",
+      "met": true,
+      "detail": "5 anchor(s) passed before the failing expectation at step 9"
+    },
+    {
+      "id": "reproduced",
+      "description": "A reproducible failing execution",
+      "met": true,
+      "detail": "REPRODUCED: 10/10 failed, 0 errors"
+    },
+    {
+      "id": "evidence_captured",
+      "description": "Captured evidence",
+      "met": true,
+      "detail": "timeline, assertions, screenshot, accessibility, console, network, trace captured; failure linked to shot-0001 and ax-0001"
+    },
+    {
+      "id": "executable_test",
+      "description": "A deterministic executable test that fails",
+      "met": true,
+      "detail": "@playwright/test 1.63.0 failed at step 9, the same step EXEGEZIS observed"
+    }
+  ],
+  "target": "http://127.0.0.1:60595/",
+  "expected": {
+    "description": "The header cart counter returns to zero once the only item has been removed",
+    "assertion": {
+      "kind": "text",
+      "target": {
+        "role": "link",
+        "name": "Cart"
+      },
+      "operator": "contains",
+      "expected": "Cart (0)"
+    },
+    "value": "Cart (0)"
+  },
+  "actual": {
+    "value": "Cart (1)",
+    "message": "text of link \"Cart\" was \"Cart (1)\"; expected it to contain \"Cart (0)\""
+  },
+  "failingStep": {
+    "index": 9,
+    "id": "counter-back-to-zero"
+  },
+  "reproduction": {
+    "path": "reproduction.json",
+    "status": "REPRODUCED",
+    "attempts": 10,
+    "passes": 0,
+    "failures": 10,
+    "timeouts": 0,
+    "errors": 0,
+    "rate": 1,
+    "reason": "all 10 attempts failed identically"
+  },
+  "evidence": [
+    {
+      "kind": "assertion",
+      "path": "attempts/01M3C71JT8GYXBN9ANSYJF2B5P/assertions.json",
+      "ref": "asr-0006",
+      "description": "Failed assertion: expected vs actual"
+    },
+    {
+      "kind": "timeline",
+      "path": "attempts/01M3C71JT8GYXBN9ANSYJF2B5P/timeline.json",
+      "ref": "evt-000031..evt-000044",
+      "description": "Events from the last action to the failure"
+    },
+    {
+      "kind": "screenshot",
+      "path": "attempts/01M3C71JT8GYXBN9ANSYJF2B5P/screenshots/shot-0001-assert-step-9.png",
+      "ref": "shot-0001",
+      "description": "Page at the moment of the failure"
+    },
+    {
+      "kind": "accessibility",
+      "path": "attempts/01M3C71JT8GYXBN9ANSYJF2B5P/accessibility.json",
+      "ref": "ax-0001",
+      "description": "Accessibility tree at the moment of the failure"
+    },
+    {
+      "kind": "dom",
+      "path": "attempts/01M3C71JT8GYXBN9ANSYJF2B5P/dom/dom-0001.html",
+      "ref": "dom-0001",
+      "description": "DOM at the moment of the failure"
+    },
+    {
+      "kind": "network",
+      "path": "attempts/01M3C71JT8GYXBN9ANSYJF2B5P/network.json",
+      "ref": "net-0008",
+      "description": "1 network exchange(s) between the last action and the failure"
+    },
+    {
+      "kind": "console",
+      "path": "attempts/01M3C71JT8GYXBN9ANSYJF2B5P/console.json",
+      "description": "0 console message(s) and 0 page error(s) in the same window"
+    },
+    {
+      "kind": "trace",
+      "path": "attempts/01M3C71JT8GYXBN9ANSYJF2B5P/trace.zip",
+      "description": "Playwright trace of the whole attempt"
+    },
+    {
+      "kind": "metadata",
+      "path": "attempts/01M3C71JT8GYXBN9ANSYJF2B5P/metadata.json",
+      "description": "Environment and configuration of the attempt"
+    }
+  ],
+  "evidenceChain": [
+    {
+      "stage": "expectation",
+      "ref": "step 9",
+      "summary": "The header cart counter returns to zero once the only item has been removed"
+    },
+    {
+      "stage": "action",
+      "ref": "evt-000031",
+      "summary": "click button \"Remove\""
+    },
+    {
+      "stage": "observation",
+      "ref": "obs-0001",
+      "summary": "shot-0001 + ax-0001 + dom-0001"
+    },
+    {
+      "stage": "assertion",
+      "ref": "evt-000040",
+      "summary": "text assertion evaluated 42 time(s) over 5021 ms"
+    },
+    {
+      "stage": "failure",
+      "ref": "asr-0006",
+      "summary": "text of link \"Cart\" was \"Cart (1)\"; expected it to contain \"Cart (0)\""
+    },
+    {
+      "stage": "evidence",
+      "ref": "evt-000031..evt-000044",
+      "summary": "1 network, 0 console, 0 page error record(s) in the window; full trace available"
+    }
+  ],
+  "plan": {
+    "id": "BUG-001",
+    "path": "C:/Users/PC_SYSTEM/Documents/GitHub/EXEGEZIS/runs/benchmarks/01M3C70Y8B5A33E07K7QH026WC-buggy-shop-ai/cases/BUG-001/plan.json",
+    "hash": "sha256:8639e6b843fc7eb39328f1b0ad56b20aec7f694ea691a3aad97128ae56d91523"
+  },
+  "compiledTest": {
+    "specPath": "BUG-001.spec.ts",
+    "sha256": "da15ee911df1384a666fb77b323bb79260cb4500e10f92764f09b5999a470a89",
+    "status": "failed",
+    "exitCode": 1,
+    "failedAtStep": 9,
+    "message": "Error: expect(locator).toContainText(expected) failed",
+    "durationMs": 8616,
+    "runner": "@playwright/test 1.63.0"
+  },
+  "environment": {
+    "exegezis": {
+      "version": "0.1.0"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "v24.18.1",
+      "platform": "win32",
+      "arch": "x64",
+      "osRelease": "10.0.19045"
+    },
+    "adapter": {
+      "id": "browser",
+      "version": "0.1.0"
+    },
+    "browser": {
+      "name": "chromium",
+      "version": "153.0.8010.12",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+      "headless": true,
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    "automation": {
+      "name": "playwright",
+      "version": "1.63.0"
+    }
+  }
+}

@@ -10,6 +10,7 @@ import {
   type BugReport,
   type CompiledTestExecution,
   type PlanValidation,
+  type PreflightResult,
   type ReproductionResult,
 } from "@exegezis/core";
 import { writeCompiledSpec } from "./compile.js";
@@ -29,6 +30,8 @@ export interface PipelineOptions {
   exegezisVersion: string;
   /** Print progress lines (verify) or stay quiet (benchmark prints its own). */
   progress: boolean;
+  /** A preflight already taken for this target (e.g. by the planner): not repeated. */
+  preflight?: PreflightResult;
 }
 
 export interface PipelineResult {
@@ -54,8 +57,8 @@ export async function verifyPlan(io: CliIo, loaded: LoadedPlan, options: Pipelin
   const baseUrl = options.baseUrl ?? plan.target.baseUrl;
   await mkdir(options.dir, { recursive: true });
 
-  out("Preflight: observing the target before running the plan...");
-  const preflight = await runPreflight({
+  if (options.preflight === undefined) out("Preflight: observing the target before running the plan...");
+  const preflight = options.preflight ?? await runPreflight({
     plan,
     baseUrl,
     adapter: createAdapter(options.headed),

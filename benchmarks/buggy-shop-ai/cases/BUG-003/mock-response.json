@@ -1,0 +1,102 @@
+{
+  "plan": {
+    "title": "Purchased items do not return to the cart",
+    "description": "Buy a keyboard, continue shopping, add a mouse, and check the keyboard is gone.",
+    "preconditions": [],
+    "steps": [
+      {
+        "type": "navigate",
+        "value": "/"
+      },
+      {
+        "type": "click",
+        "target": {
+          "by": "role",
+          "value": "button",
+          "name": "Add Mechanical Keyboard to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "keyboard-in-cart",
+        "purpose": "anchor",
+        "description": "The keyboard is in the cart",
+        "assertion": {
+          "kind": "visibility",
+          "target": {
+            "by": "text",
+            "value": "Mechanical Keyboard × 1"
+          },
+          "expected": "visible"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "by": "role",
+          "value": "button",
+          "name": "Checkout"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "order-confirmed",
+        "purpose": "anchor",
+        "description": "The order is confirmed",
+        "assertion": {
+          "kind": "visibility",
+          "target": {
+            "by": "role",
+            "value": "heading",
+            "name": "Order confirmed"
+          },
+          "expected": "visible"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "by": "role",
+          "value": "button",
+          "name": "Continue shopping"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "by": "role",
+          "value": "button",
+          "name": "Add Wireless Mouse to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "mouse-in-cart",
+        "purpose": "anchor",
+        "description": "The mouse is in the cart",
+        "assertion": {
+          "kind": "visibility",
+          "target": {
+            "by": "text",
+            "value": "Wireless Mouse × 1"
+          },
+          "expected": "visible"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "keyboard-gone",
+        "purpose": "expectation",
+        "description": "The purchased keyboard is not in the cart",
+        "assertion": {
+          "kind": "existence",
+          "target": {
+            "by": "text",
+            "value": "Mechanical Keyboard ×"
+          },
+          "expected": "absent"
+        }
+      }
+    ]
+  }
+}

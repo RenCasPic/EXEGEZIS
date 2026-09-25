@@ -1,0 +1,91 @@
+{
+  "plan": {
+    "title": "Cart counter after removing the only item",
+    "description": "Add one product, remove it, and check the cart counter.",
+    "preconditions": [],
+    "steps": [
+      {
+        "type": "navigate",
+        "value": "/"
+      },
+      {
+        "type": "assert",
+        "id": "counter-initial",
+        "purpose": "anchor",
+        "description": "The cart counter starts at Cart (0)",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "by": "role",
+            "value": "link",
+            "name": "Cart"
+          },
+          "operator": "equals",
+          "expected": "Cart (0)"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "by": "role",
+          "value": "button",
+          "name": "Add Wireless Mouse to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "counter-after-add",
+        "purpose": "anchor",
+        "description": "The cart counter shows Cart (1) after adding one product",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "by": "role",
+            "value": "link",
+            "name": "Cart"
+          },
+          "operator": "equals",
+          "expected": "Cart (1)"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "by": "role",
+          "value": "button",
+          "name": "Remove Wireless Mouse"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "cart-empty",
+        "purpose": "anchor",
+        "description": "The cart says it is empty",
+        "assertion": {
+          "kind": "visibility",
+          "target": {
+            "by": "text",
+            "value": "Your cart is empty"
+          },
+          "expected": "visible"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "counter-after-remove",
+        "purpose": "expectation",
+        "description": "The cart counter shows Cart (0) after removing the only item",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "by": "role",
+            "value": "link",
+            "name": "Cart"
+          },
+          "operator": "equals",
+          "expected": "Cart (0)"
+        }
+      }
+    ]
+  }
+}

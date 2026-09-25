@@ -1,0 +1,234 @@
+{
+  "schemaVersion": "exegezis.bug-report/v1",
+  "bugId": "BUG-002",
+  "title": "Coupon SAVE10 discount on two units of the same product",
+  "description": "Adds the Mechanical Keyboard ($89.90) to the cart twice, confirms the cart holds 2 units with a subtotal of $179.80, applies the coupon SAVE10 (10% off), and checks that the cart shows a 10% discount on the full subtotal (17.98).",
+  "outcome": "VERIFIED",
+  "outcomeReason": "every verification criterion is met",
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:09:15.926Z"
+  },
+  "validation": {
+    "status": "valid",
+    "issues": [],
+    "reference": {
+      "pages": [
+        "http://127.0.0.1:60726/"
+      ],
+      "targetsChecked": 2,
+      "targetsUnchecked": 6
+    }
+  },
+  "generatedAt": "2026-09-25T12:10:37.734Z",
+  "exegezisVersion": "0.1.0",
+  "policy": {
+    "minAttempts": 3,
+    "requireStrongAnchoring": true
+  },
+  "criteria": [
+    {
+      "id": "plan_valid",
+      "description": "A semantically valid plan",
+      "met": true,
+      "detail": "semantic validation: valid, 2 target(s) checked against the observed page"
+    },
+    {
+      "id": "expectation_defined",
+      "description": "A defined expected behavior",
+      "met": true,
+      "detail": "1 expectation(s) and 3 anchor(s) declared in plan BUG-002"
+    },
+    {
+      "id": "anchored",
+      "description": "An expectation anchored in a verified state",
+      "met": true,
+      "detail": "3 anchor(s) passed before the failing expectation at step 9"
+    },
+    {
+      "id": "reproduced",
+      "description": "A reproducible failing execution",
+      "met": true,
+      "detail": "REPRODUCED: 10/10 failed, 0 errors"
+    },
+    {
+      "id": "evidence_captured",
+      "description": "Captured evidence",
+      "met": true,
+      "detail": "timeline, assertions, screenshot, accessibility, console, network, trace captured; failure linked to shot-0001 and ax-0001"
+    },
+    {
+      "id": "executable_test",
+      "description": "A deterministic executable test that fails",
+      "met": true,
+      "detail": "@playwright/test 1.63.0 failed at step 9, the same step EXEGEZIS observed"
+    }
+  ],
+  "target": "http://127.0.0.1:60726/",
+  "expected": {
+    "description": "After applying SAVE10, the shopping cart shows a discount of 17.98, i.e. 10% of the full 179.80 subtotal",
+    "assertion": {
+      "kind": "text",
+      "target": {
+        "role": "region",
+        "name": "Shopping Cart"
+      },
+      "operator": "contains",
+      "expected": "17.98"
+    },
+    "value": "17.98"
+  },
+  "actual": {
+    "value": "Shopping Cart Your cart is empty Mechanical Keyboard × 2 — $179.80Remove Coupon code Apply coupon Coupon SAVE10 applied Subtotal $179.80 Discount -$8.99 Total $170.81 Checkout",
+    "message": "text of region \"Shopping Cart\" was \"Shopping Cart Your cart is empty Mechanical Keyboard × 2 — $179.80Remove Coupon code Apply coupon Coupon SAVE10 applied Subtotal $179.80 Discount -$8.99 Total $170.81 Checkout\"; expected it to contain \"17.98\""
+  },
+  "failingStep": {
+    "index": 9,
+    "id": "discount-ten-percent-of-subtotal"
+  },
+  "reproduction": {
+    "path": "reproduction.json",
+    "status": "REPRODUCED",
+    "attempts": 10,
+    "passes": 0,
+    "failures": 10,
+    "timeouts": 0,
+    "errors": 0,
+    "rate": 1,
+    "reason": "all 10 attempts failed identically"
+  },
+  "evidence": [
+    {
+      "kind": "assertion",
+      "path": "attempts/01M3C7GHD7JFHEHFAKZTBGCDDW/assertions.json",
+      "ref": "asr-0004",
+      "description": "Failed assertion: expected vs actual"
+    },
+    {
+      "kind": "timeline",
+      "path": "attempts/01M3C7GHD7JFHEHFAKZTBGCDDW/timeline.json",
+      "ref": "evt-000037..evt-000046",
+      "description": "Events from the last action to the failure"
+    },
+    {
+      "kind": "screenshot",
+      "path": "attempts/01M3C7GHD7JFHEHFAKZTBGCDDW/screenshots/shot-0001-assert-step-9.png",
+      "ref": "shot-0001",
+      "description": "Page at the moment of the failure"
+    },
+    {
+      "kind": "accessibility",
+      "path": "attempts/01M3C7GHD7JFHEHFAKZTBGCDDW/accessibility.json",
+      "ref": "ax-0001",
+      "description": "Accessibility tree at the moment of the failure"
+    },
+    {
+      "kind": "dom",
+      "path": "attempts/01M3C7GHD7JFHEHFAKZTBGCDDW/dom/dom-0001.html",
+      "ref": "dom-0001",
+      "description": "DOM at the moment of the failure"
+    },
+    {
+      "kind": "network",
+      "path": "attempts/01M3C7GHD7JFHEHFAKZTBGCDDW/network.json",
+      "ref": "net-0009",
+      "description": "1 network exchange(s) between the last action and the failure"
+    },
+    {
+      "kind": "console",
+      "path": "attempts/01M3C7GHD7JFHEHFAKZTBGCDDW/console.json",
+      "description": "0 console message(s) and 0 page error(s) in the same window"
+    },
+    {
+      "kind": "trace",
+      "path": "attempts/01M3C7GHD7JFHEHFAKZTBGCDDW/trace.zip",
+      "description": "Playwright trace of the whole attempt"
+    },
+    {
+      "kind": "metadata",
+      "path": "attempts/01M3C7GHD7JFHEHFAKZTBGCDDW/metadata.json",
+      "description": "Environment and configuration of the attempt"
+    }
+  ],
+  "evidenceChain": [
+    {
+      "stage": "expectation",
+      "ref": "step 9",
+      "summary": "After applying SAVE10, the shopping cart shows a discount of 17.98, i.e. 10% of the full 179.80 subtotal"
+    },
+    {
+      "stage": "action",
+      "ref": "evt-000037",
+      "summary": "click button \"Apply coupon\""
+    },
+    {
+      "stage": "observation",
+      "ref": "obs-0001",
+      "summary": "shot-0001 + ax-0001 + dom-0001"
+    },
+    {
+      "stage": "assertion",
+      "ref": "evt-000042",
+      "summary": "text assertion evaluated 42 time(s) over 5020 ms"
+    },
+    {
+      "stage": "failure",
+      "ref": "asr-0004",
+      "summary": "text of region \"Shopping Cart\" was \"Shopping Cart Your cart is empty Mechanical Keyboard × 2 — $179.80Remove Coupon code Apply coupon Coupon SAVE10 applied Subtotal $179.80 Discount -$8.99 Total $170.81 Checkout\"; expected it to contain \"17.98\""
+    },
+    {
+      "stage": "evidence",
+      "ref": "evt-000037..evt-000046",
+      "summary": "1 network, 0 console, 0 page error record(s) in the window; full trace available"
+    }
+  ],
+  "plan": {
+    "id": "BUG-002",
+    "path": "C:/Users/PC_SYSTEM/Documents/GitHub/EXEGEZIS/runs/benchmarks/01M3C7CW0ST38H2139T5FPEJ8M-buggy-shop-ai/cases/BUG-002/plan.json",
+    "hash": "sha256:2f279557ce3a670a99c76b3eff1b822b5fed10b23c7151ea110b6f93287a3e9b"
+  },
+  "compiledTest": {
+    "specPath": "BUG-002.spec.ts",
+    "sha256": "f8b1e3b555539e859ca79cdaad94f53393a784b96ca231d226ffc3e615af81b1",
+    "status": "failed",
+    "exitCode": 1,
+    "failedAtStep": 9,
+    "message": "Error: expect(locator).toContainText(expected) failed",
+    "durationMs": 8701,
+    "runner": "@playwright/test 1.63.0"
+  },
+  "environment": {
+    "exegezis": {
+      "version": "0.1.0"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "v24.18.1",
+      "platform": "win32",
+      "arch": "x64",
+      "osRelease": "10.0.19045"
+    },
+    "adapter": {
+      "id": "browser",
+      "version": "0.1.0"
+    },
+    "browser": {
+      "name": "chromium",
+      "version": "153.0.8010.12",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+      "headless": true,
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    "automation": {
+      "name": "playwright",
+      "version": "1.63.0"
+    }
+  }
+}

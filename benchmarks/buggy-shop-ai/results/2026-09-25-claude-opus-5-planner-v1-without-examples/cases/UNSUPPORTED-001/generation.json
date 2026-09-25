@@ -1,0 +1,26 @@
+{
+  "promptVersion": "planner-v1",
+  "status": "declined",
+  "reason": "The reported symptom is purely about visual layout (prices overlapping the \"Add to cart\" buttons in the product list). The supported assertions for this application are text, visibility, existence, attribute, url, count and http — none of which can observe element geometry, overlap or rendered position, and no visual/screenshot-baseline assertion is available. The accessibility tree shows the product rows and buttons present and labelled correctly, so any DOM-level assertion I could write (e.g. existence of the buttons, the price text, or the item count) would pass regardless of whether the overlap occurs, and would therefore not fail if the symptom is real. I would have to guess at CSS class names, inline styles or computed-style attributes that are not visible in the information provided in order to write anything geometry-related. Without a supported geometric or visual-comparison assertion, I cannot write a deterministic plan that distinguishes the reported broken rendering from correct rendering.",
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:14:11.250Z"
+  },
+  "meta": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "latencyMs": 7409,
+    "usage": {
+      "inputTokens": 2934,
+      "outputTokens": 389
+    },
+    "redactions": 0,
+    "examples": 0,
+    "raw": "{\"cannotPlanReason\":\"The reported symptom is purely about visual layout (prices overlapping the \\\"Add to cart\\\" buttons in the product list). The supported assertions for this application are text, visibility, existence, attribute, url, count and http — none of which can observe element geometry, overlap or rendered position, and no visual/screenshot-baseline assertion is available. The accessibility tree shows the product rows and buttons present and labelled correctly, so any DOM-level assertion I could write (e.g. existence of the buttons, the price text, or the item count) would pass regardless of whether the overlap occurs, and would therefore not fail if the symptom is real. I would have to guess at CSS class names, inline styles or computed-style attributes that are not visible in the information provided in order to write anything geometry-related. Without a supported geometric or visual-comparison assertion, I cannot write a deterministic plan that distinguishes the reported broken rendering from correct rendering.\"}"
+  }
+}

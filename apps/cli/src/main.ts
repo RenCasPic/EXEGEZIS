@@ -1,4 +1,6 @@
+import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
+import { join } from "node:path";
 import { toErrorInfo } from "@exegezis/core";
 import { EXIT, HELP, parseCliArgs, UsageError } from "./args.js";
 import { compileCommand } from "./compile.js";
@@ -9,6 +11,7 @@ import type { CliIo } from "./shared.js";
 import { validateCommand } from "./validate.js";
 import { verifyCommand } from "./verify.js";
 import { benchmarkCommand } from "./benchmark.js";
+import { aiVerifyCommand, generatePlanCommand } from "./ai-commands.js";
 
 const require = createRequire(import.meta.url);
 export const VERSION = (require("../package.json") as { version: string }).version;
@@ -38,6 +41,10 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         return await validateCommand({ ...command, exegezisVersion }, io);
       case "benchmark":
         return await benchmarkCommand({ ...command, exegezisVersion }, io);
+      case "generate-plan":
+        return await generatePlanCommand({ ...command, exegezisVersion }, io);
+      case "ai-verify":
+        return await aiVerifyCommand({ ...command, exegezisVersion }, io);
     }
   } catch (error) {
     if (error instanceof UsageError) {
@@ -50,8 +57,18 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
   }
 }
 
+/**
+ * Loads `.env` from the working directory, if present, for local secrets such
+ * as EXEGEZIS_ANTHROPIC_API_KEY. Variables already set in the environment win.
+ */
+function loadDotEnv(cwd: string): void {
+  const path = join(cwd, ".env");
+  if (existsSync(path)) process.loadEnvFile(path);
+}
+
 /** Entry point used by the `exegezis` binary. */
 export async function run(): Promise<void> {
+  loadDotEnv(process.cwd());
   process.exitCode = await main(process.argv.slice(2), {
     stdout: process.stdout,
     stderr: process.stderr,

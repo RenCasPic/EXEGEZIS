@@ -1,0 +1,139 @@
+{
+  "schemaVersion": "exegezis.test-plan/v1",
+  "id": "BUG-003",
+  "title": "Cart is not emptied after checkout when a new item is added",
+  "description": "After checking out a cart containing one keyboard, the cart appears empty. Adding a wireless mouse afterwards should leave the cart with only that one new item.",
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://127.0.0.1:60595/"
+  },
+  "preconditions": [
+    "buggy-shop is running at the target URL",
+    "Every execution starts from a fresh browser context, hence a new session with an empty cart",
+    "Checkout completes without requiring extra input (no form or confirmation dialog beyond the Checkout button)"
+  ],
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:04:43.669Z"
+  },
+  "steps": [
+    {
+      "type": "navigate",
+      "url": "/"
+    },
+    {
+      "type": "assert",
+      "id": "catalog-loaded",
+      "description": "The catalog is loaded",
+      "purpose": "anchor",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "role": "button",
+          "name": "Add Mechanical Keyboard to cart"
+        },
+        "expected": "visible"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "badge-initial",
+      "description": "The cart badge starts at Cart (0)",
+      "purpose": "anchor",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "operator": "equals",
+        "expected": "Cart (0)"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Mechanical Keyboard to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "keyboard-in-cart",
+      "description": "The cart holds one keyboard before checkout",
+      "purpose": "anchor",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "text": "Mechanical Keyboard × 1"
+        },
+        "expected": "visible"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Checkout"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "badge-after-checkout",
+      "description": "The cart badge is back to Cart (0) after checkout",
+      "purpose": "anchor",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "operator": "equals",
+        "expected": "Cart (0)"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Wireless Mouse to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "mouse-in-cart",
+      "description": "The cart shows the newly added wireless mouse",
+      "purpose": "anchor",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "text": "Wireless Mouse × 1"
+        },
+        "expected": "visible"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "badge-after-new-add",
+      "description": "After checkout, adding one mouse leaves exactly one item in the cart, so the badge shows Cart (1)",
+      "purpose": "expectation",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "operator": "equals",
+        "expected": "Cart (1)"
+      }
+    }
+  ],
+  "metadata": {
+    "generatedFrom": "symptom",
+    "symptom": "I bought a keyboard and then kept shopping. When I added a mouse, the keyboard I had already paid for appeared in my cart again."
+  }
+}

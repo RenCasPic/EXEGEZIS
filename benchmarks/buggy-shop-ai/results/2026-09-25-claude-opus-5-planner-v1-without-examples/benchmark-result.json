@@ -1,0 +1,352 @@
+{
+  "schemaVersion": "exegezis.benchmark-result/v1",
+  "suite": "buggy-shop-ai",
+  "exegezisVersion": "0.1.0",
+  "startedAt": "2026-09-25T12:07:15.995Z",
+  "finishedAt": "2026-09-25T12:14:11.252Z",
+  "baseUrl": "http://127.0.0.1:60726/",
+  "runsPerCase": 10,
+  "planSource": "generated",
+  "planner": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "examples": false
+  },
+  "cases": [
+    {
+      "id": "BUG-001",
+      "kind": "positive",
+      "expectedBug": "BUG-001",
+      "expected": {
+        "outcome": "VERIFIED",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "VERIFIED",
+        "step": 7,
+        "value": "Cart (1)"
+      },
+      "reproduction": "10/10",
+      "generation": {
+        "status": "generated",
+        "detail": null,
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 15238,
+        "inputTokens": 2936,
+        "outputTokens": 1159,
+        "examples": 0,
+        "plan": "cases/BUG-001/plan.json"
+      },
+      "validation": "valid",
+      "compiledTest": "failed",
+      "selectors": {
+        "checked": 2,
+        "missing": 0
+      },
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:07:33.362Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/BUG-001/bug-report.json",
+      "durationMs": 96803
+    },
+    {
+      "id": "BUG-002",
+      "kind": "positive",
+      "expectedBug": "BUG-002",
+      "expected": {
+        "outcome": "VERIFIED",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "VERIFIED",
+        "step": 9,
+        "value": "Shopping Cart Your cart is empty Mechanical Keyboard × 2 — $179.80Remove Coupon code Apply coupon Coupon SAVE10 applied Subtotal $179.80 Discount -$8.99 Total $170.81 Checkout"
+      },
+      "reproduction": "10/10",
+      "generation": {
+        "status": "generated",
+        "detail": null,
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 20999,
+        "inputTokens": 2958,
+        "outputTokens": 1678,
+        "examples": 0,
+        "plan": "cases/BUG-002/plan.json"
+      },
+      "validation": "valid",
+      "compiledTest": "failed",
+      "selectors": {
+        "checked": 2,
+        "missing": 0
+      },
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:09:15.926Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/BUG-002/bug-report.json",
+      "durationMs": 102813
+    },
+    {
+      "id": "BUG-003",
+      "kind": "positive",
+      "expectedBug": "BUG-003",
+      "expected": {
+        "outcome": "VERIFIED",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "VERIFIED",
+        "step": 8,
+        "value": "Cart (2)"
+      },
+      "reproduction": "10/10",
+      "generation": {
+        "status": "generated",
+        "detail": null,
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 17172,
+        "inputTokens": 2950,
+        "outputTokens": 1437,
+        "examples": 0,
+        "plan": "cases/BUG-003/plan.json"
+      },
+      "validation": "valid",
+      "compiledTest": "failed",
+      "selectors": {
+        "checked": 2,
+        "missing": 0
+      },
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:10:54.911Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/BUG-003/bug-report.json",
+      "durationMs": 99296
+    },
+    {
+      "id": "HEALTHY-001",
+      "kind": "negative",
+      "expectedBug": null,
+      "expected": {
+        "outcome": "NOT_VERIFIED",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "INCONCLUSIVE",
+        "step": 5,
+        "value": "present"
+      },
+      "reproduction": "10/10",
+      "generation": {
+        "status": "generated",
+        "detail": null,
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 12216,
+        "inputTokens": 2934,
+        "outputTokens": 933,
+        "examples": 0,
+        "plan": "cases/HEALTHY-001/plan.json"
+      },
+      "validation": "valid",
+      "compiledTest": "failed",
+      "selectors": {
+        "checked": 3,
+        "missing": 0
+      },
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:12:29.252Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/HEALTHY-001/bug-report.json",
+      "durationMs": 90164
+    },
+    {
+      "id": "AMBIGUOUS-001",
+      "kind": "negative",
+      "expectedBug": null,
+      "expected": {
+        "outcome": "INCONCLUSIVE",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "INCONCLUSIVE",
+        "step": null,
+        "value": null
+      },
+      "reproduction": null,
+      "generation": {
+        "status": "declined",
+        "detail": "The reported symptom (\"the shop feels kind of broken sometimes\") does not describe a concrete, reproducible behavior: it names no action, no element, and no expected-versus-observed outcome. The application exposes many distinct behaviors (adding items to the cart, cart counts, coupon application, subtotal/discount/total computation, checkout), and any plan I wrote would have to guess which of them is intended and what the correct value should be — for example guessing a valid coupon code, which does not appear anywhere in the accessibility tree. A deterministic plan requires at least: the steps to reproduce, and the specific value or state that is expected to be correct. Please restate the symptom with the exact interaction sequence and the observed wrong result (e.g. \"after adding Wireless Mouse twice, the cart link still shows Cart (1)\" or \"applying coupon X leaves Discount at $0.00\").",
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 6949,
+        "inputTokens": 2921,
+        "outputTokens": 308,
+        "examples": 0,
+        "plan": null
+      },
+      "validation": null,
+      "compiledTest": null,
+      "selectors": null,
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:13:54.150Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/AMBIGUOUS-001/generation.json",
+      "durationMs": 6958
+    },
+    {
+      "id": "INVENTED-TARGET-001",
+      "kind": "negative",
+      "expectedBug": null,
+      "expected": {
+        "outcome": "INVALID_PLAN",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "INCONCLUSIVE",
+        "step": null,
+        "value": null
+      },
+      "reproduction": null,
+      "generation": {
+        "status": "declined",
+        "detail": "The reported symptom refers to an 'Add to wishlist' button next to each product, but no such control exists in the provided accessibility tree of the application's only page. Each product listitem exposes only an 'Add ... to cart' button, and there is no wishlist region, link, or indicator anywhere in the page (header navigation shows only 'Products' and 'Cart (0)'). I would have to invent both the trigger element and the observable result of clicking it, so no deterministic plan can be written. If the wishlist feature exists behind some state or route not visible on initial load, please supply the accessibility tree of that state (including the exact button name and where the wishlist contents are displayed) and a plan can be produced.",
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 9493,
+        "inputTokens": 2931,
+        "outputTokens": 265,
+        "examples": 0,
+        "plan": null
+      },
+      "validation": null,
+      "compiledTest": null,
+      "selectors": null,
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:14:03.651Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/INVENTED-TARGET-001/generation.json",
+      "durationMs": 9681
+    },
+    {
+      "id": "UNSUPPORTED-001",
+      "kind": "negative",
+      "expectedBug": null,
+      "expected": {
+        "outcome": "UNSUPPORTED",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "INCONCLUSIVE",
+        "step": null,
+        "value": null
+      },
+      "reproduction": null,
+      "generation": {
+        "status": "declined",
+        "detail": "The reported symptom is purely about visual layout (prices overlapping the \"Add to cart\" buttons in the product list). The supported assertions for this application are text, visibility, existence, attribute, url, count and http — none of which can observe element geometry, overlap or rendered position, and no visual/screenshot-baseline assertion is available. The accessibility tree shows the product rows and buttons present and labelled correctly, so any DOM-level assertion I could write (e.g. existence of the buttons, the price text, or the item count) would pass regardless of whether the overlap occurs, and would therefore not fail if the symptom is real. I would have to guess at CSS class names, inline styles or computed-style attributes that are not visible in the information provided in order to write anything geometry-related. Without a supported geometric or visual-comparison assertion, I cannot write a deterministic plan that distinguishes the reported broken rendering from correct rendering.",
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 7409,
+        "inputTokens": 2934,
+        "outputTokens": 389,
+        "examples": 0,
+        "plan": null
+      },
+      "validation": null,
+      "compiledTest": null,
+      "selectors": null,
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:14:11.250Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/UNSUPPORTED-001/generation.json",
+      "durationMs": 7411
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "truePositives": 3,
+    "falseNegatives": 0,
+    "falsePositives": 0,
+    "trueNegatives": 4
+  },
+  "metrics": {
+    "planValidityRate": 1,
+    "semanticValidityRate": 1,
+    "verificationSuccess": 1,
+    "falsePositiveRate": 0,
+    "inconclusiveRate": 0.5714285714285714,
+    "invalidPlanRate": 0,
+    "reproductionRate": 1,
+    "anchorQuality": 1,
+    "selectorQuality": 1,
+    "playwrightAgreement": 1
+  }
+}

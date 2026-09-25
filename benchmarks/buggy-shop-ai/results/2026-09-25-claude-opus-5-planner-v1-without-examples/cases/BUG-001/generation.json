@@ -1,0 +1,130 @@
+{
+  "promptVersion": "planner-v1",
+  "status": "generated",
+  "plan": {
+    "schemaVersion": "exegezis.test-plan/v1",
+    "id": "BUG-001",
+    "title": "Cart counter after removing the only cart item",
+    "description": "Adds one product to the cart, removes it again, and checks the header cart counter reflects an empty cart.",
+    "target": {
+      "kind": "web",
+      "baseUrl": "http://127.0.0.1:60726/"
+    },
+    "preconditions": [
+      "The shop page at / loads with the product list and an empty cart",
+      "Cart items offer a control labelled/containing the text \"Remove\""
+    ],
+    "provenance": {
+      "source": "model",
+      "generator": "anthropic",
+      "model": "claude-opus-5",
+      "version": null,
+      "promptVersion": "planner-v1",
+      "createdAt": "2026-09-25T12:07:33.362Z"
+    },
+    "steps": [
+      {
+        "type": "navigate",
+        "url": "/"
+      },
+      {
+        "type": "assert",
+        "id": "counter-starts-empty",
+        "description": "Header cart counter shows 0 items before anything is added",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "(0)"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "role": "button",
+          "name": "Add Mechanical Keyboard to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "counter-after-add",
+        "description": "Header cart counter shows 1 item after adding the keyboard",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "(1)"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "text": "Remove"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "cart-empty-message",
+        "description": "Cart region reports it is empty after the only item is removed",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "region",
+            "name": "Shopping Cart"
+          },
+          "operator": "contains",
+          "expected": "Your cart is empty"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "counter-back-to-zero",
+        "description": "Header cart counter should show 0 items once the only item has been removed",
+        "purpose": "expectation",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "(0)"
+        }
+      }
+    ],
+    "metadata": {
+      "generatedFrom": "symptom",
+      "symptom": "After I remove the only item from my cart, the cart counter at the top of the page still says there is one item."
+    }
+  },
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:07:33.362Z"
+  },
+  "meta": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "latencyMs": 15238,
+    "usage": {
+      "inputTokens": 2936,
+      "outputTokens": 1159
+    },
+    "redactions": 0,
+    "examples": 0,
+    "raw": "{\"plan\":{\"title\":\"Cart counter after removing the only cart item\",\"description\":\"Adds one product to the cart, removes it again, and checks the header cart counter reflects an empty cart.\",\"preconditions\":[\"The shop page at / loads with the product list and an empty cart\",\"Cart items offer a control labelled/containing the text \\\"Remove\\\"\"],\"steps\":[{\"type\":\"navigate\",\"value\":\"/\"},{\"type\":\"assert\",\"id\":\"counter-starts-empty\",\"purpose\":\"anchor\",\"description\":\"Header cart counter shows 0 items before anything is added\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"(0)\"}},{\"type\":\"click\",\"target\":{\"by\":\"role\",\"value\":\"button\",\"name\":\"Add Mechanical Keyboard to cart\"}},{\"type\":\"assert\",\"id\":\"counter-after-add\",\"purpose\":\"anchor\",\"description\":\"Header cart counter shows 1 item after adding the keyboard\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"(1)\"}},{\"type\":\"click\",\"target\":{\"by\":\"text\",\"value\":\"Remove\"}},{\"type\":\"assert\",\"id\":\"cart-empty-message\",\"purpose\":\"anchor\",\"description\":\"Cart region reports it is empty after the only item is removed\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"region\",\"name\":\"Shopping Cart\"},\"operator\":\"contains\",\"expected\":\"Your cart is empty\"}},{\"type\":\"assert\",\"id\":\"counter-back-to-zero\",\"purpose\":\"expectation\",\"description\":\"Header cart counter should show 0 items once the only item has been removed\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"(0)\"}}]}}"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "INVENTED-TARGET-001",
+  "kind": "negative",
+  "title": "A feature the application does not have",
+  "symptom": "The 'Add to wishlist' button next to each product does nothing when I click it.",
+  "expectedBug": null,
+  "mockResponse": "mock-response.json",
+  "expected": {
+    "outcome": "INVALID_PLAN",
+    "step": null,
+    "value": null
+  },
+  "acceptableOutcomes": [
+    "INCONCLUSIVE"
+  ]
+}

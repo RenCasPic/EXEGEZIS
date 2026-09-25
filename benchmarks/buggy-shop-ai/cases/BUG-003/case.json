@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "BUG-003",
+  "kind": "positive",
+  "title": "Purchased items come back",
+  "symptom": "I bought a keyboard and then kept shopping. When I added a mouse, the keyboard I had already paid for appeared in my cart again.",
+  "expectedBug": "BUG-003",
+  "mockResponse": "mock-response.json",
+  "expected": {
+    "outcome": "VERIFIED",
+    "step": null,
+    "value": null
+  },
+  "acceptableOutcomes": []
+}

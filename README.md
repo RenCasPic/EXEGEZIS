@@ -5,10 +5,10 @@
 EXEGEZIS reproduces software behavior, explains why it happens and proves when
 it is fixed. Every claim it makes must trace back to evidence.
 
-**Current stage:** Phase 0 / Iteration 2.5 — *Verification hardening*. Deterministic
-observation, assertions, reproduction, Verified Bugs, compilation to standalone
-Playwright tests, semantic plan validation, anchoring, timeout policy, plan
-provenance and a benchmark. No AI yet. *Don't trust the model. Verify the claim.*
+**Current stage:** Phase 0 / Iteration 3 — *Symptom → AI → TestPlan → deterministic
+verification*. A planner (LLM) turns a user's symptom into a TestPlan; the
+deterministic Verification Engine alone decides the outcome. *The AI proposes
+the test. EXEGEZIS decides whether the evidence proves the claim.*
 
 ## Quick start
 
@@ -35,7 +35,18 @@ Run the benchmark (3 bugs that must be VERIFIED, 6 negative cases that must neve
 pnpm benchmark
 ```
 
-Other commands: `run` (one execution, step by step), `reproduce` (N runs,
+From a symptom, with the AI planner (needs `ANTHROPIC_API_KEY`; `--planner mock`
+replays recorded answers for tests):
+
+```bash
+pnpm exegezis ai-verify --symptom "After I remove the only item from my cart, the cart counter still says one item." --runs 10
+```
+
+```bash
+pnpm exegezis benchmark --suite buggy-shop-ai --planner anthropic
+```
+
+Other commands: `generate-plan` (symptom → validated plan, not executed), `run` (one execution, step by step), `reproduce` (N runs,
 classified), `compile` (plan → standalone `.spec.ts`), `validate` (semantic
 validation against a preflight observation). See `pnpm exegezis --help`.
 
@@ -52,9 +63,11 @@ pnpm --filter @exegezis/adapter-browser exec playwright show-trace <absolute-pat
 | `packages/core` | Zod schemas (source of truth): actions, assertions, test plans, evidence, reproduction, verification; run recorder, plan executor, reproduction loop, bug reports, redaction, structured logging |
 | `packages/adapter-browser` | Playwright/Chromium adapter: actions, assertion evaluators, observations, console, network, accessibility, screenshots, trace |
 | `packages/compiler-playwright` | Test plan → standalone Playwright spec; runs specs with the standard Playwright runner |
+| `packages/planner` | Symptom → TestPlan proposal (provider-agnostic `PlanGenerator`, Anthropic and mock providers, versioned prompt). Never decides verdicts; core does not depend on it |
 | `apps/cli` | `exegezis` command |
 | `examples/buggy-shop` | Evidence lab: a shop with exactly 3 seeded bugs that its own test suite does not catch |
-| `benchmarks/buggy-shop` | Benchmark dataset: symptom, reference plan, expected outcome (and compiled spec) per case |
+| `benchmarks/buggy-shop` | Benchmark A: human-authored plans — symptom, reference plan, expected outcome (and compiled spec) per case |
+| `benchmarks/buggy-shop-ai` | Benchmark B: plans generated from symptoms by a planner; results and metrics kept separate |
 | `docs/` | Product deep dive and engineering notes |
 
 ## Scripts
@@ -67,5 +80,6 @@ pnpm --filter @exegezis/adapter-browser exec playwright show-trace <absolute-pat
 | `pnpm verify` | All of the above |
 
 Design notes: [docs/01-evidence-engine.md](docs/01-evidence-engine.md) (evidence and run format),
-[docs/02-verification-engine.md](docs/02-verification-engine.md) (assertions, reproduction, Verified Bug, compiler) and
-[docs/03-verification-hardening.md](docs/03-verification-hardening.md) (outcomes, validation, anchoring, timeouts, provenance, benchmark).
+[docs/02-verification-engine.md](docs/02-verification-engine.md) (assertions, reproduction, Verified Bug, compiler),
+[docs/03-verification-hardening.md](docs/03-verification-hardening.md) (outcomes, validation, anchoring, timeouts, provenance, benchmark) and
+[docs/04-ai-planner.md](docs/04-ai-planner.md) (planner, providers, prompt, benchmark B).

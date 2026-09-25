@@ -11,6 +11,9 @@
       "path": "packages/compiler-playwright"
     },
     {
+      "path": "packages/planner"
+    },
+    {
       "path": "apps/cli"
     }
   ]

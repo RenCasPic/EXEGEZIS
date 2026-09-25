@@ -1,0 +1,46 @@
+{
+  "plan": {
+    "title": "Product list layout",
+    "description": "Compare the product list with its visual baseline.",
+    "preconditions": [],
+    "steps": [
+      {
+        "type": "navigate",
+        "value": "/"
+      },
+      {
+        "type": "assert",
+        "id": "catalog-loaded",
+        "purpose": "anchor",
+        "description": "The catalog is loaded",
+        "assertion": {
+          "kind": "visibility",
+          "target": {
+            "by": "role",
+            "value": "button",
+            "name": "Add Wireless Mouse to cart"
+          },
+          "expected": "visible"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "by": "role",
+          "value": "button",
+          "name": "Add Wireless Mouse to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "layout",
+        "purpose": "expectation",
+        "description": "The product list matches its visual baseline",
+        "assertion": {
+          "kind": "visual",
+          "expected": "product-list"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "promptVersion": "planner-v1",
+  "status": "generated",
+  "plan": {
+    "schemaVersion": "exegezis.test-plan/v1",
+    "id": "HEALTHY-001",
+    "title": "Cart counter in header updates after adding a product",
+    "description": "Loads the shop, confirms the header cart counter starts at zero and the cart is empty, adds one product to the cart, confirms the cart is no longer empty, and then checks the header cart link shows one item.",
+    "target": {
+      "kind": "web",
+      "baseUrl": "http://127.0.0.1:60726/"
+    },
+    "preconditions": [
+      "The application is reachable at the base URL",
+      "The product list shows 'Mechanical Keyboard' with an 'Add to cart' button",
+      "The cart is empty at the start of the session"
+    ],
+    "provenance": {
+      "source": "model",
+      "generator": "anthropic",
+      "model": "claude-opus-5",
+      "version": null,
+      "promptVersion": "planner-v1",
+      "createdAt": "2026-09-25T12:12:29.252Z"
+    },
+    "steps": [
+      {
+        "type": "navigate",
+        "url": "/"
+      },
+      {
+        "type": "assert",
+        "id": "header-counter-starts-at-zero",
+        "description": "The header cart link shows zero items before anything is added",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "Cart (0)"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "cart-initially-empty",
+        "description": "The shopping cart region reports it is empty before anything is added",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "existence",
+          "target": {
+            "text": "Your cart is empty"
+          },
+          "expected": "present"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "role": "button",
+          "name": "Add Mechanical Keyboard to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "cart-no-longer-empty",
+        "description": "After adding the product, the cart no longer reports being empty",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "existence",
+          "target": {
+            "text": "Your cart is empty"
+          },
+          "expected": "absent"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "header-counter-shows-one",
+        "description": "The header cart link should show one item after adding a single product",
+        "purpose": "expectation",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "Cart (1)"
+        }
+      }
+    ],
+    "metadata": {
+      "generatedFrom": "symptom",
+      "symptom": "When I add a product to the cart, the cart counter at the top of the page doesn't go up."
+    }
+  },
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:12:29.252Z"
+  },
+  "meta": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "latencyMs": 12216,
+    "usage": {
+      "inputTokens": 2934,
+      "outputTokens": 933
+    },
+    "redactions": 0,
+    "examples": 0,
+    "raw": "{\"plan\":{\"title\":\"Cart counter in header updates after adding a product\",\"description\":\"Loads the shop, confirms the header cart counter starts at zero and the cart is empty, adds one product to the cart, confirms the cart is no longer empty, and then checks the header cart link shows one item.\",\"preconditions\":[\"The application is reachable at the base URL\",\"The product list shows 'Mechanical Keyboard' with an 'Add to cart' button\",\"The cart is empty at the start of the session\"],\"steps\":[{\"type\":\"navigate\",\"value\":\"/\"},{\"type\":\"assert\",\"id\":\"header-counter-starts-at-zero\",\"purpose\":\"anchor\",\"description\":\"The header cart link shows zero items before anything is added\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"Cart (0)\"}},{\"type\":\"assert\",\"id\":\"cart-initially-empty\",\"purpose\":\"anchor\",\"description\":\"The shopping cart region reports it is empty before anything is added\",\"assertion\":{\"kind\":\"existence\",\"target\":{\"by\":\"text\",\"value\":\"Your cart is empty\"},\"expected\":\"present\"}},{\"type\":\"click\",\"target\":{\"by\":\"role\",\"value\":\"button\",\"name\":\"Add Mechanical Keyboard to cart\"}},{\"type\":\"assert\",\"id\":\"cart-no-longer-empty\",\"purpose\":\"anchor\",\"description\":\"After adding the product, the cart no longer reports being empty\",\"assertion\":{\"kind\":\"existence\",\"target\":{\"by\":\"text\",\"value\":\"Your cart is empty\"},\"expected\":\"absent\"}},{\"type\":\"assert\",\"id\":\"header-counter-shows-one\",\"purpose\":\"expectation\",\"description\":\"The header cart link should show one item after adding a single product\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"Cart (1)\"}}]}}"
+  }
+}

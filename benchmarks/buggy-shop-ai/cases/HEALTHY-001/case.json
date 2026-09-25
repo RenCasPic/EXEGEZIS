@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "HEALTHY-001",
+  "kind": "negative",
+  "title": "Adding a product updates the counter (it does)",
+  "symptom": "When I add a product to the cart, the cart counter at the top of the page doesn't go up.",
+  "expectedBug": null,
+  "mockResponse": "mock-response.json",
+  "expected": {
+    "outcome": "NOT_VERIFIED",
+    "step": null,
+    "value": null
+  },
+  "acceptableOutcomes": [
+    "INCONCLUSIVE"
+  ]
+}

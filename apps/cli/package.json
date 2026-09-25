@@ -22,6 +22,7 @@
   "dependencies": {
     "@exegezis/adapter-browser": "workspace:*",
     "@exegezis/core": "workspace:*",
-    "@exegezis/compiler-playwright": "workspace:*"
+    "@exegezis/compiler-playwright": "workspace:*",
+    "@exegezis/planner": "workspace:*"
   }
 }

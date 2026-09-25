@@ -19,7 +19,29 @@ export type Command =
   | { kind: "compile"; planFile: string; output: string }
   | ({ kind: "verify"; planFile: string; baseUrl?: string; runs: number } & Common)
   | ({ kind: "validate"; planFile: string; baseUrl?: string } & Common)
-  | ({ kind: "benchmark"; suite: string; runs?: number; baseUrl?: string; caseIds?: string[] } & Common);
+  | ({
+      kind: "benchmark";
+      suite: string;
+      runs?: number;
+      baseUrl?: string;
+      caseIds?: string[];
+      planner?: Planner;
+      model?: string;
+      examples: boolean;
+    } & Common)
+  | ({ kind: "generate-plan"; symptom: string; baseUrl: string; examples?: string } & PlannerArgs & Common)
+  | ({ kind: "ai-verify"; symptom: string; baseUrl: string; runs: number; examples?: string } & PlannerArgs & Common);
+
+export type Planner = "anthropic" | "mock";
+
+interface PlannerArgs {
+  planner: Planner;
+  model?: string;
+  mockResponse?: string;
+}
+
+/** Target of the AI commands when --base-url is not given (the buggy-shop lab). */
+export const DEFAULT_AI_BASE_URL = "http://localhost:3000/";
 
 export const EXIT = {
   ok: 0,
@@ -46,7 +68,10 @@ Usage:
   exegezis compile   --plan <test-plan.json> [--output <dir>]
   exegezis verify    --plan <test-plan.json> [--runs 10] [--base-url <url>] [options]
   exegezis validate  --plan <test-plan.json> [--base-url <url>] [options]
-  exegezis benchmark --suite <name|suite.json> [--runs N] [--case <id>]... [--base-url <url>] [options]
+  exegezis benchmark --suite <name|suite.json> [--runs N] [--case <id>]... [--base-url <url>]
+                     [--planner anthropic|mock] [--model <id>] [--no-examples] [options]
+  exegezis generate-plan --symptom "<text>" [--base-url <url>] [--planner ...] [--examples <suite>] [options]
+  exegezis ai-verify     --symptom "<text>" [--runs 10] [--base-url <url>] [--planner ...] [--examples <suite>] [options]
   exegezis --help | --version
 
 Commands:
@@ -61,7 +86,12 @@ Commands:
               INVALID_PLAN or UNSUPPORTED.
   validate    Semantic validation of a plan against a preflight observation.
   benchmark   Verify every case of a suite (e.g. benchmarks/buggy-shop) and
-              score each outcome against its known answer.
+              score each outcome against its known answer. Suites whose plans
+              are generated (e.g. buggy-shop-ai) need --planner.
+  generate-plan  A planner (LLM) turns a symptom into a TestPlan, which is
+              validated but NOT executed.
+  ai-verify   symptom -> planner -> TestPlan -> the same verification as
+              "verify". The planner proposes; only the engine decides.
 
 Options:
   --output <dir>     Where results are written. Default: ./runs
@@ -69,6 +99,13 @@ Options:
                      (benchmark: the suite's default)
   --suite <s>        Benchmark suite name (benchmarks/<s>/suite.json) or path.
   --case <id>        Only this benchmark case (repeatable).
+  --symptom <text>   The reported problem, in plain language (AI commands).
+  --planner <p>      anthropic (default; needs ANTHROPIC_API_KEY) or mock.
+  --model <id>       Model for the anthropic planner. Default: claude-opus-5.
+  --mock-response <f>  Mock planner: file with a recorded model answer.
+  --examples <suite> Show that suite's solved cases to the planner (AI commands).
+  --no-examples      Benchmark of generated plans: no examples in the prompt.
+  AI commands target ${DEFAULT_AI_BASE_URL} unless --base-url is given.
   --base-url <url>   Run the plan against another environment.
   --headed           Show the browser window.
   --verbose          Also stream structured logs to stderr.
@@ -84,7 +121,8 @@ Exit codes:
   6  unsupported plan (not executed)
 `;
 
-const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark"] as const;
+const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify"] as const;
+const PLANNERS: readonly Planner[] = ["anthropic", "mock"];
 
 export function parseCliArgs(argv: readonly string[]): Command {
   let parsed;
@@ -100,6 +138,12 @@ export function parseCliArgs(argv: readonly string[]): Command {
         runs: { type: "string" },
         suite: { type: "string" },
         case: { type: "string", multiple: true },
+        symptom: { type: "string" },
+        planner: { type: "string" },
+        model: { type: "string" },
+        "mock-response": { type: "string" },
+        examples: { type: "string" },
+        "no-examples": { type: "boolean", default: false },
         output: { type: "string", default: "./runs" },
         actions: { type: "string" },
         headed: { type: "boolean", default: false },
@@ -131,10 +175,13 @@ export function parseCliArgs(argv: readonly string[]): Command {
     compile: ["plan"],
     verify: ["plan", "base-url", "runs"],
     validate: ["plan", "base-url"],
-    benchmark: ["suite", "base-url", "runs", "case"],
+    benchmark: ["suite", "base-url", "runs", "case", "planner", "model", "no-examples"],
+    "generate-plan": ["symptom", "base-url", "planner", "model", "mock-response", "examples"],
+    "ai-verify": ["symptom", "base-url", "runs", "planner", "model", "mock-response", "examples"],
   };
-  for (const option of ["url", "plan", "base-url", "runs", "actions", "suite", "case"] as const) {
-    if (values[option] !== undefined && !allowed[command as (typeof COMMANDS)[number]].includes(option)) {
+  for (const option of ["url", "plan", "base-url", "runs", "actions", "suite", "case", "symptom", "planner", "model", "mock-response", "examples", "no-examples"] as const) {
+    if (option === "no-examples" ? values[option] === false : values[option] === undefined) continue;
+    if (!allowed[command as (typeof COMMANDS)[number]].includes(option)) {
       throw new UsageError(`Option --${option} is not valid for "${command}".`);
     }
   }
@@ -171,13 +218,44 @@ export function parseCliArgs(argv: readonly string[]): Command {
         suite: values.suite,
         ...(values.runs === undefined ? {} : { runs: parseRuns(values.runs) }),
         ...(values.case === undefined ? {} : { caseIds: values.case }),
+        ...(values.planner === undefined ? {} : { planner: parsePlanner(values.planner) }),
+        ...(values.model === undefined ? {} : { model: values.model }),
+        examples: !values["no-examples"],
         ...baseUrl,
         ...common,
       };
     }
+    case "generate-plan":
+    case "ai-verify": {
+      const symptom = values.symptom?.trim();
+      if (symptom === undefined || symptom === "") throw new UsageError('Missing required option --symptom "<text>".');
+      const planner: PlannerArgs = {
+        planner: values.planner === undefined ? "anthropic" : parsePlanner(values.planner),
+        ...(values.model === undefined ? {} : { model: values.model }),
+        ...(values["mock-response"] === undefined ? {} : { mockResponse: values["mock-response"] }),
+      };
+      if (planner.planner === "mock" && planner.mockResponse === undefined) {
+        throw new UsageError("--planner mock needs --mock-response <file>.");
+      }
+      const shared = {
+        symptom,
+        baseUrl: baseUrl.baseUrl ?? DEFAULT_AI_BASE_URL,
+        ...(values.examples === undefined ? {} : { examples: values.examples }),
+        ...planner,
+        ...common,
+      };
+      return command === "ai-verify" ? { kind: "ai-verify", runs: parseRuns(values.runs), ...shared } : { kind: "generate-plan", ...shared };
+    }
     default:
       throw new UsageError(`Unknown command "${command}".`);
   }
+}
+
+function parsePlanner(value: string): Planner {
+  if (!(PLANNERS as readonly string[]).includes(value)) {
+    throw new UsageError(`--planner must be one of ${PLANNERS.join(", ")}, got "${value}".`);
+  }
+  return value as Planner;
 }
 
 function requirePlan(plan: string | undefined): string {

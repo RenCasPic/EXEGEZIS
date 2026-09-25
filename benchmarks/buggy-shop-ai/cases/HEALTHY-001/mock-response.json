@@ -1,0 +1,67 @@
+{
+  "plan": {
+    "title": "Cart counter after adding a product",
+    "description": "Add one product and check the cart counter.",
+    "preconditions": [],
+    "steps": [
+      {
+        "type": "navigate",
+        "value": "/"
+      },
+      {
+        "type": "assert",
+        "id": "counter-initial",
+        "purpose": "anchor",
+        "description": "The cart counter starts at Cart (0)",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "by": "role",
+            "value": "link",
+            "name": "Cart"
+          },
+          "operator": "equals",
+          "expected": "Cart (0)"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "by": "role",
+          "value": "button",
+          "name": "Add Wireless Mouse to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "mouse-in-cart",
+        "purpose": "anchor",
+        "description": "The mouse is in the cart",
+        "assertion": {
+          "kind": "visibility",
+          "target": {
+            "by": "text",
+            "value": "Wireless Mouse × 1"
+          },
+          "expected": "visible"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "counter-after-add",
+        "purpose": "expectation",
+        "description": "The cart counter shows Cart (1)",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "by": "role",
+            "value": "link",
+            "name": "Cart"
+          },
+          "operator": "equals",
+          "expected": "Cart (1)"
+        }
+      }
+    ]
+  }
+}

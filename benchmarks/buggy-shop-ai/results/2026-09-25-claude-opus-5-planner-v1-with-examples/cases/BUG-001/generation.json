@@ -1,0 +1,156 @@
+{
+  "promptVersion": "planner-v1",
+  "status": "generated",
+  "plan": {
+    "schemaVersion": "exegezis.test-plan/v1",
+    "id": "BUG-001",
+    "title": "Cart counter not reset after removing the last item",
+    "description": "After adding a product and then removing it, the cart is empty but the header counter should also return to zero. The plan adds one keyboard, removes it, anchors that the cart is empty, and checks the header counter.",
+    "target": {
+      "kind": "web",
+      "baseUrl": "http://127.0.0.1:60595/"
+    },
+    "preconditions": [
+      "buggy-shop is running at the target URL",
+      "Every execution starts from a fresh browser context, hence a new session with an empty cart",
+      "The cart list offers a control whose accessible name contains \"Remove\" for the single cart line"
+    ],
+    "provenance": {
+      "source": "model",
+      "generator": "anthropic",
+      "model": "claude-opus-5",
+      "version": null,
+      "promptVersion": "planner-v1",
+      "createdAt": "2026-09-25T12:01:05.843Z"
+    },
+    "steps": [
+      {
+        "type": "navigate",
+        "url": "/"
+      },
+      {
+        "type": "assert",
+        "id": "counter-starts-at-zero",
+        "description": "The header cart counter starts at zero",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "Cart (0)"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "role": "button",
+          "name": "Add Mechanical Keyboard to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "keyboard-in-cart",
+        "description": "The keyboard is in the cart",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "visibility",
+          "target": {
+            "text": "Mechanical Keyboard × 1"
+          },
+          "expected": "visible"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "counter-shows-one",
+        "description": "The header cart counter shows one item",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "Cart (1)"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "role": "button",
+          "name": "Remove"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "cart-line-gone",
+        "description": "The cart line for the keyboard is gone",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "existence",
+          "target": {
+            "text": "Mechanical Keyboard ×"
+          },
+          "expected": "absent"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "cart-empty",
+        "description": "The cart is reported as empty",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "visibility",
+          "target": {
+            "text": "Your cart is empty"
+          },
+          "expected": "visible"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "counter-back-to-zero",
+        "description": "The header cart counter returns to zero once the only item has been removed",
+        "purpose": "expectation",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "Cart (0)"
+        }
+      }
+    ],
+    "metadata": {
+      "generatedFrom": "symptom",
+      "symptom": "After I remove the only item from my cart, the cart counter at the top of the page still says there is one item."
+    }
+  },
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:01:05.843Z"
+  },
+  "meta": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "latencyMs": 19346,
+    "usage": {
+      "inputTokens": 5157,
+      "outputTokens": 1311
+    },
+    "redactions": 0,
+    "examples": 2,
+    "raw": "{\"plan\":{\"title\":\"Cart counter not reset after removing the last item\",\"description\":\"After adding a product and then removing it, the cart is empty but the header counter should also return to zero. The plan adds one keyboard, removes it, anchors that the cart is empty, and checks the header counter.\",\"preconditions\":[\"buggy-shop is running at the target URL\",\"Every execution starts from a fresh browser context, hence a new session with an empty cart\",\"The cart list offers a control whose accessible name contains \\\"Remove\\\" for the single cart line\"],\"steps\":[{\"type\":\"navigate\",\"value\":\"/\"},{\"type\":\"assert\",\"id\":\"counter-starts-at-zero\",\"purpose\":\"anchor\",\"description\":\"The header cart counter starts at zero\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"Cart (0)\"}},{\"type\":\"click\",\"target\":{\"by\":\"role\",\"value\":\"button\",\"name\":\"Add Mechanical Keyboard to cart\"}},{\"type\":\"assert\",\"id\":\"keyboard-in-cart\",\"purpose\":\"anchor\",\"description\":\"The keyboard is in the cart\",\"assertion\":{\"kind\":\"visibility\",\"target\":{\"by\":\"text\",\"value\":\"Mechanical Keyboard × 1\"},\"expected\":\"visible\"}},{\"type\":\"assert\",\"id\":\"counter-shows-one\",\"purpose\":\"anchor\",\"description\":\"The header cart counter shows one item\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"Cart (1)\"}},{\"type\":\"click\",\"target\":{\"by\":\"role\",\"value\":\"button\",\"name\":\"Remove\"}},{\"type\":\"assert\",\"id\":\"cart-line-gone\",\"purpose\":\"anchor\",\"description\":\"The cart line for the keyboard is gone\",\"assertion\":{\"kind\":\"existence\",\"target\":{\"by\":\"text\",\"value\":\"Mechanical Keyboard ×\"},\"expected\":\"absent\"}},{\"type\":\"assert\",\"id\":\"cart-empty\",\"purpose\":\"anchor\",\"description\":\"The cart is reported as empty\",\"assertion\":{\"kind\":\"visibility\",\"target\":{\"by\":\"text\",\"value\":\"Your cart is empty\"},\"expected\":\"visible\"}},{\"type\":\"assert\",\"id\":\"counter-back-to-zero\",\"purpose\":\"expectation\",\"description\":\"The header cart counter returns to zero once the only item has been removed\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"Cart (0)\"}}]}}"
+  }
+}

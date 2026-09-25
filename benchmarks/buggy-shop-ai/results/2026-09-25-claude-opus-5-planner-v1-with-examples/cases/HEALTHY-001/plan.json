@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "exegezis.test-plan/v1",
+  "id": "HEALTHY-001",
+  "title": "Cart badge does not increase after adding a product",
+  "description": "Adding a product to the cart puts the item in the cart list, but the header cart counter does not reflect the new item count.",
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://127.0.0.1:60595/"
+  },
+  "preconditions": [
+    "buggy-shop is running at the target URL",
+    "Every execution starts from a fresh browser context, hence a new session with an empty cart"
+  ],
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:06:13.948Z"
+  },
+  "steps": [
+    {
+      "type": "navigate",
+      "url": "/"
+    },
+    {
+      "type": "assert",
+      "id": "catalog-loaded",
+      "description": "The catalog is loaded",
+      "purpose": "anchor",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "role": "button",
+          "name": "Add Mechanical Keyboard to cart"
+        },
+        "expected": "visible"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "badge-initial",
+      "description": "The cart badge starts at Cart (0)",
+      "purpose": "anchor",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "operator": "equals",
+        "expected": "Cart (0)"
+      }
+    },
+    {
+      "type": "click",
+      "target": {
+        "role": "button",
+        "name": "Add Mechanical Keyboard to cart"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "keyboard-in-cart",
+      "description": "The cart list shows one keyboard after the add",
+      "purpose": "anchor",
+      "assertion": {
+        "kind": "visibility",
+        "target": {
+          "text": "Mechanical Keyboard × 1"
+        },
+        "expected": "visible"
+      }
+    },
+    {
+      "type": "assert",
+      "id": "badge-after-add",
+      "description": "The cart badge displays \"Cart (1)\" after adding one item",
+      "purpose": "expectation",
+      "assertion": {
+        "kind": "text",
+        "target": {
+          "role": "link",
+          "name": "Cart"
+        },
+        "operator": "equals",
+        "expected": "Cart (1)"
+      }
+    }
+  ],
+  "metadata": {
+    "generatedFrom": "symptom",
+    "symptom": "When I add a product to the cart, the cart counter at the top of the page doesn't go up."
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "plan": {
+    "title": "Coupon discount covers every unit",
+    "description": "Add two keyboards, apply SAVE10 and check the discount is 10% of both.",
+    "preconditions": [],
+    "steps": [
+      {
+        "type": "navigate",
+        "value": "/"
+      },
+      {
+        "type": "assert",
+        "id": "counter-initial",
+        "purpose": "anchor",
+        "description": "The cart counter starts at Cart (0)",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "by": "role",
+            "value": "link",
+            "name": "Cart"
+          },
+          "operator": "equals",
+          "expected": "Cart (0)"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "by": "role",
+          "value": "button",
+          "name": "Add Mechanical Keyboard to cart"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "by": "role",
+          "value": "button",
+          "name": "Add Mechanical Keyboard to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "two-keyboards",
+        "purpose": "anchor",
+        "description": "The cart holds two keyboards",
+        "assertion": {
+          "kind": "visibility",
+          "target": {
+            "by": "text",
+            "value": "Mechanical Keyboard × 2"
+          },
+          "expected": "visible"
+        }
+      },
+      {
+        "type": "fill",
+        "target": {
+          "by": "label",
+          "value": "Coupon code"
+        },
+        "value": "SAVE10"
+      },
+      {
+        "type": "click",
+        "target": {
+          "by": "role",
+          "value": "button",
+          "name": "Apply coupon"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "coupon-applied",
+        "purpose": "anchor",
+        "description": "The coupon is applied",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "by": "role",
+            "value": "status"
+          },
+          "operator": "equals",
+          "expected": "Coupon SAVE10 applied"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "discount-both",
+        "purpose": "expectation",
+        "description": "The discount is 10% of both keyboards ($17.98)",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "by": "text",
+            "value": "-$"
+          },
+          "operator": "equals",
+          "expected": "-$17.98"
+        }
+      }
+    ]
+  }
+}

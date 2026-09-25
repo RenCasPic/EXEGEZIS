@@ -1,0 +1,352 @@
+{
+  "schemaVersion": "exegezis.benchmark-result/v1",
+  "suite": "buggy-shop-ai",
+  "exegezisVersion": "0.1.0",
+  "startedAt": "2026-09-25T12:00:45.074Z",
+  "finishedAt": "2026-09-25T12:06:51.932Z",
+  "baseUrl": "http://127.0.0.1:60595/",
+  "runsPerCase": 10,
+  "planSource": "generated",
+  "planner": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "examples": true
+  },
+  "cases": [
+    {
+      "id": "BUG-001",
+      "kind": "positive",
+      "expectedBug": "BUG-001",
+      "expected": {
+        "outcome": "VERIFIED",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "VERIFIED",
+        "step": 9,
+        "value": "Cart (1)"
+      },
+      "reproduction": "10/10",
+      "generation": {
+        "status": "generated",
+        "detail": null,
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 19346,
+        "inputTokens": 5157,
+        "outputTokens": 1311,
+        "examples": 2,
+        "plan": "cases/BUG-001/plan.json"
+      },
+      "validation": "valid",
+      "compiledTest": "failed",
+      "selectors": {
+        "checked": 2,
+        "missing": 0
+      },
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:01:05.843Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/BUG-001/bug-report.json",
+      "durationMs": 101074
+    },
+    {
+      "id": "BUG-002",
+      "kind": "positive",
+      "expectedBug": "BUG-002",
+      "expected": {
+        "outcome": "VERIFIED",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "VERIFIED",
+        "step": 11,
+        "value": "-$8.99"
+      },
+      "reproduction": "10/10",
+      "generation": {
+        "status": "generated",
+        "detail": null,
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 34964,
+        "inputTokens": 5195,
+        "outputTokens": 2904,
+        "examples": 2,
+        "plan": "cases/BUG-002/plan.json"
+      },
+      "validation": "valid",
+      "compiledTest": "failed",
+      "selectors": {
+        "checked": 2,
+        "missing": 0
+      },
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:03:02.529Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/BUG-002/bug-report.json",
+      "durationMs": 117222
+    },
+    {
+      "id": "BUG-003",
+      "kind": "positive",
+      "expectedBug": "BUG-003",
+      "expected": {
+        "outcome": "VERIFIED",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "VERIFIED",
+        "step": 10,
+        "value": "Cart (2)"
+      },
+      "reproduction": "10/10",
+      "generation": {
+        "status": "generated",
+        "detail": null,
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 18881,
+        "inputTokens": 5256,
+        "outputTokens": 1540,
+        "examples": 2,
+        "plan": "cases/BUG-003/plan.json"
+      },
+      "validation": "valid",
+      "compiledTest": "failed",
+      "selectors": {
+        "checked": 3,
+        "missing": 0
+      },
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:04:43.669Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/BUG-003/bug-report.json",
+      "durationMs": 101689
+    },
+    {
+      "id": "HEALTHY-001",
+      "kind": "negative",
+      "expectedBug": null,
+      "expected": {
+        "outcome": "NOT_VERIFIED",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "NOT_VERIFIED",
+        "step": null,
+        "value": null
+      },
+      "reproduction": "0/10",
+      "generation": {
+        "status": "generated",
+        "detail": null,
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 7471,
+        "inputTokens": 6316,
+        "outputTokens": 660,
+        "examples": 3,
+        "plan": "cases/HEALTHY-001/plan.json"
+      },
+      "validation": "valid",
+      "compiledTest": "passed",
+      "selectors": {
+        "checked": 3,
+        "missing": 0
+      },
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:06:13.948Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/HEALTHY-001/bug-report.json",
+      "durationMs": 27450
+    },
+    {
+      "id": "AMBIGUOUS-001",
+      "kind": "negative",
+      "expectedBug": null,
+      "expected": {
+        "outcome": "INCONCLUSIVE",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "INCONCLUSIVE",
+        "step": null,
+        "value": null
+      },
+      "reproduction": null,
+      "generation": {
+        "status": "declined",
+        "detail": "The symptom does not describe a concrete, reproducible behavior: it names no specific action, element, page or incorrect value, and gives no condition under which the problem appears (\"sometimes\", \"kind of broken\"). Any plan would require guessing which feature to exercise (add to cart, coupon, checkout, badge...) and what the wrong observation is, so no deterministic test with a well-founded expectation can be written. A testable restatement would be needed, e.g. \"after doing X, element Y shows Z instead of W\".",
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 5311,
+        "inputTokens": 6303,
+        "outputTokens": 185,
+        "examples": 3,
+        "plan": null
+      },
+      "validation": null,
+      "compiledTest": null,
+      "selectors": null,
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:06:39.237Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/AMBIGUOUS-001/generation.json",
+      "durationMs": 5324
+    },
+    {
+      "id": "INVENTED-TARGET-001",
+      "kind": "negative",
+      "expectedBug": null,
+      "expected": {
+        "outcome": "INVALID_PLAN",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "INCONCLUSIVE",
+        "step": null,
+        "value": null
+      },
+      "reproduction": null,
+      "generation": {
+        "status": "declined",
+        "detail": "The reported symptom refers to an 'Add to wishlist' button next to each product, but no such control exists in the accessibility tree of the loaded page. Each product listitem exposes only an 'Add to cart' button (e.g. 'Add Mechanical Keyboard to cart'), and the header/navigation contains only 'Products' and 'Cart (0)'. There is also no wishlist region, list or indicator anywhere in the page from which a correct post-click state could be derived. Planning a test would require inventing both the trigger element and the expected observable effect (a wishlist count, a wishlist list entry, or an API endpoint), none of which can be seen in the provided material. Please supply an accessibility tree or example that shows the wishlist control and the state it is supposed to change, and a plan can be written.",
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 5466,
+        "inputTokens": 6313,
+        "outputTokens": 310,
+        "examples": 3,
+        "plan": null
+      },
+      "validation": null,
+      "compiledTest": null,
+      "selectors": null,
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:06:44.716Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/INVENTED-TARGET-001/generation.json",
+      "durationMs": 5474
+    },
+    {
+      "id": "UNSUPPORTED-001",
+      "kind": "negative",
+      "expectedBug": null,
+      "expected": {
+        "outcome": "UNSUPPORTED",
+        "step": null,
+        "value": null
+      },
+      "actual": {
+        "outcome": "INCONCLUSIVE",
+        "step": null,
+        "value": null
+      },
+      "reproduction": null,
+      "generation": {
+        "status": "declined",
+        "detail": "The reported symptom is purely about visual layout (prices overlapping the \"Add to cart\" buttons in the product list). The engine for this application supports only text, visibility, existence, attribute, url, count and http assertions; none of these can observe element geometry, overlap or alignment. A visual/baseline assertion is not among the supported assertions here, and there is no stated baseline image to compare against. The accessibility tree also shows no DOM-level signal (no error text, attribute or class) that would deterministically distinguish a correctly laid out product list from an overlapping one, so any plan would rest on invented selectors or invented expected style values. No concrete, testable expectation can be written without guessing.",
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "promptVersion": "planner-v1",
+        "latencyMs": 7207,
+        "inputTokens": 6316,
+        "outputTokens": 389,
+        "examples": 3,
+        "plan": null
+      },
+      "validation": null,
+      "compiledTest": null,
+      "selectors": null,
+      "provenance": {
+        "source": "model",
+        "generator": "anthropic",
+        "model": "claude-opus-5",
+        "version": null,
+        "promptVersion": "planner-v1",
+        "createdAt": "2026-09-25T12:06:51.929Z"
+      },
+      "passed": true,
+      "mismatches": [],
+      "report": "cases/UNSUPPORTED-001/generation.json",
+      "durationMs": 7213
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "truePositives": 3,
+    "falseNegatives": 0,
+    "falsePositives": 0,
+    "trueNegatives": 4
+  },
+  "metrics": {
+    "planValidityRate": 1,
+    "semanticValidityRate": 1,
+    "verificationSuccess": 1,
+    "falsePositiveRate": 0,
+    "inconclusiveRate": 0.42857142857142855,
+    "invalidPlanRate": 0,
+    "reproductionRate": 1,
+    "anchorQuality": 1,
+    "selectorQuality": 1,
+    "playwrightAgreement": 1
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "promptVersion": "planner-v1",
+  "status": "declined",
+  "reason": "The reported symptom (\"the shop feels kind of broken sometimes\") does not describe a concrete, reproducible behavior: it names no action, no element, and no expected-versus-observed outcome. The application exposes many distinct behaviors (adding items to the cart, cart counts, coupon application, subtotal/discount/total computation, checkout), and any plan I wrote would have to guess which of them is intended and what the correct value should be — for example guessing a valid coupon code, which does not appear anywhere in the accessibility tree. A deterministic plan requires at least: the steps to reproduce, and the specific value or state that is expected to be correct. Please restate the symptom with the exact interaction sequence and the observed wrong result (e.g. \"after adding Wireless Mouse twice, the cart link still shows Cart (1)\" or \"applying coupon X leaves Discount at $0.00\").",
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:13:54.150Z"
+  },
+  "meta": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "latencyMs": 6949,
+    "usage": {
+      "inputTokens": 2921,
+      "outputTokens": 308
+    },
+    "redactions": 0,
+    "examples": 0,
+    "raw": "{\"cannotPlanReason\":\"The reported symptom (\\\"the shop feels kind of broken sometimes\\\") does not describe a concrete, reproducible behavior: it names no action, no element, and no expected-versus-observed outcome. The application exposes many distinct behaviors (adding items to the cart, cart counts, coupon application, subtotal/discount/total computation, checkout), and any plan I wrote would have to guess which of them is intended and what the correct value should be — for example guessing a valid coupon code, which does not appear anywhere in the accessibility tree. A deterministic plan requires at least: the steps to reproduce, and the specific value or state that is expected to be correct. Please restate the symptom with the exact interaction sequence and the observed wrong result (e.g. \\\"after adding Wireless Mouse twice, the cart link still shows Cart (1)\\\" or \\\"applying coupon X leaves Discount at $0.00\\\").\"}"
+  }
+}

@@ -22,7 +22,7 @@ describe("parseCliArgs", () => {
 
   it("parses validate and benchmark", () => {
     expect(parseCliArgs(["validate", "--plan", "p.json"])).toEqual({ kind: "validate", planFile: "p.json", ...common });
-    expect(parseCliArgs(["benchmark", "--suite", "buggy-shop"])).toEqual({ kind: "benchmark", suite: "buggy-shop", ...common });
+    expect(parseCliArgs(["benchmark", "--suite", "buggy-shop"])).toEqual({ kind: "benchmark", suite: "buggy-shop", examples: true, ...common });
     expect(parseCliArgs(["benchmark", "--suite", "buggy-shop", "--runs", "3", "--case", "BUG-001", "--case", "BUG-002"])).toMatchObject({
       runs: 3,
       caseIds: ["BUG-001", "BUG-002"],

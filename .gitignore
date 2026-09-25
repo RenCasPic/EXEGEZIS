@@ -15,3 +15,7 @@ packages/compiler-playwright/test/.tmp/
 
 # CLI end-to-end tests write runs and compiled specs inside the repo
 apps/cli/test/.tmp/
+apps/cli/test/.tmp-ai/
+
+# Local secrets (e.g. EXEGEZIS_ANTHROPIC_API_KEY). Never commit.
+.env

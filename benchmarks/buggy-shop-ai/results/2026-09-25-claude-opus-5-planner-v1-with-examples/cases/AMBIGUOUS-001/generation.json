@@ -1,0 +1,26 @@
+{
+  "promptVersion": "planner-v1",
+  "status": "declined",
+  "reason": "The symptom does not describe a concrete, reproducible behavior: it names no specific action, element, page or incorrect value, and gives no condition under which the problem appears (\"sometimes\", \"kind of broken\"). Any plan would require guessing which feature to exercise (add to cart, coupon, checkout, badge...) and what the wrong observation is, so no deterministic test with a well-founded expectation can be written. A testable restatement would be needed, e.g. \"after doing X, element Y shows Z instead of W\".",
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:06:39.237Z"
+  },
+  "meta": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "latencyMs": 5311,
+    "usage": {
+      "inputTokens": 6303,
+      "outputTokens": 185
+    },
+    "redactions": 0,
+    "examples": 3,
+    "raw": "{\"cannotPlanReason\":\"The symptom does not describe a concrete, reproducible behavior: it names no specific action, element, page or incorrect value, and gives no condition under which the problem appears (\\\"sometimes\\\", \\\"kind of broken\\\"). Any plan would require guessing which feature to exercise (add to cart, coupon, checkout, badge...) and what the wrong observation is, so no deterministic test with a well-founded expectation can be written. A testable restatement would be needed, e.g. \\\"after doing X, element Y shows Z instead of W\\\".\"}"
+  }
+}

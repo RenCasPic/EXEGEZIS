@@ -32,6 +32,13 @@ export default defineConfig({
       },
       {
         test: {
+          name: "planner",
+          root: "packages/planner",
+          include: ["test/**/*.test.ts"],
+        },
+      },
+      {
+        test: {
           name: "cli",
           root: "apps/cli",
           include: ["test/**/*.test.ts"],

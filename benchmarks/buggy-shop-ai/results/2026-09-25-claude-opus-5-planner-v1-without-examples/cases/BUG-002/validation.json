@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "exegezis.plan-validation/v1",
+  "planId": "BUG-002",
+  "mode": "verification",
+  "status": "valid",
+  "issues": [],
+  "timeouts": {
+    "actionMs": 10000,
+    "navigationMs": 30000,
+    "assertionMs": 5000,
+    "stabilityMs": 250,
+    "runMs": 120000
+  },
+  "reference": {
+    "pages": [
+      "http://127.0.0.1:60726/"
+    ],
+    "targetsChecked": 2,
+    "targetsUnchecked": 6
+  }
+}

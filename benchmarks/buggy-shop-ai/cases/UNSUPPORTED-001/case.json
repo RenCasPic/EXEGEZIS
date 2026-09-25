@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "UNSUPPORTED-001",
+  "kind": "negative",
+  "title": "A purely visual complaint",
+  "symptom": "The product list looks visually misaligned: the prices overlap the Add to cart buttons.",
+  "expectedBug": null,
+  "mockResponse": "mock-response.json",
+  "expected": {
+    "outcome": "UNSUPPORTED",
+    "step": null,
+    "value": null
+  },
+  "acceptableOutcomes": [
+    "INCONCLUSIVE",
+    "INVALID_PLAN"
+  ]
+}

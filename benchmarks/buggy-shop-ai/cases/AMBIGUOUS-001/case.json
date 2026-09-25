@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "exegezis.benchmark-case/v1",
+  "id": "AMBIGUOUS-001",
+  "kind": "negative",
+  "title": "A symptom with nothing testable",
+  "symptom": "The shop feels kind of broken sometimes.",
+  "expectedBug": null,
+  "mockResponse": "mock-response.json",
+  "expected": {
+    "outcome": "INCONCLUSIVE",
+    "step": null,
+    "value": null
+  },
+  "acceptableOutcomes": [
+    "INVALID_PLAN",
+    "NOT_VERIFIED"
+  ]
+}

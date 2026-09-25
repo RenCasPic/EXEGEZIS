@@ -1,0 +1,137 @@
+{
+  "promptVersion": "planner-v1",
+  "status": "generated",
+  "plan": {
+    "schemaVersion": "exegezis.test-plan/v1",
+    "id": "BUG-003",
+    "title": "Cart contents after checkout and adding a second product",
+    "description": "Add the keyboard to the cart, complete checkout, then add the mouse and check the cart item count reported in the navigation reflects only the newly added product.",
+    "target": {
+      "kind": "web",
+      "baseUrl": "http://127.0.0.1:60726/"
+    },
+    "preconditions": [
+      "The shop page at / loads with the product list and an empty cart (Cart (0))."
+    ],
+    "provenance": {
+      "source": "model",
+      "generator": "anthropic",
+      "model": "claude-opus-5",
+      "version": null,
+      "promptVersion": "planner-v1",
+      "createdAt": "2026-09-25T12:10:54.911Z"
+    },
+    "steps": [
+      {
+        "type": "navigate",
+        "url": "/"
+      },
+      {
+        "type": "assert",
+        "id": "cart-initially-empty",
+        "description": "The cart link shows zero items when the page loads.",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "Cart (0)"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "role": "button",
+          "name": "Add Mechanical Keyboard to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "keyboard-in-cart",
+        "description": "After adding the keyboard the cart link shows one item.",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "Cart (1)"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "role": "button",
+          "name": "Checkout"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "cart-empty-after-checkout",
+        "description": "After checking out, the cart link shows zero items again.",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "Cart (0)"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "role": "button",
+          "name": "Add Wireless Mouse to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "only-mouse-in-cart",
+        "description": "After the checkout, adding the mouse should leave exactly one item in the cart.",
+        "purpose": "expectation",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "contains",
+          "expected": "Cart (1)"
+        }
+      }
+    ],
+    "metadata": {
+      "generatedFrom": "symptom",
+      "symptom": "I bought a keyboard and then kept shopping. When I added a mouse, the keyboard I had already paid for appeared in my cart again."
+    }
+  },
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:10:54.911Z"
+  },
+  "meta": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "latencyMs": 17172,
+    "usage": {
+      "inputTokens": 2950,
+      "outputTokens": 1437
+    },
+    "redactions": 0,
+    "examples": 0,
+    "raw": "{\"plan\":{\"title\":\"Cart contents after checkout and adding a second product\",\"description\":\"Add the keyboard to the cart, complete checkout, then add the mouse and check the cart item count reported in the navigation reflects only the newly added product.\",\"preconditions\":[\"The shop page at / loads with the product list and an empty cart (Cart (0)).\"],\"steps\":[{\"type\":\"navigate\",\"value\":\"/\"},{\"type\":\"assert\",\"id\":\"cart-initially-empty\",\"purpose\":\"anchor\",\"description\":\"The cart link shows zero items when the page loads.\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"Cart (0)\"}},{\"type\":\"click\",\"target\":{\"by\":\"role\",\"value\":\"button\",\"name\":\"Add Mechanical Keyboard to cart\"}},{\"type\":\"assert\",\"id\":\"keyboard-in-cart\",\"purpose\":\"anchor\",\"description\":\"After adding the keyboard the cart link shows one item.\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"Cart (1)\"}},{\"type\":\"click\",\"target\":{\"by\":\"role\",\"value\":\"button\",\"name\":\"Checkout\"}},{\"type\":\"assert\",\"id\":\"cart-empty-after-checkout\",\"purpose\":\"anchor\",\"description\":\"After checking out, the cart link shows zero items again.\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"Cart (0)\"}},{\"type\":\"click\",\"target\":{\"by\":\"role\",\"value\":\"button\",\"name\":\"Add Wireless Mouse to cart\"}},{\"type\":\"assert\",\"id\":\"only-mouse-in-cart\",\"purpose\":\"expectation\",\"description\":\"After the checkout, adding the mouse should leave exactly one item in the cart.\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"contains\",\"expected\":\"Cart (1)\"}}]}}"
+  }
+}

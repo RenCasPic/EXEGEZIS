@@ -1,0 +1,170 @@
+{
+  "promptVersion": "planner-v1",
+  "status": "generated",
+  "plan": {
+    "schemaVersion": "exegezis.test-plan/v1",
+    "id": "BUG-002",
+    "title": "Coupon discount does not account for item quantity",
+    "description": "With two units of the same product in the cart, applying the 10% coupon SAVE10 should discount 10% of the whole subtotal (2 x $89.90 = $179.80 -> $17.98), not 10% of a single unit. The plan adds the keyboard twice, anchors the quantity and the subtotal, applies SAVE10 and then reads the Discount amount shown in the cart summary.",
+    "target": {
+      "kind": "web",
+      "baseUrl": "http://127.0.0.1:60595/"
+    },
+    "preconditions": [
+      "buggy-shop is running at the target URL",
+      "Every execution starts from a fresh browser context, hence a new session with an empty cart",
+      "The cart summary renders Subtotal / Discount / Total as a description list (dt/dd pairs), so the first dd is the subtotal amount and the second dd is the discount amount; the subtotal anchor verifies this mapping before the expectation is read"
+    ],
+    "provenance": {
+      "source": "model",
+      "generator": "anthropic",
+      "model": "claude-opus-5",
+      "version": null,
+      "promptVersion": "planner-v1",
+      "createdAt": "2026-09-25T12:03:02.529Z"
+    },
+    "steps": [
+      {
+        "type": "navigate",
+        "url": "/"
+      },
+      {
+        "type": "assert",
+        "id": "catalog-loaded",
+        "description": "The catalog is loaded",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "visibility",
+          "target": {
+            "role": "button",
+            "name": "Add Mechanical Keyboard to cart"
+          },
+          "expected": "visible"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "role": "button",
+          "name": "Add Mechanical Keyboard to cart"
+        }
+      },
+      {
+        "type": "click",
+        "target": {
+          "role": "button",
+          "name": "Add Mechanical Keyboard to cart"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "two-keyboards-in-cart",
+        "description": "The cart contains two units of the Mechanical Keyboard",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "visibility",
+          "target": {
+            "text": "Mechanical Keyboard × 2"
+          },
+          "expected": "visible"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "badge-two-items",
+        "description": "The header badge reports two items in the cart",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "role": "link",
+            "name": "Cart"
+          },
+          "operator": "equals",
+          "expected": "Cart (2)"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "subtotal-two-units",
+        "description": "The subtotal amount shown in the cart summary is $179.80 (two keyboards)",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "css": "dl dd:nth-of-type(1)"
+          },
+          "operator": "contains",
+          "expected": "179.80"
+        }
+      },
+      {
+        "type": "fill",
+        "target": {
+          "label": "Coupon code"
+        },
+        "value": "SAVE10"
+      },
+      {
+        "type": "click",
+        "target": {
+          "role": "button",
+          "name": "Apply coupon"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "subtotal-unchanged-after-coupon",
+        "description": "After applying the coupon the subtotal is still $179.80, so the discount is computed on two keyboards",
+        "purpose": "anchor",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "css": "dl dd:nth-of-type(1)"
+          },
+          "operator": "contains",
+          "expected": "179.80"
+        }
+      },
+      {
+        "type": "assert",
+        "id": "discount-covers-both-units",
+        "description": "The discount amount is 10% of the full subtotal, i.e. $17.98",
+        "purpose": "expectation",
+        "assertion": {
+          "kind": "text",
+          "target": {
+            "css": "dl dd:nth-of-type(2)"
+          },
+          "operator": "contains",
+          "expected": "17.98"
+        }
+      }
+    ],
+    "metadata": {
+      "generatedFrom": "symptom",
+      "symptom": "I added the same keyboard to my cart twice and applied the coupon SAVE10 (10% off), but the discount only took 10% off one keyboard instead of both."
+    }
+  },
+  "provenance": {
+    "source": "model",
+    "generator": "anthropic",
+    "model": "claude-opus-5",
+    "version": null,
+    "promptVersion": "planner-v1",
+    "createdAt": "2026-09-25T12:03:02.529Z"
+  },
+  "meta": {
+    "provider": "anthropic",
+    "model": "claude-opus-5",
+    "promptVersion": "planner-v1",
+    "latencyMs": 34964,
+    "usage": {
+      "inputTokens": 5195,
+      "outputTokens": 2904
+    },
+    "redactions": 0,
+    "examples": 2,
+    "raw": "{\"plan\":{\"title\":\"Coupon discount does not account for item quantity\",\"description\":\"With two units of the same product in the cart, applying the 10% coupon SAVE10 should discount 10% of the whole subtotal (2 x $89.90 = $179.80 -> $17.98), not 10% of a single unit. The plan adds the keyboard twice, anchors the quantity and the subtotal, applies SAVE10 and then reads the Discount amount shown in the cart summary.\",\"preconditions\":[\"buggy-shop is running at the target URL\",\"Every execution starts from a fresh browser context, hence a new session with an empty cart\",\"The cart summary renders Subtotal / Discount / Total as a description list (dt/dd pairs), so the first dd is the subtotal amount and the second dd is the discount amount; the subtotal anchor verifies this mapping before the expectation is read\"],\"steps\":[{\"type\":\"navigate\",\"value\":\"/\"},{\"type\":\"assert\",\"id\":\"catalog-loaded\",\"purpose\":\"anchor\",\"description\":\"The catalog is loaded\",\"assertion\":{\"kind\":\"visibility\",\"target\":{\"by\":\"role\",\"value\":\"button\",\"name\":\"Add Mechanical Keyboard to cart\"},\"expected\":\"visible\"}},{\"type\":\"click\",\"target\":{\"by\":\"role\",\"value\":\"button\",\"name\":\"Add Mechanical Keyboard to cart\"}},{\"type\":\"click\",\"target\":{\"by\":\"role\",\"value\":\"button\",\"name\":\"Add Mechanical Keyboard to cart\"}},{\"type\":\"assert\",\"id\":\"two-keyboards-in-cart\",\"purpose\":\"anchor\",\"description\":\"The cart contains two units of the Mechanical Keyboard\",\"assertion\":{\"kind\":\"visibility\",\"target\":{\"by\":\"text\",\"value\":\"Mechanical Keyboard × 2\"},\"expected\":\"visible\"}},{\"type\":\"assert\",\"id\":\"badge-two-items\",\"purpose\":\"anchor\",\"description\":\"The header badge reports two items in the cart\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"role\",\"value\":\"link\",\"name\":\"Cart\"},\"operator\":\"equals\",\"expected\":\"Cart (2)\"}},{\"type\":\"assert\",\"id\":\"subtotal-two-units\",\"purpose\":\"anchor\",\"description\":\"The subtotal amount shown in the cart summary is $179.80 (two keyboards)\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"css\",\"value\":\"dl dd:nth-of-type(1)\"},\"operator\":\"contains\",\"expected\":\"179.80\"}},{\"type\":\"fill\",\"target\":{\"by\":\"label\",\"value\":\"Coupon code\"},\"value\":\"SAVE10\"},{\"type\":\"click\",\"target\":{\"by\":\"role\",\"value\":\"button\",\"name\":\"Apply coupon\"}},{\"type\":\"assert\",\"id\":\"subtotal-unchanged-after-coupon\",\"purpose\":\"anchor\",\"description\":\"After applying the coupon the subtotal is still $179.80, so the discount is computed on two keyboards\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"css\",\"value\":\"dl dd:nth-of-type(1)\"},\"operator\":\"contains\",\"expected\":\"179.80\"}},{\"type\":\"assert\",\"id\":\"discount-covers-both-units\",\"purpose\":\"expectation\",\"description\":\"The discount amount is 10% of the full subtotal, i.e. $17.98\",\"assertion\":{\"kind\":\"text\",\"target\":{\"by\":\"css\",\"value\":\"dl dd:nth-of-type(2)\"},\"operator\":\"contains\",\"expected\":\"17.98\"}}]}}"
+  }
+}
