@@ -62,6 +62,8 @@ export class BrowserSession implements AdapterSession {
   private readonly domSnapshots: DomSnapshotEvidence[] = [];
   /** Async capture work (e.g. response bodies) that must finish before collecting. */
   private readonly pending = new Set<Promise<void>>();
+  /** Requests aborted by --strict-readonly (see blockPageWrites). */
+  private readonly blockedRequests = new WeakSet<Request>();
   private readonly collectorFailures = new Map<string, string>();
   private readonly blockedWrites: { method: string; url: string }[] = [];
   private tracing: boolean;
@@ -89,12 +91,12 @@ export class BrowserSession implements AdapterSession {
         return;
       }
       this.blockedWrites.push({ method, url: this.url(route.request().url()) });
+      // Marked explicitly (the evidence must say why the request failed), from
+      // whichever side runs second: Playwright may call this handler before or
+      // after the "request" event that creates the evidence.
+      this.blockedRequests.add(route.request());
+      this.markBlocked(route.request());
       await route.abort("blockedbyclient");
-      // Marked here, explicitly: the evidence must say why the request failed.
-      const evidence = this.exchangeByRequest.get(route.request());
-      if (evidence !== undefined && evidence.failure === undefined) {
-        evidence.failure = { timestamp: this.recorder.timestamp(), errorText: "net::ERR_BLOCKED_BY_CLIENT (EXEGEZIS --strict-readonly)" };
-      }
     });
   }
 
@@ -603,6 +605,7 @@ export class BrowserSession implements AdapterSession {
     };
     this.exchanges.push(evidence);
     this.exchangeByRequest.set(request, evidence);
+    if (this.blockedRequests.has(request)) this.markBlocked(request);
     this.recorder.emit("NETWORK_REQUEST", "network", {
       evidenceId: evidence.id,
       method: evidence.request.method,
@@ -654,11 +657,19 @@ export class BrowserSession implements AdapterSession {
     }
   }
 
+  private markBlocked(request: Request): void {
+    const evidence = this.exchangeByRequest.get(request);
+    if (evidence !== undefined && evidence.failure === undefined) {
+      evidence.failure = { timestamp: this.recorder.timestamp(), errorText: "net::ERR_BLOCKED_BY_CLIENT (EXEGEZIS --strict-readonly)" };
+    }
+  }
+
   private onRequestFailed(request: Request): void {
     const evidence = this.exchangeByRequest.get(request);
     if (evidence === undefined) return;
-    const errorText = request.failure()?.errorText ?? "unknown";
-    evidence.failure = { timestamp: this.recorder.timestamp(), errorText };
+    // A write blocked by --strict-readonly keeps the explicit reason set by markBlocked.
+    if (evidence.failure === undefined) evidence.failure = { timestamp: this.recorder.timestamp(), errorText: request.failure()?.errorText ?? "unknown" };
+    const errorText = evidence.failure.errorText;
     this.recorder.emit("NETWORK_FAILED", "network", { evidenceId: evidence.id, url: evidence.request.url, errorText });
   }
 
