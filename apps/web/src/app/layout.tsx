@@ -90,7 +90,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               environments={environments}
               scope={scope}
               palette={palette}
-              running={jobs.filter((j) => j.status === "running" || j.status === "queued").map((j) => ({ id: j.job.id, symptom: j.job.kind === "ai-verify" ? j.job.symptom : `Inspect ${j.job.url}`, startedAt: j.job.startedAt }))}
+              running={jobs.filter((j) => j.status === "running" || j.status === "queued").map((j) => ({ id: j.job.id, symptom: j.job.kind === "ai-verify" ? j.job.symptom : j.job.kind === "access" ? `Acceso: ${j.job.url}` : `Inspect ${j.job.url}`, startedAt: j.job.startedAt }))}
               counts={counts}
               user={user}
             />

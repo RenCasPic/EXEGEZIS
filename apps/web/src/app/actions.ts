@@ -99,6 +99,7 @@ export async function startInspectionAction(_prev: InspectState, form: FormData)
     strictReadonly: text("strictReadonly") === "on",
     ignoreRobots: text("ignoreRobots") === "on",
     browserChannel: text("browserChannel") === "" ? "auto" : text("browserChannel"),
+    noSession: text("noSession") === "on",
   });
   if (!result.ok) return { error: result.error };
   if (!isLoopbackHost(new URL(result.input.url).hostname) && text("permission") !== "on") {

@@ -48,6 +48,7 @@ export const InspectForm = z.strictObject({
   strictReadonly: z.boolean(),
   ignoreRobots: z.boolean(),
   browserChannel: z.enum(BROWSER_CHANNEL_IDS),
+  noSession: z.boolean(),
 });
 
 export type InspectFormResult = { ok: true; input: StartInspectionInput } | { ok: false; error: string };
@@ -74,6 +75,7 @@ export function parseInspectForm(raw: Record<keyof z.input<typeof InspectForm>, 
       strictReadonly: v.strictReadonly,
       ignoreRobots: v.ignoreRobots,
       browserChannel: v.browserChannel,
+      noSession: v.noSession,
     },
   };
 }

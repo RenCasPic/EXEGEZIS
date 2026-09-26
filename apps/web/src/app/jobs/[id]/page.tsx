@@ -2,7 +2,9 @@ import { ArrowRight, TerminalSquare } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/components/ui/auto-refresh";
+import { AccessDoneButton, BlockNotice } from "@/components/access/block-notice";
 import { EngineProblem } from "@/components/ui/copy-command";
+import { accessEntry } from "@/lib/access";
 import { BROWSER_REMEDY } from "@/lib/browser-check";
 import { ButtonLink, CodeBlock, Meta, Mono, PageHeader, Panel } from "@/components/ui/primitives";
 import { StatusPill } from "@/components/ui/status";
@@ -10,7 +12,7 @@ import { inspectionJobState } from "@/lib/inspection-state";
 import { listInspections } from "@/lib/evidence/inspections";
 import { getSummaries } from "@/lib/evidence/investigations";
 import { absoluteTime, duration } from "@/lib/format";
-import { EXIT_MEANING, jobLog, jobProgress, readJob, terminalCommand, type InspectJob, type InspectionProgressFile, type JobStatus } from "@/lib/jobs";
+import { EXIT_MEANING, jobLog, jobProgress, readJob, terminalCommand, type AccessJob, type InspectJob, type InspectionProgressFile, type JobStatus } from "@/lib/jobs";
 
 export const metadata: Metadata = { title: "Run" };
 
@@ -42,11 +44,59 @@ function Progress({ progress }: { progress: InspectionProgressFile | null }) {
   );
 }
 
+function AccessJobView({ job, status, log }: { job: AccessJob; status: JobStatus; log: string | null }) {
+  const running = status === "running";
+  const saved = status === "finished" && job.exitCode === 0;
+  const notSaved = status === "finished" && job.exitCode !== 0;
+  return (
+    <div lang="es" className="flex flex-col gap-6">
+      <AutoRefresh active={running || (saved && job.relaunch !== null && job.relaunchedJobId === null)} />
+      <PageHeader
+        eyebrow={<StatusPill status={running ? "VENTANA ABIERTA" : saved ? "ACCESO GUARDADO" : status === "lost" ? "LOST" : "NO GUARDADO"} tone={running ? "running" : saved ? "ok" : "bad"} />}
+        title={<span className="break-all font-mono text-[20px]">{job.url}</span>}
+        description={
+          running
+            ? "Se ha abierto una ventana del navegador en este equipo."
+            : saved
+              ? "El acceso se guardó cifrado en este equipo. Las próximas inspecciones de este sitio lo usarán solas."
+              : notSaved
+                ? "No se guardó nada: el bloqueo seguía presente al terminar, o la ventana se cerró antes de tiempo. El detalle está en la salida."
+                : undefined
+        }
+        actions={
+          saved && job.relaunchedJobId !== null ? (
+            <ButtonLink href={`/jobs/${job.relaunchedJobId}`} variant="primary">
+              Ver la nueva inspección <ArrowRight />
+            </ButtonLink>
+          ) : undefined
+        }
+      />
+      {running && (
+        <Panel title="Qué hacer ahora">
+          <ol className="list-decimal space-y-1.5 pl-5 text-[13px] text-fg">
+            <li>Ve a la ventana del navegador que se acaba de abrir (puede estar detrás de esta).</li>
+            <li>{job.block === "CONSENT_WALL" ? "Elige en el banner de cookies (la opción más privada sirve)." : job.block === "BOT_CHALLENGE" ? "Pasa la verificación." : "Inicia sesión como siempre."} EXEGEZIS no teclea ni lee lo que escribes.</li>
+            <li>Cuando veas la página que querías, vuelve aquí y pulsa «Listo» (o cierra la ventana).</li>
+          </ol>
+          <div className="mt-4">
+            <AccessDoneButton jobId={job.id} />
+          </div>
+        </Panel>
+      )}
+      <Panel title="Salida del CLI" icon={<TerminalSquare />} subtitle="output.log (sin secretos)" bodyClassName="p-0">
+        {log === null || log.trim() === "" ? <div className="p-4 text-[13px] text-muted">Todavía no hay salida.</div> : <CodeBlock code={log} lineNumbers={false} className="rounded-none border-0" maxHeight="24rem" />}
+      </Panel>
+    </div>
+  );
+}
+
 async function InspectJobView({ job, status, log }: { job: InspectJob; status: JobStatus; log: string | null }) {
   const [progress, inspections] = await Promise.all([jobProgress(job.id), listInspections()]);
   const inspection = inspections.find((i) => i.jobId === job.id) ?? null;
   const report = inspection?.report.status === "ok" ? inspection.report.value : null;
   const state = inspectionJobState(status, job.exitCode, report?.status ?? null);
+  const entryBlock = report?.pages.find((p) => p.depth === 0 && p.run === 1)?.block ?? null;
+  const access = report === null ? null : await accessEntry(report.target.origin);
   const active = status === "running" || status === "queued";
   const elapsed = (job.finishedAt === null ? Date.now() : Date.parse(job.finishedAt)) - Date.parse(job.startedAt);
 
@@ -77,6 +127,9 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
           ) : undefined
         }
       />
+      {entryBlock !== null && report !== null && (
+        <BlockNotice block={entryBlock} origin={report.target.origin} inspectionId={inspection?.id ?? null} relaunchJobId={job.id} hasWafToken={access?.kinds.includes("wafToken") === true} />
+      )}
       {state.label === "ENGINE_ERROR" && (
         <EngineProblem
           message={report?.engineError?.message ?? "Ningún navegador pudo arrancar (código de salida 7)."}
@@ -132,6 +185,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const { job, status } = found;
   const log = await jobLog(id);
   if (job.kind === "inspect") return <InspectJobView job={job} status={status} log={log} />;
+  if (job.kind === "access") return <AccessJobView job={job} status={status} log={log} />;
 
   const summaries = await getSummaries();
   const investigation = summaries.find((s) => s.ref.jobId === id) ?? null;

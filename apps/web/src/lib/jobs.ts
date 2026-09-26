@@ -51,16 +51,51 @@ export const InspectJob = z.strictObject({
   ignoreRobots: z.boolean(),
   /** Jobs from before the option existed ran with the default. */
   browserChannel: z.enum(["auto", "chromium", "chrome", "msedge"]).default("auto"),
+  /** Inspect as an anonymous visitor, ignoring the saved access of the origin. */
+  noSession: z.boolean().default(false),
+});
+
+/**
+ * "Open a window to get access" (docs/09-access.md): `exegezis session login`
+ * with a visible browser on this computer. The person presses "Listo" in the
+ * UI (it creates the done file) or closes the window. Nothing secret is in
+ * this record or in the job's log.
+ */
+export const AccessJob = z.strictObject({
+  ...JobBase,
+  kind: z.literal("access"),
+  url: z.string(),
+  browserChannel: z.enum(["auto", "chromium", "chrome", "msedge"]),
+  /** The block this window is meant to solve (for the UI's wording). */
+  block: z.string().nullable(),
+  /** The inspection to start again with the same options once the access is saved. */
+  relaunch: z.lazy(() => InspectRelaunch).nullable(),
+  /** Set when relaunched: the new inspection job. */
+  relaunchedJobId: z.string().nullable().default(null),
+});
+
+const InspectRelaunch = z.strictObject({
+  url: z.string(),
+  runs: z.int(),
+  maxPages: z.int().nullable(),
+  maxDepth: z.int().nullable(),
+  checks: z.array(z.string()).nullable(),
+  storageState: z.string().nullable(),
+  strictReadonly: z.boolean(),
+  ignoreRobots: z.boolean(),
+  browserChannel: z.enum(["auto", "chromium", "chrome", "msedge"]),
+  noSession: z.boolean(),
 });
 
 /** Jobs written before inspections existed have no `kind`: they are ai-verify jobs. */
 export const JobRecord = z.preprocess(
   (value) => (value !== null && typeof value === "object" && !("kind" in value) ? { ...value, kind: "ai-verify" } : value),
-  z.discriminatedUnion("kind", [AiVerifyJob, InspectJob]),
+  z.discriminatedUnion("kind", [AiVerifyJob, InspectJob, AccessJob]),
 );
 export type JobRecord = z.infer<typeof JobRecord>;
 export type AiVerifyJob = z.infer<typeof AiVerifyJob>;
 export type InspectJob = z.infer<typeof InspectJob>;
+export type AccessJob = z.infer<typeof AccessJob>;
 
 /** `lost`: the process (or the server that queued it) is gone without reporting back. */
 export type JobStatus = JobRecord["status"] | "lost";
@@ -139,6 +174,9 @@ export function cliEntry(): string {
 /** The CLI arguments of a job: exactly what runs, also shown to reproduce it from a terminal. */
 export function commandFor(job: JobRecord): string[] {
   const output = jobOutputDir(job.id);
+  if (job.kind === "access") {
+    return ["session", "login", "--url", job.url, "--done-file", accessDoneFile(job.id), ...(job.browserChannel === "auto" ? [] : ["--browser-channel", job.browserChannel])];
+  }
   if (job.kind === "ai-verify") {
     return ["ai-verify", "--symptom", job.symptom, "--base-url", job.baseUrl, "--planner", "anthropic", "--runs", String(job.runs), "--output", output];
   }
@@ -155,6 +193,7 @@ export function commandFor(job: JobRecord): string[] {
     ...(job.strictReadonly ? ["--strict-readonly"] : []),
     ...(job.ignoreRobots ? ["--ignore-robots"] : []),
     ...(job.browserChannel === "auto" ? [] : ["--browser-channel", job.browserChannel]),
+    ...(job.noSession ? ["--no-session"] : []),
     "--output",
     output,
   ];
@@ -233,6 +272,7 @@ export interface StartInspectionInput {
   strictReadonly: boolean;
   ignoreRobots: boolean;
   browserChannel: "auto" | "chromium" | "chrome" | "msedge";
+  noSession: boolean;
 }
 
 /** One inspection at a time: the others wait in a queue owned by this server process. */
@@ -262,6 +302,45 @@ export async function startInspection(input: StartInspectionInput): Promise<JobR
   inspectionQueue.push(id);
   await runNextInspection();
   return (await readJob(id))?.job ?? job;
+}
+
+/** The file the "Listo" button creates for an access job. */
+export function accessDoneFile(id: string): string {
+  return join(jobDir(id), "done");
+}
+
+/** The person finished in the window: the CLI saves the access (if the block is gone) and exits. */
+export async function markAccessDone(id: string): Promise<boolean> {
+  const found = await readJob(id);
+  if (found === null || found.job.kind !== "access" || found.status !== "running") return false;
+  await writeFile(accessDoneFile(id), `${new Date().toISOString()}\n`, "utf8");
+  return true;
+}
+
+export interface StartAccessInput {
+  url: string;
+  browserChannel: "auto" | "chromium" | "chrome" | "msedge";
+  block: string | null;
+  relaunch: StartInspectionInput | null;
+}
+
+/** Opens the visible window (one at a time is enough: it is a person's task). */
+export async function startAccessLogin(input: StartAccessInput): Promise<JobRecord> {
+  if (!existsSync(cliEntry())) throw new Error("The CLI is not built: run `pnpm build` first.");
+  const id = ulid();
+  await mkdir(jobDir(id), { recursive: true });
+  const job: AccessJob = { ...newJobBase(id), status: "running", kind: "access", ...input, relaunchedJobId: null };
+  spawnJob(job, () => {
+    // Saved (exit 0) and an inspection to repeat: start it with the same options.
+    if (job.exitCode === 0 && job.relaunch !== null) {
+      void startInspection(job.relaunch).then(async (next) => {
+        job.relaunchedJobId = next.id;
+        await writeJob(job);
+      });
+    }
+  });
+  await writeJob(job);
+  return { ...job };
 }
 
 /** Progress written by `exegezis inspect` (progress.json), for a running inspection job. */

@@ -65,6 +65,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@exegezis/access':
+        specifier: workspace:*
+        version: link:../../packages/access
       '@exegezis/core':
         specifier: workspace:*
         version: link:../../packages/core
