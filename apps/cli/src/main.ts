@@ -15,6 +15,7 @@ import { aiVerifyCommand, generatePlanCommand } from "./ai-commands.js";
 import { inspectCommand } from "./inspect.js";
 import { doctorCommand, printEngineError } from "./doctor.js";
 import { rootCauseCommand } from "./root-cause.js";
+import { sessionCommand } from "./session.js";
 import { useBrowserChannel } from "./shared.js";
 
 const require = createRequire(import.meta.url);
@@ -56,6 +57,8 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         return await inspectCommand({ ...command, exegezisVersion }, io);
       case "doctor":
         return await doctorCommand(command, io, VERSION);
+      case "session":
+        return await sessionCommand(command, io, VERSION);
     }
   } catch (error) {
     if (error instanceof UsageError) {

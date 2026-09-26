@@ -67,8 +67,8 @@ describe("inspect arguments", () => {
       kind: "inspect",
       url: "http://localhost:4300/",
       runs: 3,
-      strictReadonly: false,
       ignoreRobots: false,
+      noSession: false,
     });
     expect(
       parseCliArgs([
@@ -99,5 +99,24 @@ describe("inspect arguments", () => {
   it("has no option to ignore TLS errors", () => {
     expect(() => parseCliArgs(["inspect", "--url", "https://x.test", "--ignore-https-errors"])).toThrow();
     expect(() => parseCliArgs(["inspect", "--url", "https://x.test", "--insecure-tls"])).toThrow();
+  });
+});
+
+describe("session and access options", () => {
+  it("parses session actions; secrets are never options", () => {
+    expect(parseCliArgs(["session", "login", "--url", "https://site.test"])).toMatchObject({ kind: "session", action: "login", url: "https://site.test/", browserChannel: "auto" });
+    expect(parseCliArgs(["session", "list"])).toMatchObject({ kind: "session", action: "list" });
+    expect(parseCliArgs(["session", "http-auth", "--url", "https://site.test", "--stdin"])).toMatchObject({ action: "http-auth", stdin: true });
+    expect(parseCliArgs(["session", "set", "--url", "https://site.test", "--robots-owner", "yes", "--unsafe-pattern", "archive"])).toMatchObject({ robotsOwner: true, unsafePatterns: ["archive"] });
+    expect(() => parseCliArgs(["session"])).toThrow(/needs one of/);
+    expect(() => parseCliArgs(["session", "login"])).toThrow(/--url/);
+    expect(() => parseCliArgs(["session", "http-auth", "--url", "https://site.test", "--password", "x"])).toThrow();
+  });
+
+  it("inspect: --no-session, and strict read-only is left to the default unless given", () => {
+    expect(parseCliArgs(["inspect", "--url", "https://site.test"])).not.toHaveProperty("strictReadonly");
+    expect(parseCliArgs(["inspect", "--url", "https://site.test", "--strict-readonly"])).toMatchObject({ strictReadonly: true });
+    expect(parseCliArgs(["inspect", "--url", "https://site.test", "--allow-page-writes"])).toMatchObject({ strictReadonly: false });
+    expect(parseCliArgs(["inspect", "--url", "https://site.test", "--no-session"])).toMatchObject({ noSession: true });
   });
 });

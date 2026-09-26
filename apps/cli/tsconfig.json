@@ -23,6 +23,9 @@
     },
     {
       "path": "../../packages/inspect"
+    },
+    {
+      "path": "../../packages/access"
     }
   ]
 }

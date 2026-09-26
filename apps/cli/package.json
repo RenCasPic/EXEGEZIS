@@ -24,6 +24,8 @@
     "@exegezis/core": "workspace:*",
     "@exegezis/compiler-playwright": "workspace:*",
     "@exegezis/planner": "workspace:*",
-    "@exegezis/inspect": "workspace:*"
+    "@exegezis/inspect": "workspace:*",
+    "@exegezis/access": "workspace:*",
+    "zod": "^4.6.5"
   }
 }

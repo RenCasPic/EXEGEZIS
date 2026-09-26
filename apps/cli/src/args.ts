@@ -37,7 +37,30 @@ export type Command =
   | ({ kind: "ai-verify"; symptom: string; baseUrl: string; runs: number; examples?: string } & PlannerArgs & Common)
   | ({ kind: "root-cause"; suite: string; runs?: number; caseIds?: string[] } & Common)
   | ({ kind: "inspect" } & InspectArgs & Common)
-  | { kind: "doctor"; install: boolean; json: boolean };
+  | { kind: "doctor"; install: boolean; json: boolean }
+  | SessionCommand;
+
+export const SESSION_ACTIONS = ["login", "list", "delete", "http-auth", "waf-token", "set"] as const;
+export type SessionAction = (typeof SESSION_ACTIONS)[number];
+
+export interface SessionCommand {
+  kind: "session";
+  action: SessionAction;
+  /** Required for every action except list. */
+  url?: string;
+  browserChannel: BrowserChannelArg;
+  /** login: the UI's "Done" button creates this file (the terminal uses Enter). */
+  doneFile?: string;
+  /** http-auth: read {"username","password"} as JSON from stdin instead of prompting (never from argv). */
+  stdin: boolean;
+  /** waf-token: create a new token even if one exists. */
+  rotate: boolean;
+  /** set: "This site is mine: also inspect what robots.txt excludes." */
+  robotsOwner?: boolean;
+  /** set: extra link patterns never visited with a session. */
+  unsafePatterns?: string[];
+  json: boolean;
+}
 
 export interface InspectArgs {
   url: string;
@@ -49,8 +72,11 @@ export interface InspectArgs {
   delayMs?: number;
   checks?: string[];
   storageState?: string;
-  strictReadonly: boolean;
+  /** undefined: the default (strict with a saved session, off without). */
+  strictReadonly?: boolean;
   ignoreRobots: boolean;
+  /** Inspect as an anonymous visitor, without the saved access of the origin. */
+  noSession: boolean;
 }
 
 export type Planner = "anthropic" | "mock";
@@ -99,6 +125,7 @@ Usage:
   exegezis inspect       --url <url> [--runs 3] [--max-pages 20] [--max-depth 2] [--checks a,b]
                          [--storage-state <file>] [--strict-readonly] [--ignore-robots] [options]
   exegezis doctor        [--install] [--json]
+  exegezis session login|list|delete|http-auth|waf-token|set --url <site> [options]
   exegezis --help | --version
 
 Commands:
@@ -127,6 +154,25 @@ Commands:
               run (fresh contexts); others are INTERMITTENT. Each VERIFIED finding
               gets evidence and a standalone Playwright spec. Anti-bot, CAPTCHA
               and login walls give BLOCKED; nothing tries to get past them.
+  session     Saved access for a site, encrypted on this computer (Windows:
+              %LOCALAPPDATA%\\EXEGEZIS\\access, protected with DPAPI; only this
+              Windows user on this computer can open it). Never in runs/ or logs.
+                login      open a visible window: you sign in, pass the
+                           verification or choose in the cookie banner, then
+                           press Enter (or close the window). Saved only if the
+                           block is gone. EXEGEZIS never types or keeps passwords.
+                list       sites with saved access, their state and expiry
+                delete     forget a site's saved access
+                http-auth  save a username and password for HTTP (Basic/Digest)
+                           authentication; the password is asked without echo
+                waf-token  create the X-Exegezis-Token for your own site's WAF
+                           rule and show the Cloudflare steps (--rotate: new one)
+                set        --robots-owner yes|no ("this site is mine: also
+                           inspect what robots.txt excludes"),
+                           --unsafe-pattern <text> (repeatable)
+              inspect uses a site's saved access automatically (--no-session
+              to inspect as an anonymous visitor); with a session it is
+              strict read-only unless --allow-page-writes.
   doctor      Check this machine: Node.js, pnpm and the browsers EXEGEZIS can
               drive (Playwright's Chromium, Google Chrome, Microsoft Edge), with
               their versions, and say what is missing and how to install it.
@@ -173,7 +219,7 @@ Exit codes:
      (the same command works in Windows CMD, PowerShell, macOS and Linux).
 `;
 
-const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify", "root-cause", "inspect", "doctor"] as const;
+const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify", "root-cause", "inspect", "doctor", "session"] as const;
 const PLANNERS: readonly Planner[] = ["anthropic", "mock"];
 
 export function parseCliArgs(argv: readonly string[]): Command {
@@ -207,6 +253,13 @@ export function parseCliArgs(argv: readonly string[]): Command {
         "ignore-robots": { type: "boolean", default: false },
         "browser-channel": { type: "string" },
         install: { type: "boolean", default: false },
+        "no-session": { type: "boolean", default: false },
+        "allow-page-writes": { type: "boolean", default: false },
+        "done-file": { type: "string" },
+        stdin: { type: "boolean", default: false },
+        rotate: { type: "boolean", default: false },
+        "robots-owner": { type: "string" },
+        "unsafe-pattern": { type: "string", multiple: true },
         json: { type: "boolean", default: false },
         output: { type: "string", default: "./runs" },
         actions: { type: "string" },
@@ -224,10 +277,15 @@ export function parseCliArgs(argv: readonly string[]): Command {
   if (values.help) return { kind: "help" };
   if (values.version) return { kind: "version" };
 
-  const [command, ...extra] = positionals;
+  const [command, ...rest] = positionals;
   if (command === undefined) return { kind: "help" };
   if (!(COMMANDS as readonly string[]).includes(command)) {
     throw new UsageError(`Unknown command "${command}". Run "exegezis --help".`);
+  }
+  // `session` takes its action as a positional: `exegezis session login --url …`.
+  const [action, ...extra] = command === "session" ? rest : [undefined, ...rest];
+  if (command === "session" && (action === undefined || !(SESSION_ACTIONS as readonly string[]).includes(action))) {
+    throw new UsageError(`"session" needs one of: ${SESSION_ACTIONS.join(", ")}. Example: exegezis session login --url https://your-site/`);
   }
   if (extra.length > 0) throw new UsageError(`Unexpected argument "${extra[0]}".`);
   if (values.output === "") throw new UsageError("--output must not be empty.");
@@ -243,7 +301,8 @@ export function parseCliArgs(argv: readonly string[]): Command {
     "generate-plan": ["symptom", "base-url", "planner", "model", "mock-response", "examples", "browser-channel"],
     "ai-verify": ["symptom", "base-url", "runs", "planner", "model", "mock-response", "examples", "browser-channel"],
     "root-cause": ["suite", "runs", "case", "browser-channel"],
-    inspect: ["url", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay", "checks", "storage-state", "strict-readonly", "ignore-robots", "browser-channel"],
+    inspect: ["url", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay", "checks", "storage-state", "strict-readonly", "ignore-robots", "browser-channel", "no-session", "allow-page-writes"],
+    session: ["url", "browser-channel", "done-file", "stdin", "rotate", "robots-owner", "unsafe-pattern", "json"],
     doctor: ["install", "json"],
   };
   for (const option of [
@@ -272,6 +331,13 @@ export function parseCliArgs(argv: readonly string[]): Command {
     "browser-channel",
     "install",
     "json",
+    "no-session",
+    "allow-page-writes",
+    "done-file",
+    "stdin",
+    "rotate",
+    "robots-owner",
+    "unsafe-pattern",
   ] as const) {
     const value = values[option];
     if (value === undefined || value === false) continue;
@@ -304,6 +370,23 @@ export function parseCliArgs(argv: readonly string[]): Command {
       return { kind: "compile", planFile: requirePlan(values.plan), output: values.output };
     case "doctor":
       return { kind: "doctor", install: values.install, json: values.json };
+    case "session": {
+      const act = action as SessionAction;
+      if (act !== "list" && (values.url === undefined || values.url === "")) throw new UsageError(`Missing required option --url <site> for "session ${act}".`);
+      if (values["robots-owner"] !== undefined && !["yes", "no"].includes(values["robots-owner"])) throw new UsageError('--robots-owner must be "yes" or "no".');
+      return {
+        kind: "session",
+        action: act,
+        ...(values.url === undefined ? {} : { url: httpUrl("--url", values.url) }),
+        browserChannel: channel as BrowserChannelArg,
+        ...(values["done-file"] === undefined ? {} : { doneFile: values["done-file"] }),
+        stdin: values.stdin,
+        rotate: values.rotate,
+        ...(values["robots-owner"] === undefined ? {} : { robotsOwner: values["robots-owner"] === "yes" }),
+        ...(values["unsafe-pattern"] === undefined ? {} : { unsafePatterns: values["unsafe-pattern"] }),
+        json: values.json,
+      };
+    }
     case "run":
       return { kind: "run", planFile: requirePlan(values.plan), ...baseUrl, ...common };
     case "reproduce":
@@ -366,8 +449,9 @@ export function parseCliArgs(argv: readonly string[]): Command {
         ...optional("delayMs", int("delay", values.delay, 0, 60_000)),
         ...optional("checks", values.checks?.split(",").map((c) => c.trim()).filter((c) => c !== "")),
         ...optional("storageState", values["storage-state"]),
-        strictReadonly: values["strict-readonly"],
+        ...(values["strict-readonly"] ? { strictReadonly: true } : values["allow-page-writes"] ? { strictReadonly: false } : {}),
         ignoreRobots: values["ignore-robots"],
+        noSession: values["no-session"],
         ...common,
       };
     }
