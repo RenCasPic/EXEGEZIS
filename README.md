@@ -19,13 +19,42 @@ decides whether the evidence proves the claim.*
 
 ## Quick start
 
-Requirements: Node.js ≥ 22.18, pnpm 10.
+Requirements: Node.js ≥ 22.18, pnpm 10, and a Chromium-based browser:
+Playwright's Chromium (reference), or Google Chrome, or Microsoft Edge (comes
+with Windows). EXEGEZIS never downloads a browser on its own.
+
+Windows (CMD):
+
+```bat
+pnpm install
+pnpm build
+pnpm exegezis doctor
+```
+
+macOS / Linux:
 
 ```bash
 pnpm install
-pnpm --filter @exegezis/adapter-browser exec playwright install chromium
-pnpm test
+pnpm build
+pnpm exegezis doctor
+```
 
+`exegezis doctor` checks Node.js, pnpm and each browser with its version, says
+which one EXEGEZIS will use and what to install if something is missing. To
+download Playwright's Chromium (~150 MB) — only when you ask for it — run
+`pnpm exegezis doctor --install` (the same command in CMD, PowerShell, macOS
+and Linux).
+
+Every browser command takes `--browser-channel auto|chromium|chrome|msedge`.
+`auto` (default) uses Playwright's Chromium if it is installed, otherwise
+Chrome, otherwise Edge; the browser actually used (channel and version) is
+recorded in every run and shown in the UI. If no browser can start, the command
+stops at once with **ENGINE_ERROR** (exit code 7) and says how to fix it: a
+browser that cannot start on this computer is never reported as a problem of
+the site (UNREACHABLE) or of the application (INCONCLUSIVE, NOT VERIFIED).
+
+```bash
+pnpm test
 pnpm --filter buggy-shop dev          # http://localhost:3000
 pnpm exegezis observe --url http://localhost:3000 --output ./runs
 ```
@@ -80,7 +109,7 @@ pnpm exegezis inspect --url https://example.com/ --max-pages 1
 Options: `--max-pages 20`, `--max-depth 2`, `--runs 3`, `--checks a11y,broken-links`,
 `--storage-state <file>`, `--strict-readonly` (also block the writes the page
 itself makes; those pages become DEGRADED and their findings are discarded),
-`--ignore-robots`. The inspection never submits forms, clicks non-link elements
+`--ignore-robots`, `--browser-channel`. The inspection never submits forms, clicks non-link elements
 or types; it only issues GET/HEAD requests of its own. Writes made by the page
 itself are listed in the report. External domains are listed, never visited.
 Requests carry the User-Agent `EXEGEZIS-Inspector/<version>`. A site that shows

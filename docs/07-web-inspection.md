@@ -167,3 +167,38 @@ No se pudo reproducir con fixtures locales (un blob worker o un `fetch(blob:)` e
 **buggy-shop, `--strict-readonly`.** Se bloquean los 3 `POST /api/session`, y la app no arranca («[shop] failed to start»). Las 3 visitas quedan DEGRADED y sus 6 observaciones (errores de consola y la petición bloqueada) se descartan por política. No hay hallazgos.
 
 **Las comprobaciones genéricas no detectan los bugs de lógica de buggy-shop** (BUG-001 contador del carrito, BUG-002 cupón por cantidad, BUG-003 artículos comprados que reaparecen): la página carga sin errores, sin peticiones fallidas y sin violaciones axe. Esos bugs los verifican `verify`, `ai-verify` y `root-cause`: en esta misma fecha, el Benchmark A dio 9/9 y el Benchmark B (replay) 7/7, con los mismos veredictos de siempre.
+
+### 8.1 Arranque del navegador y ENGINE_ERROR (2026-09-26)
+
+**El bug.** En un equipo Windows (CMD, Node 24.18.1), una inspección de https://www.jesushealingministry.net/ terminó con `UNREACHABLE · no response for the page`. La causa real era que faltaba el Chromium headless de Playwright (`chromium_headless_shell-1243`). El sitio sí había respondido (robots.txt se descargó bien), y aun así las repeticiones 2 y 3 siguieron.
+
+**Ahora:**
+- El navegador se resuelve en este orden: Chromium de Playwright → Chrome del sistema → Edge del sistema.
+- Si ninguno arranca, el resultado es `ENGINE_ERROR` (código de salida 7) en el primer intento. No se marca ninguna página como UNREACHABLE ni se deriva nada sobre el sitio.
+- Lo mismo vale para `verify`, `ai-verify`, `reproduce`, `benchmark` y `root-cause`: se detienen con código 7 en lugar de dar un veredicto INCONCLUSIVE o NOT VERIFIED.
+- El informe de la inspección y cada ejecución registran qué navegador se usó de verdad.
+
+**Cómo se reprodujo el bug.** En este equipo se reprodujo apuntando `PLAYWRIGHT_BROWSERS_PATH` a una carpeta vacía, que da exactamente el mismo mensaje (`Executable doesn't exist at …\chromium_headless_shell-1243\…`). Todos los comandos se lanzaron desde CMD (archivos `.cmd` con `set "PLAYWRIGHT_BROWSERS_PATH=…"`).
+
+**Prueba real contra el sitio.** El comando fue `--max-pages 5 --max-depth 1 --runs 3`. El sitio es de René, inspeccionado con su permiso.
+
+| Escenario | Navegador usado | Estado | Salida | VERIFIED | Intermitentes | Escrituras de la página | Tiempo |
+|---|---|---|---|---|---|---|---|
+| Equipo normal (`auto`) | Chromium (Playwright) 153.0.8010.12 | COMPLETED | 1 | 296 graves | 5 | 29 | 6 min 4 s |
+| Sin Chromium de Playwright, `auto`, `--max-pages 1` | **Google Chrome 154.0.8037.57 (del sistema)** | COMPLETED | 1 | 199 graves (los mismos que `/` con Chromium) | 0 | — | ~1,5 min |
+| Sin Chromium de Playwright, `--browser-channel chromium` | ninguno | **ENGINE_ERROR** | **7** | — | — | — | < 1 s |
+
+**Detalle de la ejecución con el equipo normal:**
+- **Páginas:** 5 visitadas (`/`, `/about`, `/live-prayer`, `/teachings`, `/books`), todas con 200. Ninguna llega a quedarse sin tráfico de red: la analítica no para, y cada página figura como «no asentada».
+- **Presupuesto del recorrido:** 87 enlaces internos quedan fuera por el límite `--max-pages 5`; 4 enlaces externos se listan pero no se visitan. robots.txt se descargó y se respetó (33 reglas Disallow).
+- **Hallazgos VERIFIED:** todos son de accesibilidad (axe): 294 `color-contrast` y 2 `link-in-text-block`. Hay uno por elemento: 199 en `/`, 79 en `/books`, 7 en `/live-prayer`, 6 en `/teachings` y 5 en `/about`.
+- **Hallazgos INTERMITTENT (5):**
+  - 2 `color-contrast` en un carrusel de testimonios que rota;
+  - 3 `POST pagead2.googlesyndication.com/ccm/collect → ERR_NAME_NOT_RESOLVED`, un píxel publicitario de terceros cuyo DNS falla desde este equipo.
+- **Escrituras de la página (29):** todas las hizo la propia página, ninguna la inspección. 15 son `POST www.google-analytics.com/g/collect` (204) y 14 son `POST pagead2…/ccm/collect` (DNS fallido).
+
+**Limitación visible aquí.** axe informa una violación por elemento, así que un sitio con un componente de bajo contraste repetido muchas veces da cientos de hallazgos. Son correctos y todos tienen spec, pero la lista aún no los agrupa por regla.
+
+**Benchmarks tras el cambio:** A da 9/9 (3 VP, 6 VN, 0 FP) y B mock 7/7 (3 VP, 4 VN, 0 FP), con los mismos veredictos que antes. BUG-001 y HEALTHY-001 también se ejecutaron con Chrome como único navegador:
+- BUG-001 sale VERIFIED 3/3, y el spec compilado se ejecuta en Chrome mediante una configuración mínima del runner, con un 100 % de concordancia con Playwright;
+- HEALTHY-001 sale NOT_VERIFIED, como se espera.

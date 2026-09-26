@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { EngineProblem } from "../src/components/ui/copy-command";
-import { BROWSER_REMEDY, evaluate, type DoctorJson } from "../src/lib/browser-check";
+import { BROWSER_REMEDY, checkBrowser, evaluate, type DoctorJson } from "../src/lib/browser-check";
 import { inspectionJobState } from "../src/lib/inspection-state";
 import { commandFor, JobRecord } from "../src/lib/jobs";
 
@@ -29,6 +29,12 @@ describe("browser preflight before a job is created", () => {
     expect(result.message).toMatch(/El problema está en este equipo, no en el sitio/);
     expect(result.remedy).toEqual(BROWSER_REMEDY);
   });
+
+  it("asks the real CLI (exegezis doctor --json) on this machine", async () => {
+    const result = await checkBrowser("auto");
+    // The test machine has at least Playwright's Chromium (the other tests need it).
+    expect(result).toMatchObject({ ok: true });
+  }, 180_000);
 
   it("checks the explicit channel the user chose", () => {
     expect(evaluate(doctor(["chromium"]), "chrome").ok).toBe(false);
