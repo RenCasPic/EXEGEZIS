@@ -17,6 +17,10 @@ import { createServer as createHttpsServer } from "node:https";
  * never trigger them) and posts /api/track by itself on load (a page write);
  * /private/* is disallowed by robots.txt; /blocked/ is a CAPTCHA wall;
  * /healthy/ is a healthy section (0 findings expected).
+ * /groups/ (3 pages) repeats one low-contrast card (#9ca3af on white) on
+ * every page, adds a second colour pair (#c4862a on white) on /groups/b, and
+ * logs a console error whose numbers change on every load: issue grouping
+ * must give 1 group per colour pair and 1 group for the error.
  *
  *   PORT=4300 node src/server.ts
  *   HTTPS_PORT=4443 TLS_KEY_FILE=key.pem TLS_CERT_FILE=cert.pem PORT=4300 node src/server.ts
@@ -91,6 +95,19 @@ const HEALTHY = page(
 );
 const HEALTHY_ABOUT = page("Healthy · About", `<main><h1>About the healthy site</h1><a href="/healthy/">Back</a></main>`);
 
+/** The same low-contrast card on every /groups/ page, at a different position each time. */
+function groupsPage(name: string, extra: string, filler: number): string {
+  const nav = `<nav aria-label="Main"><a href="/groups/">Home</a> <a href="/groups/a">A</a> <a href="/groups/b">B</a></nav>`;
+  const spacers = Array.from({ length: filler }, () => "<p>Filler paragraph.</p>").join("");
+  return page(
+    `Groups · ${name}`,
+    `<header>${nav}</header><main><h1>Groups ${name}</h1>${spacers}
+     <div class="card"><p class="card__note" style="color:#9ca3af;background:#ffffff">Low-contrast note, the same component everywhere.</p></div>
+     ${extra}</main>
+     <script>console.error("Request " + Math.floor(Math.random() * 100000) + " failed after " + Date.now() % 1000 + " ms");</script>`,
+  );
+}
+
 function send(res: ServerResponse, status: number, type: string, body: string, headers: Record<string, string> = {}): void {
   res.writeHead(status, { "content-type": type, "cache-control": "no-store", ...headers });
   res.end(body);
@@ -117,6 +134,12 @@ function handler(secure: boolean) {
         return send(res, 200, "text/html; charset=utf-8", HEALTHY);
       case "/healthy/about":
         return send(res, 200, "text/html; charset=utf-8", HEALTHY_ABOUT);
+      case "/groups/":
+        return send(res, 200, "text/html; charset=utf-8", groupsPage("home", "", 0));
+      case "/groups/a":
+        return send(res, 200, "text/html; charset=utf-8", groupsPage("A", "", 2));
+      case "/groups/b":
+        return send(res, 200, "text/html; charset=utf-8", groupsPage("B", `<p class="badge" style="color:#c4862a;background:#ffffff">Gold badge text, another colour pair.</p>`, 1));
       case "/private/secret":
         return send(res, 200, "text/html; charset=utf-8", page("Private", "<main><h1>Private</h1></main>"));
       case "/hero.svg":

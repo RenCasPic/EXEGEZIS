@@ -154,6 +154,38 @@ describe("the healthy site", () => {
   }, 300_000);
 });
 
+describe("issue groups (the /groups/ section: one component on 3 pages, two colour pairs, a varying console error)", () => {
+  let first: InspectionReport;
+  let second: InspectionReport;
+  beforeAll(async () => {
+    first = await run(`${http}groups/`, { runs: 3 });
+    second = await run(`${http}groups/`, { runs: 3 });
+  }, 600_000);
+
+  const contrast = (r: InspectionReport) => r.groups.filter((g) => g.rule === "color-contrast");
+
+  it("the repeated low-contrast card is 1 group with 3 pages, the second colour pair another group", () => {
+    const pages = [`${http}groups/`, `${http}groups/a`, `${http}groups/b`].sort();
+    const card = contrast(first).find((g) => g.contrast?.foreground === "#9ca3af");
+    expect(card).toMatchObject({ verdict: "VERIFIED", elements: 3, pages, contrast: { background: "#ffffff", required: 4.5 } });
+    expect(card?.contrast?.suggestion?.ratio).toBeGreaterThanOrEqual(4.5);
+    const gold = contrast(first).find((g) => g.contrast?.foreground === "#c4862a");
+    expect(gold).toMatchObject({ elements: 1, pages: [`${http}groups/b`] });
+    expect(contrast(first)).toHaveLength(2);
+  });
+
+  it("the console error with different numbers on each load is 1 group", () => {
+    const errors = first.groups.filter((g) => g.checkId === "console-errors");
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ verdict: "VERIFIED", elements: 3 });
+  });
+
+  it("group ids are the same in two identical inspections", () => {
+    expect(first.groups.map((g) => g.id)).toEqual(second.groups.map((g) => g.id));
+    expect(first.schemaVersion).toBe("exegezis.inspection-report/v2");
+  });
+});
+
 describe("a site that blocks", () => {
   it("is BLOCKED with its reason and evidence, and has no findings", async () => {
     const report = await run(`${http}blocked/`, { runs: 3 });
