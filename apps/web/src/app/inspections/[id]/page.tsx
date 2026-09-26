@@ -3,6 +3,7 @@ import { AlertTriangle, Download, ExternalLink, FileCode2, Globe, ListChecks, Wr
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { EngineProblem } from "@/components/ui/copy-command";
 import { FilterForm } from "@/components/ui/filter-form";
 import { buttonClass, CodeBlock, EmptyState, Meta, Mono, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
 import { SeverityLabel } from "@/components/inspection/severity";
@@ -16,6 +17,8 @@ import { artifactUrl } from "@/lib/urls";
 export const metadata: Metadata = { title: "Inspección" };
 
 type Params = Promise<{ id: string }>;
+
+const BROWSER_NAME = { chromium: "Chromium (Playwright)", chrome: "Google Chrome", msedge: "Microsoft Edge" } as const;
 type Search = Promise<Record<string, string | string[] | undefined>>;
 
 function Occurrences({ finding, runs }: { finding: Finding; runs: number }) {
@@ -230,6 +233,14 @@ export default async function InspectionPage({ params, searchParams }: { params:
         }
       />
 
+      {report.engineError !== null && (
+        <EngineProblem
+          message={`Ningún navegador pudo arrancar en este equipo, así que no se visitó ninguna página y no hay hallazgos: no se sacó ninguna conclusión sobre ${report.target.origin}.`}
+          remedy={report.engineError.remedy}
+          detail={[report.engineError.message, ...report.engineError.attempts.map((a) => `${a.engine}: ${a.error}`)]}
+        />
+      )}
+
       {writes.length > 0 && (
         <div role="alert" className="flex gap-3 rounded-lg border border-warn/40 bg-warn-bg px-4 py-3 text-[13px] text-fg">
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
@@ -248,118 +259,125 @@ export default async function InspectionPage({ params, searchParams }: { params:
         </div>
       )}
 
-      <section aria-label="Resumen por severidad" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        {SEVERITIES.map((sev) => (
-          <Stat key={sev} label={`${SEVERITY_LABEL[sev]} · verificados`} value={s.verified[sev]} />
-        ))}
-        <Stat label="Intermitentes" value={s.intermittent} hint="aparte, sin spec" />
-      </section>
+      {report.engineError === null && (
+        <>
+        <section aria-label="Resumen por severidad" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {SEVERITIES.map((sev) => (
+            <Stat key={sev} label={`${SEVERITY_LABEL[sev]} · verificados`} value={s.verified[sev]} />
+          ))}
+          <Stat label="Intermitentes" value={s.intermittent} hint="aparte, sin spec" />
+        </section>
 
-      <Panel
-        title={`Hallazgos verificados (${verified.length})`}
-        icon={<ListChecks />}
-        subtitle={`presentes en ${report.options.runs}/${report.options.runs} repeticiones`}
-        bodyClassName="p-0"
-      >
-        {verified.length > 0 && (
-          <div className="border-b border-line px-4 py-3">
-            <Suspense>
-              <FilterForm
-                selects={[
-                  { name: "severity", label: "Severidad", options: [{ value: "", label: "Todas" }, ...SEVERITIES.map((v) => ({ value: v, label: SEVERITY_LABEL[v] }))] },
-                  { name: "check", label: "Comprobación", options: [{ value: "", label: "Todas" }, ...checksWithFindings.map((c) => ({ value: c, label: CHECK_LABEL[c] ?? c }))] },
-                  { name: "page", label: "Página", options: [{ value: "", label: "Todas" }, ...pagesWithFindings.map((p) => ({ value: p, label: shortUrl(p, report.target.origin) }))] },
-                ]}
-              />
-            </Suspense>
-            {filtered && (
-              <p className="mt-2 text-xs text-muted" aria-live="polite">
-                {shown.length} de {verified.length} con estos filtros.
-              </p>
-            )}
-          </div>
-        )}
-        {verified.length === 0 ? (
-          <EmptyState title={report.status === "COMPLETED" || report.status === "PARTIAL" ? "Ningún hallazgo verificado" : "Sin hallazgos: no se pudo inspeccionar"}>
-            {report.status === "COMPLETED" || report.status === "PARTIAL"
-              ? "Ninguna comprobación encontró un problema en todas las repeticiones. Esto no significa que el sitio no tenga bugs: las comprobaciones genéricas no detectan errores de lógica."
-              : INSPECTION_STATUS_TEXT[report.status]}
-          </EmptyState>
-        ) : (
-          <FindingList inspection={inspection} report={report} findings={shown} empty="Ningún hallazgo coincide con los filtros." />
-        )}
-      </Panel>
-
-      <Panel title={`Intermitentes (${intermittent.length})`} subtitle="observados solo en algunas repeticiones; no son VERIFIED" bodyClassName="p-0">
-        <FindingList inspection={inspection} report={report} findings={intermittent} empty="Ninguno: todo lo observado apareció en todas las repeticiones o en ninguna." />
-      </Panel>
-
-      <Panel id="page-writes" title={`Escrituras de la página (${writes.length})`} icon={<AlertTriangle />} subtitle="peticiones no-GET lanzadas por la propia página" bodyClassName="p-0">
-        {writes.length === 0 ? (
-          <p className="px-4 py-4 text-[13px] text-muted">La página no hizo ninguna petición de escritura durante la inspección.</p>
-        ) : (
-          <div className={tableClass.wrap}>
-            <table className={tableClass.table}>
-              <thead>
-                <tr>
-                  <th className={tableClass.th}>Método</th>
-                  <th className={tableClass.th}>URL</th>
-                  <th className={tableClass.th}>Estado</th>
-                  <th className={tableClass.th}>Página de origen</th>
-                  <th className={tableClass.th}>Repetición</th>
-                </tr>
-              </thead>
-              <tbody>
-                {writes.map((w, i) => (
-                  <tr key={i} className={tableClass.tr}>
-                    <td className={`${tableClass.td} font-mono`}>{w.method}</td>
-                    <td className={`${tableClass.td} break-all font-mono text-[12px]`}>{w.url}</td>
-                    <td className={`${tableClass.td} font-mono`}>{w.blocked ? <span className="text-warn">bloqueada</span> : (w.status ?? "—")}</td>
-                    <td className={`${tableClass.td} font-mono text-[12px]`}>{shortUrl(w.page, report.target.origin)}</td>
-                    <td className={`${tableClass.td} font-mono`}>{w.run}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Panel>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <Panel title={`Páginas (${pages.length})`} icon={<Globe />} bodyClassName="p-0">
-          <div className={tableClass.wrap}>
-            <table className={tableClass.table}>
-              <thead>
-                <tr>
-                  <th className={tableClass.th}>Página</th>
-                  <th className={tableClass.th}>Estado</th>
-                  <th className={tableClass.th}>HTTP</th>
-                  <th className={tableClass.th}>Visitas</th>
-                  <th className={tableClass.th}>Verificados</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pages.map((p) => (
-                  <tr key={p.url} className={tableClass.tr}>
-                    <td className={`${tableClass.td} break-all font-mono text-[12px]`}>
-                      {shortUrl(p.url, report.target.origin)}
-                      {p.reason !== null && <div className="mt-0.5 font-sans text-[11px] break-words text-faint">{p.reason}</div>}
-                    </td>
-                    <td className={tableClass.td}>
-                      <StatusPill status={p.status} tone={PAGE_STATUS_TONE[p.status as keyof typeof PAGE_STATUS_TONE]} size="xs" />
-                    </td>
-                    <td className={`${tableClass.td} font-mono`}>{p.httpStatus ?? "—"}</td>
-                    <td className={`${tableClass.td} font-mono`}>
-                      {p.runs}/{report.options.runs}
-                    </td>
-                    <td className={`${tableClass.td} font-mono`}>{p.findings}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <Panel
+          title={`Hallazgos verificados (${verified.length})`}
+          icon={<ListChecks />}
+          subtitle={`presentes en ${report.options.runs}/${report.options.runs} repeticiones`}
+          bodyClassName="p-0"
+        >
+          {verified.length > 0 && (
+            <div className="border-b border-line px-4 py-3">
+              <Suspense>
+                <FilterForm
+                  selects={[
+                    { name: "severity", label: "Severidad", options: [{ value: "", label: "Todas" }, ...SEVERITIES.map((v) => ({ value: v, label: SEVERITY_LABEL[v] }))] },
+                    { name: "check", label: "Comprobación", options: [{ value: "", label: "Todas" }, ...checksWithFindings.map((c) => ({ value: c, label: CHECK_LABEL[c] ?? c }))] },
+                    { name: "page", label: "Página", options: [{ value: "", label: "Todas" }, ...pagesWithFindings.map((p) => ({ value: p, label: shortUrl(p, report.target.origin) }))] },
+                  ]}
+                />
+              </Suspense>
+              {filtered && (
+                <p className="mt-2 text-xs text-muted" aria-live="polite">
+                  {shown.length} de {verified.length} con estos filtros.
+                </p>
+              )}
+            </div>
+          )}
+          {verified.length === 0 ? (
+            <EmptyState title={report.status === "COMPLETED" || report.status === "PARTIAL" ? "Ningún hallazgo verificado" : "Sin hallazgos: no se pudo inspeccionar"}>
+              {report.status === "COMPLETED" || report.status === "PARTIAL"
+                ? "Ninguna comprobación encontró un problema en todas las repeticiones. Esto no significa que el sitio no tenga bugs: las comprobaciones genéricas no detectan errores de lógica."
+                : INSPECTION_STATUS_TEXT[report.status]}
+            </EmptyState>
+          ) : (
+            <FindingList inspection={inspection} report={report} findings={shown} empty="Ningún hallazgo coincide con los filtros." />
+          )}
         </Panel>
 
+        <Panel title={`Intermitentes (${intermittent.length})`} subtitle="observados solo en algunas repeticiones; no son VERIFIED" bodyClassName="p-0">
+          <FindingList inspection={inspection} report={report} findings={intermittent} empty="Ninguno: todo lo observado apareció en todas las repeticiones o en ninguna." />
+        </Panel>
+
+        <Panel id="page-writes" title={`Escrituras de la página (${writes.length})`} icon={<AlertTriangle />} subtitle="peticiones no-GET lanzadas por la propia página" bodyClassName="p-0">
+          {writes.length === 0 ? (
+            <p className="px-4 py-4 text-[13px] text-muted">La página no hizo ninguna petición de escritura durante la inspección.</p>
+          ) : (
+            <div className={tableClass.wrap}>
+              <table className={tableClass.table}>
+                <thead>
+                  <tr>
+                    <th className={tableClass.th}>Método</th>
+                    <th className={tableClass.th}>URL</th>
+                    <th className={tableClass.th}>Estado</th>
+                    <th className={tableClass.th}>Página de origen</th>
+                    <th className={tableClass.th}>Repetición</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {writes.map((w, i) => (
+                    <tr key={i} className={tableClass.tr}>
+                      <td className={`${tableClass.td} font-mono`}>{w.method}</td>
+                      <td className={`${tableClass.td} break-all font-mono text-[12px]`}>{w.url}</td>
+                      <td className={`${tableClass.td} font-mono`}>{w.blocked ? <span className="text-warn">bloqueada</span> : (w.status ?? "—")}</td>
+                      <td className={`${tableClass.td} font-mono text-[12px]`}>{shortUrl(w.page, report.target.origin)}</td>
+                      <td className={`${tableClass.td} font-mono`}>{w.run}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
+        </>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+        {report.engineError === null ? (
+          <Panel title={`Páginas (${pages.length})`} icon={<Globe />} bodyClassName="p-0">
+            <div className={tableClass.wrap}>
+              <table className={tableClass.table}>
+                <thead>
+                  <tr>
+                    <th className={tableClass.th}>Página</th>
+                    <th className={tableClass.th}>Estado</th>
+                    <th className={tableClass.th}>HTTP</th>
+                    <th className={tableClass.th}>Visitas</th>
+                    <th className={tableClass.th}>Verificados</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pages.map((p) => (
+                    <tr key={p.url} className={tableClass.tr}>
+                      <td className={`${tableClass.td} break-all font-mono text-[12px]`}>
+                        {shortUrl(p.url, report.target.origin)}
+                        {p.reason !== null && <div className="mt-0.5 font-sans text-[11px] break-words text-faint">{p.reason}</div>}
+                      </td>
+                      <td className={tableClass.td}>
+                        <StatusPill status={p.status} tone={PAGE_STATUS_TONE[p.status as keyof typeof PAGE_STATUS_TONE]} size="xs" />
+                      </td>
+                      <td className={`${tableClass.td} font-mono`}>{p.httpStatus ?? "—"}</td>
+                      <td className={`${tableClass.td} font-mono`}>
+                        {p.runs}/{report.options.runs}
+                      </td>
+                      <td className={`${tableClass.td} font-mono`}>{p.findings}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        ) : (
+          <div className="hidden xl:block" />
+        )}
         <div className="flex min-w-0 flex-col gap-6">
           <Panel title="Configuración y herramientas" icon={<Wrench />}>
             <Meta
@@ -373,6 +391,20 @@ export default async function InspectionPage({ params, searchParams }: { params:
                     : "ignorado (--ignore-robots)",
                 },
                 { label: "Sesión", value: report.options.storageState ? "storageState (no se registra su contenido)" : "ninguna" },
+                {
+                  label: "Navegador",
+                  value:
+                    report.tools.browser === null ? (
+                      <span className="text-muted">{report.engineError !== null ? "ninguno pudo arrancar" : "no registrado (informe anterior a este dato)"}</span>
+                    ) : (
+                      <span>
+                        <Mono>{`${BROWSER_NAME[report.tools.browser.channel]} ${report.tools.browser.version}`}</Mono>
+                        <span className="block text-[12px] text-muted">
+                          {report.tools.browser.system ? "Instalado en el sistema: no es el Chromium de Playwright." : "El Chromium de Playwright (navegador de referencia)."}
+                        </span>
+                      </span>
+                    ),
+                },
                 { label: "User-Agent", value: <Mono>{report.tools.userAgent}</Mono> },
                 { label: "Playwright", value: <Mono>{report.tools.playwright}</Mono> },
                 { label: "axe-core", value: report.tools.axe === null ? "—" : <Mono>{`${report.tools.axe} · ${report.tools.axeRules.length} reglas`}</Mono> },

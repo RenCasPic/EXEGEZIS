@@ -253,7 +253,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
     }
 
     // Verdicts, then specs for the VERIFIED findings.
-    await report({ phase: "specs" });
+    if (engineError === null) await report({ phase: "specs" });
     const { groups } = deriveFindings(results, pages, cfg.runs, strict);
     const specs = new Map<string, string | null>();
     const specDir = join(options.dir, "specs");

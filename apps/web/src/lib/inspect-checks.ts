@@ -13,6 +13,16 @@ export const INSPECT_CHECKS = [
   { id: "seo-basics", label: "SEO básico (info)" },
 ] as const;
 
+/** --browser-channel values (the CLI's). */
+export const BROWSER_CHANNEL_IDS = ["auto", "chromium", "chrome", "msedge"] as const;
+export type BrowserChannelId = (typeof BROWSER_CHANNEL_IDS)[number];
+export const BROWSER_CHANNEL_LABEL: Record<BrowserChannelId, string> = {
+  auto: "Automático (Chromium de Playwright, si no Chrome, si no Edge)",
+  chromium: "Chromium de Playwright",
+  chrome: "Google Chrome del sistema",
+  msedge: "Microsoft Edge del sistema",
+};
+
 /** Defaults of the CLI, shown as chips on the form. */
 export const INSPECT_DEFAULTS = { maxPages: 20, maxDepth: 2, runs: 3 } as const;
 

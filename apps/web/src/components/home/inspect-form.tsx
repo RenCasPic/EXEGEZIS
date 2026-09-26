@@ -3,9 +3,10 @@
 import { AlertTriangle, ChevronDown, Globe, Loader2, ShieldCheck } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
 import { startInspectionAction, type InspectState } from "@/app/actions";
+import { EngineProblem } from "@/components/ui/copy-command";
 import { buttonClass } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
-import { INSPECT_CHECKS, INSPECT_DEFAULTS, isLoopbackHost } from "@/lib/inspect-checks";
+import { BROWSER_CHANNEL_IDS, BROWSER_CHANNEL_LABEL, INSPECT_CHECKS, INSPECT_DEFAULTS, isLoopbackHost, type BrowserChannelId } from "@/lib/inspect-checks";
 
 const PERMISSION_PREFIX = "exegezis-inspect-permission:";
 const PERMISSION_TEXT = "Inspecciona solo sitios que sean tuyos o para los que tengas permiso.";
@@ -52,6 +53,7 @@ export function InspectForm() {
   const [storageState, setStorageState] = useState("");
   const [strict, setStrict] = useState(false);
   const [ignoreRobots, setIgnoreRobots] = useState(false);
+  const [browserChannel, setBrowserChannel] = useState<BrowserChannelId>("auto");
   const [confirmed, setConfirmed] = useState(false);
   const [known, setKnown] = useState(false);
 
@@ -70,6 +72,7 @@ export function InspectForm() {
     strict ? "solo lectura estricta" : "solo lectura",
     ...(checks.length > 0 && checks.length < INSPECT_CHECKS.length ? [`${checks.length} comprobaciones`] : []),
     ...(ignoreRobots ? ["ignora robots.txt"] : []),
+    ...(browserChannel === "auto" ? [] : [`navegador: ${browserChannel}`]),
   ];
 
   return (
@@ -176,6 +179,16 @@ export function InspectForm() {
               Solo lectura estricta: bloquear también las escrituras que haga la propia página. Esas páginas quedan DEGRADED y sus hallazgos se descartan.
             </span>
           </label>
+          <label className="flex flex-col gap-1 text-[12px] text-muted sm:col-span-3">
+            Navegador
+            <select name="browserChannel" value={browserChannel} onChange={(e) => setBrowserChannel(e.target.value as BrowserChannelId)} className={input}>
+              {BROWSER_CHANNEL_IDS.map((c) => (
+                <option key={c} value={c}>
+                  {BROWSER_CHANNEL_LABEL[c]}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="flex items-start gap-2 text-[13px] text-fg sm:col-span-3">
             <input type="checkbox" name="ignoreRobots" checked={ignoreRobots} onChange={(e) => setIgnoreRobots(e.target.checked)} className="mt-0.5 size-4 accent-[var(--accent)]" />
             <span>Ignorar robots.txt (la URL inicial se visita siempre; robots.txt solo limita el descubrimiento).</span>
@@ -183,12 +196,15 @@ export function InspectForm() {
         </div>
       </details>
 
-      {state.error !== null && (
-        <div role="alert" className="flex items-start gap-2 rounded-md border border-bad/30 bg-bad-bg p-3 text-[13px] text-bad">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {state.error}
-        </div>
-      )}
+      {state.error !== null &&
+        (state.remedy !== undefined ? (
+          <EngineProblem message={state.error} remedy={state.remedy} />
+        ) : (
+          <div role="alert" className="flex items-start gap-2 rounded-md border border-bad/30 bg-bad-bg p-3 text-[13px] text-bad">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            {state.error}
+          </div>
+        ))}
     </form>
   );
 }

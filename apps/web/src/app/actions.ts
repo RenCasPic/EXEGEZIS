@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { checkBrowser } from "@/lib/browser-check";
 import { isLoopbackHost } from "@/lib/inspect-checks";
 import { probeTarget } from "@/lib/probe";
 import { parseInspectForm } from "@/lib/inspect-options";
@@ -32,6 +33,8 @@ const StartInput = z.strictObject({
 export interface StartState {
   error: string | null;
   fields?: Record<string, string>;
+  /** Commands that fix the problem (a browser that cannot start). */
+  remedy?: string[];
 }
 
 /**
@@ -61,6 +64,9 @@ export async function startInvestigation(_prev: StartState, form: FormData): Pro
   // The planner call costs money and time: never spend it on a target that is not up.
   const reachable = await probeTarget(baseUrl);
   if (reachable !== null) return { error: reachable, fields: raw };
+  // Nor on a machine where no browser can start: the plan could never be executed.
+  const browser = await checkBrowser("auto");
+  if (!browser.ok) return { error: browser.message, remedy: browser.remedy, fields: raw };
   const text = [symptom, expected === "" ? null : `Expected: ${expected}`, actual === "" ? null : `Actual: ${actual}`].filter((l) => l !== null).join("\n");
   let jobId: string;
   try {
@@ -73,6 +79,8 @@ export async function startInvestigation(_prev: StartState, form: FormData): Pro
 
 export interface InspectState {
   error: string | null;
+  /** Commands that fix the problem (a browser that cannot start). */
+  remedy?: string[];
 }
 
 /** Starts a real `exegezis inspect` job (queued if another inspection is running). */
@@ -90,11 +98,15 @@ export async function startInspectionAction(_prev: InspectState, form: FormData)
     storageState: text("storageState"),
     strictReadonly: text("strictReadonly") === "on",
     ignoreRobots: text("ignoreRobots") === "on",
+    browserChannel: text("browserChannel") === "" ? "auto" : text("browserChannel"),
   });
   if (!result.ok) return { error: result.error };
   if (!isLoopbackHost(new URL(result.input.url).hostname) && text("permission") !== "on") {
     return { error: "Confirma que tienes permiso para inspeccionar este sitio." };
   }
+  // No job without a browser: say so here, with the fix, instead of an empty inspection.
+  const browser = await checkBrowser(result.input.browserChannel);
+  if (!browser.ok) return { error: browser.message, remedy: browser.remedy };
   let jobId: string;
   try {
     jobId = (await startInspection(result.input)).id;

@@ -3,6 +3,7 @@
 import { AlertTriangle, Loader2, Play } from "lucide-react";
 import { useActionState, useState } from "react";
 import { startInvestigation, type StartState } from "@/app/actions";
+import { EngineProblem } from "@/components/ui/copy-command";
 import { buttonClass } from "@/components/ui/primitives";
 
 const field = "w-full rounded-md border border-line bg-panel-2 px-3 py-2 text-[13px] text-fg outline-none placeholder:text-faint focus:border-line-strong";
@@ -107,12 +108,15 @@ export function StartForm({
           No planner credentials found. Add EXEGEZIS_ANTHROPIC_API_KEY to the repository’s .env file to start investigations from here.
         </div>
       )}
-      {state.error !== null && (
-        <div role="alert" className="flex items-start gap-2 rounded-md border border-bad/40 bg-bad-bg p-3 text-[13px] text-bad">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-          {state.error}
-        </div>
-      )}
+      {state.error !== null &&
+        (state.remedy !== undefined ? (
+          <EngineProblem message={state.error} remedy={state.remedy} />
+        ) : (
+          <div role="alert" className="flex items-start gap-2 rounded-md border border-bad/40 bg-bad-bg p-3 text-[13px] text-bad">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            {state.error}
+          </div>
+        ))}
 
       <div className="flex justify-end">
         <button type="submit" disabled={pending || !credentials} className={buttonClass("primary")}>

@@ -2,6 +2,8 @@ import { ArrowRight, TerminalSquare } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/components/ui/auto-refresh";
+import { EngineProblem } from "@/components/ui/copy-command";
+import { BROWSER_REMEDY } from "@/lib/browser-check";
 import { ButtonLink, CodeBlock, Meta, Mono, PageHeader, Panel } from "@/components/ui/primitives";
 import { StatusPill } from "@/components/ui/status";
 import { inspectionJobState } from "@/lib/inspection-state";
@@ -63,7 +65,9 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
                 ? "El proceso ya no existe y no informó de su salida (probablemente se reinició el servidor de la UI). Sus artefactos, si los hay, se conservan."
                 : state.label === "BLOCKED"
                   ? "El sitio bloqueó la inspección (anti-bot, CAPTCHA o login). EXEGEZIS no intenta saltarse ese bloqueo."
-                  : undefined
+                  : state.label === "ENGINE_ERROR"
+                    ? "El navegador no pudo arrancar en este equipo. El problema está en este equipo, no en el sitio: no se sacó ninguna conclusión sobre él."
+                    : undefined
         }
         actions={
           inspection !== null ? (
@@ -73,6 +77,13 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
           ) : undefined
         }
       />
+      {state.label === "ENGINE_ERROR" && (
+        <EngineProblem
+          message={report?.engineError?.message ?? "Ningún navegador pudo arrancar (código de salida 7)."}
+          remedy={report?.engineError?.remedy ?? BROWSER_REMEDY}
+          {...(report?.engineError === undefined || report.engineError === null ? {} : { detail: report.engineError.attempts.map((a) => `${a.engine}: ${a.error}`) })}
+        />
+      )}
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="flex min-w-0 flex-col gap-6">
           {active && (
@@ -98,6 +109,7 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
               { label: "Checks", value: job.checks?.join(", ") ?? "todos" },
               { label: "Modo", value: job.strictReadonly ? "solo lectura estricto" : "solo lectura" },
               { label: "robots.txt", value: job.ignoreRobots ? "ignorado" : "respetado" },
+              { label: "Navegador", value: job.browserChannel === "auto" ? "automático" : job.browserChannel },
               { label: "Sesión", value: job.storageState === null ? "ninguna" : "storageState (el contenido no se lee)" },
               { label: "Inicio", value: absoluteTime(job.startedAt) },
               { label: "Duración", value: duration(elapsed) },
@@ -147,6 +159,11 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           ) : undefined
         }
       />
+      {job.exitCode === 7 && (
+        <div lang="es">
+          <EngineProblem message="Ningún navegador pudo arrancar (código de salida 7): no se sacó ninguna conclusión sobre la aplicación. El detalle está en la salida del CLI." remedy={BROWSER_REMEDY} />
+        </div>
+      )}
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <Panel title="CLI output" icon={<TerminalSquare />} subtitle="output.log" bodyClassName="p-0">
           {log === null || log.trim() === "" ? (

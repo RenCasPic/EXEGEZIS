@@ -49,6 +49,8 @@ export const InspectJob = z.strictObject({
   storageState: z.string().nullable(),
   strictReadonly: z.boolean(),
   ignoreRobots: z.boolean(),
+  /** Jobs from before the option existed ran with the default. */
+  browserChannel: z.enum(["auto", "chromium", "chrome", "msedge"]).default("auto"),
 });
 
 /** Jobs written before inspections existed have no `kind`: they are ai-verify jobs. */
@@ -72,6 +74,7 @@ export const EXIT_MEANING: Record<number, string> = {
   4: "inconclusive (INCONCLUSIVE, or inspection BLOCKED / UNREACHABLE / TIMEOUT)",
   5: "INVALID PLAN",
   6: "UNSUPPORTED",
+  7: "ENGINE_ERROR: no browser could start on this machine (nothing was concluded about the target)",
 };
 
 export const jobsDir = (): string => join(runsDir(), "web", "jobs");
@@ -151,6 +154,7 @@ export function commandFor(job: JobRecord): string[] {
     ...(job.storageState === null ? [] : ["--storage-state", job.storageState]),
     ...(job.strictReadonly ? ["--strict-readonly"] : []),
     ...(job.ignoreRobots ? ["--ignore-robots"] : []),
+    ...(job.browserChannel === "auto" ? [] : ["--browser-channel", job.browserChannel]),
     "--output",
     output,
   ];
@@ -228,6 +232,7 @@ export interface StartInspectionInput {
   storageState: string | null;
   strictReadonly: boolean;
   ignoreRobots: boolean;
+  browserChannel: "auto" | "chromium" | "chrome" | "msedge";
 }
 
 /** One inspection at a time: the others wait in a queue owned by this server process. */

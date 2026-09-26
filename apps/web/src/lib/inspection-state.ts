@@ -7,6 +7,7 @@ export function inspectionJobState(status: JobStatus, exitCode: number | null, r
   if (status === "running") return { label: "EN CURSO", tone: "running" };
   if (status === "lost") return { label: "LOST", tone: "bad" };
   if (status === "failed") return { label: "ERROR", tone: "bad" };
+  if (reportStatus === "ENGINE_ERROR" || (reportStatus === null && exitCode === 7)) return { label: "ENGINE_ERROR", tone: "bad" };
   if (reportStatus === "BLOCKED" || reportStatus === "UNREACHABLE" || reportStatus === "TIMEOUT") return { label: reportStatus, tone: "warn" };
   if (reportStatus === null || (exitCode !== 0 && exitCode !== 1 && exitCode !== 4)) return { label: "ERROR", tone: "bad" };
   return { label: "TERMINADA", tone: "ok" };

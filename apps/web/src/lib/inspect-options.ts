@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import { z } from "zod";
 import type { StartInspectionInput } from "./jobs";
-import { INSPECT_CHECKS, INSPECT_DEFAULTS } from "./inspect-checks";
+import { BROWSER_CHANNEL_IDS, INSPECT_CHECKS, INSPECT_DEFAULTS } from "./inspect-checks";
 import { repoRoot } from "./workspace";
 
 export { INSPECT_CHECKS, INSPECT_DEFAULTS };
@@ -47,6 +47,7 @@ export const InspectForm = z.strictObject({
   storageState: z.string().trim(),
   strictReadonly: z.boolean(),
   ignoreRobots: z.boolean(),
+  browserChannel: z.enum(BROWSER_CHANNEL_IDS),
 });
 
 export type InspectFormResult = { ok: true; input: StartInspectionInput } | { ok: false; error: string };
@@ -72,6 +73,7 @@ export function parseInspectForm(raw: Record<keyof z.input<typeof InspectForm>, 
       storageState,
       strictReadonly: v.strictReadonly,
       ignoreRobots: v.ignoreRobots,
+      browserChannel: v.browserChannel,
     },
   };
 }
