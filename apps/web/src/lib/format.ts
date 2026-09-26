@@ -58,3 +58,18 @@ export function bytes(n: number): string {
 export function compactJson(value: unknown): string {
   return typeof value === "string" ? JSON.stringify(value) : JSON.stringify(value) ?? "undefined";
 }
+
+/** Spanish relative time, for the Spanish screens (home, inspections). */
+export function haceTiempo(iso: string | null, now = Date.now()): string {
+  if (iso === null) return "—";
+  const diff = now - Date.parse(iso);
+  if (Number.isNaN(diff)) return "—";
+  const s = Math.round(diff / 1000);
+  if (s < 45) return "ahora";
+  const m = Math.round(s / 60);
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.round(h / 24);
+  return d === 1 ? "ayer" : `hace ${d} días`;
+}

@@ -38,7 +38,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const hasUnassigned = summaries.some((s) => s.project === null);
 
   const palette = [
-    { href: "/", title: "Overview", group: "Page" },
+    { href: "/", title: "Inicio · inspeccionar un sitio", group: "Page" },
+    { href: "/overview", title: "Overview", group: "Page" },
     { href: "/inspections", title: "Inspections", group: "Page" },
     { href: "/investigations", title: "All investigations", group: "Page" },
     { href: "/investigations/new", title: "New investigation", group: "Action" },

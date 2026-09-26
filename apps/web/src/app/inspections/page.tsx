@@ -5,7 +5,7 @@ import { AutoRefresh } from "@/components/ui/auto-refresh";
 import { ButtonLink, EmptyState, PageHeader, Panel, tableClass } from "@/components/ui/primitives";
 import { StatusPill } from "@/components/ui/status";
 import { listInspections } from "@/lib/evidence/inspections";
-import { relativeTime } from "@/lib/format";
+import { haceTiempo } from "@/lib/format";
 import { INSPECTION_STATUS_TONE } from "@/lib/inspection-labels";
 import { listJobs } from "@/lib/jobs";
 
@@ -36,7 +36,7 @@ export default async function InspectionsPage() {
                 <Link href={`/jobs/${job.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-hover/50">
                   <StatusPill status={status === "queued" ? "EN COLA" : "EN CURSO"} tone={status === "queued" ? "q" : "running"} size="xs" />
                   <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-fg">{job.kind === "inspect" ? job.url : job.id}</span>
-                  <span className="text-xs text-faint">{relativeTime(job.startedAt)}</span>
+                  <span className="text-xs text-faint">{haceTiempo(job.startedAt)}</span>
                 </Link>
               </li>
             ))}
@@ -93,7 +93,7 @@ export default async function InspectionsPage() {
                       <td className={`${tableClass.td} font-mono`}>{verified ?? "—"}</td>
                       <td className={`${tableClass.td} font-mono`}>{r?.summary.intermittent ?? "—"}</td>
                       <td className={`${tableClass.td} font-mono`}>{r?.summary.pagesVisited ?? "—"}</td>
-                      <td className={`${tableClass.td} whitespace-nowrap text-xs text-muted`}>{r === null ? "—" : relativeTime(r.finishedAt)}</td>
+                      <td className={`${tableClass.td} whitespace-nowrap text-xs text-muted`}>{r === null ? "—" : haceTiempo(r.finishedAt)}</td>
                       <td className={tableClass.td}>
                         <Link href={`/inspections/${i.id}`} aria-label={`Abrir la inspección ${i.id}`} className="text-faint hover:text-fg">
                           <ChevronRight className="size-4" />

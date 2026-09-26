@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { isLoopbackHost } from "@/lib/inspect-checks";
 import { parseInspectForm } from "@/lib/inspect-options";
 import { plannerCredentialsConfigured, startInspection, startJob } from "@/lib/jobs";
 import { SCOPE_COOKIE } from "@/lib/scope";
@@ -87,6 +88,9 @@ export async function startInspectionAction(_prev: InspectState, form: FormData)
     ignoreRobots: text("ignoreRobots") === "on",
   });
   if (!result.ok) return { error: result.error };
+  if (!isLoopbackHost(new URL(result.input.url).hostname) && text("permission") !== "on") {
+    return { error: "Confirma que tienes permiso para inspeccionar este sitio." };
+  }
   let jobId: string;
   try {
     jobId = (await startInspection(result.input)).id;

@@ -11,6 +11,7 @@ import {
   Globe,
   GitPullRequestDraft,
   HelpCircle,
+  Home,
   LayoutList,
   Microscope,
   Repeat,
@@ -47,7 +48,8 @@ export function SidebarNav({ counts, onNavigate }: { counts: SidebarCounts; onNa
     {
       title: null,
       items: [
-        { href: "/", label: "Overview", icon: <Gauge />, match: (p) => p === "/" },
+        { href: "/", label: "Inicio", icon: <Home />, match: (p) => p === "/" },
+        { href: "/overview", label: "Overview", icon: <Gauge />, match: (p) => p.startsWith("/overview") },
         { href: "/inspections", label: "Inspections", icon: <Globe />, match: (p) => p.startsWith("/inspections") },
       ],
     },
