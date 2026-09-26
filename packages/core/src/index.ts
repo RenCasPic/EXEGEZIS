@@ -27,3 +27,5 @@ export * from "./schemas/root-cause.js";
 export * from "./schemas/coverage.js";
 export * from "./experiment.js";
 export * from "./schemas/inspection.js";
+export * from "./issue-groups.js";
+export * from "./color.js";

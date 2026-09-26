@@ -8,6 +8,7 @@ import {
   ConsoleFile,
   deriveFindings,
   deriveInspectionStatus,
+  deriveIssueGroups,
   deriveSummary,
   describeAssertion,
   executeRun,
@@ -298,7 +299,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       storageState: options.storageState !== undefined,
     };
     const inspection = InspectionReport.parse({
-      schemaVersion: "exegezis.inspection-report/v1",
+      schemaVersion: "exegezis.inspection-report/v2",
       id: options.id,
       target: { url: entry, origin },
       startedAt,
@@ -323,6 +324,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       checks: results,
       findings,
       summary: deriveSummary(findings, pages, pageWrites, results, { runs: cfg.runs, strictReadonly: strict }),
+      groups: deriveIssueGroups(findings),
     });
     await writeFile(join(options.dir, INSPECTION_REPORT_FILE), `${JSON.stringify(inspection, null, 2)}\n`, "utf8");
     await report({ phase: "done", current: null });

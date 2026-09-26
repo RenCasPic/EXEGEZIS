@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { Assertion } from "./assertion.js";
 import { EngineErrorInfo } from "../engine.js";
+import { canonicalJson } from "../hash.js";
+import { deriveIssueGroups } from "../issue-groups.js";
 import { Timestamp } from "./common.js";
 import { EvidenceRef } from "./verification.js";
 
@@ -124,6 +126,45 @@ export type PageWrite = z.infer<typeof PageWrite>;
  * `ENGINE_ERROR`: the browser could not start on this machine. Nothing was
  * learned about the site; no page is marked UNREACHABLE for it.
  */
+/**
+ * An issue group: findings that are the same problem to fix (same contrast
+ * colours, same component, same message, same request…), across elements and
+ * pages. A derived view (see issue-groups.ts): re-derived when a report loads.
+ * - `verdict`: VERIFIED only if every finding in it is; INTERMITTENT if none
+ *   is; MIXED otherwise. An intermittent observation is never shown as verified.
+ * - `contrast.suggestion`: the nearest colour (lightness only) that meets the
+ *   required ratio. A suggestion, not verified on the page.
+ */
+export const IssueGroup = z.strictObject({
+  id: z.string().regex(/^G-[0-9a-f]{12}$/),
+  key: z.string(),
+  checkId: z.string(),
+  rule: z.string().nullable(),
+  title: z.string(),
+  severity: Severity,
+  verdict: z.enum(["VERIFIED", "INTERMITTENT", "MIXED"]),
+  verified: z.int().nonnegative(),
+  intermittent: z.int().nonnegative(),
+  elements: z.int().positive(),
+  pages: z.array(z.string()),
+  /** Finding ids, in report order. */
+  findings: z.array(z.string()),
+  /** Up to 5 finding ids whose evidence illustrates the group. */
+  examples: z.array(z.string()).max(5),
+  contrast: z
+    .strictObject({
+      foreground: z.string(),
+      background: z.string(),
+      /** Worst measured ratio in the group. */
+      ratio: z.number(),
+      required: z.number(),
+      textSize: z.enum(["normal", "large"]),
+      suggestion: z.strictObject({ color: z.string(), ratio: z.number() }).nullable(),
+    })
+    .nullable(),
+});
+export type IssueGroup = z.infer<typeof IssueGroup>;
+
 export const InspectionStatus = z.enum(["COMPLETED", "PARTIAL", "BLOCKED", "UNREACHABLE", "TIMEOUT", "ENGINE_ERROR"]);
 export type InspectionStatus = z.infer<typeof InspectionStatus>;
 
@@ -141,7 +182,8 @@ export type InspectionSummary = z.infer<typeof InspectionSummary>;
 
 export const InspectionReport = z
   .strictObject({
-    schemaVersion: z.literal("exegezis.inspection-report/v1"),
+    /** v2 stores the issue groups; v1 reports load and get them derived. */
+    schemaVersion: z.enum(["exegezis.inspection-report/v1", "exegezis.inspection-report/v2"]),
     id: z.string(),
     target: z.strictObject({ url: z.string(), origin: z.string() }),
     startedAt: Timestamp,
@@ -184,6 +226,7 @@ export const InspectionReport = z
     checks: z.array(CheckResult),
     findings: z.array(Finding),
     summary: InspectionSummary,
+    groups: z.array(IssueGroup).optional(),
   })
   .refine((r) => r.status === deriveInspectionStatus(r.pages, r.totalTimeoutReached, r.engineError !== null), {
     message: "the status must follow from the page visits",
@@ -196,8 +239,14 @@ export const InspectionReport = z
   .refine((r) => summariesMatch(r.summary, deriveSummary(r.findings, r.pages, r.pageWrites, r.checks, r.options)), {
     message: "the summary must follow from the findings, pages and page writes",
     path: ["summary"],
-  });
-export type InspectionReport = z.infer<typeof InspectionReport>;
+  })
+  .refine((r) => (r.groups === undefined ? r.schemaVersion === "exegezis.inspection-report/v1" : canonicalJson(r.groups) === canonicalJson(deriveIssueGroups(r.findings))), {
+    message: "the issue groups must follow from the findings (v2 reports must carry them)",
+    path: ["groups"],
+  })
+  .transform((r) => ({ ...r, groups: r.groups ?? deriveIssueGroups(r.findings) }));
+export type InspectionReport = z.output<typeof InspectionReport>;
+export type InspectionReportInput = z.input<typeof InspectionReport>;
 
 // ---------------------------------------------------------------------------
 // Deterministic rules
