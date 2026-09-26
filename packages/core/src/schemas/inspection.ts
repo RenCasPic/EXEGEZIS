@@ -350,3 +350,49 @@ export function buildFindings(
     };
   });
 }
+
+// ---------------------------------------------------------------------------
+// Adapter artifact: what the browser adapter records about one page
+// ---------------------------------------------------------------------------
+
+export const AxeImpact = z.enum(["critical", "serious", "moderate", "minor"]);
+
+/** `inspection.json`, written by the browser adapter in inspection mode. */
+export const PageInspectionFile = z.strictObject({
+  schemaVersion: z.literal("exegezis.page-inspection/v1"),
+  url: z.string(),
+  settled: z.strictObject({ network: z.boolean(), dom: z.boolean() }),
+  meta: z.strictObject({
+    title: z.string(),
+    lang: z.string().nullable(),
+    viewport: z.string().nullable(),
+    h1Count: z.int().nonnegative(),
+    protocol: z.string(),
+  }),
+  /** Every a[href] (resolved), http(s) only. */
+  links: z.array(z.strictObject({ href: z.string(), text: z.string() })),
+  axe: z
+    .strictObject({
+      version: z.string(),
+      /** Ids of every rule axe ran on the page. */
+      rules: z.array(z.string()),
+      violations: z.array(
+        z.strictObject({
+          id: z.string(),
+          impact: AxeImpact.nullable(),
+          help: z.string(),
+          helpUrl: z.string(),
+          nodes: z.array(z.strictObject({ selector: z.string(), html: z.string(), summary: z.string() })),
+        }),
+      ),
+    })
+    .nullable(),
+  axeError: z.string().nullable(),
+  /** Screenshot with the violating nodes outlined (path relative to the run). */
+  highlight: z.string().nullable(),
+  /** Deterministic signs of anti-bot, CAPTCHA or login walls. Recorded, never acted upon. */
+  blockSignals: z.strictObject({ markers: z.array(z.string()), passwordField: z.boolean() }),
+  /** Page writes blocked by --strict-readonly. */
+  blockedWrites: z.array(z.strictObject({ method: z.string(), url: z.string() })),
+});
+export type PageInspectionFile = z.infer<typeof PageInspectionFile>;

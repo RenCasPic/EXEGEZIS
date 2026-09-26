@@ -4,3 +4,4 @@ export { toLocator } from "./locator.js";
 export { BrowserAdapterOptions, type BrowserAdapterOptionsInput } from "./options.js";
 export { BrowserSession, TRACE_FILE } from "./session.js";
 export { sanitizeTraceArchive, type TraceSanitizeResult } from "./trace-redaction.js";
+export { HttpProbe, type HttpProbeOptions, type ProbeResult } from "./probe.js";

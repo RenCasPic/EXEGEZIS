@@ -16,6 +16,7 @@ export const ArtifactType = z.enum([
   "trace",
   "log",
   "coverage",
+  "inspection",
 ]);
 export type ArtifactType = z.infer<typeof ArtifactType>;
 

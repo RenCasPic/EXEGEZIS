@@ -25,11 +25,15 @@ import {
   type RunEnvironment,
   type RunRecorder,
   type ScreenshotEvidence,
+  AxeImpact,
+  PageInspectionFile,
 } from "@exegezis/core";
 import type { Browser, BrowserContext, ConsoleMessage, Page, Request, Response, WebError } from "playwright";
 import { z } from "zod";
-import { evaluateAssertion } from "./assertions.js";
+import { AxeBuilder } from "@axe-core/playwright";
+import { axeSelector, evaluateAssertion } from "./assertions.js";
 import { toLocator } from "./locator.js";
+import { domSettleScript, highlightScript, PAGE_FACTS_SCRIPT, PageFacts, UNHIGHLIGHT_SCRIPT } from "./page-scripts.js";
 import type { BrowserAdapterOptions } from "./options.js";
 import { sanitizeTraceArchive } from "./trace-redaction.js";
 
@@ -58,6 +62,7 @@ export class BrowserSession implements AdapterSession {
   /** Async capture work (e.g. response bodies) that must finish before collecting. */
   private readonly pending = new Set<Promise<void>>();
   private readonly collectorFailures = new Map<string, string>();
+  private readonly blockedWrites: { method: string; url: string }[] = [];
   private tracing: boolean;
 
   constructor(
@@ -72,6 +77,24 @@ export class BrowserSession implements AdapterSession {
   ) {
     this.tracing = tracing;
     this.attachListeners();
+  }
+
+  /** --strict-readonly: the page may read, never write. Blocked requests are recorded, not hidden. */
+  async blockPageWrites(): Promise<void> {
+    await this.context.route("**/*", async (route) => {
+      const method = route.request().method();
+      if (method === "GET" || method === "HEAD" || method === "OPTIONS") {
+        await route.fallback();
+        return;
+      }
+      this.blockedWrites.push({ method, url: this.url(route.request().url()) });
+      await route.abort("blockedbyclient");
+      // Marked here, explicitly: the evidence must say why the request failed.
+      const evidence = this.exchangeByRequest.get(route.request());
+      if (evidence !== undefined && evidence.failure === undefined) {
+        evidence.failure = { timestamp: this.recorder.timestamp(), errorText: "net::ERR_BLOCKED_BY_CLIENT (EXEGEZIS --strict-readonly)" };
+      }
+    });
   }
 
   async execute(action: Action, actionId: string): Promise<void> {
@@ -301,6 +324,7 @@ export class BrowserSession implements AdapterSession {
         );
       });
     }
+    if (this.options.inspect) await write("inspection", () => this.collectInspection());
     collectors["trace"] = await this.saveTrace();
     for (const [name, detail] of this.collectorFailures) {
       collectors[name] ??= { status: "failed", detail };
@@ -315,6 +339,72 @@ export class BrowserSession implements AdapterSession {
       await this.browser.close();
       this.recorder.emit("ADAPTER_STOPPED", "adapter", { adapterId: this.environment.adapter.id });
     }
+  }
+
+  /**
+   * Web inspection evidence of the current page: links, metadata, axe-core
+   * (WCAG 2.1 A/AA) with the violating nodes outlined in a screenshot, and
+   * deterministic block signals. Reads only; it never interacts with the page.
+   */
+  private async collectInspection(): Promise<void> {
+    const page = this.page;
+    let network = true;
+    try {
+      await page.waitForLoadState("networkidle", { timeout: this.options.settleTimeoutMs });
+    } catch {
+      network = false;
+    }
+    const dom = await page.evaluate<boolean>(domSettleScript(this.options.domSettleTimeoutMs)).catch(() => false);
+    const facts = PageFacts.parse(await page.evaluate<unknown>(PAGE_FACTS_SCRIPT));
+
+    let axe: PageInspectionFile["axe"] = null;
+    let axeError: string | null = null;
+    let highlight: string | null = null;
+    try {
+      const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+      const rules = [...new Set([...results.passes, ...results.violations, ...results.incomplete, ...results.inapplicable].map((r) => r.id))].sort();
+      axe = {
+        version: results.testEngine.version,
+        rules,
+        violations: results.violations.map((v) => ({
+          id: v.id,
+          impact: AxeImpact.safeParse(v.impact).data ?? null,
+          help: v.help,
+          helpUrl: v.helpUrl,
+          nodes: v.nodes.map((n) => ({
+            selector: axeSelector(n.target as (string | string[])[]),
+            html: n.html.slice(0, 500),
+            summary: (n.failureSummary ?? "").slice(0, 500),
+          })),
+        })),
+      };
+      const selectors = axe.violations.flatMap((v) => v.nodes.map((n) => n.selector)).filter((s) => !s.includes(">>>")).slice(0, 10);
+      if (selectors.length > 0) {
+        await page.evaluate(highlightScript(selectors));
+        const image = await page.screenshot({ fullPage: true });
+        const entry = await this.recorder.writeBinary("screenshot", "screenshots/axe-highlight.png", image, "image/png");
+        highlight = entry.path;
+        await page.evaluate(UNHIGHLIGHT_SCRIPT);
+      }
+    } catch (error) {
+      axeError = toErrorInfo(error).message;
+    }
+
+    const file: PageInspectionFile = {
+      schemaVersion: "exegezis.page-inspection/v1",
+      url: this.url(page.url()),
+      settled: { network, dom },
+      meta: facts.meta,
+      links: facts.links.map((l) => ({ href: this.url(l.href), text: l.text })),
+      axe,
+      axeError,
+      highlight,
+      blockSignals: { markers: facts.markers, passwordField: facts.passwordField },
+      blockedWrites: this.blockedWrites,
+    };
+    await this.recorder.writeJson("inspection", "inspection.json", PageInspectionFile.parse(file), {
+      description: "Web inspection: links, metadata, axe-core results, block signals",
+    });
   }
 
   private async saveTrace(): Promise<CollectorStatus> {

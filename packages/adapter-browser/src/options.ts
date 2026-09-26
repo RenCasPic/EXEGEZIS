@@ -23,6 +23,18 @@ export const BrowserAdapterOptions = z.strictObject({
    * coverage.json. Off by default; the root-cause engine turns it on.
    */
   coverage: z.boolean().default(false),
+  /** Web inspection mode: also record links, metadata, axe results and block signals (inspection.json). */
+  inspect: z.boolean().default(false),
+  /** Overrides the browser's User-Agent (web inspection identifies itself). */
+  userAgent: z.string().min(1).optional(),
+  /** Playwright storageState file for authenticated inspections. Read by Playwright; never recorded. */
+  storageState: z.string().min(1).optional(),
+  /** Tests only (self-signed fixtures). The CLI never sets it: a TLS error is a fact about the target. */
+  ignoreHTTPSErrors: z.boolean().default(false),
+  /** --strict-readonly: abort every request of the page that is not GET, HEAD or OPTIONS. */
+  blockPageWrites: z.boolean().default(false),
+  /** Cap for DOM stability (no mutations for 500 ms) in inspection mode. */
+  domSettleTimeoutMs: z.int().nonnegative().default(5_000),
   /** Capture request/response bodies of fetch/XHR calls (redacted). */
   captureBodies: z.boolean().default(true),
   maxBodyBytes: z.int().nonnegative().default(64 * 1024),

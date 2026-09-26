@@ -122,6 +122,11 @@ export async function startFixtureServer(): Promise<FixtureServer> {
       res.end(HEALTH_PAGE);
       return;
     }
+    if (url.pathname === "/challenge") {
+      res.writeHead(403, { "content-type": "text/html; charset=utf-8" });
+      res.end('<!doctype html><html lang="en"><title>Attention Required</title><body><h1>Verify you are human</h1><div class="g-recaptcha"></div></body></html>');
+      return;
+    }
     if (url.pathname === "/logo.svg") {
       res.writeHead(200, { "content-type": "image/svg+xml" });
       res.end('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>');

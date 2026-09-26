@@ -41,6 +41,9 @@ export class BrowserAdapter implements Adapter {
         viewport: options.viewport,
         locale: options.locale,
         timezoneId: options.timezoneId,
+        ...(options.userAgent === undefined ? {} : { userAgent: options.userAgent }),
+        ...(options.storageState === undefined ? {} : { storageState: options.storageState }),
+        ...(options.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
       });
       context.setDefaultTimeout(options.actionTimeoutMs);
       context.setDefaultNavigationTimeout(options.navigationTimeoutMs);
@@ -64,6 +67,7 @@ export class BrowserAdapter implements Adapter {
       };
       // The session attaches its listeners before any navigation happens.
       const session = new BrowserSession(browser, context, page, options, recorder, log, environment, options.trace);
+      if (options.blockPageWrites) await session.blockPageWrites();
       const event = recorder.emit("ADAPTER_STARTED", "adapter", {
         adapterId: this.descriptor.id,
         details: {
