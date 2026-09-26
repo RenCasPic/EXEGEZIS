@@ -275,6 +275,8 @@ export const InspectionReport = z
         traceDropped: z.boolean(),
       })
       .default({ session: false, httpCredentials: false, wafToken: false, traceDropped: false }),
+    /** RATE_LIMITED answers that were waited out (Retry-After or backoff) before continuing. */
+    rateLimit: z.strictObject({ retries: z.int().nonnegative(), waitedSeconds: z.number().nonnegative() }).default({ retries: 0, waitedSeconds: 0 }),
     pageWrites: z.array(PageWrite),
     checks: z.array(CheckResult),
     findings: z.array(Finding),

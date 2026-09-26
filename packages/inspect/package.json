@@ -22,6 +22,7 @@
     "playwright": "1.63.0"
   },
   "devDependencies": {
-    "selfsigned": "5.5.0"
+    "selfsigned": "5.5.0",
+    "@exegezis/access": "workspace:*"
   }
 }

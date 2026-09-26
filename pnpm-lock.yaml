@@ -185,6 +185,9 @@ importers:
         specifier: 1.63.0
         version: 1.63.0
     devDependencies:
+      '@exegezis/access':
+        specifier: workspace:*
+        version: link:../access
       selfsigned:
         specifier: 5.5.0
         version: 5.5.0

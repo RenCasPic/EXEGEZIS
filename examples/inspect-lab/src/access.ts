@@ -16,6 +16,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
  *   /access/forbidden/      403 without a challenge
  *   /access/consent/        a cookie banner that covers the page and locks scrolling
  *   /access/news/           a login box in the header next to real content (NOT a wall)
+ *   /access/fingerprint/    records the User-Agent and navigator.webdriver the page sees
  *
  * State endpoints (tests only): /__lab/access (counters),
  * /__lab/expire-sessions (every issued session stops working),
@@ -25,6 +26,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 const sessions = new Set<string>();
 const idpSessions = new Set<string>();
 const counters = { logout: 0, destructive: 0, tokenToThirdParty: 0, tokenToApp: 0, limited: 0 };
+/** What the fingerprint page saw: the User-Agent header and what the page's own JavaScript reports. */
+const fingerprints: { header: string; navigatorUserAgent: string; webdriver: string }[] = [];
 let wafToken: string | null = null;
 const clearances = new Set<string>();
 
@@ -56,7 +59,7 @@ const APP_NAV = `<nav aria-label="Account"><a href="/access/app/">Home</a> <a hr
 const LONG = "<p>" + "This is the member area with the real content of the page. ".repeat(12) + "</p>";
 
 export function accessStats(): object {
-  return { ...counters, sessions: sessions.size, wafToken: wafToken !== null };
+  return { ...counters, sessions: sessions.size, wafToken: wafToken !== null, fingerprints };
 }
 
 /** Handles /access/* and the access lab endpoints. Returns false when the path is not an access route. */
@@ -242,6 +245,16 @@ export async function handleAccess(req: IncomingMessage, res: ServerResponse, ur
            <div><h2>We use cookies</h2><p>Choose which cookies you accept before continuing.</p>
            <form method="post" action="/access/consent/"><button name="choice" value="reject">Reject all</button> <button name="choice" value="accept">Accept all</button></form></div></div>`;
     send(res, 200, page("Consent", `${banner}<main><h1>Article behind a consent wall</h1>${LONG}</main>`, decided ? "" : "<style>body{overflow:hidden}</style>"));
+    return true;
+  }
+
+  if (url.pathname === "/access/fingerprint/") {
+    send(res, 200, page("Fingerprint", `<main><h1>Fingerprint</h1>${LONG}</main><script>fetch("/access/fp?ua=" + encodeURIComponent(navigator.userAgent) + "&webdriver=" + navigator.webdriver);</script>`));
+    return true;
+  }
+  if (url.pathname === "/access/fp") {
+    fingerprints.push({ header: String(req.headers["user-agent"] ?? ""), navigatorUserAgent: url.searchParams.get("ua") ?? "", webdriver: url.searchParams.get("webdriver") ?? "" });
+    send(res, 204, "");
     return true;
   }
 

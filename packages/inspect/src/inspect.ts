@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, relative } from "node:path";
-import { BrowserAdapter, HttpProbe, type BrowserChannel, type ConcreteChannel } from "@exegezis/adapter-browser";
+import { BrowserAdapter, HttpProbe, type AdapterAccess, type BrowserChannel, type ConcreteChannel } from "@exegezis/adapter-browser";
 import { compileToPlaywright } from "@exegezis/compiler-playwright";
 import {
   buildFindings,
@@ -57,6 +57,17 @@ export interface InspectOptions {
   ignoreHTTPSErrors?: boolean;
   /** Which browser to drive (see adapter-browser browsers.ts). Default: auto. */
   browserChannel?: BrowserChannel;
+  /**
+   * Saved access for the origin, decrypted by the caller (never written to
+   * the report). With a session, --strict-readonly is on unless
+   * `strictReadonly: false` is passed explicitly.
+   */
+  access?: AdapterAccess | null;
+  /** Extra link patterns never visited (site setting), added to the built-in list. */
+  unsafeLinkPatterns?: string[];
+  /** Rate limiting: longest single wait and total waiting before giving up (ms). */
+  maxRateLimitWaitMs?: number;
+  maxRateLimitTotalMs?: number;
   /** Internal links probed per run, beyond the pages visited. */
   maxLinkChecks?: number;
   onProgress?: (progress: InspectionProgress) => void;
@@ -80,6 +91,8 @@ interface Visit {
   evidence: Omit<PageEvidence, "links"> | null;
   /** The browser the adapter actually started for this visit. */
   browser: { channel: ConcreteChannel; version: string; system: boolean } | null;
+  /** The trace held secrets of the saved access that could not be removed, so it was not kept. */
+  traceDropped: boolean;
 }
 
 export function userAgentFor(version: string): string {
@@ -109,7 +122,16 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
   };
   const checks = selectChecks(options.checks);
   const userAgent = userAgentFor(options.exegezisVersion);
-  const strict = options.strictReadonly === true;
+  const access = options.access ?? null;
+  const sessionUsed = access?.storageState !== undefined;
+  // With a session, read-only is strict unless explicitly turned off.
+  const strict = options.strictReadonly ?? sessionUsed;
+  const unsafe = unsafeLinkMatcher(options.unsafeLinkPatterns ?? []);
+  const skippedForSafety = new Map<string, { url: string; from: string; reason: string }>();
+  const rateLimit = { retries: 0, waitedSeconds: 0 };
+  const maxWaitMs = options.maxRateLimitWaitMs ?? 60_000;
+  const maxTotalMs = options.maxRateLimitTotalMs ?? 300_000;
+  let traceDropped = false;
   const overBudget = () => Date.now() - t0 > cfg.totalTimeoutMs;
   let totalTimeoutReached = false;
   let lastNavigation = 0;
@@ -150,14 +172,31 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
     // is visited, no page is marked UNREACHABLE for it, no finding is derived.
     let engineError: EngineErrorInfo | null = null;
 
+    let pace = cfg.delayMs;
     const visit = async (url: string, depth: number, run: number): Promise<Visit> => {
-      const wait = cfg.delayMs - (Date.now() - lastNavigation);
-      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-      lastNavigation = Date.now();
-      const v = await visitPage({ url, depth, run, dir: options.dir, options, userAgent, strict, pageTimeoutMs: cfg.pageTimeoutMs, origin });
-      pages.push(v.visit);
-      visits.push(v);
-      return v;
+      for (let attempt = 0; ; attempt++) {
+        const wait = pace - (Date.now() - lastNavigation);
+        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+        lastNavigation = Date.now();
+        const v = await visitPage({ url, depth, run, dir: options.dir, options, userAgent, strict, pageTimeoutMs: cfg.pageTimeoutMs, origin, access, sessionUsed });
+        if (v.traceDropped) traceDropped = true;
+        // RATE_LIMITED: respect Retry-After (or back off), slow down, and try the same page again, within caps.
+        const b = v.visit.block;
+        if (b?.kind === "RATE_LIMITED") {
+          const askedMs = b.retryAfterSeconds === null ? Math.min(maxWaitMs, 2000 * 2 ** attempt) : b.retryAfterSeconds * 1000;
+          if (askedMs <= maxWaitMs && rateLimit.waitedSeconds * 1000 + askedMs <= maxTotalMs) {
+            rateLimit.retries += 1;
+            rateLimit.waitedSeconds += askedMs / 1000;
+            pace = Math.min(Math.max(pace * 2, 1000), 10_000);
+            await report({ current: `${url} (rate limited: waiting ${Math.ceil(askedMs / 1000)} s)` });
+            await new Promise((r) => setTimeout(r, askedMs));
+            continue;
+          }
+        }
+        pages.push(v.visit);
+        visits.push(v);
+        return v;
+      }
     };
 
     try {
@@ -191,6 +230,12 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
           }
           if (seen.has(url)) continue;
           seen.add(url);
+          const danger = unsafe(url, link.text);
+          if (danger !== null) {
+            // Never followed: logging out or a destructive action behind a GET.
+            skippedForSafety.set(url, { url, from: next.url, reason: danger });
+            continue;
+          }
           if (!allowed(url)) {
             pages.push(skipped(url, next.depth + 1, "SKIPPED_ROBOTS", "disallowed by robots.txt"));
             continue;
@@ -228,7 +273,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
     const statusOf = async (url: string, run: number): Promise<LinkStatus> => {
       const own = pages.find((p) => p.run === run && p.url === url && p.httpStatus !== null);
       if (own !== undefined) return { url, status: own.httpStatus, error: null, checked: true };
-      if (!allowed(url)) return { url, status: null, error: null, checked: false };
+      if (!allowed(url) || unsafe(url, "") !== null) return { url, status: null, error: null, checked: false };
       const key = `${run} ${url}`;
       const cached = probed.get(key);
       if (cached !== undefined) return cached;
@@ -317,6 +362,9 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       robots: { respected: options.ignoreRobots !== true, fetched: robotsFetched, disallow: robots?.disallow ?? [] },
       totalTimeoutReached,
       engineError,
+      skippedForSafety: [...skippedForSafety.values()],
+      access: { session: sessionUsed, httpCredentials: access?.httpCredentials !== undefined, wafToken: access?.wafToken !== undefined, traceDropped },
+      rateLimit,
       status: deriveInspectionStatus(pages, totalTimeoutReached, engineError !== null),
       pages,
       externalLinks: [...externalLinks.entries()].map(([url, from]) => ({ url, from })),
@@ -389,6 +437,7 @@ interface VisitArgs {
   origin: string;
   /** A saved session is loaded into the visit's browser context. */
   sessionUsed?: boolean;
+  access?: AdapterAccess | null;
 }
 
 /** One page, one run: a fresh browser, navigate + observe, then the adapter's inspection evidence. */
@@ -406,7 +455,8 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
       { type: "observe", label: "page" },
     ],
   });
-  const adapter = new BrowserAdapter({
+  const adapter = new BrowserAdapter(
+    {
     headless: options.headed !== true,
     browserChannel: options.browserChannel ?? "auto",
     inspect: true,
@@ -416,7 +466,9 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
     blockPageWrites: strict,
     ...(options.storageState === undefined ? {} : { storageState: options.storageState }),
     ...(options.ignoreHTTPSErrors === true ? { ignoreHTTPSErrors: true } : {}),
-  });
+    },
+    args.access ?? null,
+  );
   const outcome = await executeRun({ adapter, plan, recorder, logger: silentLogger, command: "inspect", exegezisVersion: options.exegezisVersion });
   const read = async <T>(file: string, schema: { safeParse(v: unknown): { success: true; data: T } | { success: false } }): Promise<T | null> => {
     try {
@@ -456,5 +508,29 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
       : null;
   const b = outcome.metadata.environment?.browser;
   const browser = b?.channel === undefined ? null : { channel: b.channel, version: b.version, system: b.system === true };
-  return { visit, evidence, browser };
+  const traceDropped = /trace discarded/.test(outcome.metadata.collectors["trace"]?.detail ?? "");
+  return { visit, evidence, browser, traceDropped };
+}
+
+/** Links that log out or act destructively behind a GET: never visited (docs/09-access.md §4). */
+const UNSAFE_WORDS = "logout|log-out|log_out|signout|sign-out|sign_out|cerrar-sesion|cerrar_sesion|salir|delete|remove|destroy|unsubscribe|cancel|revoke|deactivate|borrar|eliminar|darse-de-baja";
+const UNSAFE_PATH = new RegExp(`(^|[/._?=&-])(${UNSAFE_WORDS})([/._?=&-]|$)`, "i");
+const UNSAFE_TEXT = /^\s*(log ?out|sign ?out|cerrar sesi[oó]n|salir|delete|remove|unsubscribe|cancel|borrar|eliminar|darse de baja)\b/i;
+
+export function unsafeLinkMatcher(extra: readonly string[]): (url: string, text: string) => string | null {
+  const custom = extra.filter((p) => p.trim() !== "").map((p) => p.trim().toLowerCase());
+  return (url, text) => {
+    let target = url;
+    try {
+      const u = new URL(url);
+      target = `${u.pathname}${u.search}`;
+    } catch {
+      // keep the raw value
+    }
+    const path = UNSAFE_PATH.exec(target);
+    if (path !== null) return `looks like a logout or destructive action (${path[2]?.toLowerCase() ?? ""})`;
+    if (UNSAFE_TEXT.test(text)) return `link text "${text.trim().slice(0, 40)}" looks like a logout or destructive action`;
+    const hit = custom.find((p) => target.toLowerCase().includes(p));
+    return hit === undefined ? null : `matches the site's pattern "${hit}"`;
+  };
 }
