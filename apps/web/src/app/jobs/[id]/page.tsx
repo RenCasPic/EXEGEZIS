@@ -33,7 +33,7 @@ function Progress({ progress }: { progress: InspectionProgressFile | null }) {
         </span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-panel-2" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Páginas de esta repetición">
-        <div className="h-full bg-running transition-[width]" style={{ width: `${pct}%` }} />
+        <div className="h-full bg-q transition-[width]" style={{ width: `${pct}%` }} />
       </div>
       {progress.current !== null && <div className="truncate font-mono text-[11px] text-faint" title={progress.current}>{progress.current}</div>}
     </div>
@@ -49,7 +49,7 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
   const elapsed = (job.finishedAt === null ? Date.now() : Date.parse(job.finishedAt)) - Date.parse(job.startedAt);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div lang="es" className="flex flex-col gap-6">
       <AutoRefresh active={active} />
       <PageHeader
         eyebrow={<StatusPill status={state.label} tone={state.tone} />}
@@ -102,7 +102,7 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
               { label: "Inicio", value: absoluteTime(job.startedAt) },
               { label: "Duración", value: duration(elapsed) },
               { label: "Código de salida", value: job.exitCode === null ? "—" : `${job.exitCode} (${EXIT_MEANING[job.exitCode] ?? "unknown"})` },
-              ...(job.error === null ? [] : [{ label: "Error", value: <span className="text-critical">{job.error}</span> }]),
+              ...(job.error === null ? [] : [{ label: "Error", value: <span className="text-bad">{job.error}</span> }]),
             ]}
           />
           <div className="mt-4 text-xs text-faint">La misma inspección desde un terminal:</div>
@@ -123,7 +123,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
 
   const summaries = await getSummaries();
   const investigation = summaries.find((s) => s.ref.jobId === id) ?? null;
-  const tone = status === "running" ? "running" : status === "finished" ? (job.exitCode === 0 ? "positive" : "neutral") : "critical";
+  const tone = status === "running" ? "running" : status === "finished" ? (job.exitCode === 0 ? "ok" : "q") : "bad";
   const elapsed = (job.finishedAt === null ? Date.now() : Date.parse(job.finishedAt)) - Date.parse(job.startedAt);
 
   return (
@@ -169,7 +169,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
                 label: "Exit code",
                 value: job.exitCode === null ? "—" : `${job.exitCode} (${EXIT_MEANING[job.exitCode] ?? "unknown"})`,
               },
-              ...(job.error === null ? [] : [{ label: "Error", value: <span className="text-critical">{job.error}</span> }]),
+              ...(job.error === null ? [] : [{ label: "Error", value: <span className="text-bad">{job.error}</span> }]),
             ]}
           />
           <div className="mt-4 text-xs text-faint">Same run from a terminal:</div>

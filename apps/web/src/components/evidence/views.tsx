@@ -24,7 +24,7 @@ export function WithArtifact<T>({ loaded, name, children }: { loaded: Loaded<T>;
   if (loaded.status === "missing") return <p className="p-4 text-[13px] text-muted">{name} was not captured for this attempt.</p>;
   if (loaded.status === "invalid")
     return (
-      <div className="p-4 text-[13px] text-critical">
+      <div className="p-4 text-[13px] text-bad">
         {name} exists but does not match its schema, so it is not shown:
         <ul className="mt-1 list-disc pl-5 font-mono text-[12px]">
           {loaded.issues.map((i) => (
@@ -99,9 +99,9 @@ function eventSummary(e: TimelineEvent): string {
 }
 
 function eventTone(type: TimelineEvent["type"]): string {
-  if (type === "ASSERTION_FAILED" || type === "ACTION_FAILED" || type === "PAGE_ERROR" || type === "PAGE_CRASHED" || type === "NETWORK_FAILED") return "text-critical";
-  if (type === "ASSERTION_TIMEOUT" || type === "ASSERTION_ERROR" || type === "EXECUTION_ERROR" || type === "COLLECTOR_FAILED") return "text-warning";
-  if (type === "ASSERTION_PASSED") return "text-positive";
+  if (type === "ASSERTION_FAILED" || type === "ACTION_FAILED" || type === "PAGE_ERROR" || type === "PAGE_CRASHED" || type === "NETWORK_FAILED") return "text-bad";
+  if (type === "ASSERTION_TIMEOUT" || type === "ASSERTION_ERROR" || type === "EXECUTION_ERROR" || type === "COLLECTOR_FAILED") return "text-warn";
+  if (type === "ASSERTION_PASSED") return "text-ok";
   if (type.startsWith("ASSERTION") || type.startsWith("ACTION")) return "text-fg";
   return "text-muted";
 }
@@ -110,7 +110,7 @@ export function TimelineView({ timeline, highlight }: { timeline: Timeline; high
   return (
     <ol className="divide-y divide-line font-mono text-[12px]">
       {timeline.events.map((e) => (
-        <li key={e.id} id={e.id} className={cn("grid grid-cols-[88px_64px_68px_1fr] gap-3 px-4 py-1.5 hover:bg-hover/40", highlight.has(e.id) && "bg-accent/5")}>
+        <li key={e.id} id={e.id} className={cn("grid grid-cols-[88px_64px_68px_1fr] gap-3 px-4 py-1.5 hover:bg-hover/40", highlight.has(e.id) && "bg-hover")}>
           <span className="text-faint">{clockTime(e.timestamp)}</span>
           <span className="text-right text-faint">+{Math.round(e.elapsedMs)}ms</span>
           <span className="text-faint">{e.source}</span>
@@ -124,7 +124,7 @@ export function TimelineView({ timeline, highlight }: { timeline: Timeline; high
   );
 }
 
-const ASSERT_TONE = { passed: "positive", failed: "critical", timeout: "warning", error: "warning" } as const;
+const ASSERT_TONE = { passed: "ok", failed: "bad", timeout: "warn", error: "warn" } as const;
 
 export function AssertionsView({ file }: { file: AssertionsFile }) {
   if (file.results.length === 0) return <p className="p-4 text-[13px] text-muted">No assertion was evaluated.</p>;
@@ -145,7 +145,7 @@ export function AssertionsView({ file }: { file: AssertionsFile }) {
               <span className="text-faint">expected</span>
               <span className="break-all text-fg">{compactJson(a.expected)}</span>
               <span className="text-faint">observed</span>
-              <span className={cn("break-all", a.status === "failed" ? "text-critical" : "text-fg")}>{compactJson(a.actual)}</span>
+              <span className={cn("break-all", a.status === "failed" ? "text-bad" : "text-fg")}>{compactJson(a.actual)}</span>
             </div>
             <div className="mt-1 text-xs text-faint">
               {a.message} · {a.attempts} evaluation(s) in {duration(a.durationMs)} (timeout {duration(a.timeoutMs)}) · {clockTime(a.finishedAt)}
@@ -162,7 +162,7 @@ export function ConsoleView({ file }: { file: ConsoleFile }) {
   return (
     <ol className="divide-y divide-line font-mono text-[12px]">
       {file.pageErrors.map((e) => (
-        <li key={e.id} className="grid grid-cols-[88px_64px_1fr] gap-3 px-4 py-1.5 text-critical">
+        <li key={e.id} className="grid grid-cols-[88px_64px_1fr] gap-3 px-4 py-1.5 text-bad">
           <span className="text-faint">{clockTime(e.timestamp)}</span>
           <span>page error</span>
           <span className="break-words">
@@ -173,7 +173,7 @@ export function ConsoleView({ file }: { file: ConsoleFile }) {
       {file.messages.map((m) => (
         <li key={m.id} className="grid grid-cols-[88px_64px_1fr] gap-3 px-4 py-1.5">
           <span className="text-faint">{clockTime(m.timestamp)}</span>
-          <span className={m.level === "error" ? "text-critical" : m.level === "warning" ? "text-warning" : "text-muted"}>{m.level}</span>
+          <span className={m.level === "error" ? "text-bad" : m.level === "warning" ? "text-warn" : "text-muted"}>{m.level}</span>
           <span className="break-words text-fg">
             {m.text}
             {m.location !== undefined && (
@@ -205,11 +205,11 @@ export function NetworkView({ file, highlight }: { file: NetworkFile; highlight:
         const status = x.response?.status;
         return (
           <li key={x.id}>
-            <details className={cn("group", highlight.has(x.id) && "bg-accent/5")}>
+            <details className={cn("group", highlight.has(x.id) && "bg-hover")}>
               <summary className="grid cursor-pointer grid-cols-[88px_52px_44px_1fr_auto] items-center gap-3 px-4 py-1.5 font-mono text-[12px] hover:bg-hover/40">
                 <span className="text-faint">{clockTime(x.request.timestamp)}</span>
                 <span className="text-muted">{x.request.method}</span>
-                <span className={status === undefined ? "text-critical" : status >= 400 ? "text-critical" : "text-positive"}>{status ?? "ERR"}</span>
+                <span className={status === undefined ? "text-bad" : status >= 400 ? "text-bad" : "text-ok"}>{status ?? "ERR"}</span>
                 <span className="truncate text-fg" title={x.request.url}>
                   {pathOf(x.request.url)}
                 </span>
@@ -220,10 +220,10 @@ export function NetworkView({ file, highlight }: { file: NetworkFile; highlight:
               <div className="grid gap-3 border-t border-line bg-panel-2 px-4 py-3 md:grid-cols-2">
                 {(["request", "response"] as const).map((side) => {
                   const part = side === "request" ? x.request : x.response;
-                  if (part === undefined) return <div key={side} className="text-xs text-critical">{x.failure?.errorText ?? "No response"}</div>;
+                  if (part === undefined) return <div key={side} className="text-xs text-bad">{x.failure?.errorText ?? "No response"}</div>;
                   return (
                     <div key={side} className="min-w-0">
-                      <div className="mb-1 text-[11px] uppercase tracking-wider text-faint">{side}</div>
+                      <div className="mb-1 text-[11px] text-faint">{side}</div>
                       <div className="max-h-40 overflow-auto rounded border border-line bg-code p-2 font-mono text-[11px]">
                         {Object.entries(part.headers).map(([k, v]) => (
                           <div key={k} className="break-all">
@@ -283,7 +283,7 @@ export function DomView({ file, id, runPath }: { file: ObservationsFile; id: str
             <span>
               {d.id} · {clockTime(d.timestamp)} · {bytes(d.sizeBytes)}
             </span>
-            <a href={artifactUrl(id, `${runPath}/${d.path}`, { source: true })} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-accent hover:underline">
+            <a href={artifactUrl(id, `${runPath}/${d.path}`, { source: true })} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-accent-text hover:underline">
               View source <ExternalLink className="size-3" />
             </a>
           </div>
@@ -340,13 +340,13 @@ export function TraceView({ manifest, id, runPath }: { manifest: ArtifactManifes
   );
 }
 
-const REDACTION_TONE = { verified: "positive", failed: "critical", not_scannable: "warning" } as const;
+const REDACTION_TONE = { verified: "ok", failed: "bad", not_scannable: "warn" } as const;
 
 export function ManifestView({ manifest, id, runPath }: { manifest: ArtifactManifest; id: string; runPath: string }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="px-4 pt-3 text-xs text-muted">
-        Manifest {manifest.complete ? "complete" : <span className="text-warning">incomplete</span>} · {manifest.artifacts.length} artifacts · every file hashed at capture time.
+        Manifest {manifest.complete ? "complete" : <span className="text-warn">incomplete</span>} · {manifest.artifacts.length} artifacts · every file hashed at capture time.
       </div>
       <div className={tableClass.wrap}>
         <table className={tableClass.table}>
@@ -364,7 +364,7 @@ export function ManifestView({ manifest, id, runPath }: { manifest: ArtifactMani
               <tr key={a.path} className={tableClass.tr}>
                 <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{a.type}</td>
                 <td className={`${tableClass.td} font-mono text-[12px]`}>
-                  <a href={artifactUrl(id, `${runPath}/${a.path}`, { source: a.path.endsWith(".html") })} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                  <a href={artifactUrl(id, `${runPath}/${a.path}`, { source: a.path.endsWith(".html") })} target="_blank" rel="noreferrer" className="text-accent-text hover:underline">
                     {a.path}
                   </a>
                 </td>
@@ -379,7 +379,7 @@ export function ManifestView({ manifest, id, runPath }: { manifest: ArtifactMani
         </table>
       </div>
       {manifest.missing.length > 0 && (
-        <ul className="px-4 pb-3 text-xs text-warning">
+        <ul className="px-4 pb-3 text-xs text-warn">
           {manifest.missing.map((m) => (
             <li key={m.type}>
               missing {m.type}: {m.reason}

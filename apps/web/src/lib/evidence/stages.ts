@@ -19,7 +19,7 @@ export const STAGES = [
 export type StageId = (typeof STAGES)[number]["id"];
 
 /** Visual family of a status; the label always says exactly what happened. */
-export type Tone = "positive" | "negative" | "warning" | "critical" | "neutral" | "running" | "unimplemented";
+export type Tone = "ok" | "off" | "warn" | "bad" | "q" | "running" | "unimplemented";
 
 export interface StageState {
   id: StageId;
@@ -40,7 +40,7 @@ export const NOT_IMPLEMENTED_DETAIL: Record<"fix" | "verification", string> = {
 export const NO_ROOT_CAUSE_RUN = "No root-cause experiment has been run for this bug (exegezis root-cause).";
 
 export function rootCauseTone(status: RootCauseStatus): Tone {
-  return status === "VALIDATED" ? "positive" : status === "REFUTED" ? "critical" : "warning";
+  return status === "VALIDATED" ? "ok" : status === "REFUTED" ? "off" : "q";
 }
 
 export interface StageInput {
@@ -66,17 +66,17 @@ export interface StageInput {
 export function outcomeTone(outcome: VerificationOutcome): Tone {
   switch (outcome) {
     case "VERIFIED":
-      return "positive";
+      return "ok";
     case "NOT_VERIFIED":
-      return "neutral";
+      return "off";
     case "INCONCLUSIVE":
-      return "warning";
+      return "q";
     case "FLAKY":
-      return "warning";
+      return "warn";
     case "INVALID_PLAN":
-      return "critical";
+      return "bad";
     case "UNSUPPORTED":
-      return "negative";
+      return "q";
   }
 }
 
@@ -93,21 +93,21 @@ export function deriveStages(input: StageInput): StageState[] {
 
   const symptom =
     input.symptom !== null
-      ? stage("symptom", "PROVIDED", "positive", input.symptom)
-      : stage("symptom", "NOT PROVIDED", "neutral", "This investigation started from a plan, not from a symptom.");
+      ? stage("symptom", "PROVIDED", "ok", input.symptom)
+      : stage("symptom", "NOT PROVIDED", "q", "This investigation started from a plan, not from a symptom.");
 
   let plan: StageState;
   if (input.generation !== null) {
     const status = input.generation.status;
     const tone: Tone =
-      status === "generated" ? "positive" : status === "declined" ? "warning" : status === "invalid_generation" ? "critical" : "negative";
+      status === "generated" ? "ok" : status === "declined" ? "warn" : status === "invalid_generation" ? "bad" : "off";
     plan = stage("plan", label(status).toUpperCase(), tone, input.generationDetail ?? "");
   } else if (input.planSource === "human") {
-    plan = stage("plan", "HUMAN PLAN", "neutral", "The plan was written by a person; no model was involved.");
+    plan = stage("plan", "HUMAN PLAN", "q", "The plan was written by a person; no model was involved.");
   } else if (input.running) {
     plan = stage("plan", "RUNNING", "running", "Waiting for the planner.");
   } else {
-    plan = stage("plan", "NOT RUN", "neutral", "No planner output was recorded.");
+    plan = stage("plan", "NOT RUN", "q", "No planner output was recorded.");
   }
 
   let reproduction: StageState;
@@ -119,18 +119,18 @@ export function deriveStages(input: StageInput): StageState[] {
     reproduction = stage("reproduction", "RUNNING", "running", "The engine is executing the plan.");
   } else {
     const recorded = input.outcome === null ? "" : ` The investigation ended ${label(input.outcome)} without running anything.`;
-    reproduction = stage("reproduction", "NOT RUN", "neutral", `No plan was executed, so nothing was reproduced or ruled out.${recorded}`);
+    reproduction = stage("reproduction", "NOT RUN", "q", `No plan was executed, so nothing was reproduced or ruled out.${recorded}`);
   }
 
   let evidence: StageState;
   if (input.evidenceOnDisk) {
-    evidence = stage("evidence", "AVAILABLE", "positive", "Evidence bundles of every attempt are on disk.");
+    evidence = stage("evidence", "AVAILABLE", "ok", "Evidence bundles of every attempt are on disk.");
   } else if (input.archived && input.executed) {
-    evidence = stage("evidence", "NOT ARCHIVED", "neutral", "Archived results keep the report, not the evidence bundles.");
+    evidence = stage("evidence", "NOT ARCHIVED", "q", "Archived results keep the report, not the evidence bundles.");
   } else if (input.running) {
     evidence = stage("evidence", "RUNNING", "running", "Evidence is being captured.");
   } else {
-    evidence = stage("evidence", "AWAITING EVIDENCE", "neutral", "Nothing was executed, so no evidence exists.");
+    evidence = stage("evidence", "AWAITING EVIDENCE", "q", "Nothing was executed, so no evidence exists.");
   }
 
   return [
@@ -139,15 +139,15 @@ export function deriveStages(input: StageInput): StageState[] {
     reproduction,
     evidence,
     input.rootCause === null
-      ? stage("investigation", "NOT RUN", "neutral", NO_ROOT_CAUSE_RUN)
+      ? stage("investigation", "NOT RUN", "q", NO_ROOT_CAUSE_RUN)
       : stage(
           "investigation",
           `${input.rootCause.experiments} EXPERIMENTS`,
-          input.rootCause.experiments > 0 ? "positive" : "warning",
+          input.rootCause.experiments > 0 ? "ok" : "warn",
           `${input.rootCause.hypotheses} hypotheses, ${input.rootCause.experiments} intervention experiments on isolated copies.`,
         ),
     input.rootCause === null
-      ? stage("root_cause", "NOT RUN", "neutral", NO_ROOT_CAUSE_RUN)
+      ? stage("root_cause", "NOT RUN", "q", NO_ROOT_CAUSE_RUN)
       : stage("root_cause", label(input.rootCause.status), rootCauseTone(input.rootCause.status), input.rootCause.reason),
     stage("fix", "NOT IMPLEMENTED", "unimplemented", NOT_IMPLEMENTED_DETAIL.fix),
     stage("verification", "NOT IMPLEMENTED", "unimplemented", NOT_IMPLEMENTED_DETAIL.verification),

@@ -10,7 +10,7 @@ import { getScope, inScope } from "@/lib/scope";
 
 export const metadata: Metadata = { title: "AI plans" };
 
-const GEN_TONE = { generated: "positive", declined: "warning", invalid_generation: "critical", error: "negative" } as const;
+const GEN_TONE = { generated: "ok", declined: "warn", invalid_generation: "bad", error: "off" } as const;
 
 export default async function PlannerPage() {
   const [all, scope] = await Promise.all([getSummaries(), getScope()]);

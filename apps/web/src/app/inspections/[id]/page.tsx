@@ -5,11 +5,12 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { FilterForm } from "@/components/inspection/filter-form";
 import { buttonClass, CodeBlock, EmptyState, Meta, Mono, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
-import { StatusPill } from "@/components/ui/status";
+import { SeverityLabel } from "@/components/inspection/severity";
+import { RunHistory, StatusPill, VerdictPill } from "@/components/ui/status";
 import type { InspectionRef } from "@/lib/evidence/discover";
 import { filterFindings, findInspection, loadFindingEvidence, pageRows, parseFindingFilters, sortFindings, type FindingEvidence } from "@/lib/evidence/inspections";
 import { absoluteTime, duration } from "@/lib/format";
-import { CHECK_LABEL, INSPECTION_STATUS_TEXT, INSPECTION_STATUS_TONE, PAGE_STATUS_TONE, SEVERITY_LABEL, SEVERITY_TONE, shortUrl } from "@/lib/inspection-labels";
+import { CHECK_LABEL, INSPECTION_STATUS_TEXT, INSPECTION_STATUS_TONE, PAGE_STATUS_TONE, SEVERITY_LABEL, shortUrl } from "@/lib/inspection-labels";
 import { artifactUrl } from "@/lib/urls";
 
 export const metadata: Metadata = { title: "Inspección" };
@@ -19,18 +20,9 @@ type Search = Promise<Record<string, string | string[] | undefined>>;
 
 function Occurrences({ finding, runs }: { finding: Finding; runs: number }) {
   return (
-    <span className="inline-flex items-center gap-1" title={`Observado en ${finding.occurrences.length} de ${runs} repeticiones`}>
-      <span className="sr-only">
-        Observado en {finding.occurrences.length} de {runs} repeticiones
-      </span>
-      {Array.from({ length: runs }, (_, i) => (
-        <span
-          key={i}
-          aria-hidden
-          className={finding.occurrences.includes(i + 1) ? "size-2 rounded-full bg-fg/70" : "size-2 rounded-full border border-faint"}
-        />
-      ))}
-      <span aria-hidden className="ml-1 font-mono text-[11px] text-muted">
+    <span className="inline-flex items-center gap-1.5">
+      <RunHistory runs={Array.from({ length: runs }, (_, i) => (finding.occurrences.includes(i + 1) ? "ok" : "off"))} label="Observado por repetición" />
+      <span className="font-mono text-[11px] text-muted">
         {finding.occurrences.length}/{runs}
       </span>
     </span>
@@ -68,7 +60,7 @@ function EvidenceBlock({ id, finding, evidence }: { id: string; finding: Finding
             <div className="break-all text-fg">
               {x.request.method} {x.request.url}
             </div>
-            <div className={x.response === undefined || x.response.status >= 400 ? "text-critical" : "text-positive"}>
+            <div className={x.response === undefined || x.response.status >= 400 ? "text-bad" : "text-ok"}>
               {x.response === undefined ? `sin respuesta: ${x.failure?.errorText ?? "desconocido"}` : `${x.response.status} ${x.response.statusText}`}
               <span className="text-faint"> · {x.request.resourceType}</span>
             </div>
@@ -94,7 +86,7 @@ function EvidenceBlock({ id, finding, evidence }: { id: string; finding: Finding
           <summary className="cursor-pointer px-3 py-2 text-xs text-muted hover:text-fg">DOM capturado (marco aislado, sin scripts)</summary>
           <div className="border-t border-line">
             <iframe title={`DOM de ${finding.page}`} sandbox="" src={artifactUrl(id, dom.path)} className="h-80 w-full bg-white" loading="lazy" />
-            <a href={artifactUrl(id, dom.path, { source: true })} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-2 text-xs text-accent hover:underline">
+            <a href={artifactUrl(id, dom.path, { source: true })} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-2 text-xs text-accent-text hover:underline">
               Ver el código fuente <ExternalLink className="size-3" />
             </a>
           </div>
@@ -114,7 +106,8 @@ function FindingItem({ inspectionId, finding, report, evidence }: { inspectionId
     <li className="border-b border-line last:border-b-0">
       <details className="group">
         <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 hover:bg-hover/40 [&::-webkit-details-marker]:hidden">
-          <StatusPill status={SEVERITY_LABEL[finding.severity]} tone={SEVERITY_TONE[finding.severity]} size="xs" />
+          <VerdictPill verdict={finding.verdict} size="xs" />
+          <SeverityLabel severity={finding.severity} />
           <span className="font-mono text-[11px] text-faint">{finding.id}</span>
           <span className="min-w-0 flex-1 basis-60 text-[13px] font-medium break-words text-fg">{finding.title}</span>
           <span className="text-xs text-muted">{CHECK_LABEL[finding.checkId] ?? finding.checkId}</span>
@@ -153,7 +146,7 @@ function FindingItem({ inspectionId, finding, report, evidence }: { inspectionId
                     : "Sin spec: la comprobación de este hallazgo no se puede expresar como aserción."}
                 </p>
               ) : evidence.spec === null ? (
-                <p className="text-[13px] text-critical">El informe cita {finding.spec}, pero el archivo no existe.</p>
+                <p className="text-[13px] text-bad">El informe cita {finding.spec}, pero el archivo no existe.</p>
               ) : (
                 <>
                   <p className="mb-2 text-xs text-faint">Falla mientras el problema exista y pasa cuando se corrige. Usa BASE_URL para apuntarlo a otro entorno.</p>
@@ -190,8 +183,8 @@ export default async function InspectionPage({ params, searchParams }: { params:
   if (inspection === null) notFound();
   if (inspection.report.status !== "ok") {
     return (
-      <div className="flex flex-col gap-6">
-        <PageHeader title="Informe de inspección no válido" eyebrow={<StatusPill status="INVALID REPORT" tone="critical" />} description={<Mono>{inspection.relDir}</Mono>} />
+      <div lang="es" className="flex flex-col gap-6">
+        <PageHeader title="Informe de inspección no válido" eyebrow={<StatusPill status="INVALID REPORT" tone="bad" />} description={<Mono>{inspection.relDir}</Mono>} />
         <Panel title="Por qué no se muestra">
           {inspection.report.status === "missing" ? (
             <p className="text-[13px] text-muted">El archivo inspection-report.json ha desaparecido.</p>
@@ -200,7 +193,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
               <p className="mb-2 text-[13px] text-muted">
                 El informe no cumple su esquema, o sus veredictos y recuentos no se derivan de las observaciones registradas. No se muestra ni en parte.
               </p>
-              <ul className="list-disc pl-5 font-mono text-[12px] text-critical">
+              <ul className="list-disc pl-5 font-mono text-[12px] text-bad">
                 {inspection.report.issues.map((i) => (
                   <li key={i}>{i}</li>
                 ))}
@@ -225,7 +218,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
   const s = report.summary;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div lang="es" className="flex flex-col gap-6">
       <PageHeader
         eyebrow={<StatusPill status={report.status} tone={INSPECTION_STATUS_TONE[report.status]} />}
         title={<span className="break-all font-mono text-[20px]">{report.target.url}</span>}
@@ -238,8 +231,8 @@ export default async function InspectionPage({ params, searchParams }: { params:
       />
 
       {writes.length > 0 && (
-        <div role="alert" className="flex gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] text-fg">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
+        <div role="alert" className="flex gap-3 rounded-lg border border-warn/40 bg-warn-bg px-4 py-3 text-[13px] text-fg">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
           <div>
             <strong className="font-semibold">
               La página hizo {writes.length} {writes.length === 1 ? "escritura" : "escrituras"} por su cuenta
@@ -248,7 +241,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
             {report.options.strictReadonly
               ? `Las páginas afectadas quedan DEGRADED y sus hallazgos se descartan (${s.discardedByPolicy} observaciones).`
               : "La inspección no envía formularios ni pulsa botones; estas peticiones las lanzó el código de la propia página al cargar. Si no deben llegar al servidor, repite con --strict-readonly."}{" "}
-            <a href="#page-writes" className="text-accent underline">
+            <a href="#page-writes" className="text-accent-text underline">
               Ver las escrituras
             </a>
           </div>
@@ -321,7 +314,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
                   <tr key={i} className={tableClass.tr}>
                     <td className={`${tableClass.td} font-mono`}>{w.method}</td>
                     <td className={`${tableClass.td} break-all font-mono text-[12px]`}>{w.url}</td>
-                    <td className={`${tableClass.td} font-mono`}>{w.blocked ? <span className="text-warning">bloqueada</span> : (w.status ?? "—")}</td>
+                    <td className={`${tableClass.td} font-mono`}>{w.blocked ? <span className="text-warn">bloqueada</span> : (w.status ?? "—")}</td>
                     <td className={`${tableClass.td} font-mono text-[12px]`}>{shortUrl(w.page, report.target.origin)}</td>
                     <td className={`${tableClass.td} font-mono`}>{w.run}</td>
                   </tr>
@@ -332,7 +325,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
         )}
       </Panel>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Panel title={`Páginas (${pages.length})`} icon={<Globe />} bodyClassName="p-0">
           <div className={tableClass.wrap}>
             <table className={tableClass.table}>
@@ -367,7 +360,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
           </div>
         </Panel>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <Panel title="Configuración y herramientas" icon={<Wrench />}>
             <Meta
               items={[
@@ -384,10 +377,10 @@ export default async function InspectionPage({ params, searchParams }: { params:
                 { label: "Playwright", value: <Mono>{report.tools.playwright}</Mono> },
                 { label: "axe-core", value: report.tools.axe === null ? "—" : <Mono>{`${report.tools.axe} · ${report.tools.axeRules.length} reglas`}</Mono> },
                 { label: "Comprobaciones", value: <Mono>{report.tools.checks.map((c) => `${c.id}@${c.version}`).join(", ")}</Mono> },
-                ...(report.totalTimeoutReached ? [{ label: "Tiempo total", value: <span className="text-warning">agotado</span> }] : []),
+                ...(report.totalTimeoutReached ? [{ label: "Tiempo total", value: <span className="text-warn">agotado</span> }] : []),
               ]}
             />
-            <a href={artifactUrl(inspection.id, "inspection-report.json")} target="_blank" rel="noreferrer" className="mt-4 flex items-center gap-1 text-xs text-accent hover:underline">
+            <a href={artifactUrl(inspection.id, "inspection-report.json")} target="_blank" rel="noreferrer" className="mt-4 flex items-center gap-1 text-xs text-accent-text hover:underline">
               <FileCode2 className="size-3.5" /> inspection-report.json
             </a>
           </Panel>

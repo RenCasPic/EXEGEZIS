@@ -56,7 +56,7 @@ export default async function OverviewPage() {
         <Stat label="Median time to verification" value={duration(median(verifyTimes))} hint={`over ${verifyTimes.length} verified reproductions (all attempts)`} />
         <Stat
           label="False verifications"
-          value={<span className={falseVerified === 0 ? "text-positive" : "text-critical"}>{falseVerified}</span>}
+          value={<span className={falseVerified === 0 ? "text-ok" : "text-bad"}>{falseVerified}</span>}
           hint={`VERIFIED on negative benchmark cases (${negativeCases} evaluated)`}
         />
       </div>
@@ -69,7 +69,7 @@ export default async function OverviewPage() {
                 {String(i + 1).padStart(2, "0")}
                 <span className="text-[12px] font-sans font-medium text-fg">{stage.label}</span>
               </div>
-              {count === null ? <NotImplemented size="xs" /> : <StatusPill status={`${count} recorded`} tone={count > 0 ? "positive" : "neutral"} size="xs" />}
+              {count === null ? <NotImplemented size="xs" /> : <StatusPill status={`${count} recorded`} tone={count > 0 ? "ok" : "q"} size="xs" />}
             </li>
           ))}
         </ol>

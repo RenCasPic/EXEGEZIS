@@ -89,7 +89,7 @@ export function SidebarNav({ counts, onNavigate }: { counts: SidebarCounts; onNa
     <nav className="flex flex-col gap-4" aria-label="Main">
       {groups.map((group, i) => (
         <div key={group.title ?? `g${i}`} className="flex flex-col gap-px">
-          {group.title !== null && <div className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-faint">{group.title}</div>}
+          {group.title !== null && <div className="px-2 pb-1 text-[11px] font-medium text-faint">{group.title}</div>}
           {group.items.map((item) => {
             const active = item.match(path, status);
             return (
@@ -103,7 +103,7 @@ export function SidebarNav({ counts, onNavigate }: { counts: SidebarCounts; onNa
                   active ? "bg-hover text-fg" : "text-muted hover:bg-hover/60 hover:text-fg",
                 )}
               >
-                <span className={cn("[&>svg]:size-4", active ? "text-accent" : "text-faint group-hover:text-muted")}>{item.icon}</span>
+                <span className={cn("[&>svg]:size-4", active ? "text-accent-text" : "text-faint group-hover:text-muted")}>{item.icon}</span>
                 <span className="flex-1 truncate">{item.label}</span>
                 {item.count !== undefined && <span className="font-mono text-[11px] text-faint">{item.count}</span>}
                 {item.tag !== undefined && (
@@ -136,7 +136,7 @@ export function SidebarFooter({ workspace, repository, user }: { workspace: stri
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-3">
       <div className="px-2">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-faint">Workspace</div>
+        <div className="text-[11px] font-medium text-faint">Workspace</div>
         <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-fg">
           <BookOpenCheck className="size-3.5 text-faint" />
           {workspace}

@@ -66,12 +66,12 @@ export default async function ProjectsPage() {
                 />
                 {p.suites.length > 0 && (
                   <div className="mt-4 flex flex-col gap-2">
-                    <div className="text-[11px] font-medium uppercase tracking-wider text-faint">Benchmark suites</div>
+                    <div className="text-[11px] font-medium text-faint">Benchmark suites</div>
                     {p.suites.map((s) => (
                       <div key={s.id} className="rounded-md border border-line px-3 py-2">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-[12px] text-fg">{s.id}</span>
-                          <StatusPill status={s.planSource === "human" ? "HUMAN PLANS" : "AI PLANS"} tone="neutral" size="xs" />
+                          <StatusPill status={s.planSource === "human" ? "HUMAN PLANS" : "AI PLANS"} tone="q" size="xs" />
                           <span className="text-xs text-faint">{s.cases} cases</span>
                         </div>
                         <div className="mt-1 font-mono text-[11px] text-faint">starts: {s.command}</div>
@@ -80,7 +80,7 @@ export default async function ProjectsPage() {
                   </div>
                 )}
                 <div className="mt-4">
-                  <Link href="/investigations" className="text-xs text-accent hover:underline">
+                  <Link href="/investigations" className="text-xs text-accent-text hover:underline">
                     View investigations →
                   </Link>
                 </div>

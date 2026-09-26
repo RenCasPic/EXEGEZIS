@@ -8,17 +8,17 @@ import { label, rootCauseTone, type Tone } from "@/lib/evidence/stages";
 import { absoluteTime } from "@/lib/format";
 import { artifactUrl } from "@/lib/urls";
 
-const EXPERIMENT_TONE: Record<string, Tone> = { CONFIRMED: "positive", FALSIFIED: "critical", INCONCLUSIVE: "warning" };
-const EVIDENCE_TONE: Record<string, Tone> = { met: "positive", not_met: "critical", unknown: "warning", not_applicable: "neutral" };
+const EXPERIMENT_TONE: Record<string, Tone> = { CONFIRMED: "ok", FALSIFIED: "off", INCONCLUSIVE: "q" };
+const EVIDENCE_TONE: Record<string, Tone> = { met: "ok", not_met: "bad", unknown: "q", not_applicable: "q" };
 const EVIDENCE_MARK: Record<string, string> = { met: "✓", not_met: "✗", unknown: "?", not_applicable: "—" };
-const SPECIFICITY_TONE: Record<string, Tone> = { surgical: "positive", not_surgical: "critical", unknown: "warning" };
-const HYPOTHESIS_TONE: Record<string, Tone> = { SUPPORTED: "positive", REFUTED: "critical", UNRESOLVED: "warning" };
+const SPECIFICITY_TONE: Record<string, Tone> = { surgical: "ok", not_surgical: "off", unknown: "q" };
+const HYPOTHESIS_TONE: Record<string, Tone> = { SUPPORTED: "ok", REFUTED: "off", UNRESOLVED: "q" };
 
 function Counts({ reproduced, runs, invalid }: { reproduced: number; runs: number; invalid: number }) {
   return (
     <span className="font-mono text-[12px] text-fg">
       {reproduced}/{runs}
-      {invalid > 0 && <span className="ml-1 text-warning">({invalid} invalid)</span>}
+      {invalid > 0 && <span className="ml-1 text-warn">({invalid} invalid)</span>}
     </span>
   );
 }
@@ -52,11 +52,11 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill status={label(d.status)} tone={rootCauseTone(d.status)} />
-          <StatusPill status={`EVIDENCE: ${d.evidenceLevel}`} tone={d.evidenceLevel === "VALIDATED" ? "positive" : "neutral"} size="xs" />
+          <StatusPill status={`EVIDENCE: ${d.evidenceLevel}`} tone={d.evidenceLevel === "VALIDATED" ? "ok" : "q"} size="xs" />
           {focus !== null && <span className="font-mono text-[12px] text-muted">{focus}</span>}
         </div>
         {isCandidate && (
-          <div className="text-[11px] font-medium uppercase tracking-wider text-warning">Root cause candidate — not validated</div>
+          <div className="text-[11px] font-medium text-warn">Root cause candidate — not validated</div>
         )}
         {d.statement !== null && <div className={cn("text-[15px] font-medium", isCandidate ? "text-muted" : "text-fg")}>{d.statement}</div>}
         <div className="text-[13px] text-muted">{d.reason}</div>
@@ -64,7 +64,7 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
           <div
             className={cn(
               "mt-1 flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 text-[13px]",
-              isCandidate ? "border-line bg-panel-2" : "border-positive/30 bg-positive/5",
+              isCandidate ? "border-line bg-panel-2" : "border-ok/30 bg-ok-bg",
             )}
           >
             <span className="text-muted">Experiment {winnerExperiment.id}</span>
@@ -79,20 +79,20 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
       {winner !== null && (
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-md border border-line p-3">
-            <div className="mb-1 text-xs font-medium uppercase tracking-wider text-muted">Prediction</div>
+            <div className="mb-1 text-xs font-medium text-muted">Prediction</div>
             <div className="text-[13px] text-fg">
               If {winner.id} is the cause, this intervention removes the bug in every run: <span className="text-muted">{winner.intervention.description}</span>
             </div>
           </div>
           <div className="rounded-md border border-line p-3">
-            <div className="mb-1 text-xs font-medium uppercase tracking-wider text-muted">Result</div>
+            <div className="mb-1 text-xs font-medium text-muted">Result</div>
             <div className="text-[13px] text-fg">{winnerExperiment?.result.reason}</div>
           </div>
         </div>
       )}
 
       <div>
-        <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
+        <div className="mb-2 text-xs font-medium text-muted">
           Evidence matrix{focus === null ? "" : ` · ${focus}`}
         </div>
         <div className={cn(tableClass.wrap, "rounded-md border border-line")}>
@@ -110,7 +110,7 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
                 <tr key={item.id} className={tableClass.tr}>
                   <td className={`${tableClass.td} text-[13px] text-fg`}>{item.label}</td>
                   <td className={tableClass.td}>
-                    <StatusPill status={`${EVIDENCE_MARK[item.status] ?? ""} ${item.status.replace("_", " ")}`} tone={EVIDENCE_TONE[item.status] ?? "neutral"} size="xs" />
+                    <StatusPill status={`${EVIDENCE_MARK[item.status] ?? ""} ${item.status.replace("_", " ")}`} tone={EVIDENCE_TONE[item.status] ?? "q"} size="xs" />
                   </td>
                   <td className={`${tableClass.td} text-[12px] text-muted`}>{item.required ? "yes" : "no"}</td>
                   <td className={`${tableClass.td} max-w-[28rem] text-[12px] text-muted`}>{item.detail}</td>
@@ -126,7 +126,7 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
 
       {report.observations.length > 0 && (
         <div>
-          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">Evidence the hypotheses rely on</div>
+          <div className="mb-2 text-xs font-medium text-muted">Evidence the hypotheses rely on</div>
           <ul className="flex flex-col gap-1.5">
             {report.observations.map((o) => (
               <li key={o.id} className="rounded-md border border-line px-3 py-2">
@@ -141,7 +141,7 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
       )}
 
       <div>
-        <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">Experiments</div>
+        <div className="mb-2 text-xs font-medium text-muted">Experiments</div>
         <div className={cn(tableClass.wrap, "rounded-md border border-line")}>
           <table className={tableClass.table}>
             <thead>
@@ -172,11 +172,11 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
                   </td>
                   <td className={`${tableClass.td} font-mono text-[11px] text-muted`}>bug {e.prediction === "eliminates" ? "disappears" : "persists"}</td>
                   <td className={tableClass.td}>
-                    <StatusPill status={e.result.status} tone={EXPERIMENT_TONE[e.result.status] ?? "neutral"} size="xs" />
+                    <StatusPill status={e.result.status} tone={EXPERIMENT_TONE[e.result.status] ?? "q"} size="xs" />
                   </td>
                   <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{e.site.executions === null ? "?" : `${e.site.executions}×`}</td>
                   <td className={tableClass.td} title={e.specificity.reason}>
-                    <StatusPill status={e.specificity.status.replace("_", " ")} tone={SPECIFICITY_TONE[e.specificity.status] ?? "neutral"} size="xs" />
+                    <StatusPill status={e.specificity.status.replace("_", " ")} tone={SPECIFICITY_TONE[e.specificity.status] ?? "q"} size="xs" />
                   </td>
                   <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>
                     {e.reversal === null ? "—" : `${e.reversal.counts.reproduced}/${e.reversal.counts.runs}`}
@@ -190,7 +190,7 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
       </div>
 
       <div>
-        <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">Hypotheses</div>
+        <div className="mb-2 text-xs font-medium text-muted">Hypotheses</div>
         <ul className="flex flex-col gap-2">
           {report.hypotheses.map((h) => {
             const o = report.outcomes.find((x) => x.id === h.id);
@@ -200,7 +200,7 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
                 <details className="group rounded-md border border-line" open={h.id === d.hypothesisId}>
                   <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-3 py-2">
                     <span className="font-mono text-[12px] text-faint">{h.id}</span>
-                    {o !== undefined && <StatusPill status={o.status} tone={HYPOTHESIS_TONE[o.status] ?? "neutral"} size="xs" />}
+                    {o !== undefined && <StatusPill status={o.status} tone={HYPOTHESIS_TONE[o.status] ?? "q"} size="xs" />}
                     <span className="min-w-0 flex-1 text-[13px] text-fg">{h.statement}</span>
                     <span className="text-[11px] text-faint">proposed by {h.provenance.source === "model" ? (h.provenance.model ?? "a model") : h.provenance.generator ?? h.provenance.source}</span>
                   </summary>
@@ -215,7 +215,7 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
                     />
                     {e?.arm.mutation != null && <CodeBlock code={e.arm.mutation.diff} lineNumbers={false} maxHeight="14rem" />}
                     {e !== undefined && e.specificity.changed.length > 0 && (
-                      <div className="rounded-md border border-critical/30 bg-critical/5 p-2 text-[12px]">
+                      <div className="rounded-md border border-bad/30 bg-bad-bg p-2 text-[12px]">
                         <div className="mb-1 text-muted">Execution changed in the control scenario (where the baseline is correct):</div>
                         <ul className="font-mono text-[11px] text-fg">
                           {e.specificity.changed.map((c) => (
@@ -233,8 +233,8 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
                             key={a.runId}
                             title={`${a.runId} · ${a.verdict}${a.stoppedAtStep === undefined ? "" : ` at step ${a.stoppedAtStep}`}`}
                             className={cn(
-                              "rounded border px-1.5 py-px font-mono text-[10px] uppercase",
-                              a.classification === "reproduced" ? "border-critical/40 text-critical" : a.classification === "not_reproduced" ? "border-positive/40 text-positive" : "border-warning/40 text-warning",
+                              "rounded border px-1.5 py-px font-mono text-[10px]",
+                              a.classification === "reproduced" ? "border-bad/40 text-bad" : a.classification === "not_reproduced" ? "border-ok/40 text-ok" : "border-warn/40 text-warn",
                             )}
                           >
                             #{a.attempt} {a.classification.replace("_", " ")}
@@ -252,7 +252,7 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-md border border-line p-3">
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted">
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted">
             <ShieldCheck className="size-3.5" /> Isolation
           </div>
           <Meta
@@ -263,11 +263,11 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
               {
                 label: "Unchanged",
                 value: report.isolation.unchanged ? (
-                  <span className="flex items-center gap-1 text-positive">
+                  <span className="flex items-center gap-1 text-ok">
                     <Check className="size-3.5" /> source tree identical before and after
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-critical">
+                  <span className="flex items-center gap-1 text-bad">
                     <X className="size-3.5" /> source tree changed
                   </span>
                 ),
@@ -280,11 +280,11 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
           />
         </div>
         <div className="rounded-md border border-line p-3">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">Artifacts</div>
+          <div className="mb-2 text-xs font-medium text-muted">Artifacts</div>
           <ul className="flex flex-col gap-1 font-mono text-[12px]">
             {files.map((f) => (
               <li key={f}>
-                <a href={artifactUrl(entry.ref.id, f)} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                <a href={artifactUrl(entry.ref.id, f)} target="_blank" rel="noreferrer" className="text-accent-text hover:underline">
                   {f}
                 </a>
               </li>
@@ -292,8 +292,8 @@ export function RootCauseView({ entry, report }: { entry: RootCauseEntry; report
           </ul>
           {entry.evaluation !== null && (
             <div className="mt-3 border-t border-line pt-3 text-[12px]">
-              <div className="mb-1 text-[11px] uppercase tracking-wider text-faint">Benchmark ground truth (never shown to the engine)</div>
-              <div className={entry.evaluation.falseValidation ? "text-critical" : entry.evaluation.correct === true ? "text-positive" : "text-muted"}>{entry.evaluation.detail}</div>
+              <div className="mb-1 text-[11px] text-faint">Benchmark ground truth (never shown to the engine)</div>
+              <div className={entry.evaluation.falseValidation ? "text-bad" : entry.evaluation.correct === true ? "text-ok" : "text-muted"}>{entry.evaluation.detail}</div>
             </div>
           )}
         </div>

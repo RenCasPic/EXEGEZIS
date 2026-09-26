@@ -17,7 +17,7 @@ export default async function RootCausePage({ params }: { params: Promise<{ id: 
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title={entry.ref.caseId} description="This report could not be loaded." />
-        <p className="text-[13px] text-critical">{entry.report.status === "missing" ? "root-cause-report.json is missing." : entry.report.issues.join("; ")}</p>
+        <p className="text-[13px] text-bad">{entry.report.status === "missing" ? "root-cause-report.json is missing." : entry.report.issues.join("; ")}</p>
       </div>
     );
   }
@@ -41,7 +41,7 @@ export default async function RootCausePage({ params }: { params: Promise<{ id: 
           <ul className="flex flex-col gap-1 text-[13px]">
             {investigations.map((s) => (
               <li key={s.ref.id}>
-                <Link href={`/investigations/${s.ref.id}`} className="text-accent hover:underline">
+                <Link href={`/investigations/${s.ref.id}`} className="text-accent-text hover:underline">
                   {s.title}
                 </Link>{" "}
                 <span className="font-mono text-[11px] text-faint">{s.ref.id}</span>

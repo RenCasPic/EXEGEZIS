@@ -31,14 +31,14 @@ export default async function BenchmarksPage() {
           label="Validated root causes"
           value={latestRootCauses.filter((r) => r.report.decision.status === "VALIDATED").length}
           hint={
-            <Link href="/verification/root-causes" className={rcFalse > 0 ? "text-critical hover:underline" : "hover:underline"}>
+            <Link href="/verification/root-causes" className={rcFalse > 0 ? "text-bad hover:underline" : "hover:underline"}>
               {latestRootCauses.length} root-cause cases · {rcFalse} false validation{rcFalse === 1 ? "" : "s"}
             </Link>
           }
         />
         <Stat
           label="False validations"
-          value={<span className={sum((r) => r.summary.falsePositives) === 0 ? "text-positive" : "text-critical"}>{sum((r) => r.summary.falsePositives)}</span>}
+          value={<span className={sum((r) => r.summary.falsePositives) === 0 ? "text-ok" : "text-bad"}>{sum((r) => r.summary.falsePositives)}</span>}
           hint="VERIFIED on a negative case"
         />
       </div>
@@ -84,13 +84,13 @@ export default async function BenchmarksPage() {
                       )}
                     </td>
                     <td className={tableClass.td}>
-                      <StatusPill status={`${r.summary.passed}/${r.summary.total} PASS`} tone={r.summary.failed === 0 ? "positive" : "critical"} size="xs" />
+                      <StatusPill status={`${r.summary.passed}/${r.summary.total} PASS`} tone={r.summary.failed === 0 ? "ok" : "bad"} size="xs" />
                     </td>
                     <td className={`${tableClass.td} font-mono text-[12px]`}>
                       {r.summary.truePositives} / {r.summary.falseNegatives}
                     </td>
                     <td className={`${tableClass.td} font-mono text-[12px]`}>
-                      <span className={r.summary.falsePositives > 0 ? "text-critical" : ""}>{r.summary.falsePositives}</span> / {r.summary.trueNegatives}
+                      <span className={r.summary.falsePositives > 0 ? "text-bad" : ""}>{r.summary.falsePositives}</span> / {r.summary.trueNegatives}
                     </td>
                     <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{percent(r.metrics.inconclusiveRate, 1)}</td>
                     <td className={tableClass.td}>
@@ -112,7 +112,7 @@ export default async function BenchmarksPage() {
         )}
       </Panel>
       {broken.length > 0 && (
-        <p className="text-xs text-critical">
+        <p className="text-xs text-bad">
           {broken.length} benchmark result file(s) could not be read or failed schema validation: {broken.map((b) => b.relDir).join(", ")}
         </p>
       )}

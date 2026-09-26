@@ -112,13 +112,13 @@ export function StartForm({
       </div>
 
       {!credentials && (
-        <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-[13px] text-warning">
+        <div className="flex items-start gap-2 rounded-md border border-warn/40 bg-warn-bg p-3 text-[13px] text-warn">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           No planner credentials found. Add EXEGEZIS_ANTHROPIC_API_KEY to the repository’s .env file to start investigations from here.
         </div>
       )}
       {state.error !== null && (
-        <div role="alert" className="flex items-start gap-2 rounded-md border border-critical/40 bg-critical/10 p-3 text-[13px] text-critical">
+        <div role="alert" className="flex items-start gap-2 rounded-md border border-bad/40 bg-bad-bg p-3 text-[13px] text-bad">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           {state.error}
         </div>

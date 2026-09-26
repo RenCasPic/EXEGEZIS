@@ -105,9 +105,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 {
                   label: "Credentials",
                   value: credentials ? (
-                    <StatusPill status="CONFIGURED" tone="positive" size="xs" />
+                    <StatusPill status="CONFIGURED" tone="ok" size="xs" />
                   ) : (
-                    <StatusPill status="MISSING" tone="warning" size="xs" />
+                    <StatusPill status="MISSING" tone="warn" size="xs" />
                   ),
                 },
                 { label: "Calls per plan", value: "Exactly one. No retries, no repair, no agent loop." },
@@ -132,7 +132,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 ]}
               />
               <div>
-                <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-faint">Redaction self-check (live, fake sample)</div>
+                <div className="mb-1.5 text-[11px] font-medium text-faint">Redaction self-check (live, fake sample)</div>
                 <pre className="whitespace-pre-wrap rounded-md border border-line bg-code p-2 font-mono text-[12px] text-muted">{REDACTION_SAMPLE}</pre>
                 <pre className="mt-1.5 whitespace-pre-wrap rounded-md border border-line bg-code p-2 font-mono text-[12px] text-fg">{redacted.text}</pre>
                 <div className="mt-1 font-mono text-[11px] text-faint">

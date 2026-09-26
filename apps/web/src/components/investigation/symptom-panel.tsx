@@ -18,7 +18,7 @@ export function SymptomPanel({ summary }: { summary: InvestigationSummary }) {
       {summary.symptom === null ? (
         <p className="text-[13px] text-muted">{stage?.detail}</p>
       ) : (
-        <blockquote className="whitespace-pre-wrap border-l-2 border-accent/60 pl-4 text-[14px] leading-relaxed text-fg">{summary.symptom}</blockquote>
+        <blockquote className="whitespace-pre-wrap border-l-2 border-line-strong pl-4 text-[14px] leading-relaxed text-fg">{summary.symptom}</blockquote>
       )}
       {(source !== null || summary.benchmark !== null) && (
         <Meta
@@ -32,7 +32,7 @@ export function SymptomPanel({ summary }: { summary: InvestigationSummary }) {
                   { label: "Expected outcome", value: <OutcomePill outcome={summary.benchmark.expected} size="xs" /> },
                   {
                     label: "Benchmark result",
-                    value: <StatusPill status={summary.benchmark.passed ? "PASS" : "FAIL"} tone={summary.benchmark.passed ? "positive" : "critical"} size="xs" />,
+                    value: <StatusPill status={summary.benchmark.passed ? "PASS" : "FAIL"} tone={summary.benchmark.passed ? "ok" : "bad"} size="xs" />,
                   },
                 ]),
           ]}

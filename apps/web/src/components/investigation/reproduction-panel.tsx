@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 import type { AttemptEntry, InvestigationSummary } from "@/lib/evidence/investigations";
 import { compactJson, duration, percent } from "@/lib/format";
 
-const VERDICT_TONE = { passed: "neutral", failed: "critical", timeout: "warning", error: "warning", no_assertions: "neutral" } as const;
+const VERDICT_TONE = { passed: "q", failed: "bad", timeout: "warn", error: "warn", no_assertions: "q" } as const;
 
 export function ReproductionPanel({
   summary,
@@ -47,7 +47,7 @@ export function ReproductionPanel({
                   { label: "Runner", value: <Mono>{compiled.runner}</Mono> },
                   {
                     label: "Result",
-                    value: <StatusPill status={compiled.status.toUpperCase()} tone={compiled.status === "failed" ? "critical" : compiled.status === "passed" ? "neutral" : "warning"} size="xs" />,
+                    value: <StatusPill status={compiled.status.toUpperCase()} tone={compiled.status === "failed" ? "bad" : compiled.status === "passed" ? "q" : "warn"} size="xs" />,
                   },
                   ...(compiled.failedAtStep === undefined ? [] : [{ label: "Failed at step", value: compiled.failedAtStep }]),
                   ...(compiled.message === undefined ? [] : [{ label: "Message", value: <Mono>{compiled.message}</Mono> }]),
@@ -104,28 +104,28 @@ export function ReproductionPanel({
           {(report.expected !== null || report.actual !== null) && (
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-md border border-line p-3">
-                <div className="mb-1.5 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted">
+                <div className="mb-1.5 flex items-center gap-2 text-xs font-medium text-muted">
                   Expected <span className="font-normal normal-case tracking-normal text-faint">(from the plan)</span>
                 </div>
                 <div className="text-[13px] text-fg">{report.expected?.description ?? "—"}</div>
-                {report.expected !== null && <div className="mt-1.5 font-mono text-[12px] text-positive">{compactJson(report.expected.value)}</div>}
+                {report.expected !== null && <div className="mt-1.5 font-mono text-[12px] text-ok">{compactJson(report.expected.value)}</div>}
               </div>
-              <div className="rounded-md border border-critical/30 bg-critical/5 p-3">
-                <div className="mb-1.5 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted">
+              <div className="rounded-md border border-bad/30 bg-bad-bg p-3">
+                <div className="mb-1.5 flex items-center gap-2 text-xs font-medium text-muted">
                   Actual <span className="rounded border border-line-strong px-1 text-[10px] tracking-wider text-muted">Observed</span>
                 </div>
                 <div className="text-[13px] text-fg">{report.actual?.message ?? "—"}</div>
-                {report.actual !== null && <div className="mt-1.5 font-mono text-[12px] text-critical">{compactJson(report.actual.value)}</div>}
+                {report.actual !== null && <div className="mt-1.5 font-mono text-[12px] text-bad">{compactJson(report.actual.value)}</div>}
               </div>
             </div>
           )}
 
           <div>
-            <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">Verification criteria (all six required for VERIFIED)</div>
+            <div className="mb-2 text-xs font-medium text-muted">Verification criteria (all six required for VERIFIED)</div>
             <ul className="grid gap-1.5 md:grid-cols-2">
               {report.criteria.map((c) => (
                 <li key={c.id} className="flex items-start gap-2 rounded-md border border-line px-3 py-2">
-                  {c.met ? <Check className="mt-0.5 size-3.5 shrink-0 text-positive" /> : <X className="mt-0.5 size-3.5 shrink-0 text-critical" />}
+                  {c.met ? <Check className="mt-0.5 size-3.5 shrink-0 text-ok" /> : <X className="mt-0.5 size-3.5 shrink-0 text-bad" />}
                   <div className="min-w-0">
                     <div className="text-[13px] text-fg">{c.description}</div>
                     <div className="break-words text-xs text-faint">{c.detail}</div>
@@ -137,7 +137,7 @@ export function ReproductionPanel({
 
           {attempts.length > 0 && (
             <div>
-              <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">Attempts</div>
+              <div className="mb-2 text-xs font-medium text-muted">Attempts</div>
               <div className={cn(tableClass.wrap, "rounded-md border border-line")}>
                 <table className={tableClass.table}>
                   <thead>
@@ -156,16 +156,16 @@ export function ReproductionPanel({
                         <td className={`${tableClass.td} font-mono text-faint`}>{a.attempt}</td>
                         <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>
                           {a.runId}
-                          {a.runId === representativeRunId && <span className="ml-2 text-[10px] uppercase text-accent">cited in report</span>}
+                          {a.runId === representativeRunId && <span className="ml-2 text-[10px] text-accent-text">cited in report</span>}
                         </td>
                         <td className={tableClass.td}>
-                          <StatusPill status={a.verdict.toUpperCase()} tone={VERDICT_TONE[a.verdict as keyof typeof VERDICT_TONE] ?? "neutral"} size="xs" />
+                          <StatusPill status={a.verdict.toUpperCase()} tone={VERDICT_TONE[a.verdict as keyof typeof VERDICT_TONE] ?? "q"} size="xs" />
                         </td>
                         <td className={`${tableClass.td} font-mono text-[12px]`}>{a.stoppedAtStep === null ? "—" : `step ${a.stoppedAtStep}`}</td>
                         <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{duration(a.durationMs)}</td>
                         <td className={tableClass.td}>
                           {a.onDisk ? (
-                            <Link href={`/investigations/${investigationId}?attempt=${a.runId}#evidence`} scroll={false} className="text-[12px] text-accent hover:underline">
+                            <Link href={`/investigations/${investigationId}?attempt=${a.runId}#evidence`} scroll={false} className="text-[12px] text-accent-text hover:underline">
                               {a.runId === selectedRunId ? "Viewing" : "View"}
                             </Link>
                           ) : (

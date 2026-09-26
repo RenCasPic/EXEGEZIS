@@ -17,9 +17,9 @@ export function RootCausePanel({ entry, bugId }: { entry: RootCauseEntry | null;
       subtitle={report === null ? undefined : `root-cause investigation of ${report.bugId} · plan ${report.planPath}`}
       actions={
         report === null ? (
-          <StatusPill status="NOT RUN" tone="neutral" size="xs" />
+          <StatusPill status="NOT RUN" tone="q" size="xs" />
         ) : (
-          <Link href={`/verification/root-causes/${entry?.ref.id ?? ""}`} className="text-xs text-accent hover:underline">
+          <Link href={`/verification/root-causes/${entry?.ref.id ?? ""}`} className="text-xs text-accent-text hover:underline">
             Open
           </Link>
         )
@@ -61,7 +61,7 @@ export function FixPanel({ spec }: { spec: { path: string } | null }) {
 function Step({ label, status }: { label: string; status: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border border-line px-3 py-2">
-      <span className="font-mono text-[12px] uppercase tracking-wide text-fg">{label}</span>
+      <span className="font-mono text-[12px] tracking-wide text-fg">{label}</span>
       {status}
     </div>
   );
@@ -100,7 +100,7 @@ export function VerificationPanel({ report }: { report: BugReport | null }) {
           </div>
           <div className="col-span-2 flex items-center justify-between rounded-md border border-line bg-panel-2 p-3">
             <span className="text-xs text-muted">Result</span>
-            <StatusPill status={reproduced ? "NO FIX · NOT VERIFIED" : "NOT VERIFIED"} tone="neutral" size="xs" />
+            <StatusPill status={reproduced ? "NO FIX · NOT VERIFIED" : "NOT VERIFIED"} tone="q" size="xs" />
           </div>
         </div>
       </div>

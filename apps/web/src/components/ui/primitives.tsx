@@ -35,7 +35,7 @@ export function Panel({
   subtitle?: ReactNode;
 }) {
   return (
-    <section id={id} className={cn("scroll-mt-20 rounded-lg border border-line bg-panel", className)}>
+    <section id={id} className={cn("min-w-0 scroll-mt-20 rounded-lg border border-line bg-panel", className)}>
       <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2">
         <div className="flex min-w-0 items-center gap-2">
           {icon !== undefined && <span className="text-muted [&>svg]:size-4">{icon}</span>}
@@ -72,7 +72,7 @@ export function EmptyState({ icon, title, children, action }: { icon?: ReactNode
 }
 
 const BUTTON = {
-  primary: "bg-accent text-accent-ink hover:opacity-90 border border-transparent",
+  primary: "bg-accent text-on-accent hover:bg-accent-hover border border-transparent",
   secondary: "bg-panel-2 text-fg border border-line-strong hover:bg-hover",
   ghost: "text-muted hover:text-fg hover:bg-hover border border-transparent",
 } as const;
@@ -127,7 +127,7 @@ export function TabLinks({ tabs, active }: { tabs: { id: string; label: string; 
           aria-current={tab.id === active ? "page" : undefined}
           className={cn(
             "flex shrink-0 items-center gap-1.5 border-b-2 px-2.5 py-2 text-[13px] transition-colors",
-            tab.id === active ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg",
+            tab.id === active ? "border-accent-text text-fg" : "border-transparent text-muted hover:text-fg",
           )}
         >
           {tab.label}
@@ -162,7 +162,7 @@ export function CodeBlock({ code, className, lineNumbers = true, maxHeight = "32
 export const tableClass = {
   wrap: "overflow-x-auto",
   table: "w-full border-collapse text-left text-[13px]",
-  th: "sticky top-0 whitespace-nowrap border-b border-line bg-panel px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-faint",
+  th: "sticky top-0 whitespace-nowrap border-b border-line bg-panel px-3 py-2 text-[11px] font-medium text-faint",
   tr: "border-b border-line last:border-b-0 hover:bg-hover/50",
   td: "px-3 py-2.5 align-middle",
 };

@@ -34,7 +34,7 @@ export default async function BenchmarkPage({ params }: { params: Promise<{ id: 
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title={id} description="This benchmark result could not be read." />
-        <p className="text-[13px] text-critical">{ref.result.status === "missing" ? "benchmark-result.json is missing." : ref.result.issues.join("; ")}</p>
+        <p className="text-[13px] text-bad">{ref.result.status === "missing" ? "benchmark-result.json is missing." : ref.result.issues.join("; ")}</p>
       </div>
     );
   }
@@ -51,7 +51,7 @@ export default async function BenchmarkPage({ params }: { params: Promise<{ id: 
       <PageHeader
         eyebrow={
           <div className="flex items-center gap-2">
-            <StatusPill status={`${r.summary.passed}/${r.summary.total} PASS`} tone={r.summary.failed === 0 ? "positive" : "critical"} />
+            <StatusPill status={`${r.summary.passed}/${r.summary.total} PASS`} tone={r.summary.failed === 0 ? "ok" : "bad"} />
             <SourceTag kind={ref.archived ? "archived" : "real"} />
           </div>
         }
@@ -80,7 +80,7 @@ export default async function BenchmarkPage({ params }: { params: Promise<{ id: 
             ).map(([label, value]) => (
               <div key={label} className="border-r border-line p-3 last:border-r-0">
                 <div className="text-[11px] text-muted">{label}</div>
-                <div className={`mt-1 font-mono text-[18px] font-semibold ${label === "False positives" && value > 0 ? "text-critical" : "text-fg"}`}>{value}</div>
+                <div className={`mt-1 font-mono text-[18px] font-semibold ${label === "False positives" && value > 0 ? "text-bad" : "text-fg"}`}>{value}</div>
               </div>
             ))}
           </div>
@@ -133,11 +133,11 @@ export default async function BenchmarkPage({ params }: { params: Promise<{ id: 
                       {investigation === undefined ? (
                         <span className="font-mono text-[12px] text-fg">{c.id}</span>
                       ) : (
-                        <Link href={`/investigations/${investigation}`} className="font-mono text-[12px] font-medium text-accent hover:underline">
+                        <Link href={`/investigations/${investigation}`} className="font-mono text-[12px] font-medium text-accent-text hover:underline">
                           {c.id}
                         </Link>
                       )}
-                      {c.mismatches.length > 0 && <div className="text-[11px] text-critical">{c.mismatches.join("; ")}</div>}
+                      {c.mismatches.length > 0 && <div className="text-[11px] text-bad">{c.mismatches.join("; ")}</div>}
                     </td>
                     <td className={`${tableClass.td} text-[12px] text-muted`}>{c.kind}</td>
                     {r.planSource === "generated" && (
@@ -159,7 +159,7 @@ export default async function BenchmarkPage({ params }: { params: Promise<{ id: 
                       <NotImplemented size="xs" />
                     </td>
                     <td className={tableClass.td}>
-                      <StatusPill status={c.passed ? "PASS" : "FAIL"} tone={c.passed ? "positive" : "critical"} size="xs" />
+                      <StatusPill status={c.passed ? "PASS" : "FAIL"} tone={c.passed ? "ok" : "bad"} size="xs" />
                     </td>
                   </tr>
                 );

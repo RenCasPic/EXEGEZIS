@@ -12,7 +12,7 @@ export function NotImplementedPage({ title, description, icon, why, requires }: 
           {why}
         </EmptyState>
         <div className="mx-auto max-w-xl border-t border-line pt-4">
-          <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-faint">What this stage will require before anything appears here</div>
+          <div className="mb-2 text-[11px] font-medium text-faint">What this stage will require before anything appears here</div>
           <ul className="flex flex-col gap-1.5 text-[13px] text-muted">
             {requires.map((r) => (
               <li key={r} className="flex gap-2">

@@ -32,7 +32,7 @@ export default async function RootCausesPage() {
         <Stat label="Hypotheses refuted" value={latest.reduce((n, v) => n + v.report.outcomes.filter((o) => o.status === "REFUTED").length, 0)} />
         <Stat
           label="False validations"
-          value={<span className={falseValidations > 0 ? "text-critical" : "text-positive"}>{falseValidations}</span>}
+          value={<span className={falseValidations > 0 ? "text-bad" : "text-ok"}>{falseValidations}</span>}
           hint={`against the benchmark ground truth (${evaluated.length} evaluated)`}
         />
       </div>
@@ -64,7 +64,7 @@ export default async function RootCausesPage() {
                   return (
                     <tr key={entry.ref.id} className={tableClass.tr}>
                       <td className={tableClass.td}>
-                        <Link href={`/verification/root-causes/${entry.ref.id}`} className="font-mono text-[12px] font-medium text-accent hover:underline">
+                        <Link href={`/verification/root-causes/${entry.ref.id}`} className="font-mono text-[12px] font-medium text-accent-text hover:underline">
                           {entry.ref.caseId}
                         </Link>
                         <div className="mt-0.5">
@@ -88,9 +88,9 @@ export default async function RootCausesPage() {
                         {evaluation === null ? (
                           <span className="text-faint">—</span>
                         ) : evaluation.falseValidation ? (
-                          <span className="text-critical">FALSE VALIDATION</span>
+                          <span className="text-bad">FALSE VALIDATION</span>
                         ) : evaluation.correct === true ? (
-                          <span className="text-positive">correct</span>
+                          <span className="text-ok">correct</span>
                         ) : (
                           <span className="text-muted">{evaluation.matchesExpected ? "honest unknown (expected)" : `expected ${evaluation.expectedStatus}`}</span>
                         )}
@@ -107,7 +107,7 @@ export default async function RootCausesPage() {
         )}
       </Panel>
       {invalid.length > 0 && (
-        <p className="text-xs text-critical">
+        <p className="text-xs text-bad">
           {invalid.length} report(s) failed schema validation and are not shown (a decision that does not follow from its experiments is rejected):{" "}
           {invalid.map((e) => e.ref.relDir).join(", ")}
         </p>

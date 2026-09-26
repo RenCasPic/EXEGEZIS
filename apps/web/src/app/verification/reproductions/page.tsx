@@ -10,7 +10,7 @@ import { getScope, inScope } from "@/lib/scope";
 
 export const metadata: Metadata = { title: "Reproductions" };
 
-const TEST_TONE = { failed: "critical", passed: "neutral", error: "warning", not_run: "neutral" } as const;
+const TEST_TONE = { failed: "bad", passed: "q", error: "warn", not_run: "q" } as const;
 
 export default async function ReproductionsPage() {
   const [all, scope] = await Promise.all([getSummaries(), getScope()]);
@@ -69,7 +69,7 @@ export default async function ReproductionsPage() {
                     </td>
                     <td className={tableClass.td}>
                       {s.evidenceOnDisk ? (
-                        <Link href={`/investigations/${s.ref.id}#evidence`} className="text-[12px] text-accent hover:underline">
+                        <Link href={`/investigations/${s.ref.id}#evidence`} className="text-[12px] text-accent-text hover:underline">
                           Open
                         </Link>
                       ) : (

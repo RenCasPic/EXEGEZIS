@@ -20,8 +20,8 @@ const FUTURE = [
   { title: "Root cause decision", detail: "VALIDATED only if one hypothesis survives and its alternatives were refuted." },
 ];
 
-const EXPERIMENT_TONE = { CONFIRMED: "positive", FALSIFIED: "critical", INCONCLUSIVE: "warning" } as const;
-const DECISION_TONE = { VALIDATED: "positive", REFUTED: "critical", INSUFFICIENT_EVIDENCE: "warning" } as const;
+const EXPERIMENT_TONE = { CONFIRMED: "ok", FALSIFIED: "off", INCONCLUSIVE: "q" } as const;
+const DECISION_TONE = { VALIDATED: "ok", REFUTED: "off", INSUFFICIENT_EVIDENCE: "q" } as const;
 
 /**
  * The claims EXEGEZIS makes today are the BugReport's evidence chain: one
@@ -54,9 +54,9 @@ export function ClaimsPanel({
       subtitle="What is claimed, and on what basis"
       actions={
         rootCause === null ? (
-          <StatusPill status="NOT RUN" tone="neutral" size="xs" />
+          <StatusPill status="NOT RUN" tone="q" size="xs" />
         ) : (
-          <StatusPill status={`${rootCause.experiments.length} EXPERIMENTS`} tone="positive" size="xs" />
+          <StatusPill status={`${rootCause.experiments.length} EXPERIMENTS`} tone="ok" size="xs" />
         )
       }
     >
@@ -76,7 +76,7 @@ export function ClaimsPanel({
                 <span
                   className={cn(
                     "relative z-10 mt-1 grid size-6 shrink-0 place-items-center rounded-full border font-mono text-[10px]",
-                    link.stage === "failure" ? "border-critical/60 bg-critical/10 text-critical" : "border-line-strong bg-panel-2 text-muted",
+                    link.stage === "failure" ? "border-bad/60 bg-bad-bg text-bad" : "border-line-strong bg-panel-2 text-muted",
                   )}
                 >
                   {i + 1}
@@ -84,7 +84,7 @@ export function ClaimsPanel({
                 <details className="group min-w-0 flex-1 rounded-md border border-line bg-panel-2" open={link.stage === "failure"}>
                   <summary className="flex cursor-pointer items-center gap-2 px-3 py-2">
                     <span className="text-[13px] font-medium text-fg">{meta.title}</span>
-                    <StatusPill status={meta.claim === "declared" ? "DECLARED" : "OBSERVED"} tone={meta.claim === "declared" ? "neutral" : "positive"} size="xs" />
+                    <StatusPill status={meta.claim === "declared" ? "DECLARED" : "OBSERVED"} tone={meta.claim === "declared" ? "q" : "ok"} size="xs" />
                     <span className="min-w-0 flex-1 truncate text-xs text-muted">{link.summary}</span>
                     <ChevronDown className="size-3.5 shrink-0 text-faint transition-transform group-open:rotate-180" />
                   </summary>
@@ -93,7 +93,7 @@ export function ClaimsPanel({
                     <div className="mt-1 flex items-center gap-2 font-mono text-[11px] text-faint">
                       ref {link.ref}
                       {href !== null && (
-                        <Link href={href} scroll={false} className="text-accent hover:underline">
+                        <Link href={href} scroll={false} className="text-accent-text hover:underline">
                           open in timeline
                         </Link>
                       )}
@@ -115,7 +115,7 @@ export function ClaimsPanel({
                   </span>
                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-2">
                     <span className="text-[13px] font-medium text-muted">{node.title}</span>
-                    <StatusPill status="NOT RUN" tone="neutral" size="xs" />
+                    <StatusPill status="NOT RUN" tone="q" size="xs" />
                     <span className="w-full text-xs text-faint">{node.detail}</span>
                   </div>
                 </li>
@@ -132,7 +132,7 @@ export function ClaimsPanel({
                       <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-md border border-line bg-panel-2 px-3 py-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-[13px] font-medium text-fg">Hypothesis {e.hypothesisId} → Experiment</span>
-                          <StatusPill status="HYPOTHESIS" tone="neutral" size="xs" />
+                          <StatusPill status="HYPOTHESIS" tone="q" size="xs" />
                           <StatusPill status={e.result.status} tone={EXPERIMENT_TONE[e.result.status]} size="xs" />
                         </div>
                         <span className="text-xs text-muted">{h?.statement}</span>
@@ -158,7 +158,7 @@ export function ClaimsPanel({
               ]}
         </ol>
         <aside className="flex flex-col gap-2 text-xs text-muted">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-faint">Who may claim what</div>
+          <div className="text-[11px] font-medium text-faint">Who may claim what</div>
           <p>
             <span className="text-fg">The model</span> may only propose a plan: an expectation and the steps to test it.
           </p>

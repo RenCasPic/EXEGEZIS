@@ -86,7 +86,7 @@ export function EvidencePanel({
       subtitle={evidence === null ? undefined : `attempt ${evidence.runPath.split("/").pop() ?? ""}`}
       actions={
         <>
-          <span className="rounded border border-line-strong px-1.5 py-px font-mono text-[10px] uppercase tracking-wider text-muted">Observed</span>
+          <span className="rounded border border-line-strong px-1.5 py-px font-mono text-[10px] text-muted">Observed</span>
           {stage !== undefined && <StatusPill status={stage.status} tone={stage.tone} size="xs" />}
         </>
       }
@@ -110,12 +110,12 @@ export function EvidencePanel({
                     title={`${a.runId} · ${a.verdict}`}
                     className={cn(
                       "flex h-6 min-w-6 items-center justify-center rounded border px-1.5 font-mono text-[11px]",
-                      selected ? "border-accent text-fg" : "border-line text-muted hover:border-line-strong hover:text-fg",
+                      selected ? "border-accent-text text-fg" : "border-line text-muted hover:border-line-strong hover:text-fg",
                       a.verdict === "failed" ? "" : "opacity-80",
                     )}
                   >
                     {a.attempt}
-                    <span className={cn("ml-1 size-1.5 rounded-full", a.verdict === "failed" ? "bg-critical" : a.verdict === "passed" ? "bg-neutral" : "bg-warning")} />
+                    <span className={cn("ml-1 size-1.5 rounded-full", a.verdict === "failed" ? "bg-bad" : a.verdict === "passed" ? "bg-q" : "bg-warn")} />
                   </Link>
                 );
               })}

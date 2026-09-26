@@ -11,6 +11,7 @@ import { listJobs } from "@/lib/jobs";
 import { environmentOf, listProjects } from "@/lib/projects";
 import { getScope, inScope, UNASSIGNED } from "@/lib/scope";
 import { countByStatus } from "@/lib/filters";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -66,7 +67,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   ];
 
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    // data-theme is set by the boot script before React hydrates.
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="font-sans antialiased">
         <div className="flex min-h-screen">
           <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-6 overflow-y-auto border-r border-line bg-bg px-3 py-4 lg:flex">

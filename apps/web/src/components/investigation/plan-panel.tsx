@@ -15,7 +15,7 @@ function PlanSteps({ plan, failingStep }: { plan: TestPlan; failingStep: number 
         const index = i + 1;
         const purpose = step.type === "assert" ? step.purpose : null;
         return (
-          <li key={index} className={cn("flex items-start gap-3 px-3 py-2", index === failingStep && "bg-critical/5")}>
+          <li key={index} className={cn("flex items-start gap-3 px-3 py-2", index === failingStep && "bg-bad-bg")}>
             <span className="w-6 shrink-0 pt-px font-mono text-[11px] text-faint">{String(index).padStart(2, "0")}</span>
             <span className="w-16 shrink-0 pt-px font-mono text-[11px] text-muted">{step.type}</span>
             <div className="min-w-0 flex-1">
@@ -25,14 +25,14 @@ function PlanSteps({ plan, failingStep }: { plan: TestPlan; failingStep: number 
             {purpose !== null && (
               <span
                 className={cn(
-                  "shrink-0 rounded border px-1.5 py-px font-mono text-[10px] uppercase",
-                  purpose === "expectation" ? "border-accent/50 text-accent" : "border-line-strong text-muted",
+                  "shrink-0 rounded border px-1.5 py-px font-mono text-[10px]",
+                  purpose === "expectation" ? "border-line-strong text-fg font-medium" : "border-line-strong text-muted",
                 )}
               >
                 {purpose}
               </span>
             )}
-            {index === failingStep && <span className="shrink-0 font-mono text-[10px] uppercase text-critical">failed here</span>}
+            {index === failingStep && <span className="shrink-0 font-mono text-[10px] text-bad">failed here</span>}
           </li>
         );
       })}
@@ -72,13 +72,13 @@ export function PlanPanel({
         )}
 
         {generation?.status === "declined" && (
-          <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-[13px] text-warning">
+          <div className="rounded-md border border-warn/40 bg-warn-bg p-3 text-[13px] text-warn">
             <div className="mb-1 font-medium">The planner declined to write a plan</div>
             {generation.reason}
           </div>
         )}
         {(generation?.status === "invalid_generation" || generation?.status === "error") && (
-          <div className="rounded-md border border-critical/40 bg-critical/10 p-3 text-[13px] text-critical">
+          <div className="rounded-md border border-bad/40 bg-bad-bg p-3 text-[13px] text-bad">
             <div className="mb-1 font-medium">{generation.status === "error" ? `Planner error (${generation.kind ?? "unknown"})` : `Invalid generation (${generation.kind ?? "unknown"})`}</div>
             {generation.message ?? (generation.issues ?? []).join("; ")}
             <div className="mt-1 text-xs opacity-80">Not repaired and not executed.</div>
@@ -108,7 +108,7 @@ export function PlanPanel({
                       <span className="flex flex-wrap items-center gap-2">
                         <StatusPill
                           status={validation.status.replace("_", " ").toUpperCase()}
-                          tone={validation.status === "valid" ? "positive" : validation.status === "weakly_anchored" ? "warning" : "critical"}
+                          tone={validation.status === "valid" ? "ok" : validation.status === "weakly_anchored" ? "warn" : "bad"}
                           size="xs"
                         />
                         {validation.reference !== null && (
@@ -127,7 +127,7 @@ export function PlanPanel({
           <ul className="flex flex-col gap-1 rounded-md border border-line p-3">
             {validation.issues.map((issue, i) => (
               <li key={i} className="font-mono text-[12px] text-muted">
-                <span className={issue.severity === "error" || issue.severity === "unsupported" ? "text-critical" : "text-warning"}>{issue.severity.toUpperCase()}</span> {issue.code}
+                <span className={issue.severity === "error" || issue.severity === "unsupported" ? "text-bad" : "text-warn"}>{issue.severity.toUpperCase()}</span> {issue.code}
                 {issue.stepIndex === undefined ? "" : ` (step ${issue.stepIndex})`}: {issue.message}
               </li>
             ))}

@@ -59,7 +59,7 @@ export default async function InvestigationPage({
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <OutcomePill outcome={summary.outcome} />
-          {title !== null && <span className="text-[13px] font-medium text-positive">{title}</span>}
+          {title !== null && <span className="text-[13px] font-medium text-ok">{title}</span>}
           {summary.outcomeSource === "benchmark" && <span className="text-xs text-faint">(benchmark record: no plan was executed)</span>}
           <SourceTag kind={summary.ref.archived ? "archived" : "real"} />
         </div>
@@ -83,7 +83,7 @@ export default async function InvestigationPage({
           {summary.ref.benchmarkId !== null && (
             <>
               <span className="text-faint">·</span>
-              <Link href={`/benchmarks/${summary.ref.benchmarkId}`} className="text-accent hover:underline">
+              <Link href={`/benchmarks/${summary.ref.benchmarkId}`} className="text-accent-text hover:underline">
                 benchmark run
               </Link>
             </>
@@ -91,7 +91,7 @@ export default async function InvestigationPage({
           {summary.job !== null && (
             <>
               <span className="text-faint">·</span>
-              <Link href={`/jobs/${summary.job.id}`} className="text-accent hover:underline">
+              <Link href={`/jobs/${summary.job.id}`} className="text-accent-text hover:underline">
                 CLI output
               </Link>
             </>
@@ -100,7 +100,7 @@ export default async function InvestigationPage({
       </div>
 
       {detail.problems.length > 0 && (
-        <div className="flex items-start gap-2 rounded-md border border-critical/40 bg-critical/10 p-3 text-[13px] text-critical">
+        <div className="flex items-start gap-2 rounded-md border border-bad/40 bg-bad-bg p-3 text-[13px] text-bad">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           <div>
             Some artifacts failed schema validation and are not shown:
@@ -161,14 +161,14 @@ export default async function InvestigationPage({
             <ul className="flex flex-col gap-1 font-mono text-[12px]">
               {detail.files.map((f) => (
                 <li key={f}>
-                  <a href={artifactUrl(id, f)} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                  <a href={artifactUrl(id, f)} target="_blank" rel="noreferrer" className="text-accent-text hover:underline">
                     {f}
                   </a>
                 </li>
               ))}
               {detail.spec !== null && (
                 <li>
-                  <a href={artifactUrl(id, detail.spec.path)} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                  <a href={artifactUrl(id, detail.spec.path)} target="_blank" rel="noreferrer" className="text-accent-text hover:underline">
                     {detail.spec.path}
                   </a>
                 </li>

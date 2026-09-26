@@ -16,7 +16,7 @@ export default async function InspectionsPage() {
   const pending = jobs.filter((j) => j.job.kind === "inspect" && (j.status === "running" || j.status === "queued"));
 
   return (
-    <div className="flex flex-col gap-5">
+    <div lang="es" className="flex flex-col gap-5">
       <AutoRefresh active={pending.length > 0} />
       <PageHeader
         title="Inspecciones"
@@ -34,7 +34,7 @@ export default async function InspectionsPage() {
             {pending.map(({ job, status }) => (
               <li key={job.id} className="border-b border-line last:border-b-0">
                 <Link href={`/jobs/${job.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-hover/50">
-                  <StatusPill status={status === "queued" ? "EN COLA" : "EN CURSO"} tone={status === "queued" ? "neutral" : "running"} size="xs" />
+                  <StatusPill status={status === "queued" ? "EN COLA" : "EN CURSO"} tone={status === "queued" ? "q" : "running"} size="xs" />
                   <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-fg">{job.kind === "inspect" ? job.url : job.id}</span>
                   <span className="text-xs text-faint">{relativeTime(job.startedAt)}</span>
                 </Link>
@@ -85,7 +85,7 @@ export default async function InspectionsPage() {
                       </td>
                       <td className={tableClass.td}>
                         {r === null ? (
-                          <StatusPill status={i.report.status === "missing" ? "MISSING" : "INVALID REPORT"} tone="critical" size="xs" />
+                          <StatusPill status={i.report.status === "missing" ? "MISSING" : "INVALID REPORT"} tone="bad" size="xs" />
                         ) : (
                           <StatusPill status={r.status} tone={INSPECTION_STATUS_TONE[r.status]} size="xs" />
                         )}

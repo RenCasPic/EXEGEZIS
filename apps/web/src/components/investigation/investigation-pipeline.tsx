@@ -7,19 +7,19 @@ import { StatusPill } from "@/components/ui/status";
 function StageIcon({ tone }: { tone: Tone }) {
   const base = "size-3.5";
   switch (tone) {
-    case "positive":
-      return <Check className={cn(base, "text-positive")} />;
-    case "critical":
-    case "negative":
-      return <X className={cn(base, "text-critical")} />;
-    case "warning":
-      return <Minus className={cn(base, "text-warning")} />;
+    case "ok":
+      return <Check className={cn(base, "text-ok")} />;
+    case "bad":
+    case "off":
+      return <X className={cn(base, "text-bad")} />;
+    case "warn":
+      return <Minus className={cn(base, "text-warn")} />;
     case "running":
-      return <Circle className={cn(base, "animate-pulse-dot fill-running text-running")} />;
+      return <Circle className={cn(base, "animate-pulse-dot fill-q text-q")} />;
     case "unimplemented":
       return <CircleDashed className={cn(base, "text-faint")} />;
-    case "neutral":
-      return <Circle className={cn(base, "text-neutral")} />;
+    case "q":
+      return <Circle className={cn(base, "text-q")} />;
   }
 }
 

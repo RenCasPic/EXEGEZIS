@@ -15,7 +15,7 @@ const KIND_LABEL: Record<InvestigationSummary["ref"]["kind"], string> = {
 function Status({ s }: { s: InvestigationSummary }) {
   if (s.job?.status === "running" && s.outcome === null) return <StatusPill status="RUNNING" tone="running" size="xs" />;
   if (s.outcome === null && s.generation !== null) {
-    const tone = s.generation.status === "generated" ? "neutral" : s.generation.status === "declined" ? "warning" : "critical";
+    const tone = s.generation.status === "generated" ? "q" : s.generation.status === "declined" ? "warn" : "bad";
     return <StatusPill status={s.generation.status === "generated" ? "PLAN ONLY" : s.generation.status.replace("_", " ").toUpperCase()} tone={tone} size="xs" />;
   }
   return <OutcomePill outcome={s.outcome} size="xs" />;

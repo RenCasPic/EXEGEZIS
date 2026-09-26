@@ -9,20 +9,12 @@ export const SEVERITY_LABEL: Record<Severity, string> = {
   info: "Info",
 };
 
-export const SEVERITY_TONE: Record<Severity, Tone> = {
-  critical: "critical",
-  serious: "critical",
-  moderate: "warning",
-  minor: "neutral",
-  info: "neutral",
-};
-
 export const INSPECTION_STATUS_TONE: Record<InspectionStatus, Tone> = {
-  COMPLETED: "positive",
-  PARTIAL: "warning",
-  BLOCKED: "warning",
-  UNREACHABLE: "critical",
-  TIMEOUT: "critical",
+  COMPLETED: "ok",
+  PARTIAL: "warn",
+  BLOCKED: "warn",
+  UNREACHABLE: "q",
+  TIMEOUT: "q",
 };
 
 export const INSPECTION_STATUS_TEXT: Record<InspectionStatus, string> = {
@@ -34,14 +26,14 @@ export const INSPECTION_STATUS_TEXT: Record<InspectionStatus, string> = {
 };
 
 export const PAGE_STATUS_TONE: Record<PageStatus, Tone> = {
-  OK: "positive",
-  HTTP_ERROR: "critical",
-  DEGRADED: "warning",
-  BLOCKED: "warning",
-  UNREACHABLE: "critical",
-  TIMEOUT: "critical",
-  SKIPPED_BUDGET: "neutral",
-  SKIPPED_ROBOTS: "neutral",
+  OK: "ok",
+  HTTP_ERROR: "off",
+  DEGRADED: "warn",
+  BLOCKED: "warn",
+  UNREACHABLE: "q",
+  TIMEOUT: "q",
+  SKIPPED_BUDGET: "q",
+  SKIPPED_ROBOTS: "q",
 };
 
 export const CHECK_LABEL: Record<string, string> = {
