@@ -402,7 +402,14 @@ export class BrowserSession implements AdapterSession {
       axe,
       axeError,
       highlight,
-      blockSignals: { markers: facts.markers, passwordField: facts.passwordField },
+      blockSignals: {
+        markers: facts.markers,
+        passwordField: facts.passwordField,
+        login: facts.login,
+        consent: facts.consent,
+        // Names only: the values are session secrets and never leave the browser context.
+        cookieNames: [...new Set((await this.context.cookies().catch(() => [])).map((c) => c.name))].sort(),
+      },
       blockedWrites: this.blockedWrites,
     };
     await this.recorder.writeJson("inspection", "inspection.json", PageInspectionFile.parse(file), {

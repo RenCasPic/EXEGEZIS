@@ -13,6 +13,6 @@ export {
   type LinkStatus,
   type PageEvidence,
 } from "./checks/index.js";
-export { classifyVisit, type Classification, type VisitFacts } from "./classify.js";
+export { classifyVisit, isLoginUrl, retryAfter, type Classification, type VisitFacts } from "./classify.js";
 export { INSPECTION_REPORT_FILE, inspectSite, PROGRESS_FILE, userAgentFor, type InspectionProgress, type InspectOptions } from "./inspect.js";
 export { isAllowed, parseRobots, type RobotsRules } from "./robots.js";

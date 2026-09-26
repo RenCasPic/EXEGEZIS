@@ -26,7 +26,9 @@ export const PAGE_FACTS_SCRIPT = `(() => {
   const frames = Array.from(document.querySelectorAll("iframe")).map((f) => f.src || "");
   const framePatterns = [["recaptcha", /recaptcha/i], ["hcaptcha", /hcaptcha/i], ["turnstile", /challenges\\.cloudflare\\.com|turnstile/i]];
   for (const [name, pattern] of framePatterns) if (frames.some((src) => pattern.test(src))) markers.push(name + " iframe");
-  for (const selector of [".g-recaptcha", ".h-captcha", ".cf-turnstile", "#challenge-form", "#cf-challenge-running", "#challenge-stage"]) {
+  const dd = frames.some((src) => /captcha-delivery\\.com/i.test(src));
+  if (dd) markers.push("datadome iframe");
+  for (const selector of [".g-recaptcha", ".h-captcha", ".cf-turnstile", "#challenge-form", "#cf-challenge-running", "#challenge-stage", "#px-captcha"]) {
     if (document.querySelector(selector) !== null) markers.push(selector);
   }
   const phrases = [
@@ -37,11 +39,69 @@ export const PAGE_FACTS_SCRIPT = `(() => {
     /access denied/i,
     /enable javascript and cookies to continue/i,
     /just a moment\\.\\.\\./i,
+    /access denied[\\s\\S]{0,200}reference #[0-9a-f.]+/i,
   ];
   for (const phrase of phrases) {
     const match = phrase.exec(text) || phrase.exec(document.title);
     if (match !== null) markers.push("text: " + match[0]);
   }
+  const visible = (el) => {
+    const r = el.getBoundingClientRect();
+    const st = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && st.visibility !== "hidden" && st.display !== "none" && st.opacity !== "0";
+  };
+  const words = (el) => (el ? (el.textContent || "").trim().split(/\\s+/).filter(Boolean).length : 0);
+  // Login: a visible password field, and how much of the page is something else.
+  const visiblePassword = Array.from(document.querySelectorAll('input[type="password"]')).some(visible);
+  let wordsOutsideForms = 0;
+  if (document.body) {
+    const clone = document.body.cloneNode(true);
+    clone.querySelectorAll("form, script, style, noscript, template, nav, header, footer").forEach((e) => e.remove());
+    wordsOutsideForms = words(clone);
+  }
+  const mainContent = Array.from(document.querySelectorAll("main, article, [role=main]")).some((el) => {
+    const c = el.cloneNode(true);
+    c.querySelectorAll("form, script, style").forEach((f) => f.remove());
+    return words(c) >= 40;
+  });
+  // Consent: a known consent manager, or a fixed element about cookies; how much of the viewport it covers.
+  const vw = window.innerWidth || 1;
+  const vh = window.innerHeight || 1;
+  const coverage = (el) => {
+    const r = el.getBoundingClientRect();
+    const w = Math.max(0, Math.min(r.right, vw) - Math.max(r.left, 0));
+    const h = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+    return (w * h) / (vw * vh);
+  };
+  const vendors = [
+    ["OneTrust", "#onetrust-banner-sdk, #onetrust-pc-sdk"],
+    ["Cookiebot", "#CybotCookiebotDialog"],
+    ["Didomi", "#didomi-popup, #didomi-notice"],
+    ["Usercentrics", "#usercentrics-root, #usercentrics-cmp-ui"],
+    ["Quantcast", ".qc-cmp2-container"],
+    ["TrustArc", "#truste-consent-track, .truste_box_overlay"],
+    ["CookieYes", ".cky-consent-container"],
+    ["Complianz", ".cmplz-cookiebanner"],
+  ];
+  let consent = null;
+  for (const [vendor, selector] of vendors) {
+    const el = document.querySelector(selector);
+    if (el !== null && visible(el)) {
+      consent = { vendor, coverage: Math.round(coverage(el) * 100) / 100 };
+      break;
+    }
+  }
+  if (consent === null) {
+    const candidates = Array.from(document.querySelectorAll("div, section, aside, dialog, [role=dialog], [role=alertdialog]")).slice(0, 4000);
+    for (const el of candidates) {
+      const st = getComputedStyle(el);
+      if (st.position !== "fixed" && st.position !== "sticky") continue;
+      if (!visible(el) || !/cookie|consent|consentimiento|galleta|gdpr/i.test((el.textContent || "").slice(0, 2000))) continue;
+      const c = Math.round(coverage(el) * 100) / 100;
+      if (consent === null || c > consent.coverage) consent = { vendor: null, coverage: c };
+    }
+  }
+  const locked = (el) => el !== null && (getComputedStyle(el).overflow === "hidden" || getComputedStyle(el).overflowY === "hidden");
   const viewport = document.querySelector('meta[name="viewport"]');
   return {
     meta: {
@@ -56,6 +116,8 @@ export const PAGE_FACTS_SCRIPT = `(() => {
       .filter((l) => /^https?:/.test(l.href)),
     markers,
     passwordField: document.querySelector('input[type="password"]') !== null,
+    login: { visiblePassword, wordsOutsideForms, mainContent },
+    consent: consent === null ? null : { vendor: consent.vendor, coverage: consent.coverage, scrollLocked: locked(document.body) || locked(document.documentElement) },
   };
 })()`;
 
@@ -70,6 +132,8 @@ export const PageFacts = z.object({
   links: z.array(z.object({ href: z.string(), text: z.string() })),
   markers: z.array(z.string()),
   passwordField: z.boolean(),
+  login: z.object({ visiblePassword: z.boolean(), wordsOutsideForms: z.int().nonnegative(), mainContent: z.boolean() }),
+  consent: z.object({ vendor: z.string().nullable(), coverage: z.number(), scrollLocked: z.boolean() }).nullable(),
 });
 export type PageFacts = z.infer<typeof PageFacts>;
 

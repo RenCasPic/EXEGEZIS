@@ -34,6 +34,45 @@ export type PageStatus = z.infer<typeof PageStatus>;
 /** Visits whose evidence the checks may use. */
 export const INSPECTABLE: readonly PageStatus[] = ["OK", "HTTP_ERROR", "DEGRADED"];
 
+/**
+ * Why a page could not be inspected (docs/09-access.md). Detection order:
+ * HTTP_AUTH → BOT_CHALLENGE → SESSION_EXPIRED → LOGIN_WALL → CONSENT_WALL →
+ * RATE_LIMITED → FORBIDDEN. NETWORK_RESTRICTED is not a block of the site: it
+ * qualifies an UNREACHABLE visit. A block never produces findings.
+ */
+export const BlockKind = z.enum([
+  "HTTP_AUTH",
+  "BOT_CHALLENGE",
+  "SESSION_EXPIRED",
+  "LOGIN_WALL",
+  "CONSENT_WALL",
+  "RATE_LIMITED",
+  "FORBIDDEN",
+  "NETWORK_RESTRICTED",
+]);
+export type BlockKind = z.infer<typeof BlockKind>;
+export const BLOCK_ORDER: readonly BlockKind[] = ["HTTP_AUTH", "BOT_CHALLENGE", "SESSION_EXPIRED", "LOGIN_WALL", "CONSENT_WALL", "RATE_LIMITED", "FORBIDDEN"];
+
+export const BlockInfo = z.strictObject({
+  kind: BlockKind,
+  /** What was seen, in one line (English, for logs; the UI words it in Spanish). */
+  detail: z.string(),
+  evidence: z.strictObject({
+    finalUrl: z.string().nullable(),
+    httpStatus: z.int().nullable(),
+    /** Only the headers that explain the block (www-authenticate scheme, retry-after, cf-mitigated, server…). */
+    headers: z.record(z.string(), z.string()),
+    /** Names of known anti-bot / session cookies. Never their values. */
+    cookieNames: z.array(z.string()),
+    markers: z.array(z.string()),
+    /** Screenshot of the blocked page, relative to the inspection directory. */
+    screenshot: z.string().nullable(),
+  }),
+  /** RATE_LIMITED: seconds the site asked to wait (Retry-After), if it said. */
+  retryAfterSeconds: z.number().nonnegative().nullable(),
+});
+export type BlockInfo = z.infer<typeof BlockInfo>;
+
 export const PageVisit = z.strictObject({
   /** Normalized URL (no fragment). */
   url: z.string(),
@@ -49,6 +88,8 @@ export const PageVisit = z.strictObject({
   runPath: z.string().nullable(),
   /** Page writes blocked by --strict-readonly during the visit. */
   blockedWrites: z.int().nonnegative(),
+  /** BLOCKED (and UNREACHABLE · NETWORK_RESTRICTED) visits: the concrete kind and its evidence. */
+  block: BlockInfo.nullable().default(null),
 });
 export type PageVisit = z.infer<typeof PageVisit>;
 
@@ -222,6 +263,18 @@ export const InspectionReport = z
     status: InspectionStatus,
     pages: z.array(PageVisit),
     externalLinks: z.array(z.strictObject({ url: z.string(), from: z.string() })),
+    /** Links never visited because they look like logout or destructive actions (GET). */
+    skippedForSafety: z.array(z.strictObject({ url: z.string(), from: z.string(), reason: z.string() })).default([]),
+    /** Saved access used for this inspection (never its content). */
+    access: z
+      .strictObject({
+        session: z.boolean(),
+        httpCredentials: z.boolean(),
+        wafToken: z.boolean(),
+        /** The trace could not be redacted, so it was not kept. */
+        traceDropped: z.boolean(),
+      })
+      .default({ session: false, httpCredentials: false, wafToken: false, traceDropped: false }),
     pageWrites: z.array(PageWrite),
     checks: z.array(CheckResult),
     findings: z.array(Finding),
@@ -454,7 +507,18 @@ export const PageInspectionFile = z.strictObject({
   /** Screenshot with the violating nodes outlined (path relative to the run). */
   highlight: z.string().nullable(),
   /** Deterministic signs of anti-bot, CAPTCHA or login walls. Recorded, never acted upon. */
-  blockSignals: z.strictObject({ markers: z.array(z.string()), passwordField: z.boolean() }),
+  blockSignals: z.strictObject({
+    markers: z.array(z.string()),
+    passwordField: z.boolean(),
+    /** Visible password field, and how much the page is more than a login form. */
+    login: z
+      .strictObject({ visiblePassword: z.boolean(), wordsOutsideForms: z.int().nonnegative(), mainContent: z.boolean() })
+      .default({ visiblePassword: false, wordsOutsideForms: 0, mainContent: false }),
+    /** A cookie/consent dialog: vendor (if known), share of the viewport it covers, scroll locked. */
+    consent: z.strictObject({ vendor: z.string().nullable(), coverage: z.number(), scrollLocked: z.boolean() }).nullable().default(null),
+    /** Names (never values) of the cookies the context holds. */
+    cookieNames: z.array(z.string()).default([]),
+  }),
   /** Page writes blocked by --strict-readonly. */
   blockedWrites: z.array(z.strictObject({ method: z.string(), url: z.string() })),
 });

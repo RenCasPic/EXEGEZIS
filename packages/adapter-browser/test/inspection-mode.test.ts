@@ -46,7 +46,7 @@ describe("inspection mode", () => {
     expect(imageAlt?.nodes.map((n) => n.selector)).toEqual(["#logo"]);
     expect(page.highlight).toBe("screenshots/axe-highlight.png");
     expect(page.settled).toEqual({ network: true, dom: true });
-    expect(page.blockSignals).toEqual({ markers: [], passwordField: false });
+    expect(page.blockSignals).toMatchObject({ markers: [], passwordField: false, consent: null, cookieNames: [], login: { visiblePassword: false } });
   }, 60_000);
 
   it("identifies itself with its own User-Agent", async () => {

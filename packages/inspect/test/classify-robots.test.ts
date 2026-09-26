@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
+import type { PageInspectionFile } from "@exegezis/core";
 import { classifyVisit, isAllowed, parseRobots } from "../src/index.js";
 import { evidence } from "./evidence.js";
 
+/** Block signals of a normal content page, with overrides. */
+const sig = (patch: Partial<PageInspectionFile["blockSignals"]>): PageInspectionFile["blockSignals"] => ({
+  markers: [],
+  passwordField: false,
+  login: { visiblePassword: false, wordsOutsideForms: 200, mainContent: true },
+  consent: null,
+  cookieNames: [],
+  ...patch,
+});
 const doc = (status: number, url = "https://site.test/") => ({ url, status, isNavigation: true, resourceType: "document" });
 const facts = (patch: Parameters<typeof evidence>[0], navigationError: string | null = null, strictReadonly = false) => {
   const e = evidence(patch);
@@ -19,14 +29,14 @@ describe("classifyVisit", () => {
     expect(classifyVisit(facts({}, "page.goto: Timeout 30000ms exceeded.")).status).toBe("TIMEOUT");
   });
   it("BLOCKED on CAPTCHA widgets, challenge pages, 451 and login walls; never bypassed", () => {
-    expect(classifyVisit(facts({ exchanges: [doc(200)], inspection: { blockSignals: { markers: ["turnstile iframe"], passwordField: false } } })).status).toBe("BLOCKED");
-    expect(classifyVisit(facts({ exchanges: [doc(403)], inspection: { blockSignals: { markers: ["text: Verify you are human"], passwordField: false } } })).status).toBe("BLOCKED");
+    expect(classifyVisit(facts({ exchanges: [doc(200)], inspection: { blockSignals: sig({ markers: ["turnstile iframe"], passwordField: false }) } })).status).toBe("BLOCKED");
+    expect(classifyVisit(facts({ exchanges: [doc(403)], inspection: { blockSignals: sig({ markers: ["text: Verify you are human"], passwordField: false }) } })).status).toBe("BLOCKED");
     expect(classifyVisit(facts({ exchanges: [doc(451)] })).status).toBe("BLOCKED");
-    const login = facts({ exchanges: [doc(302), doc(200, "https://site.test/login?next=/account")], inspection: { blockSignals: { markers: [], passwordField: true } } });
+    const login = facts({ exchanges: [doc(302), doc(200, "https://site.test/login?next=/account")], inspection: { blockSignals: sig({ markers: [], passwordField: true }) } });
     expect(classifyVisit({ ...login, requestedUrl: "https://site.test/account" }).status).toBe("BLOCKED");
   });
   it("does not call a page blocked because its text says 'access denied' with a 200", () => {
-    expect(classifyVisit(facts({ exchanges: [doc(200)], inspection: { blockSignals: { markers: ["text: Access denied"], passwordField: false } } })).status).toBe("OK");
+    expect(classifyVisit(facts({ exchanges: [doc(200)], inspection: { blockSignals: sig({ markers: ["text: Access denied"], passwordField: false }) } })).status).toBe("OK");
   });
   it("DEGRADED only under --strict-readonly with blocked writes", () => {
     const withBlocked = { exchanges: [doc(200)], inspection: { blockedWrites: [{ method: "POST", url: "https://site.test/api/track" }] } };

@@ -31,6 +31,7 @@ export function buildReport(id = "01M3TEST00000000000000000A", origin = "http://
     reason: null,
     runPath: `pages/run-${run}/R${run}`,
     blockedWrites: 0,
+    block: null,
   }));
   const failing: InspectionObservation = {
     fingerprint: "failed-requests:GET /api/fail",

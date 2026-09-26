@@ -335,7 +335,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
 }
 
 function skipped(url: string, depth: number, status: "SKIPPED_BUDGET" | "SKIPPED_ROBOTS", reason: string, run = 1): PageVisit {
-  return { url, depth, run, status, finalUrl: null, httpStatus: null, settled: null, reason, runPath: null, blockedWrites: 0 };
+  return { url, depth, run, status, finalUrl: null, httpStatus: null, settled: null, reason, runPath: null, blockedWrites: 0, block: null };
 }
 
 function runCheck(check: Check, v: PageVisit, evidence: PageEvidence | null): CheckResult {
@@ -387,6 +387,8 @@ interface VisitArgs {
   strict: boolean;
   pageTimeoutMs: number;
   origin: string;
+  /** A saved session is loaded into the visit's browser context. */
+  sessionUsed?: boolean;
 }
 
 /** One page, one run: a fresh browser, navigate + observe, then the adapter's inspection evidence. */
@@ -431,7 +433,10 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
     read("observations.json", ObservationsFile),
   ]);
   const navigationError = outcome.metadata.error?.phase === "action" ? outcome.metadata.error.message : null;
-  const c = classifyVisit({ navigationError, network, inspection, requestedUrl: url, strictReadonly: strict });
+  const c = classifyVisit({ navigationError, network, inspection, requestedUrl: url, strictReadonly: strict, sessionUsed: args.sessionUsed === true });
+  const shot = observations?.screenshots[0];
+  // The screenshot of the blocked page is the block's evidence.
+  const block = c.block === null ? null : { ...c.block, evidence: { ...c.block.evidence, screenshot: shot === undefined ? null : `${runPath}/${shot.path}` } };
   const visit: PageVisit = {
     url,
     depth,
@@ -443,6 +448,7 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
     reason: c.reason,
     runPath,
     blockedWrites: inspection?.blockedWrites.length ?? 0,
+    block,
   };
   const evidence =
     consoleFile !== null && network !== null && inspection !== null

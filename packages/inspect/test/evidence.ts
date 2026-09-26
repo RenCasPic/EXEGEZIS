@@ -7,7 +7,7 @@ export function evidence(patch: {
   depth?: number;
   messages?: Partial<ConsoleMessageEvidence>[];
   pageErrors?: Partial<PageErrorEvidence>[];
-  exchanges?: { method?: string; url: string; status?: number; failure?: string; isNavigation?: boolean; resourceType?: string }[];
+  exchanges?: { method?: string; url: string; status?: number; failure?: string; isNavigation?: boolean; resourceType?: string; responseHeaders?: Record<string, string> }[];
   inspection?: Partial<PageInspectionFile>;
   links?: PageEvidence["links"];
 }): PageEvidence {
@@ -32,7 +32,7 @@ export function evidence(patch: {
           kind: "network_exchange",
           id: `net-${i}`,
           request: { timestamp: at, method: x.method ?? "GET", url: x.url, resourceType: x.resourceType ?? "fetch", isNavigation: x.isNavigation ?? false, headers: {} },
-          ...(x.status === undefined ? {} : { response: { timestamp: at, status: x.status, statusText: "", headers: {}, fromServiceWorker: false } }),
+          ...(x.status === undefined ? {} : { response: { timestamp: at, status: x.status, statusText: "", headers: x.responseHeaders ?? {}, fromServiceWorker: false } }),
           ...(x.failure === undefined ? {} : { failure: { timestamp: at, errorText: x.failure } }),
         }),
       ),
@@ -46,7 +46,7 @@ export function evidence(patch: {
       axe: null,
       axeError: null,
       highlight: null,
-      blockSignals: { markers: [], passwordField: false },
+      blockSignals: { markers: [], passwordField: false, login: { visiblePassword: false, wordsOutsideForms: 200, mainContent: true }, consent: null, cookieNames: [] },
       blockedWrites: [],
       ...patch.inspection,
     },
