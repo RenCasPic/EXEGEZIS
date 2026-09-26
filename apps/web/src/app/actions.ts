@@ -3,7 +3,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { plannerCredentialsConfigured, startJob } from "@/lib/jobs";
+import { parseInspectForm } from "@/lib/inspect-options";
+import { plannerCredentialsConfigured, startInspection, startJob } from "@/lib/jobs";
 import { SCOPE_COOKIE } from "@/lib/scope";
 
 export async function setScope(project: string | null, environment: string | null): Promise<void> {
@@ -61,6 +62,36 @@ export async function startInvestigation(_prev: StartState, form: FormData): Pro
     jobId = (await startJob({ symptom: text, baseUrl, runs, project: project === "" ? null : project })).id;
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error), fields: raw };
+  }
+  redirect(`/jobs/${jobId}`);
+}
+
+export interface InspectState {
+  error: string | null;
+}
+
+/** Starts a real `exegezis inspect` job (queued if another inspection is running). */
+export async function startInspectionAction(_prev: InspectState, form: FormData): Promise<InspectState> {
+  const text = (name: string): string => {
+    const value = form.get(name);
+    return typeof value === "string" ? value : "";
+  };
+  const result = parseInspectForm({
+    url: text("url"),
+    runs: text("runs"),
+    maxPages: text("maxPages"),
+    maxDepth: text("maxDepth"),
+    checks: form.getAll("checks").filter((c) => typeof c === "string"),
+    storageState: text("storageState"),
+    strictReadonly: text("strictReadonly") === "on",
+    ignoreRobots: text("ignoreRobots") === "on",
+  });
+  if (!result.ok) return { error: result.error };
+  let jobId: string;
+  try {
+    jobId = (await startInspection(result.input)).id;
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
   redirect(`/jobs/${jobId}`);
 }

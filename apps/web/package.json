@@ -22,6 +22,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@exegezis/inspect": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.13.6",
     "@types/react": "^19.3.0",

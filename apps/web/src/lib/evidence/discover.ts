@@ -1,6 +1,6 @@
 import { readdir } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
-import { BenchmarkResult, RootCauseSuiteResult } from "@exegezis/core";
+import { basename, dirname, join, relative } from "node:path";
+import { BenchmarkResult, InspectionReport, RootCauseSuiteResult } from "@exegezis/core";
 import { benchmarksDir, displayPath, runsDir } from "../workspace";
 import { readArtifact, type Loaded } from "./read";
 
@@ -53,15 +53,26 @@ export interface RootCauseRef {
   archived: boolean;
 }
 
+/** A run of `exegezis inspect` (`inspections/<id>/inspection-report.json`). */
+export interface InspectionRef {
+  id: string;
+  dir: string;
+  relDir: string;
+  /** Web job that produced it, when it was started from the UI. */
+  jobId: string | null;
+  report: Loaded<InspectionReport>;
+}
+
 export interface WorkspaceIndex {
   investigations: InvestigationRef[];
+  inspections: InspectionRef[];
   benchmarks: BenchmarkRef[];
   rootCauseRuns: RootCauseRunRef[];
   rootCauses: RootCauseRef[];
 }
 
 /** Evidence subdirectories: never investigations themselves. */
-const SKIP = new Set(["attempts", "preflight", "compiled-test-results", "dom", "screenshots", "node_modules", "cases", "workspaces"]);
+const SKIP = new Set(["attempts", "preflight", "compiled-test-results", "dom", "screenshots", "node_modules", "cases", "workspaces", "pages", "specs"]);
 const MAX_DEPTH = 6;
 
 async function listDir(dir: string): Promise<{ files: Set<string>; dirs: string[] }> {
@@ -87,13 +98,16 @@ function kindFromParent(dir: string): InvestigationKind {
   }
 }
 
-function jobIdFor(relDir: string): string | null {
-  const match = /^runs\/web\/jobs\/([0-9A-Z]{26})\//.exec(relDir);
+/** The web job whose output holds `dir` (runs/web/jobs/<id>/…), wherever runs/ is configured. */
+function jobIdFor(dir: string): string | null {
+  const rel = relative(runsDir(), dir).split("\\").join("/");
+  const match = /^web\/jobs\/([0-9A-Z]{26})\//.exec(rel);
   return match?.[1] ?? null;
 }
 
 export async function discover(): Promise<WorkspaceIndex> {
   const investigations: InvestigationRef[] = [];
+  const inspections: InspectionRef[] = [];
   const benchmarks: BenchmarkRef[] = [];
   const rootCauseRuns: RootCauseRunRef[] = [];
   const rootCauses: RootCauseRef[] = [];
@@ -138,6 +152,12 @@ export async function discover(): Promise<WorkspaceIndex> {
 
   async function walk(dir: string, depth: number, archived: boolean, suiteDir: string | null): Promise<void> {
     const { files, dirs } = await listDir(dir);
+    if (files.has("inspection-report.json")) {
+      const relDir = displayPath(dir);
+      const report = await readArtifact(join(dir, "inspection-report.json"), InspectionReport);
+      inspections.push({ id: uniqueId(basename(dir)), dir, relDir, jobId: jobIdFor(dir), report });
+      return;
+    }
     if (files.has("root-cause-result.json")) {
       await addRootCauseRun(dir, archived, suiteDir);
       return;
@@ -156,7 +176,7 @@ export async function discover(): Promise<WorkspaceIndex> {
         archived,
         benchmarkId: null,
         caseId: null,
-        jobId: jobIdFor(relDir),
+        jobId: jobIdFor(dir),
       });
       return;
     }
@@ -176,8 +196,10 @@ export async function discover(): Promise<WorkspaceIndex> {
   // Newest first: run directories start with a ULID, archived ones with a date.
   const newestFirst = (a: { relDir: string }, b: { relDir: string }) => (a.relDir < b.relDir ? 1 : a.relDir > b.relDir ? -1 : 0);
   investigations.sort(newestFirst);
+  // Inspection directories are ULIDs, wherever they live (runs/inspections or a web job).
+  inspections.sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
   benchmarks.sort(newestFirst);
   rootCauseRuns.sort(newestFirst);
   rootCauses.sort(newestFirst);
-  return { investigations, benchmarks, rootCauseRuns, rootCauses };
+  return { investigations, inspections, benchmarks, rootCauseRuns, rootCauses };
 }

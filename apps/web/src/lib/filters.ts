@@ -49,7 +49,7 @@ export function matchesQuery(s: InvestigationSummary, query: string): boolean {
 export function countByStatus(summaries: readonly InvestigationSummary[], jobs: readonly { job: JobRecord; status: JobStatus }[]) {
   return {
     all: summaries.length,
-    active: jobs.filter((j) => j.status === "running").length,
+    active: jobs.filter((j) => j.job.kind === "ai-verify" && j.status === "running").length,
     verified: summaries.filter((s) => matchesStatus(s, "verified")).length,
     needsEvidence: summaries.filter((s) => matchesStatus(s, "needs-evidence")).length,
   };

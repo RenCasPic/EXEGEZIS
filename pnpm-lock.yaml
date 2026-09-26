@@ -87,6 +87,9 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
+      '@exegezis/inspect':
+        specifier: workspace:*
+        version: link:../../packages/inspect
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3

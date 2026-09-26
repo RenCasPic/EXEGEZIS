@@ -1,45 +1,75 @@
 import { spawn } from "node:child_process";
-import { existsSync, openSync, closeSync } from "node:fs";
+import { closeSync, existsSync, openSync } from "node:fs";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ulid } from "@exegezis/core";
 import { z } from "zod";
 import { readArtifact, readText } from "./evidence/read";
-import { repoRoot, runsDir } from "./workspace";
+import { displayPath, repoRoot, runsDir } from "./workspace";
 
 /**
- * Investigations started from the UI. The UI does not verify anything
- * itself: it starts the real CLI (`exegezis ai-verify`) as a child process
- * and records only what it needs to follow it. The results are the CLI's
- * own artifacts, discovered like any other run.
+ * Work started from the UI. The UI never verifies or inspects anything itself:
+ * it starts the real CLI (`exegezis ai-verify` or `exegezis inspect`) as a
+ * child process — no shell, one argument per value — and records only what it
+ * needs to follow it. Results are the CLI's own artifacts, discovered like any
+ * other run.
  */
-export const JobRecord = z.strictObject({
+const JobBase = {
   schemaVersion: z.literal("exegezis.web-job/v1"),
   id: z.string().regex(/^[0-9A-Z]{26}$/),
-  status: z.enum(["running", "finished", "failed"]),
+  status: z.enum(["queued", "running", "finished", "failed"]),
   pid: z.int().nullable(),
+  startedAt: z.string(),
+  finishedAt: z.string().nullable(),
+  exitCode: z.int().nullable(),
+  error: z.string().nullable(),
+  /** The UI server process that queued it: a queued job outlives no server restart. */
+  serverPid: z.int().nullable().default(null),
+};
+
+export const AiVerifyJob = z.strictObject({
+  ...JobBase,
+  kind: z.literal("ai-verify"),
   symptom: z.string(),
   baseUrl: z.string(),
   planner: z.literal("anthropic"),
   runs: z.int(),
   project: z.string().nullable(),
-  startedAt: z.string(),
-  finishedAt: z.string().nullable(),
-  exitCode: z.int().nullable(),
-  error: z.string().nullable(),
 });
-export type JobRecord = z.infer<typeof JobRecord>;
 
-/** A job whose process is gone without reporting back (e.g. the UI server restarted). */
+export const InspectJob = z.strictObject({
+  ...JobBase,
+  kind: z.literal("inspect"),
+  url: z.string(),
+  runs: z.int(),
+  maxPages: z.int().nullable(),
+  maxDepth: z.int().nullable(),
+  checks: z.array(z.string()).nullable(),
+  /** Path of a Playwright storageState file on this machine; its content is never read by the UI. */
+  storageState: z.string().nullable(),
+  strictReadonly: z.boolean(),
+  ignoreRobots: z.boolean(),
+});
+
+/** Jobs written before inspections existed have no `kind`: they are ai-verify jobs. */
+export const JobRecord = z.preprocess(
+  (value) => (value !== null && typeof value === "object" && !("kind" in value) ? { ...value, kind: "ai-verify" } : value),
+  z.discriminatedUnion("kind", [AiVerifyJob, InspectJob]),
+);
+export type JobRecord = z.infer<typeof JobRecord>;
+export type AiVerifyJob = z.infer<typeof AiVerifyJob>;
+export type InspectJob = z.infer<typeof InspectJob>;
+
+/** `lost`: the process (or the server that queued it) is gone without reporting back. */
 export type JobStatus = JobRecord["status"] | "lost";
 
-/** Exit codes of the CLI (apps/cli/src/shared.ts). */
+/** Exit codes of the CLI (apps/cli/src/args.ts). */
 export const EXIT_MEANING: Record<number, string> = {
-  0: "VERIFIED",
-  1: "NOT VERIFIED or FLAKY",
+  0: "success",
+  1: "expectation not met (NOT VERIFIED, FLAKY, or VERIFIED inspection findings)",
   2: "usage or configuration error",
   3: "internal or provider error",
-  4: "INCONCLUSIVE",
+  4: "inconclusive (INCONCLUSIVE, or inspection BLOCKED / UNREACHABLE / TIMEOUT)",
   5: "INVALID PLAN",
   6: "UNSUPPORTED",
 };
@@ -67,7 +97,9 @@ export async function readJob(id: string): Promise<{ job: JobRecord; status: Job
   const loaded = await readArtifact(join(jobDir(id), "job.json"), JobRecord);
   if (loaded.status !== "ok") return null;
   const job = loaded.value;
-  const status: JobStatus = job.status === "running" && !alive(job.pid) ? "lost" : job.status;
+  let status: JobStatus = job.status;
+  if (job.status === "running" && !alive(job.pid)) status = "lost";
+  if (job.status === "queued" && job.serverPid !== process.pid) status = "lost";
   return { job, status };
 }
 
@@ -94,13 +126,80 @@ export async function plannerCredentialsConfigured(): Promise<boolean> {
   }
   const env = await readText(join(repoRoot(), ".env"), 64 * 1024);
   if (env === null) return false;
-  return env
-    .split(/\r?\n/)
-    .some((line) => /^\s*(EXEGEZIS_ANTHROPIC_API_KEY|ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN)\s*=\s*\S+/.test(line));
+  return env.split(/\r?\n/).some((line) => /^\s*(EXEGEZIS_ANTHROPIC_API_KEY|ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN)\s*=\s*\S+/.test(line));
 }
 
 export function cliEntry(): string {
   return join(repoRoot(), "apps", "cli", "bin", "exegezis.js");
+}
+
+/** The CLI arguments of a job: exactly what runs, also shown to reproduce it from a terminal. */
+export function commandFor(job: JobRecord): string[] {
+  const output = jobOutputDir(job.id);
+  if (job.kind === "ai-verify") {
+    return ["ai-verify", "--symptom", job.symptom, "--base-url", job.baseUrl, "--planner", "anthropic", "--runs", String(job.runs), "--output", output];
+  }
+  return [
+    "inspect",
+    "--url",
+    job.url,
+    "--runs",
+    String(job.runs),
+    ...(job.maxPages === null ? [] : ["--max-pages", String(job.maxPages)]),
+    ...(job.maxDepth === null ? [] : ["--max-depth", String(job.maxDepth)]),
+    ...(job.checks === null ? [] : ["--checks", job.checks.join(",")]),
+    ...(job.storageState === null ? [] : ["--storage-state", job.storageState]),
+    ...(job.strictReadonly ? ["--strict-readonly"] : []),
+    ...(job.ignoreRobots ? ["--ignore-robots"] : []),
+    "--output",
+    output,
+  ];
+}
+
+/** Terminal form of a job's command, with the output path shown relative to the repository. */
+export function terminalCommand(job: JobRecord): string {
+  const output = jobOutputDir(job.id);
+  return ["pnpm exegezis", ...commandFor(job).map((a) => (a === output ? displayPath(output) : a)).map((a) => (/[\s"']/.test(a) ? JSON.stringify(a) : a))].join(" ");
+}
+
+function spawnJob(job: JobRecord, onExit: () => void): void {
+  // Writes are serialized so a fast exit can never be overwritten by an earlier record.
+  let queue = writeJob(job);
+  const update = (patch: Partial<JobRecord>): void => {
+    Object.assign(job, patch);
+    const snapshot = { ...job } as JobRecord;
+    queue = queue.then(() => writeJob(snapshot));
+  };
+  const log = openSync(join(jobDir(job.id), "output.log"), "a");
+  try {
+    // No shell: every value is one argument, never interpreted. cwd is the
+    // repository root so the CLI loads the same `.env` as in a terminal.
+    const child = spawn(process.execPath, [cliEntry(), ...commandFor(job)], { cwd: repoRoot(), stdio: ["ignore", log, log], windowsHide: true });
+    child.on("error", (error) => {
+      update({ status: "failed", finishedAt: new Date().toISOString(), error: error.message });
+      onExit();
+    });
+    child.on("exit", (code) => {
+      update({ status: "finished", finishedAt: new Date().toISOString(), exitCode: code });
+      onExit();
+    });
+    if (job.status === "running") update({ pid: child.pid ?? null });
+  } finally {
+    closeSync(log);
+  }
+}
+
+function newJobBase(id: string) {
+  return {
+    schemaVersion: "exegezis.web-job/v1" as const,
+    id,
+    pid: null,
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    exitCode: null,
+    error: null,
+    serverPid: process.pid,
+  };
 }
 
 export interface StartJobInput {
@@ -110,52 +209,83 @@ export interface StartJobInput {
   project: string | null;
 }
 
-/** The exact command a job runs, for display and for reproducing it in a terminal. */
-export function commandFor(input: StartJobInput, outputDir: string): string[] {
-  return ["ai-verify", "--symptom", input.symptom, "--base-url", input.baseUrl, "--planner", "anthropic", "--runs", String(input.runs), "--output", outputDir];
-}
-
 export async function startJob(input: StartJobInput): Promise<JobRecord> {
   if (!existsSync(cliEntry())) throw new Error("The CLI is not built: run `pnpm build` first.");
   const id = ulid();
   await mkdir(jobDir(id), { recursive: true });
-  const job: JobRecord = {
-    schemaVersion: "exegezis.web-job/v1",
-    id,
-    status: "running",
-    pid: null,
-    symptom: input.symptom,
-    baseUrl: input.baseUrl,
-    planner: "anthropic",
-    runs: input.runs,
-    project: input.project,
-    startedAt: new Date().toISOString(),
-    finishedAt: null,
-    exitCode: null,
-    error: null,
-  };
-  // Writes are serialized so a fast exit can never be overwritten by the initial record.
-  let queue = writeJob(job);
-  const update = (patch: Partial<JobRecord>): void => {
-    Object.assign(job, patch);
-    const snapshot = { ...job };
-    queue = queue.then(() => writeJob(snapshot));
-  };
-  const log = openSync(join(jobDir(id), "output.log"), "a");
-  try {
-    // No shell: the symptom is passed as one argument, never interpreted.
-    // cwd is the repository root so the CLI loads the same `.env` as in a terminal.
-    const child = spawn(process.execPath, [cliEntry(), ...commandFor(input, jobOutputDir(id))], {
-      cwd: repoRoot(),
-      stdio: ["ignore", log, log],
-      windowsHide: true,
-    });
-    child.on("error", (error) => update({ status: "failed", finishedAt: new Date().toISOString(), error: error.message }));
-    child.on("exit", (code) => update({ status: "finished", finishedAt: new Date().toISOString(), exitCode: code }));
-    if (job.status === "running") update({ pid: child.pid ?? null });
-  } finally {
-    closeSync(log);
-  }
-  await queue;
+  const job: JobRecord = { ...newJobBase(id), status: "running", kind: "ai-verify", planner: "anthropic", ...input };
+  spawnJob(job, () => undefined);
+  await writeJob(job);
   return { ...job };
+}
+
+export interface StartInspectionInput {
+  url: string;
+  runs: number;
+  maxPages: number | null;
+  maxDepth: number | null;
+  checks: string[] | null;
+  storageState: string | null;
+  strictReadonly: boolean;
+  ignoreRobots: boolean;
+}
+
+/** One inspection at a time: the others wait in a queue owned by this server process. */
+const inspectionQueue: string[] = [];
+let inspectionRunning: string | null = null;
+
+async function runNextInspection(): Promise<void> {
+  if (inspectionRunning !== null) return;
+  const next = inspectionQueue.shift();
+  if (next === undefined) return;
+  const found = await readJob(next);
+  if (found === null || found.job.kind !== "inspect" || found.job.status !== "queued") return runNextInspection();
+  const job: InspectJob = { ...found.job, status: "running", startedAt: new Date().toISOString() };
+  inspectionRunning = job.id;
+  spawnJob(job, () => {
+    inspectionRunning = null;
+    void runNextInspection();
+  });
+}
+
+export async function startInspection(input: StartInspectionInput): Promise<JobRecord> {
+  if (!existsSync(cliEntry())) throw new Error("The CLI is not built: run `pnpm build` first.");
+  const id = ulid();
+  await mkdir(jobDir(id), { recursive: true });
+  const job: InspectJob = { ...newJobBase(id), status: "queued", kind: "inspect", ...input };
+  await writeJob(job);
+  inspectionQueue.push(id);
+  await runNextInspection();
+  return (await readJob(id))?.job ?? job;
+}
+
+/** Progress written by `exegezis inspect` (progress.json), for a running inspection job. */
+export const InspectionProgressFile = z.looseObject({
+  phase: z.string(),
+  run: z.int(),
+  runs: z.int(),
+  pagesDone: z.int(),
+  pagesPlanned: z.int(),
+  current: z.string().nullable(),
+  updatedAt: z.string(),
+});
+export type InspectionProgressFile = z.infer<typeof InspectionProgressFile>;
+
+/** The inspection directory a job's CLI created, if any yet. */
+export async function jobInspectionDir(id: string): Promise<string | null> {
+  const base = join(jobOutputDir(id), "inspections");
+  try {
+    const names = (await readdir(base)).sort();
+    const last = names.at(-1);
+    return last === undefined ? null : join(base, last);
+  } catch {
+    return null;
+  }
+}
+
+export async function jobProgress(id: string): Promise<InspectionProgressFile | null> {
+  const dir = await jobInspectionDir(id);
+  if (dir === null) return null;
+  const loaded = await readArtifact(join(dir, "progress.json"), InspectionProgressFile);
+  return loaded.status === "ok" ? loaded.value : null;
 }

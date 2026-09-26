@@ -38,6 +38,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   const palette = [
     { href: "/", title: "Overview", group: "Page" },
+    { href: "/inspections", title: "Inspections", group: "Page" },
     { href: "/investigations", title: "All investigations", group: "Page" },
     { href: "/investigations/new", title: "New investigation", group: "Action" },
     { href: "/verification/reproductions", title: "Reproductions", group: "Page" },
@@ -49,6 +50,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       href: `/benchmarks/${b.id}`,
       title: `${b.result.status === "ok" ? b.result.value.suite : "benchmark"} · ${b.id}`,
       group: "Benchmark",
+    })),
+    ...index.inspections.map((i) => ({
+      href: `/inspections/${i.id}`,
+      title: i.report.status === "ok" ? i.report.value.target.url : i.relDir,
+      group: "Inspection",
+      hint: i.report.status === "ok" ? i.report.value.status : "INVALID",
     })),
     ...summaries.map((s) => ({
       href: `/investigations/${s.ref.id}`,
@@ -77,7 +84,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               environments={environments}
               scope={scope}
               palette={palette}
-              running={jobs.filter((j) => j.status === "running").map((j) => ({ id: j.job.id, symptom: j.job.symptom, startedAt: j.job.startedAt }))}
+              running={jobs.filter((j) => j.status === "running" || j.status === "queued").map((j) => ({ id: j.job.id, symptom: j.job.kind === "ai-verify" ? j.job.symptom : `Inspect ${j.job.url}`, startedAt: j.job.startedAt }))}
               counts={counts}
               user={user}
             />

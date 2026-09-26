@@ -8,6 +8,7 @@ import {
   Bot,
   FolderGit2,
   Gauge,
+  Globe,
   GitPullRequestDraft,
   HelpCircle,
   LayoutList,
@@ -43,7 +44,13 @@ export function SidebarNav({ counts, onNavigate }: { counts: SidebarCounts; onNa
   const investigationsList = (s: string | null) => (p: string, current: string | null) => p === "/investigations" && current === s;
 
   const groups: { title: string | null; items: Item[] }[] = [
-    { title: null, items: [{ href: "/", label: "Overview", icon: <Gauge />, match: (p) => p === "/" }] },
+    {
+      title: null,
+      items: [
+        { href: "/", label: "Overview", icon: <Gauge />, match: (p) => p === "/" },
+        { href: "/inspections", label: "Inspections", icon: <Globe />, match: (p) => p.startsWith("/inspections") },
+      ],
+    },
     {
       title: "Investigations",
       items: [

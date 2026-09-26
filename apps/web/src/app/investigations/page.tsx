@@ -31,7 +31,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
   const bySource = scoped.filter((s) => source === "all" || (source === "benchmark") === (s.ref.kind === "benchmark-case"));
   const rows = bySource.filter((s) => matchesStatus(s, status) && matchesQuery(s, q));
   // Jobs still waiting for their first artifact have no investigation directory yet.
-  const pendingJobs = status === "active" || status === "all" ? jobs.filter((j) => j.status === "running" && !scoped.some((s) => s.job?.id === j.job.id)) : [];
+  const pendingJobs = status === "active" || status === "all" ? jobs.filter((j) => j.job.kind === "ai-verify" && j.status === "running" && !scoped.some((s) => s.job?.id === j.job.id)) : [];
 
   const href = (patch: Record<string, string>) => {
     const next = new URLSearchParams({ ...(status === "all" ? {} : { status }), ...(q === "" ? {} : { q }), ...(source === "all" ? {} : { source }), ...patch });
@@ -97,7 +97,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
               <li key={job.id} className="border-b border-line last:border-b-0">
                 <Link href={`/jobs/${job.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-hover/50">
                   <StatusPill status="RUNNING" tone="running" size="xs" />
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-fg">{job.symptom}</span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-fg">{job.kind === "ai-verify" ? job.symptom : job.url}</span>
                   <span className="text-xs text-faint">{relativeTime(job.startedAt)}</span>
                 </Link>
               </li>

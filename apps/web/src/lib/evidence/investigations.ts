@@ -14,7 +14,7 @@ import {
   type Provenance,
   type VerificationOutcome,
 } from "@exegezis/core";
-import { readJob, type JobRecord, type JobStatus } from "../jobs";
+import { readJob, type AiVerifyJob, type JobStatus } from "../jobs";
 import { benchmarksDir, isInside, repoRoot } from "../workspace";
 import { discover, type BenchmarkRef, type InvestigationRef, type WorkspaceIndex } from "./discover";
 import { generationDetail, GenerationRecord } from "./generation";
@@ -128,7 +128,7 @@ async function buildSummary(index: WorkspaceIndex, ref: InvestigationRef, rootCa
   const report = valueOf(reportLoaded);
   const generation = valueOf(generationLoaded);
   const plan = generation?.plan ?? null;
-  const job: JobRecord | null = jobInfo?.job ?? null;
+  const job: AiVerifyJob | null = jobInfo?.job.kind === "ai-verify" ? jobInfo.job : null;
   const planSymptom = plan?.metadata.symptom;
   const symptom = context.spec?.symptom ?? (typeof planSymptom === "string" ? planSymptom : null) ?? job?.symptom ?? null;
 
