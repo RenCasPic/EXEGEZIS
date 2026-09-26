@@ -1,6 +1,6 @@
-# 09 — Accesos: bloqueos clasificados y soluciones legítimas (propuesta)
+# 09 — Accesos: bloqueos clasificados y soluciones legítimas
 
-Estado: **propuesta, pendiente de aprobación**. No hay código todavía.
+Estado: **aprobado por René el 2026-09-26**, con las decisiones y los ajustes de la §7.
 
 **Principios:**
 1. EXEGEZIS no evade nada. No resuelve CAPTCHAs, no cambia el User-Agent ni la huella del navegador, no usa plugins stealth ni proxies. Siempre se identifica como `EXEGEZIS-Inspector/<versión>`.
@@ -12,17 +12,22 @@ Estado: **propuesta, pendiente de aprobación**. No hay código todavía.
 
 En el informe, la página y la inspección siguen en `BLOCKED`, el código de salida sigue siendo 4 y los informes antiguos cargan igual. Lo nuevo es un campo `block` con el tipo, la evidencia (URL final, estado HTTP, las cabeceras relevantes, los *nombres* de cookies —nunca sus valores—, los marcadores DOM y una captura) y la solución. La UI y el CLI muestran el tipo: «BLOCKED · LOGIN_WALL».
 
-| Tipo | Se detecta por (en este orden de prioridad) | Solución |
+**Orden de detección.** Se aplica el primero que coincide:
+
+HTTP_AUTH → BOT_CHALLENGE → SESSION_EXPIRED → LOGIN_WALL → CONSENT_WALL → RATE_LIMITED → FORBIDDEN
+
+| Tipo | Se detecta por | Solución |
 |---|---|---|
 | HTTP_AUTH | 401 + `WWW-Authenticate: Basic\|Digest` en el documento | Formulario «usuario y contraseña de este sitio». Lo rellena la persona, se guarda cifrado y se usa como `httpCredentials` |
 | BOT_CHALLENGE | Marcadores DOM: iframe o `.cf-turnstile` de `challenges.cloudflare.com`, `#challenge-form`, `.g-recaptcha`, `.h-captcha`, `captcha-delivery.com` (DataDome), `#px-captcha`, «Access Denied… Reference #» (Akamai). Cabeceras: `cf-mitigated: challenge`, `x-datadome`. Cookies conocidas (`cf_clearance`, `__cf_bm`, `datadome`, `_abck`, `_px*`) | **A (recomendada, sitio propio):** token del WAF (§3). **B:** la persona pasa la verificación en la ventana visible, tras confirmar «sitio propio o con permiso». Si el desafío reaparece, se para. Nunca hay reintentos contra el desafío |
-| SESSION_EXPIRED | Había una sesión guardada para el origen y aparece LOGIN_WALL o un 401 | Botón «Renovar acceso». Al guardarse, la inspección se relanza sola con las mismas opciones |
-| LOGIN_WALL | Redirección a una ruta de login (`/login`, `/sign-in`, `/signin`, `/auth`, `/account/login`, `/users/sign_in`, o parámetros `?next=` / `?returnUrl=`); un campo de contraseña visible en la página de destino; un 401 sin `WWW-Authenticate` | «Abrir ventana para acceder»: la persona inicia sesión y se guarda la sesión |
+| SESSION_EXPIRED | Había una sesión guardada para el origen y aparece un muro de login (según la regla de LOGIN_WALL) o un 401 | Botón «Renovar acceso». Al guardarse, la inspección se relanza sola con las mismas opciones |
+| LOGIN_WALL | Solo en uno de estos dos casos: **(1)** se pidió una URL que no es de login y se acabó en una ruta de login (`/login`, `/sign-in`, `/signin`, `/auth`, `/account/login`, `/users/sign_in`, o parámetros `?next=` / `?returnUrl=`); **(2)** el contenido pedido no está y la página es principalmente un formulario de login: un campo de contraseña visible y poco más (menos de 60 palabras fuera del formulario y ningún `main`/`article` con contenido). Un 401 sin `WWW-Authenticate` también cuenta. **No es un muro:** una caja de login en la cabecera con el contenido visible, ni inspeccionar directamente una URL de login (p. ej. `/sign-in`), que se inspecciona como cualquier página | «Abrir ventana para acceder»: la persona inicia sesión y se guarda la sesión |
 | CONSENT_WALL | Diálogo visible de un gestor de consentimiento conocido (OneTrust, Cookiebot, Didomi, Usercentrics, Quantcast, TrustArc, CookieYes, Complianz) que cubre ≥ 30 % de la vista, o un elemento fijo con texto de cookies o consentimiento que cubre ≥ 50 % y bloquea el scroll | «Abrir ventana para elegir». La persona elige en el banner; la opción por defecto que se recomienda es la más privada. La elección se guarda como sesión. La inspección nunca pulsa el banner |
 | RATE_LIMITED | 429, o 503 con `Retry-After` | Automática: respeta `Retry-After`, reduce el ritmo con backoff exponencial (tope: 60 s por espera y 5 minutos en total) y continúa. Si se supera el tope, para y dice cuánto esperar |
 | FORBIDDEN | 403 sin marcadores de desafío | Explica la causa probable (IP, país, WAF) y qué hacer: lista blanca de IP u opción A de BOT_CHALLENGE. Sin reintentos |
-| NETWORK_RESTRICTED | `ERR_NAME_NOT_RESOLVED` sobre un nombre de dominio, dominio que resuelve a una IP privada, errores de proxy o túnel | Explica la causa (VPN, intranet, DNS privado). Un puerto que simplemente no responde sigue siendo UNREACHABLE |
 | ROBOTS_EXCLUDED | Páginas `SKIPPED_ROBOTS`: es por página, no bloquea la inspección | Ajuste por sitio, que se recuerda: «Este sitio es mío: inspeccionar también lo que robots.txt excluye» |
+
+**NETWORK_RESTRICTED no es un bloqueo del sitio.** Es un subtipo de UNREACHABLE: «UNREACHABLE · NETWORK_RESTRICTED». Se detecta por `ERR_NAME_NOT_RESOLVED` sobre un nombre de dominio, un dominio que resuelve a una IP privada o errores de proxy o túnel. Se explica la causa (VPN, intranet, DNS privado) y no hay reintentos. Un puerto que simplemente no responde sigue siendo UNREACHABLE sin subtipo.
 
 ## 2. Almacenamiento de accesos (cifrado)
 
@@ -33,10 +38,13 @@ En el informe, la página y la inspección siguen en `BLOCKED`, el código de sa
 
 **Qué se guarda por origen.** Un archivo `<sha256(origen)>.bin`: un JSON con `{storageState?, httpCredentials?, wafToken?}` cifrado con AES-256-GCM (`node:crypto`, nonce aleatorio, sin dependencias nuevas). Aparte, `index.json` contiene solo metadatos, sin nada secreto: origen, tipos de acceso, fecha de creación, último uso, caducidad estimada (la cookie de sesión que caduque antes) y los ajustes del sitio (robots, patrones de enlaces peligrosos).
 
+**Alcance de la sesión.** Solo se guardan las cookies y el storage del origen inspeccionado y sus subdominios. Si el login pasa por un proveedor externo (Google, Microsoft, Auth0…), sus cookies y su storage **no** se guardan.
+
 **Clave maestra.** Son 32 bytes aleatorios, creados una vez y protegidos por el sistema operativo:
-- **Windows, DPAPI** (ámbito del usuario actual). Se usa llamando a `powershell.exe -NoProfile -NonInteractive` con `ProtectedData.Protect/Unprotect`. Comprobado aquí: ida y vuelta correcta, unos 0,9 s, una sola vez por proceso. ⚠️ Es un subproceso interno de EXEGEZIS; René sigue usando solo CMD y nunca tiene que abrir PowerShell.
+- **Windows, DPAPI** (ámbito del usuario actual). Se usa llamando a `powershell.exe -NoProfile -NonInteractive` con `ProtectedData.Protect/Unprotect`. La clave y los datos van **siempre por stdin, nunca como argumento** (los argumentos los pueden ver otros procesos). Si una política del sistema bloquea PowerShell, se da un error claro con esa causa. Es un subproceso interno: René sigue usando solo CMD.
+  - Una sesión cifrada con DPAPI **solo se abre con este usuario de Windows en este equipo**. En otro equipo u otro usuario hay que volver a iniciarla. Así se dice en Ajustes → Accesos y en el mensaje, nunca como un error críptico.
 - **macOS, Keychain**: `security add-generic-password` / `find-generic-password`.
-- **Linux, libsecret**: `secret-tool store` / `lookup`. ⚠️ Si `secret-tool` no está, **no se guarda nada** y se explica cómo instalarlo (`libsecret-tools`). Alternativa, solo si la apruebas: una frase de paso en `EXEGEZIS_ACCESS_PASSPHRASE`, derivada con scrypt.
+- **Linux, libsecret**: `secret-tool store` / `lookup`. Si `secret-tool` no está, **no se guarda nada** y se dice cómo instalarlo (`sudo apt install libsecret-tools` o el equivalente de la distribución). No hay frase de paso.
 
 **Uso.** Solo el proceso del CLI descifra, y en memoria. La sesión se pasa a Playwright como objeto (`newContext({ storageState: objeto, httpCredentials })`), sin archivos temporales. El token del WAF se añade como `X-Exegezis-Token` con `context.route`, solo en las peticiones a ese origen; nunca va a terceros. La web solo lee `index.json`.
 
@@ -46,7 +54,7 @@ En el informe, la página y la inspección siguen en `BLOCKED`, el código de sa
 
 **`exegezis session login --url <sitio>`** (también el botón «Abrir ventana para acceder»):
 1. Abre una ventana **visible** del mismo canal que resuelve el motor (`auto`: Chromium de Playwright, si no Chrome, si no Edge), con el mismo User-Agent y sin tocar la huella.
-2. La persona inicia sesión, pasa la verificación o elige en el banner. EXEGEZIS no teclea, no lee los campos y no guarda la contraseña: solo el estado final del navegador (cookies y almacenamiento), que Playwright exporta.
+2. La persona inicia sesión, pasa la verificación o elige en el banner. EXEGEZIS no teclea, no lee los campos y no guarda la contraseña: solo el estado final del navegador (cookies y almacenamiento del origen), que Playwright exporta.
 3. Termina cuando la persona pulsa «Listo» en la UI de EXEGEZIS (o Enter en el terminal) o cierra la ventana.
 4. Antes de guardar, recarga la URL en ese mismo contexto y la clasifica. Solo si el bloqueo ya no está se guarda cifrado. Si sigue, no se guarda nada y se dice qué se detectó.
 
@@ -64,7 +72,7 @@ En el informe, la página y la inspección siguen en `BLOCKED`, el código de sa
 ## 5. Interfaz
 
 - **Aviso de bloqueo** en el detalle de la inspección, en la página del job y en la home: el tipo en lenguaje llano, la evidencia (captura, URL final, estado) y el botón de la solución. Al pulsarlo se abre un diálogo con los pasos y «Listo». Al terminar, la inspección se relanza con las mismas opciones.
-- **Ajustes → Accesos**: sitio, tipos de acceso (sesión, HTTP, token del WAF), estado (activo o caducado), último uso y los botones Renovar y Borrar.
+- **Ajustes → Accesos**: sitio, tipos de acceso (sesión, HTTP, token del WAF), estado (activo o caducado), último uso y los botones Renovar y Borrar, con la nota de que las sesiones solo se abren con este usuario en este equipo.
 - **Antes de lanzar**, la home avisa si la sesión del origen ha caducado.
 
 ## 6. Pruebas
@@ -76,9 +84,11 @@ Un fixture local por tipo:
 - 429 con `Retry-After`;
 - 403;
 - un banner de cookies que tapa el contenido;
-- una sesión que caduca.
+- una sesión que caduca;
+- SSO simulado: un login que pasa por un segundo origen, cuyas cookies no deben guardarse;
+- los tres casos de LOGIN_WALL: una redirección a login (sí es muro), una caja de login en la cabecera con contenido visible (no es muro) y la inspección directa de `/sign-in` (no es muro).
 
-En los tests, la ventana visible la «maneja» un script que hace de persona (inyectado solo en los tests).
+El orden de detección tiene su propio test: una página que cumple dos tipos a la vez se clasifica según el orden. En los tests, la ventana visible la «maneja» un script que hace de persona (inyectado solo en los tests).
 
 Comprobaciones:
 - en ningún archivo de `runs/`, en los logs ni en las respuestas de la API aparecen valores de cookies, contraseñas o tokens;
@@ -86,9 +96,15 @@ Comprobaciones:
 - el User-Agent y la huella no cambian;
 - nowsecure.nl sigue saliendo BOT_CHALLENGE.
 
-## Puntos que necesitan tu decisión (⚠️)
+## 7. Decisiones de René (2026-09-26)
 
-1. **DPAPI mediante `powershell.exe`** como subproceso interno en Windows (sin dependencias nativas). ¿Aprobado?
-2. **Linux sin `secret-tool`**: ¿no guardar nada (propuesto) o aceptar la alternativa con frase de paso?
-3. **`BLOCKED` se mantiene** como familia más el campo `block.kind`, en lugar de nueve estados nuevos. Así se conservan la compatibilidad y el código de salida 4.
-4. **Prueba real con René** en `/prayer`: necesito que René inicie sesión en la ventana visible cuando esté listo.
+1. **DPAPI mediante `powershell.exe` interno:** aprobado, con `-NoProfile -NonInteractive`, la clave y los datos siempre por stdin y un error claro si una política lo bloquea.
+2. **Linux sin `secret-tool`:** no se guarda nada, con un mensaje y la instrucción de instalación. Sin frase de paso por ahora.
+3. **`BLOCKED` + tipo concreto:** aprobado. NETWORK_RESTRICTED va como subtipo de UNREACHABLE.
+4. **Prueba real en `/prayer`:** la hace René. Se le dará el comando exacto para CMD y los pasos en la ventana.
+
+**Ajustes:**
+- (a) La sesión se limita al origen y sus subdominios; nada de proveedores de SSO.
+- (b) Reglas contra los falsos LOGIN_WALL, con tests.
+- (c) Aviso de que las sesiones con DPAPI solo se abren con este usuario en este equipo.
+- (d) El orden de detección, documentado y con tests.
