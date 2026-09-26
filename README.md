@@ -65,12 +65,48 @@ and its alternatives are refuted):
 pnpm exegezis root-cause                 # benchmarks/buggy-shop-root-cause, 5 runs per arm
 ```
 
+Inspect a web page without a symptom (read-only, same origin, deterministic
+checks: JS exceptions, console errors, failed requests, broken internal links,
+axe WCAG 2.1 AA, mixed content, SEO basics as info). A finding is VERIFIED only
+if it appears in every run (`--runs`, default 3), in fresh browsers; the others
+are reported apart as INTERMITTENT. Each VERIFIED finding keeps its evidence
+and a standalone Playwright spec that fails while the problem exists:
+
+```bash
+pnpm exegezis inspect --url http://localhost:3000/
+pnpm exegezis inspect --url https://example.com/ --max-pages 1
+```
+
+Options: `--max-pages 20`, `--max-depth 2`, `--runs 3`, `--checks a11y,broken-links`,
+`--storage-state <file>`, `--strict-readonly` (also block the writes the page
+itself makes; those pages become DEGRADED and their findings are discarded),
+`--ignore-robots`. The inspection never submits forms, clicks non-link elements
+or types; it only issues GET/HEAD requests of its own. Writes made by the page
+itself are listed in the report. External domains are listed, never visited.
+Requests carry the User-Agent `EXEGEZIS-Inspector/<version>`. A site that shows
+a CAPTCHA, anti-bot page or login wall is reported BLOCKED; nothing tries to
+get around it. Inspect only sites you own or are allowed to test. Results go to
+`runs/inspections/<id>/inspection-report.json` (verdicts and counts are
+re-derived from the raw observations when the report is loaded). Design:
+[docs/07-web-inspection.md](docs/07-web-inspection.md). Generic checks do not
+find logic bugs such as buggy-shop's: that is what `verify`, `ai-verify` and
+`root-cause` are for.
+
 Browse everything in the local web UI (reads `runs/` and the archived benchmark
 results; no demo data):
 
 ```bash
 pnpm web                              # http://127.0.0.1:4100
 ```
+
+The home page (`/`) inspects a site: a URL field, the options folded away, and
+a one-line permission confirmation before the first inspection of an external
+host. It starts the real CLI as a job (one inspection at a time, the rest
+queued) and follows its progress. Below it, what has been proven (one value per
+case, replays of recorded planner answers never counted), activity per case,
+recent inspections and the stages EXEGEZIS can prove today. The previous
+dashboard is at `/overview`; reports at `/inspections/<id>`. Light, dark or
+system theme (top bar). Design system: [docs/08-design-system.md](docs/08-design-system.md).
 
 Open a run's trace:
 

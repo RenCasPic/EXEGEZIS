@@ -132,4 +132,38 @@ Los jobs muestran un progreso por página, que se lee de un `progress.json` escr
 
 ## 8. Resultados de las pruebas manuales
 
-_(se completa tras la implementación)_
+**Fecha:** 2026-09-26. **Comando:** `pnpm exegezis inspect --url <url> --max-pages 1` salvo que se indique lo contrario.
+
+**Configuración común:** 3 repeticiones, axe-core 4.13.0, User-Agent `EXEGEZIS-Inspector/0.1.0`, robots.txt respetado.
+
+Los informes están en `runs/inspections/<id>/`; esa carpeta no se versiona.
+
+| Sitio | Estado | Salida | VERIFIED | Intermitentes | Escrituras de la página | Tiempo |
+|---|---|---|---|---|---|---|
+| example.com | COMPLETED | 0 | 0 | 0 | 0 | 9.8 s |
+| demo.playwright.dev/todomvc | COMPLETED | 1 | 6 graves + 1 info | 0 | 0 | 11.1 s |
+| nowsecure.nl | **BLOCKED** (`.cf-turnstile`) | 4 | — | — | 2 (Cloudflare) | 22.5 s |
+| buggy-shop (`localhost:3000`, configuración por defecto: 20 páginas, sin `--max-pages`) | COMPLETED | 0 | 0 | 0 | 3 × `POST /api/session` (201) | 9.9 s |
+| buggy-shop `--strict-readonly` | COMPLETED, 3/3 visitas DEGRADED | 0 | 0 | 0 | 3 × `POST /api/session`, bloqueadas | 9.4 s |
+
+**example.com.** Sin hallazgos. Un enlace externo (iana.org) se lista sin visitarlo.
+
+**todomvc.** Los hallazgos VERIFIED, todos 3/3:
+- 6 violaciones axe `color-contrast` (graves), en `h1`, en los tres párrafos del pie y en dos enlaces;
+- `The page has no meta viewport` (info).
+
+Tres enlaces externos se listan sin visitarlos. La propia app no hizo peticiones de escritura.
+
+**nowsecure.nl.** El Chromium headless **no** pasó la detección. El informe marca la página BLOCKED por el marcador `.cf-turnstile`, sin hallazgos y sin repetir las visitas; la salida es 4. No se añadió nada para esquivar la detección. Las 2 escrituras son de Cloudflare (`/cdn-cgi/rum` y `challenge-platform`), lanzadas por la propia página y atribuidas a ella.
+
+**nowsecure.nl destapó un fallo real.** En el primer intento la inspección se quedó colgada más de 10 minutos en la primera visita. La causa: `request.allHeaders()` de Playwright nunca resuelve para ciertas peticiones `blob:` hechas dentro del iframe del reto, y el adaptador esperaba sin límite a que terminaran todas las capturas de red. Corregido en `779a7e4`:
+- la espera tiene un plazo (`captureDrainTimeoutMs`, 10 s);
+- pasado el plazo, el colector de red queda marcado como incompleto en lugar de esperar para siempre.
+
+No se pudo reproducir con fixtures locales (un blob worker o un `fetch(blob:)` en un iframe de otro origen sí resuelven), así que el test es unitario (`drainWithDeadline`) y la comprobación de extremo a extremo es esta ejecución real.
+
+**buggy-shop, por defecto.** La inspección no envió formularios ni pulsó nada. La única escritura es el `POST /api/session` que la app lanza al cargar, una por repetición; se atribuye a la página y aparece en «Escrituras de la página». No hay hallazgos. buggy-shop es una SPA sin enlaces internos, así que se visita 1 página.
+
+**buggy-shop, `--strict-readonly`.** Se bloquean los 3 `POST /api/session`, y la app no arranca («[shop] failed to start»). Las 3 visitas quedan DEGRADED y sus 6 observaciones (errores de consola y la petición bloqueada) se descartan por política. No hay hallazgos.
+
+**Las comprobaciones genéricas no detectan los bugs de lógica de buggy-shop** (BUG-001 contador del carrito, BUG-002 cupón por cantidad, BUG-003 artículos comprados que reaparecen): la página carga sin errores, sin peticiones fallidas y sin violaciones axe. Esos bugs los verifican `verify`, `ai-verify` y `root-cause`: en esta misma fecha, el Benchmark A dio 9/9 y el Benchmark B (replay) 7/7, con los mismos veredictos de siempre.

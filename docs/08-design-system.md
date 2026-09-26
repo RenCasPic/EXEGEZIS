@@ -85,3 +85,7 @@ Todos los pares cumplen AA.
 - **EvidenceMeter.** 5 segmentos, NONE → REPRODUCED → SUFFICIENT → CANDIDATE → VALIDATED (el `EvidenceLevel` de core), con el nombre del nivel. Sin medición, muestra «—».
 - **RunHistory.** Un punto por ejecución: ok relleno, q relleno, off solo contorno. Tiene un `aria-label` con el recuento.
 - **SeverityLabel.** Icono de forma y texto, sin color de veredicto.
+
+## Capturas
+
+`docs/screenshots/`: `/`, `/inspections/[id]` y `/investigations/[id]` en claro y en oscuro, a 1440 px y a 375 px (`<página>-<ancho>-<tema>.png`). Son capturas de página completa hechas con Playwright a partir de datos reales de `runs/`. A 375 px ninguna página tiene scroll horizontal (`scrollWidth − clientWidth = 0`, medido en `/`, `/inspections`, `/investigations`, `/benchmarks`, `/verification/root-causes`, `/planner`, `/overview`, `/projects`, `/settings`, `/investigations/new` y la página de un job).
