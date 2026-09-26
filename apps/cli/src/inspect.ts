@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { SEVERITIES, ulid } from "@exegezis/core";
+import { groupStats, SEVERITIES, ulid } from "@exegezis/core";
 import { INSPECTION_REPORT_FILE, inspectSite } from "@exegezis/inspect";
 import { EXIT, UsageError, type InspectArgs } from "./args.js";
 import { printEngineError } from "./doctor.js";
@@ -81,17 +81,25 @@ export async function inspectCommand(options: InspectCommandOptions, io: CliIo):
   const entry = report.pages.find((p) => p.depth === 0 && p.run === 1);
   if (report.status !== "COMPLETED" && entry?.reason !== null && entry?.reason !== undefined) out(`Reason:  ${entry.reason}`);
   out(`Pages:   ${s.pagesVisited} visited · ${report.pages.filter((p) => p.status === "SKIPPED_ROBOTS").length} skipped by robots.txt · ${report.externalLinks.length} external links listed, not visited`);
-  out(`VERIFIED: ${SEVERITIES.map((sev) => `${sev} ${s.verified[sev]}`).join(" · ")}`);
-  out(`INTERMITTENT (reported apart): ${s.intermittent}`);
+  const g = groupStats(report.groups, report.findings);
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const bySeverity = SEVERITIES.filter((sev) => g.bySeverity[sev] > 0).map((sev) => `${sev} ${g.bySeverity[sev]}`);
+  out(`VERIFIED: ${plural(g.problems, "problem", "problems")} (${plural(g.elements, "element", "elements")} on ${plural(g.pages, "page", "pages")})${bySeverity.length === 0 ? "" : ` · ${bySeverity.join(" · ")}`}`);
+  out(`INTERMITTENT (reported apart): ${plural(g.intermittentProblems, "problem", "problems")} (${plural(g.intermittentElements, "element", "elements")})`);
+  if (g.info > 0) out(`Info: ${plural(g.info, "item", "items")} (SEO basics, not counted as problems)`);
   if (s.pageWrites > 0) out(`Page writes (made by the page itself, not by the inspection): ${s.pageWrites}${options.strictReadonly ? " — blocked" : ""}`);
   if (s.discardedByPolicy > 0) out(`Discarded under --strict-readonly: ${s.discardedByPolicy} observation(s) on DEGRADED pages`);
-  const verified = report.findings.filter((f) => f.verdict === "VERIFIED" && f.severity !== "info");
-  if (verified.length > 0) {
+  const top = report.groups.filter((x) => x.verified > 0 && x.severity !== "info");
+  if (top.length > 0) {
     out();
-    out("Findings (VERIFIED):");
-    for (const f of verified.slice(0, 20)) out(`  ${f.id} [${f.severity}] ${f.title}  (${new URL(f.page).pathname})`);
-    if (verified.length > 20) out(`  … ${verified.length - 20} more in the report`);
+    out(`Top problems (of ${top.length}, by impact):`);
+    for (const x of top.slice(0, 5)) {
+      const where = `${plural(x.verified, "element", "elements")}, ${plural(x.pages.length, "page", "pages")}`;
+      out(`  ${x.id} [${x.severity}] ${x.title} — ${where}${x.intermittent > 0 ? ` (+${x.intermittent} intermittent)` : ""}`);
+    }
+    if (top.length > 5) out(`  … ${top.length - 5} more in the report`);
   }
+  const verified = report.findings.filter((f) => f.verdict === "VERIFIED" && f.severity !== "info");
   out();
   out("Report:");
   out(displayPath(io, join(dir, INSPECTION_REPORT_FILE), false));

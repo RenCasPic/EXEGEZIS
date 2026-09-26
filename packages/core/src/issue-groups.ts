@@ -86,6 +86,10 @@ function plainTitle(first: Finding, rule: string | null, contrast: ContrastFacts
     return `Text ${contrast.foreground} on ${contrast.background}: contrast ${contrast.ratio}:1, minimum ${contrast.required}:1${contrast.textSize === "large" ? " (large text)" : ""}`;
   }
   if (first.checkId === "a11y") return `${first.title.replace(/\s*\([a-z0-9-]+\):.*$/, "")} (${rule ?? "axe"}): ${normalizeSelector(selectorOf(first.title))}`;
+  // The group spans messages that differ only in numbers or ids: show the normalized form.
+  const normalized = first.fingerprint.slice(first.checkId.length + 1);
+  if (first.checkId === "console-errors") return `Console error: ${normalized}`;
+  if (first.checkId === "js-exceptions") return `Uncaught exception: ${normalized}`;
   return first.title;
 }
 
@@ -144,4 +148,37 @@ export function deriveIssueGroups(findings: readonly Finding[]): IssueGroup[] {
   return groups.sort(
     (a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] || b.elements - a.elements || b.pages.length - a.pages.length || a.id.localeCompare(b.id),
   );
+}
+
+export interface GroupStats {
+  /** Groups with at least one VERIFIED finding, info excluded: the problems to fix. */
+  problems: number;
+  /** VERIFIED findings (elements) in those groups. */
+  elements: number;
+  /** Pages where those VERIFIED findings are. */
+  pages: number;
+  bySeverity: Record<Severity, number>;
+  /** Groups with at least one INTERMITTENT finding, and how many such findings (reported apart). */
+  intermittentProblems: number;
+  intermittentElements: number;
+  /** Groups of info findings (SEO basics): shown, not counted as problems. */
+  info: number;
+}
+
+export function groupStats(groups: readonly IssueGroup[], findings: readonly Finding[]): GroupStats {
+  const byId = new Map(findings.map((f) => [f.id, f]));
+  const problems = groups.filter((g) => g.verified > 0 && g.severity !== "info");
+  const verifiedFindings = problems.flatMap((g) => g.findings.map((id) => byId.get(id)).filter((f): f is Finding => f !== undefined && f.verdict === "VERIFIED"));
+  const bySeverity: Record<Severity, number> = { critical: 0, serious: 0, moderate: 0, minor: 0, info: 0 };
+  for (const g of problems) bySeverity[g.severity] += 1;
+  const intermittent = groups.filter((g) => g.intermittent > 0);
+  return {
+    problems: problems.length,
+    elements: verifiedFindings.length,
+    pages: new Set(verifiedFindings.map((f) => f.page)).size,
+    bySeverity,
+    intermittentProblems: intermittent.length,
+    intermittentElements: intermittent.reduce((n, g) => n + g.intermittent, 0),
+    info: groups.filter((g) => g.verified > 0 && g.severity === "info").length,
+  };
 }
