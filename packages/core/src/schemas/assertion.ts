@@ -113,6 +113,58 @@ export const VisualAssertion = z.strictObject({
   maxDiffPixelRatio: z.number().min(0).max(1).optional(),
 });
 
+/*
+ * Page-health assertions (used by web inspection). Each states the CORRECT
+ * behaviour, like every other assertion: it fails while the defect exists.
+ * They observe what the page did during the run, not a target element.
+ */
+
+/** No console message of `level` whose text contains `contains` was logged during the run. */
+export const ConsoleAssertion = z.strictObject({
+  kind: z.literal("console"),
+  level: z.enum(["error", "warning"]),
+  contains: z.string().min(1),
+  expected: z.literal("absent"),
+});
+
+/** No uncaught page error (JS exception) whose message contains `contains` was raised during the run. */
+export const PageErrorAssertion = z.strictObject({
+  kind: z.literal("page_error"),
+  contains: z.string().min(1),
+  expected: z.literal("absent"),
+});
+
+/**
+ * Every request the page made to `url` (absolute, or a path matched against
+ * pathname + search) got a response below 400 and none failed.
+ */
+export const RequestAssertion = z.strictObject({
+  kind: z.literal("request"),
+  request: z.strictObject({
+    method: z.enum(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]).optional(),
+    url: z.string().min(1),
+  }),
+  expected: z.literal("ok"),
+});
+
+/** A GET of `url` (absolute, or relative to the current page) answers below 400. */
+export const LinkAssertion = z.strictObject({
+  kind: z.literal("link"),
+  url: z.string().min(1),
+  expected: z.literal("ok"),
+});
+
+/**
+ * The axe-core rule `rule` reports no violation on the node `selector` (axe's
+ * own target selector). Compared by rule + node, never by a total count.
+ */
+export const A11yAssertion = z.strictObject({
+  kind: z.literal("a11y"),
+  rule: z.string().regex(/^[a-z0-9-]+$/, "an axe-core rule id"),
+  selector: z.string().min(1),
+  expected: z.literal("no_violation"),
+});
+
 export const Assertion = z.discriminatedUnion("kind", [
   TextAssertion,
   VisibilityAssertion,
@@ -122,12 +174,31 @@ export const Assertion = z.discriminatedUnion("kind", [
   CountAssertion,
   HttpAssertion,
   VisualAssertion,
+  ConsoleAssertion,
+  PageErrorAssertion,
+  RequestAssertion,
+  LinkAssertion,
+  A11yAssertion,
 ]);
 export type Assertion = z.infer<typeof Assertion>;
 export type AssertionInput = z.input<typeof Assertion>;
 export type AssertionKind = Assertion["kind"];
 export type AssertionOf<K extends AssertionKind> = Extract<Assertion, { kind: K }>;
-export const AssertionKind = z.enum(["text", "visibility", "existence", "attribute", "url", "count", "http", "visual"]);
+export const AssertionKind = z.enum([
+  "text",
+  "visibility",
+  "existence",
+  "attribute",
+  "url",
+  "count",
+  "http",
+  "visual",
+  "console",
+  "page_error",
+  "request",
+  "link",
+  "a11y",
+]);
 
 /**
  * - `anchor`: establishes that the application is in the state the plan
@@ -265,6 +336,16 @@ export function describeAssertion(assertion: Assertion): string {
       return `count of ${describeTarget(assertion.target)} equals ${assertion.expected}`;
     case "visual":
       return `${assertion.target === undefined ? "page" : describeTarget(assertion.target)} matches visual baseline "${assertion.baseline}"`;
+    case "console":
+      return `no console ${assertion.level} containing ${JSON.stringify(assertion.contains)}`;
+    case "page_error":
+      return `no page error containing ${JSON.stringify(assertion.contains)}`;
+    case "request":
+      return `requests to ${assertion.request.method ?? "ANY"} ${assertion.request.url} succeed (status < 400)`;
+    case "link":
+      return `GET ${assertion.url} answers status < 400`;
+    case "a11y":
+      return `axe rule ${assertion.rule} reports no violation on ${JSON.stringify(assertion.selector)}`;
     case "http": {
       const request = `${assertion.request.method ?? "ANY"} ${assertion.request.path}`;
       const parts: string[] = [];

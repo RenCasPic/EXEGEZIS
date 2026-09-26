@@ -12,8 +12,11 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "dependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@exegezis/core": "workspace:*",
     "fflate": "^0.8.3",
     "playwright": "1.63.0",

@@ -138,6 +138,18 @@ export class BrowserSession implements AdapterSession {
           }
           return undefined;
         },
+        consoleMessages: async () => {
+          await this.drainPending();
+          return this.consoleMessages;
+        },
+        pageErrors: async () => {
+          await this.drainPending();
+          return this.pageErrors;
+        },
+        exchanges: async () => {
+          await this.drainPending();
+          return this.exchanges;
+        },
       },
       assertion,
       { timeoutMs: options.timeoutMs, stabilityMs: options.stabilityMs },

@@ -25,3 +25,4 @@ export * from "./schemas/benchmark.js";
 export * from "./schemas/root-cause.js";
 export * from "./schemas/coverage.js";
 export * from "./experiment.js";
+export * from "./schemas/inspection.js";

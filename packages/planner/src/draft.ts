@@ -247,6 +247,13 @@ export function toDraftStep(step: PlanStep): DraftStep | undefined {
         case "existence":
           assertion = { kind: a.kind, target: target(a.target), expected: a.expected };
           break;
+        case "console":
+        case "page_error":
+        case "request":
+        case "link":
+        case "a11y":
+          // Page-health assertions (web inspection) are not part of the planner's wire format.
+          return undefined;
       }
       return {
         type: "assert",

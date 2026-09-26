@@ -244,3 +244,94 @@ describe("runCompiledSpec (the standard Playwright runner)", () => {
     }
   });
 });
+
+describe("page-health assertions (web inspection)", () => {
+  const HEALTH_STEPS: TestPlanInput["steps"] = [
+    { type: "navigate", url: "/" },
+    { type: "assert", timeoutMs: 3000, assertion: { kind: "console", level: "error", contains: "seeded console failure", expected: "absent" } },
+    { type: "assert", timeoutMs: 3000, assertion: { kind: "page_error", contains: "seeded exception", expected: "absent" } },
+    { type: "assert", timeoutMs: 3000, assertion: { kind: "request", request: { method: "GET", url: "/api/broken" }, expected: "ok" } },
+    { type: "assert", timeoutMs: 3000, assertion: { kind: "link", url: "/missing", expected: "ok" } },
+    { type: "assert", timeoutMs: 3000, assertion: { kind: "a11y", rule: "image-alt", selector: "#logo", expected: "no_violation" } },
+  ];
+  const health = compileToPlaywright(plan(HEALTH_STEPS, "HEALTH-1", "http://localhost:1/"), options);
+
+  it("emits recorders only when needed, and imports axe only for a11y", () => {
+    expect(health.source).toContain('import { AxeBuilder } from "@axe-core/playwright";');
+    expect(health.source).toContain('page.on("console"');
+    expect(health.source).toContain('page.on("pageerror"');
+    expect(health.source).toContain('page.on("requestfailed"');
+    expect(health.source).toContain('.withRules(["image-alt"])');
+    const plain = compileToPlaywright(plan([{ type: "navigate", url: "/" }]), options);
+    expect(plain.source).not.toContain("axe");
+    expect(plain.source).not.toContain('page.on("console"');
+  });
+
+  it("type-checks against @playwright/test and @axe-core/playwright", () => {
+    mkdirSync(WORK_DIR, { recursive: true });
+    const file = join(WORK_DIR, "health-typecheck.spec.ts");
+    writeFileSync(file, health.source);
+    const program = ts.createProgram([file], {
+      strict: true,
+      noEmit: true,
+      target: ts.ScriptTarget.ES2023,
+      lib: ["lib.es2023.d.ts", "lib.dom.d.ts"],
+      module: ts.ModuleKind.NodeNext,
+      moduleResolution: ts.ModuleResolutionKind.NodeNext,
+      types: ["node"],
+      skipLibCheck: true,
+    });
+    const diagnostics = ts.getPreEmitDiagnostics(program).map((d) => ts.flattenDiagnosticMessageText(d.messageText, "\n"));
+    expect(diagnostics).toEqual([]);
+  });
+
+  describe("running the specs", () => {
+    let server: Server;
+    let baseUrl: string;
+    let healthy = false;
+
+    beforeAll(async () => {
+      server = createServer((req, res) => {
+        if (req.url === "/api/broken") return void res.writeHead(healthy ? 200 : 500, { "content-type": "application/json" }).end("{}");
+        if (req.url === "/missing") return void res.writeHead(healthy ? 200 : 404, { "content-type": "text/plain" }).end("x");
+        if (req.url === "/logo.svg") return void res.writeHead(200, { "content-type": "image/svg+xml" }).end('<svg xmlns="http://www.w3.org/2000/svg"/>');
+        const problems = healthy
+          ? ""
+          : `<script>console.error("seeded console failure"); setTimeout(() => { throw new Error("seeded exception"); }, 0);</script>`;
+        res.writeHead(200, { "content-type": "text/html" }).end(`<!doctype html><html lang="en"><title>Health</title>
+          <main><h1>Health</h1><img id="logo" src="/logo.svg"${healthy ? ' alt="Logo"' : ""}></main>
+          <script>fetch("/api/broken");</script>${problems}`);
+      });
+      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+      baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
+      mkdirSync(WORK_DIR, { recursive: true });
+    });
+
+    afterAll(async () => {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      rmSync(WORK_DIR, { recursive: true, force: true });
+    });
+
+    async function runStep(step: number, id: string) {
+      const spec = compileToPlaywright(plan([HEALTH_STEPS[0], HEALTH_STEPS[step]] as TestPlanInput["steps"], id, "http://localhost:1/"), options);
+      const specPath = join(WORK_DIR, spec.fileName);
+      writeFileSync(specPath, spec.source);
+      return runCompiledSpec({ specPath, steps: spec.steps, baseUrl, outputDir: join(WORK_DIR, `${id}-results`) });
+    }
+
+    it("each spec fails while its problem exists and passes once it is gone", async () => {
+      for (const [step, name] of [
+        [1, "CONSOLE"],
+        [2, "PAGEERR"],
+        [3, "REQUEST"],
+        [4, "LINK"],
+        [5, "A11Y"],
+      ] as const) {
+        healthy = false;
+        expect(await runStep(step, `${name}-BAD`), name).toMatchObject({ status: "failed", failedAtStep: 2 });
+        healthy = true;
+        expect(await runStep(step, `${name}-OK`), name).toMatchObject({ status: "passed" });
+      }
+    }, 300_000);
+  });
+});

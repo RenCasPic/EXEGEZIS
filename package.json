@@ -1,7 +1,7 @@
 {
   "name": "exegezis",
   "private": true,
-  "description": "EXEGEZIS \u2014 Software that explains itself.",
+  "description": "EXEGEZIS — Software that explains itself.",
   "type": "module",
   "packageManager": "pnpm@10.34.5",
   "engines": {
@@ -21,6 +21,7 @@
     "build:web": "pnpm build && pnpm --filter @exegezis/web build"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@eslint/js": "^10.0.1",
     "@exegezis/cli": "workspace:*",
     "@playwright/test": "1.63.0",
@@ -29,5 +30,10 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.70.1",
     "vitest": "^5.0.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "axe-core": "4.13.0"
+    }
   }
 }

@@ -79,6 +79,26 @@ const ASSERTIONS_PAGE = `<!doctype html>
 </body>
 </html>`;
 
+/** Page-health problems: a console error, an uncaught exception, a 500, an image without alt text. */
+const HEALTH_PAGE = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Health</title></head>
+<body>
+  <main>
+    <h1>Health</h1>
+    <img id="logo" src="/logo.svg">
+    <img id="described" src="/logo.svg" alt="Company logo">
+    <a href="/assertions">Assertions</a>
+    <a href="/missing-page">Missing</a>
+  </main>
+  <script>
+    console.error("fixture console failure");
+    fetch("/api/broken");
+    setTimeout(() => { throw new RangeError("fixture health exception"); }, 0);
+  </script>
+</body>
+</html>`;
+
 export interface FixtureServer {
   url: string;
   close(): Promise<void>;
@@ -95,6 +115,21 @@ export async function startFixtureServer(): Promise<FixtureServer> {
     if (url.pathname === "/error") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(ERROR_PAGE);
+      return;
+    }
+    if (url.pathname === "/health") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(HEALTH_PAGE);
+      return;
+    }
+    if (url.pathname === "/logo.svg") {
+      res.writeHead(200, { "content-type": "image/svg+xml" });
+      res.end('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>');
+      return;
+    }
+    if (url.pathname === "/api/broken") {
+      res.writeHead(500, { "content-type": "application/json" });
+      res.end('{"error":"boom"}');
       return;
     }
     if (url.pathname === "/assertions") {

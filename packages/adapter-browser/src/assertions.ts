@@ -12,8 +12,11 @@ import {
   type AssertionEvaluation,
   type AssertionKind,
   type AssertionOf,
+  type ConsoleMessageEvidence,
   type NetworkExchangeEvidence,
+  type PageErrorEvidence,
 } from "@exegezis/core";
+import { AxeBuilder } from "@axe-core/playwright";
 import type { Page } from "playwright";
 import { toLocator } from "./locator.js";
 
@@ -41,6 +44,29 @@ export interface AssertionContext {
   baseUrl: string;
   /** Most recent exchange with a response for method + pathname, after pending captures settle. */
   lastResponse(method: string | undefined, path: string): Promise<NetworkExchangeEvidence | undefined>;
+  /** Everything the page did so far, after pending captures settle (page-health assertions). */
+  consoleMessages(): Promise<readonly ConsoleMessageEvidence[]>;
+  pageErrors(): Promise<readonly PageErrorEvidence[]>;
+  exchanges(): Promise<readonly NetworkExchangeEvidence[]>;
+}
+
+/** axe's node target as one selector string (iframe / shadow parts joined with " >>> "). */
+export function axeSelector(target: readonly (string | readonly string[])[]): string {
+  return target.map((t) => (typeof t === "string" ? t : t.join(" >>> "))).join(" ");
+}
+
+/** Whether a request URL is the one an assertion names: absolute URL (fragment ignored), or a path matched against pathname + search. */
+export function matchesRequestUrl(url: string, pattern: string): boolean {
+  try {
+    const u = new URL(url);
+    if (pattern.startsWith("/")) return `${u.pathname}${u.search}` === pattern || u.pathname === pattern;
+    const p = new URL(pattern);
+    u.hash = "";
+    p.hash = "";
+    return u.toString() === p.toString();
+  } catch {
+    return url === pattern;
+  }
 }
 
 type Evaluator<K extends AssertionKind> = (context: AssertionContext, assertion: AssertionOf<K>) => Promise<Sample>;
@@ -197,6 +223,83 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
   },
 
   visual: null,
+
+  async console(context, assertion) {
+    const hits = (await context.consoleMessages()).filter((m) => m.level === assertion.level && m.text.includes(assertion.contains)).map((m) => m.text);
+    return {
+      outcome: hits.length === 0 ? "pass" : "contradicts",
+      expected: "absent",
+      actual: hits.length === 0 ? "absent" : hits.slice(0, 5),
+      matches: hits.length,
+      message:
+        hits.length === 0
+          ? `no console ${assertion.level} contains ${JSON.stringify(assertion.contains)}`
+          : `${hits.length} console ${assertion.level}(s) contain ${JSON.stringify(assertion.contains)}: ${JSON.stringify(hits[0])}`,
+    };
+  },
+
+  async page_error(context, assertion) {
+    const hits = (await context.pageErrors()).map((e) => `${e.name}: ${e.message}`).filter((m) => m.includes(assertion.contains));
+    return {
+      outcome: hits.length === 0 ? "pass" : "contradicts",
+      expected: "absent",
+      actual: hits.length === 0 ? "absent" : hits.slice(0, 5),
+      matches: hits.length,
+      message: hits.length === 0 ? `no page error contains ${JSON.stringify(assertion.contains)}` : `uncaught page error: ${hits[0] ?? ""}`,
+    };
+  },
+
+  async request(context, assertion) {
+    const { method, url } = assertion.request;
+    const matching = (await context.exchanges()).filter((x) => (method === undefined || x.request.method === method) && matchesRequestUrl(x.request.url, url));
+    const bad = matching.filter((x) => x.failure !== undefined || (x.response !== undefined && x.response.status >= 400));
+    const describe = (x: NetworkExchangeEvidence) => (x.failure !== undefined ? `failed: ${x.failure.errorText}` : `${x.response?.status ?? "no response"}`);
+    return {
+      outcome: bad.length === 0 ? "pass" : "contradicts",
+      expected: "ok",
+      actual: bad.length === 0 ? (matching.length === 0 ? "not requested" : "ok") : bad.slice(0, 5).map(describe),
+      matches: matching.length,
+      message:
+        bad.length === 0
+          ? matching.length === 0
+            ? `the page made no request to ${url}`
+            : `${matching.length} request(s) to ${url} succeeded`
+          : `request to ${method ?? "ANY"} ${url} ${describe(bad[0] as NetworkExchangeEvidence)}`,
+    };
+  },
+
+  async link({ page }, assertion) {
+    const url = new URL(assertion.url, page.url()).toString();
+    // An inspection's own request: GET only, never anything else.
+    const response = await page.request.get(url, { failOnStatusCode: false, maxRedirects: 10, timeout: READ_TIMEOUT_MS * 10 });
+    const status = response.status();
+    await response.dispose();
+    return {
+      outcome: status < 400 ? "pass" : "contradicts",
+      expected: "ok",
+      actual: status,
+      matches: 1,
+      message: `GET ${url} answered ${status}${status < 400 ? "" : "; expected a status below 400"}`,
+    };
+  },
+
+  async a11y({ page }, assertion) {
+    const results = await new AxeBuilder({ page }).withRules([assertion.rule]).analyze();
+    const hits = results.violations
+      .filter((v) => v.id === assertion.rule)
+      .flatMap((v) => v.nodes.map((n) => axeSelector(n.target as (string | string[])[])))
+      .filter((selector) => selector === assertion.selector);
+    return {
+      outcome: hits.length === 0 ? "pass" : "contradicts",
+      expected: "no_violation",
+      actual: hits.length === 0 ? "no_violation" : "violation",
+      matches: hits.length,
+      message:
+        hits.length === 0
+          ? `axe ${results.testEngine.version} rule ${assertion.rule}: no violation on ${JSON.stringify(assertion.selector)}`
+          : `axe ${results.testEngine.version} rule ${assertion.rule} is violated by ${JSON.stringify(assertion.selector)}`,
+    };
+  },
 };
 
 /** Assertion kinds this adapter evaluates (the non-null registry entries). */
