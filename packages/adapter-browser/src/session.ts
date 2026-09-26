@@ -34,6 +34,7 @@ import { AxeBuilder } from "@axe-core/playwright";
 import { axeSelector, evaluateAssertion } from "./assertions.js";
 import { toLocator } from "./locator.js";
 import { domSettleScript, highlightScript, PAGE_FACTS_SCRIPT, PageFacts, UNHIGHLIGHT_SCRIPT } from "./page-scripts.js";
+import { drainWithDeadline } from "./drain.js";
 import type { BrowserAdapterOptions } from "./options.js";
 import { sanitizeTraceArchive } from "./trace-redaction.js";
 
@@ -541,8 +542,10 @@ export class BrowserSession implements AdapterSession {
   }
 
   private async drainPending(): Promise<void> {
-    while (this.pending.size > 0) {
-      await Promise.allSettled([...this.pending]);
+    const left = await drainWithDeadline(this.pending, this.options.captureDrainTimeoutMs);
+    if (left > 0) {
+      // The recorded network/console evidence is incomplete: say so, never wait forever.
+      this.collectorFailures.set("network", `${left} capture(s) still pending after ${this.options.captureDrainTimeoutMs} ms; the network evidence is incomplete`);
     }
   }
 

@@ -1,6 +1,7 @@
 import { REDACTED, SecretRegistry } from "@exegezis/core";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
+import { drainWithDeadline } from "../src/drain.js";
 import { normalizeAriaNodes } from "../src/session.js";
 import { sanitizeTraceArchive } from "../src/trace-redaction.js";
 
@@ -72,5 +73,27 @@ describe("normalizeAriaNodes", () => {
 
   it("wraps a single root node in a list", () => {
     expect(normalizeAriaNodes({ role: "main" })).toEqual([{ role: "main" }]);
+  });
+});
+
+describe("drainWithDeadline", () => {
+  it("waits for captures that settle, including ones added while waiting", async () => {
+    const pending = new Set<Promise<void>>();
+    const later = new Promise<void>((r) => setTimeout(r, 30));
+    pending.add(later);
+    void later.then(() => {
+      pending.delete(later);
+      const next = new Promise<void>((r) => setTimeout(r, 30));
+      pending.add(next);
+      void next.then(() => pending.delete(next));
+    });
+    expect(await drainWithDeadline(pending, 2_000)).toBe(0);
+  });
+
+  it("never waits forever on a capture that never settles", async () => {
+    const never = new Promise<void>(() => undefined);
+    const started = Date.now();
+    expect(await drainWithDeadline(new Set([never]), 200)).toBe(1);
+    expect(Date.now() - started).toBeLessThan(2_000);
   });
 });

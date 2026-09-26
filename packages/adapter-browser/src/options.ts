@@ -17,6 +17,8 @@ export const BrowserAdapterOptions = z.strictObject({
   navigationTimeoutMs: z.int().positive().default(30_000),
   /** Max wait for network idle before an observation; not reaching it is recorded, not fatal. */
   settleTimeoutMs: z.int().nonnegative().default(3_000),
+  /** Max wait for in-flight evidence captures (headers, bodies) before evidence is written; past it the capture is recorded as incomplete. */
+  captureDrainTimeoutMs: z.int().nonnegative().default(10_000),
   trace: z.boolean().default(true),
   /**
    * Record JavaScript execution coverage of the page (V8 block coverage) as
