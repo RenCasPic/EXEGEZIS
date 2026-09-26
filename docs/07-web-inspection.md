@@ -202,3 +202,56 @@ No se pudo reproducir con fixtures locales (un blob worker o un `fetch(blob:)` e
 **Benchmarks tras el cambio:** A da 9/9 (3 VP, 6 VN, 0 FP) y B mock 7/7 (3 VP, 4 VN, 0 FP), con los mismos veredictos que antes. BUG-001 y HEALTHY-001 también se ejecutaron con Chrome como único navegador:
 - BUG-001 sale VERIFIED 3/3, y el spec compilado se ejecuta en Chrome mediante una configuración mínima del runner, con un 100 % de concordancia con Playwright;
 - HEALTHY-001 sale NOT_VERIFIED, como se espera.
+
+### 8.2 Hallazgos agrupados (2026-09-26)
+
+Nueva inspección de https://www.jesushealingministry.net/ con `--max-pages 5 --max-depth 1 --runs 3`, desde CMD, con el Chromium de Playwright 153.0.8010.12. El informe es v2 y la salida es 1.
+
+| | Antes (una fila por elemento) | Ahora (por problema) |
+|---|---|---|
+| Verificados | 296 hallazgos | **9 problemas** (295 elementos en 5 páginas), todos graves |
+| Intermitentes | 5 hallazgos | 2 problemas (4 elementos) |
+
+El recuento varía en uno de una inspección a otra, porque el sitio cambia un poco entre visitas (el carrusel de testimonios). Los ids de grupo son los mismos que se derivaron del informe v1 del día anterior (`G-27a9b638d473`, `G-30400d0e080f`…): son estables entre inspecciones reales.
+
+**Los 5 problemas principales**, en el orden de impacto del informe. El color sugerido está calculado, no verificado en la página:
+
+1. **Texto naranja #C4862A sobre casi blanco #FBF7F0**: contraste 2,89:1, mínimo 4,5:1. Afecta a 134 elementos en `/`, `/books` y `/teachings`. Sugerencia: #986821 (4,53:1).
+2. **Texto gris azulado #6B7A99 sobre casi blanco #FBF7F0**: contraste 4,03:1, mínimo 4,5:1. Afecta a 72 elementos en 3 páginas; 1 de ellos es intermitente, así que el grupo es MIXED. Sugerencia: #63718F (4,58:1).
+3. **Texto gris azulado #6B7A99 sobre blanco #FFFFFF**: contraste 4,31:1, mínimo 4,5:1. Afecta a 56 elementos en las 5 páginas. Sugerencia: #677695 (4,56:1).
+4. **Texto naranja #C4862A sobre blanco #FFFFFF**: contraste 3,09:1, mínimo 4,5:1. Afecta a 25 elementos en las 5 páginas. Sugerencia: #9E6C22 (4,54:1).
+5. **Texto azul oscuro #1B3157 sobre azul oscuro #0B1729**: contraste 1,38:1, mínimo 4,5:1. Afecta a 4 elementos en 4 páginas, probablemente el pie de página. Sugerencia: #5580CA (4,55:1).
+
+**Los otros 4 problemas verificados:**
+- #6B7A99 sobre #FBF8F3 (2 elementos);
+- #C4862A sobre #FAEFD8 (1 elemento);
+- dos enlaces de privacidad que solo se distinguen por el color (`link-in-text-block`).
+
+**Intermitente aparte:** `POST pagead2…/ccm/collect → ERR_NAME_NOT_RESOLVED` (3 elementos), un píxel publicitario de terceros.
+
+En la práctica, arreglar 4 colores (los dos tonos de texto, sobre blanco y sobre crema) resuelve 287 de los 295 elementos.
+
+## 9. Agrupación de hallazgos
+
+Los hallazgos (uno por elemento y página) siguen siendo la fuente de verdad. Los **grupos** son una vista derivada y determinista (`packages/core/src/issue-groups.ts`) que responde a «¿qué tengo que arreglar?».
+
+**Clave de agrupación:**
+- `color-contrast`: regla + color del texto + color de fondo + tamaño. «Grande» cuando axe exige 3:1 (≥ 18 pt, o ≥ 14 pt en negrita).
+- Otras reglas de axe: regla + selector normalizado, sin `:nth-child` ni otras posiciones y sin ids con dígitos.
+- Errores de consola y excepciones JS: el mensaje normalizado (sin números, hashes ni query strings).
+- Peticiones fallidas: método + URL sin query + estado.
+- Enlaces rotos: la URL de destino.
+- Contenido mixto y SEO: el recurso o el campo.
+
+**Cada grupo lleva:**
+- un id estable: `G-` + sha256 de la clave;
+- la severidad máxima de sus hallazgos;
+- los elementos, las páginas y hasta 5 ejemplos (primero uno por página);
+- el veredicto: **VERIFIED** solo si todos sus hallazgos lo son, **INTERMITTENT** si ninguno lo es y **MIXED** en los demás casos. Un intermitente nunca queda escondido en un grupo verificado;
+- en los de contraste: el peor ratio medido, el ratio exigido y una **sugerencia de color** (la luminosidad más cercana que cumple, con el mismo tono y saturación), rotulada como no verificada.
+
+**Orden por impacto:** severidad, luego número de elementos, luego número de páginas.
+
+**Esquema:** `InspectionReport` v2 guarda los grupos. Al cargar un informe, los grupos se vuelven a derivar de los hallazgos: si no cuadran, el informe no carga. Los informes v1 cargan y reciben los grupos derivados.
+
+**Desviación respecto al diseño pedido.** Los datos de contraste (colores, tamaño y ratio) se leen del texto que axe guarda en cada hallazgo, no de campos nuevos del informe. Es la única forma de que los informes v1 obtengan también sus grupos. El texto es estable porque axe-core está fijado a 4.13.0.
