@@ -39,6 +39,16 @@ export default defineConfig({
       },
       {
         test: {
+          name: "inspect",
+          root: "packages/inspect",
+          include: ["test/**/*.test.ts"],
+          // Real Chromium inspections of local fixtures.
+          testTimeout: 180_000,
+          hookTimeout: 120_000,
+        },
+      },
+      {
+        test: {
           name: "web",
           root: "apps/web",
           include: ["test/**/*.test.ts"],

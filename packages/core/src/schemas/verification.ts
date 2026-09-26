@@ -257,7 +257,7 @@ function checkEvidence(representative: VerificationInput["representative"]): [bo
 }
 
 export const EvidenceRef = z.strictObject({
-  kind: z.enum(["timeline", "assertion", "screenshot", "accessibility", "dom", "console", "network", "trace", "metadata"]),
+  kind: z.enum(["timeline", "assertion", "screenshot", "accessibility", "dom", "console", "network", "trace", "metadata", "inspection"]),
   /** Path relative to the verification (or reproduction) directory. */
   path: z.string(),
   /** Evidence id inside the file, when the file holds many records. */

@@ -25,6 +25,7 @@ export default tseslint.config(
           "./apps/*/tsconfig.json",
           "./tsconfig.tests.json",
           "./examples/buggy-shop/tsconfig.json",
+          "./examples/inspect-lab/tsconfig.json",
         ],
         tsconfigRootDir: import.meta.dirname,
       },

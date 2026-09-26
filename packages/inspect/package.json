@@ -1,12 +1,9 @@
 {
-  "name": "@exegezis/cli",
+  "name": "@exegezis/inspect",
   "version": "0.1.0",
   "private": true,
-  "description": "EXEGEZIS command line interface.",
+  "description": "EXEGEZIS web inspection: open a URL without a symptom, walk it read-only and report deterministic, evidence-backed findings.",
   "type": "module",
-  "bin": {
-    "exegezis": "./bin/exegezis.js"
-  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -16,14 +13,15 @@
     }
   },
   "files": [
-    "bin",
     "dist"
   ],
   "dependencies": {
     "@exegezis/adapter-browser": "workspace:*",
-    "@exegezis/core": "workspace:*",
     "@exegezis/compiler-playwright": "workspace:*",
-    "@exegezis/planner": "workspace:*",
-    "@exegezis/inspect": "workspace:*"
+    "@exegezis/core": "workspace:*",
+    "playwright": "1.63.0"
+  },
+  "devDependencies": {
+    "selfsigned": "5.5.0"
   }
 }

@@ -59,3 +59,45 @@ describe("parseCliArgs", () => {
     expect(() => parseCliArgs(argv)).toThrow(message);
   });
 });
+
+describe("inspect arguments", () => {
+  it("requires --url, defaults to 3 runs, and parses the budget and flags", () => {
+    expect(() => parseCliArgs(["inspect"])).toThrow(/--url/);
+    expect(parseCliArgs(["inspect", "--url", "http://localhost:4300"])).toMatchObject({
+      kind: "inspect",
+      url: "http://localhost:4300/",
+      runs: 3,
+      strictReadonly: false,
+      ignoreRobots: false,
+    });
+    expect(
+      parseCliArgs([
+        "inspect",
+        "--url",
+        "https://example.com",
+        "--runs",
+        "2",
+        "--max-pages",
+        "1",
+        "--max-depth",
+        "0",
+        "--checks",
+        "a11y, broken-links",
+        "--storage-state",
+        "state.json",
+        "--strict-readonly",
+        "--ignore-robots",
+      ]),
+    ).toMatchObject({ runs: 2, maxPages: 1, maxDepth: 0, checks: ["a11y", "broken-links"], storageState: "state.json", strictReadonly: true, ignoreRobots: true });
+  });
+  it("rejects out-of-range budgets and options of other commands", () => {
+    expect(() => parseCliArgs(["inspect", "--url", "http://x.test", "--max-pages", "0"])).toThrow(/--max-pages/);
+    expect(() => parseCliArgs(["inspect", "--url", "ftp://x.test"])).toThrow(/http or https/);
+    expect(() => parseCliArgs(["inspect", "--url", "http://x.test", "--symptom", "x"])).toThrow(/not valid for "inspect"/);
+    expect(() => parseCliArgs(["verify", "--plan", "p.json", "--strict-readonly"])).toThrow(/not valid for "verify"/);
+  });
+  it("has no option to ignore TLS errors", () => {
+    expect(() => parseCliArgs(["inspect", "--url", "https://x.test", "--ignore-https-errors"])).toThrow();
+    expect(() => parseCliArgs(["inspect", "--url", "https://x.test", "--insecure-tls"])).toThrow();
+  });
+});

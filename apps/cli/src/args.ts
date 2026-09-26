@@ -31,7 +31,22 @@ export type Command =
     } & Common)
   | ({ kind: "generate-plan"; symptom: string; baseUrl: string; examples?: string } & PlannerArgs & Common)
   | ({ kind: "ai-verify"; symptom: string; baseUrl: string; runs: number; examples?: string } & PlannerArgs & Common)
-  | ({ kind: "root-cause"; suite: string; runs?: number; caseIds?: string[] } & Common);
+  | ({ kind: "root-cause"; suite: string; runs?: number; caseIds?: string[] } & Common)
+  | ({ kind: "inspect" } & InspectArgs & Common);
+
+export interface InspectArgs {
+  url: string;
+  runs: number;
+  maxPages?: number;
+  maxDepth?: number;
+  pageTimeoutMs?: number;
+  totalTimeoutMs?: number;
+  delayMs?: number;
+  checks?: string[];
+  storageState?: string;
+  strictReadonly: boolean;
+  ignoreRobots: boolean;
+}
 
 export type Planner = "anthropic" | "mock";
 
@@ -74,6 +89,8 @@ Usage:
   exegezis generate-plan --symptom "<text>" [--base-url <url>] [--planner ...] [--examples <suite>] [options]
   exegezis ai-verify     --symptom "<text>" [--runs 10] [--base-url <url>] [--planner ...] [--examples <suite>] [options]
   exegezis root-cause    [--suite buggy-shop-root-cause] [--case <id>]... [--runs 5] [options]
+  exegezis inspect       --url <url> [--runs 3] [--max-pages 20] [--max-depth 2] [--checks a,b]
+                         [--storage-state <file>] [--strict-readonly] [--ignore-robots] [options]
   exegezis --help | --version
 
 Commands:
@@ -94,6 +111,14 @@ Commands:
               validated but NOT executed.
   ai-verify   symptom -> planner -> TestPlan -> the same verification as
               "verify". The planner proposes; only the engine decides.
+  inspect     Open a URL without a symptom, walk it read-only (same origin,
+              GET only, no clicks or forms) and report deterministic findings:
+              JS exceptions, console errors, failed requests, broken internal
+              links, accessibility (axe-core, WCAG 2.1 A/AA), mixed content and
+              basic metadata. A finding is VERIFIED only if it appears in every
+              run (fresh contexts); others are INTERMITTENT. Each VERIFIED finding
+              gets evidence and a standalone Playwright spec. Anti-bot, CAPTCHA
+              and login walls give BLOCKED; nothing tries to get past them.
   root-cause  For each case: reproduce the bug on an isolated copy of the app
               (baseline), then apply each hypothesis' code mutation to its own
               copy and reproduce again. A cause is VALIDATED only if its
@@ -128,7 +153,7 @@ Exit codes:
   6  unsupported plan (not executed)
 `;
 
-const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify", "root-cause"] as const;
+const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify", "root-cause", "inspect"] as const;
 const PLANNERS: readonly Planner[] = ["anthropic", "mock"];
 
 export function parseCliArgs(argv: readonly string[]): Command {
@@ -151,6 +176,15 @@ export function parseCliArgs(argv: readonly string[]): Command {
         "mock-response": { type: "string" },
         examples: { type: "string" },
         "no-examples": { type: "boolean", default: false },
+        "max-pages": { type: "string" },
+        "max-depth": { type: "string" },
+        "page-timeout": { type: "string" },
+        "total-timeout": { type: "string" },
+        delay: { type: "string" },
+        checks: { type: "string" },
+        "storage-state": { type: "string" },
+        "strict-readonly": { type: "boolean", default: false },
+        "ignore-robots": { type: "boolean", default: false },
         output: { type: "string", default: "./runs" },
         actions: { type: "string" },
         headed: { type: "boolean", default: false },
@@ -186,9 +220,34 @@ export function parseCliArgs(argv: readonly string[]): Command {
     "generate-plan": ["symptom", "base-url", "planner", "model", "mock-response", "examples"],
     "ai-verify": ["symptom", "base-url", "runs", "planner", "model", "mock-response", "examples"],
     "root-cause": ["suite", "runs", "case"],
+    inspect: ["url", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay", "checks", "storage-state", "strict-readonly", "ignore-robots"],
   };
-  for (const option of ["url", "plan", "base-url", "runs", "actions", "suite", "case", "symptom", "planner", "model", "mock-response", "examples", "no-examples"] as const) {
-    if (option === "no-examples" ? values[option] === false : values[option] === undefined) continue;
+  for (const option of [
+    "url",
+    "plan",
+    "base-url",
+    "runs",
+    "actions",
+    "suite",
+    "case",
+    "symptom",
+    "planner",
+    "model",
+    "mock-response",
+    "examples",
+    "no-examples",
+    "max-pages",
+    "max-depth",
+    "page-timeout",
+    "total-timeout",
+    "delay",
+    "checks",
+    "storage-state",
+    "strict-readonly",
+    "ignore-robots",
+  ] as const) {
+    const value = values[option];
+    if (value === undefined || value === false) continue;
     if (!allowed[command as (typeof COMMANDS)[number]].includes(option)) {
       throw new UsageError(`Option --${option} is not valid for "${command}".`);
     }
@@ -253,6 +312,31 @@ export function parseCliArgs(argv: readonly string[]): Command {
         ...common,
       };
       return command === "ai-verify" ? { kind: "ai-verify", runs: parseRuns(values.runs), ...shared } : { kind: "generate-plan", ...shared };
+    }
+    case "inspect": {
+      if (values.url === undefined || values.url === "") throw new UsageError("Missing required option --url <url>.");
+      const int = (option: string, raw: string | undefined, min: number, max: number): number | undefined => {
+        if (raw === undefined) return undefined;
+        const n = Number(raw);
+        if (!Number.isInteger(n) || n < min || n > max) throw new UsageError(`--${option} must be an integer between ${min} and ${max}, got "${raw}".`);
+        return n;
+      };
+      const optional = <K extends string, V>(key: K, value: V | undefined) => (value === undefined ? {} : ({ [key]: value } as Record<K, V>));
+      return {
+        kind: "inspect",
+        url: httpUrl("--url", values.url),
+        runs: int("runs", values.runs, 1, 20) ?? 3,
+        ...optional("maxPages", int("max-pages", values["max-pages"], 1, 500)),
+        ...optional("maxDepth", int("max-depth", values["max-depth"], 0, 10)),
+        ...optional("pageTimeoutMs", int("page-timeout", values["page-timeout"], 1_000, 300_000)),
+        ...optional("totalTimeoutMs", int("total-timeout", values["total-timeout"], 10_000, 7_200_000)),
+        ...optional("delayMs", int("delay", values.delay, 0, 60_000)),
+        ...optional("checks", values.checks?.split(",").map((c) => c.trim()).filter((c) => c !== "")),
+        ...optional("storageState", values["storage-state"]),
+        strictReadonly: values["strict-readonly"],
+        ignoreRobots: values["ignore-robots"],
+        ...common,
+      };
     }
     case "root-cause":
       return {
