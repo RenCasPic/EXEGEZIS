@@ -110,6 +110,8 @@ describe("verdicts", () => {
     expect(deriveInspectionStatus([visit(1), visit(1, "TIMEOUT", "http://fixture.test/b", 1)], false)).toBe("PARTIAL");
     expect(deriveInspectionStatus([visit(1)], true)).toBe("PARTIAL");
     expect(deriveInspectionStatus([], false)).toBe("UNREACHABLE");
+    expect(deriveInspectionStatus([], false, true)).toBe("ENGINE_ERROR");
+    expect(deriveInspectionStatus([visit(1)], false, true)).toBe("ENGINE_ERROR");
   });
 });
 
@@ -166,6 +168,20 @@ describe("report re-derivation: a manipulated report does not load", () => {
     expect(RootIsValid({ ...report, findings: report.findings.slice(1) })).toBe(false);
     expect(RootIsValid({ ...report, summary: { ...report.summary, intermittent: 0 } })).toBe(false);
     expect(RootIsValid({ ...report, status: "BLOCKED" })).toBe(false);
+  });
+
+  it("loads reports written before the browser and engine-error fields existed", () => {
+    const parsed = InspectionReport.parse(report);
+    expect(parsed.engineError).toBeNull();
+    expect(parsed.tools.browser).toBeNull();
+  });
+
+  it("an engine error is ENGINE_ERROR and nothing else: never UNREACHABLE, never COMPLETED", () => {
+    const engineError = { message: "no browser could be started", attempts: [{ engine: "chromium (Playwright)", error: "Executable doesn't exist" }], remedy: ["exegezis doctor --install"] };
+    const empty = { ...report, pages: [], checks: [], findings: [], engineError, summary: deriveSummary([], [], [], [], options) };
+    expect(RootIsValid({ ...empty, status: "ENGINE_ERROR" })).toBe(true);
+    expect(RootIsValid({ ...empty, status: "UNREACHABLE" })).toBe(false);
+    expect(RootIsValid({ ...report, status: "ENGINE_ERROR" })).toBe(false);
   });
 
   it("rejects a finding whose severity differs from the observation", () => {

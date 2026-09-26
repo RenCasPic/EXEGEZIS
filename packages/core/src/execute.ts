@@ -1,6 +1,7 @@
 import { arch, platform, release } from "node:os";
 import { supportsAction, supportsAssertion, type Adapter, type AdapterSession } from "./adapter.js";
 import { canonicalJson, hashJson } from "./hash.js";
+import { isEngineUnavailable, type EngineUnavailableError } from "./engine.js";
 import type { Logger } from "./logger.js";
 import type { RunRecorder } from "./recorder.js";
 import { REDACTION_POLICY } from "./redaction.js";
@@ -105,6 +106,7 @@ export async function executeRun(options: ExecuteRunOptions): Promise<RunOutcome
   let lastActionEvent: TimelineEvent | undefined;
   let collectors: Record<string, CollectorStatus> = {};
   let session: AdapterSession | undefined;
+  let engineError: EngineUnavailableError | undefined;
 
   const baseMetadata: RunMetadata = {
     schemaVersion: "exegezis.run/v1",
@@ -160,6 +162,7 @@ export async function executeRun(options: ExecuteRunOptions): Promise<RunOutcome
   } catch (error) {
     recordFailure(error instanceof RunTimeoutError ? "run" : "start", error);
     stepError = true;
+    if (isEngineUnavailable(error)) engineError = error;
   }
 
   if (session !== undefined) {
@@ -252,6 +255,9 @@ export async function executeRun(options: ExecuteRunOptions): Promise<RunOutcome
   };
   await recorder.writeMetadata(metadata);
   const manifest = await recorder.finalize();
+  // The engine could not start on this machine: the run is recorded, but no
+  // caller may turn it into a verdict about the target. Abort the command.
+  if (engineError !== undefined) throw engineError;
 
   return {
     runId: recorder.runId,

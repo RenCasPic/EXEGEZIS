@@ -43,6 +43,10 @@ export const RunEnvironment = z.strictObject({
       userAgent: z.string(),
       headless: z.boolean(),
       viewport: Viewport,
+      /** Which browser was actually driven: Playwright's own Chromium or a system browser channel. */
+      channel: z.enum(["chromium", "chrome", "msedge"]).optional(),
+      /** True when a browser installed on the system (Chrome, Edge) was used instead of Playwright's. */
+      system: z.boolean().optional(),
     })
     .optional(),
   automation: z.strictObject({ name: z.string(), version: z.string() }).optional(),

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Assertion } from "./assertion.js";
+import { EngineErrorInfo } from "../engine.js";
 import { Timestamp } from "./common.js";
 import { EvidenceRef } from "./verification.js";
 
@@ -119,7 +120,11 @@ export const PageWrite = z.strictObject({
 });
 export type PageWrite = z.infer<typeof PageWrite>;
 
-export const InspectionStatus = z.enum(["COMPLETED", "PARTIAL", "BLOCKED", "UNREACHABLE", "TIMEOUT"]);
+/**
+ * `ENGINE_ERROR`: the browser could not start on this machine. Nothing was
+ * learned about the site; no page is marked UNREACHABLE for it.
+ */
+export const InspectionStatus = z.enum(["COMPLETED", "PARTIAL", "BLOCKED", "UNREACHABLE", "TIMEOUT", "ENGINE_ERROR"]);
 export type InspectionStatus = z.infer<typeof InspectionStatus>;
 
 const SeverityCounts = z.strictObject({ critical: z.int(), serious: z.int(), moderate: z.int(), minor: z.int(), info: z.int() });
@@ -162,9 +167,16 @@ export const InspectionReport = z
       axe: z.string().nullable(),
       axeRules: z.array(z.string()),
       checks: z.array(z.strictObject({ id: z.string(), version: z.string() })),
+      /** The browser actually used (null: none started, or a report from before this was recorded). */
+      browser: z
+        .strictObject({ channel: z.enum(["chromium", "chrome", "msedge"]), version: z.string(), system: z.boolean() })
+        .nullable()
+        .default(null),
     }),
     robots: z.strictObject({ respected: z.boolean(), fetched: z.boolean(), disallow: z.array(z.string()) }),
     totalTimeoutReached: z.boolean(),
+    /** Set when the browser could not start on this machine (status ENGINE_ERROR). */
+    engineError: EngineErrorInfo.nullable().default(null),
     status: InspectionStatus,
     pages: z.array(PageVisit),
     externalLinks: z.array(z.strictObject({ url: z.string(), from: z.string() })),
@@ -173,7 +185,7 @@ export const InspectionReport = z
     findings: z.array(Finding),
     summary: InspectionSummary,
   })
-  .refine((r) => r.status === deriveInspectionStatus(r.pages, r.totalTimeoutReached), {
+  .refine((r) => r.status === deriveInspectionStatus(r.pages, r.totalTimeoutReached, r.engineError !== null), {
     message: "the status must follow from the page visits",
     path: ["status"],
   })
@@ -218,10 +230,12 @@ export function fingerprintOf(checkId: string, key: string): string {
 }
 
 /**
- * Overall status: the entry page decides BLOCKED / UNREACHABLE / TIMEOUT;
+ * Overall status: ENGINE_ERROR when the browser could not start (nothing is
+ * known about the site); otherwise the entry page decides BLOCKED / UNREACHABLE / TIMEOUT;
  * otherwise PARTIAL if the budget ran out or any visit could not complete.
  */
-export function deriveInspectionStatus(pages: readonly Pick<PageVisit, "depth" | "run" | "status">[], totalTimeoutReached: boolean): InspectionStatus {
+export function deriveInspectionStatus(pages: readonly Pick<PageVisit, "depth" | "run" | "status">[], totalTimeoutReached: boolean, engineError = false): InspectionStatus {
+  if (engineError) return "ENGINE_ERROR";
   const entry = pages.find((p) => p.depth === 0 && p.run === 1);
   if (entry === undefined) return "UNREACHABLE";
   if (entry.status === "BLOCKED" || entry.status === "UNREACHABLE" || entry.status === "TIMEOUT") return entry.status;

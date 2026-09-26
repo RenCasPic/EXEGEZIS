@@ -162,6 +162,16 @@ describe("executeRun — plans with assertions", () => {
     expect(readManifest(outcome.dir).missing.map((m) => m.type).sort()).toEqual(["accessibility", "console", "network", "screenshot", "trace"]);
   });
 
+  it("records the run and then aborts when the engine is not available on this machine", async () => {
+    const recorder = await RunRecorder.create({ outputDir });
+    await expect(
+      executeRun({ adapter: fakeAdapter({ engineUnavailable: true }), plan: testPlan([badge("Cart (0)")]), recorder, logger: silentLogger, command: "run", exegezisVersion: "test" }),
+    ).rejects.toMatchObject({ name: "EngineUnavailableError", remedy: ["exegezis doctor --install"] });
+    const metadata = RunMetadata.parse(readJson(join(recorder.dir, "metadata.json")));
+    expect(metadata.error).toMatchObject({ phase: "start", name: "EngineUnavailableError" });
+    expect(existsSync(join(recorder.dir, "execution-errors.json"))).toBe(true);
+  });
+
   it("keeps a failed verdict but marks the run failed when evidence collection breaks", async () => {
     const outcome = await run(fakeAdapter({ evaluate: () => fails("a", "b"), failCollect: true }), testPlan([badge("a")]));
     expect(outcome.verdict).toBe("failed");

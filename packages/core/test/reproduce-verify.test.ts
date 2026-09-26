@@ -108,6 +108,13 @@ async function verify(plan: TestPlan, behaviors: FakeBehavior[], compiledTest?: 
 const times = <T>(n: number, value: T): T[] => Array<T>(n).fill(value);
 
 describe("reproducePlan", () => {
+  it("aborts on the first attempt when the engine is not available, instead of classifying the reproduction", async () => {
+    await expect(reproduce([{ engineUnavailable: true }, failing, failing])).rejects.toMatchObject({ name: "EngineUnavailableError" });
+    const { readdir } = await import("node:fs/promises");
+    const entries = await readdir(dir, { recursive: true });
+    expect(entries.filter((e) => e.endsWith("metadata.json"))).toHaveLength(1);
+  });
+
   it("10/10 identical failures → REPRODUCED, with one isolated run per attempt", async () => {
     const result = await reproduce(times(10, failing));
     expect(result.reproduction).toMatchObject({ attempts: 10, passes: 0, failures: 10, timeouts: 0, errors: 0, rate: 1, status: "REPRODUCED" });

@@ -9,10 +9,12 @@ import type {
   PlanStep,
   TestPlan,
 } from "../src/index.js";
-import { UNKNOWN_PROVENANCE } from "../src/index.js";
+import { EngineUnavailableError, UNKNOWN_PROVENANCE } from "../src/index.js";
 
 export interface FakeBehavior {
   failStart?: boolean;
+  /** The engine is not available on this machine (e.g. no browser installed). */
+  engineUnavailable?: boolean;
   /** Throw when executing this action type (like a Playwright timeout). */
   failOn?: Action["type"];
   /** Decides each assertion's outcome; default: passes with actual = expected. */
@@ -88,6 +90,9 @@ export function fakeAdapter(behavior: FakeBehavior = {}): FakeAdapter {
     config: { mode: "test" },
     async start(context): Promise<AdapterSession> {
       if (behavior.failStart === true) throw new Error("cannot start");
+      if (behavior.engineUnavailable === true) {
+        throw new EngineUnavailableError("no browser could be started", [{ engine: "chromium (Playwright)", error: "Executable doesn't exist" }], ["exegezis doctor --install"]);
+      }
       const { recorder } = context;
       return {
         environment: { adapter: { id: "fake", version: "0.0.0" } },

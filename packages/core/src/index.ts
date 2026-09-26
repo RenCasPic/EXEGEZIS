@@ -1,4 +1,5 @@
 export * from "./adapter.js";
+export * from "./engine.js";
 export * from "./execute.js";
 export * from "./hash.js";
 export * from "./ids.js";

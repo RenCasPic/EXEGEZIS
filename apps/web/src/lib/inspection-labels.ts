@@ -15,6 +15,7 @@ export const INSPECTION_STATUS_TONE: Record<InspectionStatus, Tone> = {
   BLOCKED: "warn",
   UNREACHABLE: "q",
   TIMEOUT: "q",
+  ENGINE_ERROR: "bad",
 };
 
 export const INSPECTION_STATUS_TEXT: Record<InspectionStatus, string> = {
@@ -23,6 +24,7 @@ export const INSPECTION_STATUS_TEXT: Record<InspectionStatus, string> = {
   BLOCKED: "El sitio bloqueó la inspección (anti-bot, CAPTCHA, login o 451). EXEGEZIS no intenta saltarse ese bloqueo.",
   UNREACHABLE: "No se pudo conectar con el sitio (DNS, TLS o conexión).",
   TIMEOUT: "La página de entrada no terminó de cargar a tiempo.",
+  ENGINE_ERROR: "El navegador no pudo arrancar en este equipo. El problema está en este equipo, no en el sitio: no se sacó ninguna conclusión sobre él.",
 };
 
 export const PAGE_STATUS_TONE: Record<PageStatus, Tone> = {
