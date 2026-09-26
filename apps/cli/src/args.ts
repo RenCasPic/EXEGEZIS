@@ -4,10 +4,14 @@ export class UsageError extends Error {
   override readonly name = "UsageError";
 }
 
+export const BROWSER_CHANNELS = ["auto", "chromium", "chrome", "msedge"] as const;
+export type BrowserChannelArg = (typeof BROWSER_CHANNELS)[number];
+
 interface Common {
   output: string;
   headed: boolean;
   verbose: boolean;
+  browserChannel: BrowserChannelArg;
 }
 
 export type Command =
@@ -32,7 +36,8 @@ export type Command =
   | ({ kind: "generate-plan"; symptom: string; baseUrl: string; examples?: string } & PlannerArgs & Common)
   | ({ kind: "ai-verify"; symptom: string; baseUrl: string; runs: number; examples?: string } & PlannerArgs & Common)
   | ({ kind: "root-cause"; suite: string; runs?: number; caseIds?: string[] } & Common)
-  | ({ kind: "inspect" } & InspectArgs & Common);
+  | ({ kind: "inspect" } & InspectArgs & Common)
+  | { kind: "doctor"; install: boolean; json: boolean };
 
 export interface InspectArgs {
   url: string;
@@ -71,6 +76,8 @@ export const EXIT = {
   invalidPlan: 5,
   /** The plan needs capabilities the adapter does not have: it was not executed. */
   unsupported: 6,
+  /** No browser could be started on this machine: nothing was concluded about the target. */
+  engineError: 7,
 } as const;
 
 export const MAX_RUNS = 100;
@@ -91,6 +98,7 @@ Usage:
   exegezis root-cause    [--suite buggy-shop-root-cause] [--case <id>]... [--runs 5] [options]
   exegezis inspect       --url <url> [--runs 3] [--max-pages 20] [--max-depth 2] [--checks a,b]
                          [--storage-state <file>] [--strict-readonly] [--ignore-robots] [options]
+  exegezis doctor        [--install] [--json]
   exegezis --help | --version
 
 Commands:
@@ -119,6 +127,11 @@ Commands:
               run (fresh contexts); others are INTERMITTENT. Each VERIFIED finding
               gets evidence and a standalone Playwright spec. Anti-bot, CAPTCHA
               and login walls give BLOCKED; nothing tries to get past them.
+  doctor      Check this machine: Node.js, pnpm and the browsers EXEGEZIS can
+              drive (Playwright's Chromium, Google Chrome, Microsoft Edge), with
+              their versions, and say what is missing and how to install it.
+              Nothing is downloaded unless you pass --install, which downloads
+              Playwright's Chromium (~150 MB).
   root-cause  For each case: reproduce the bug on an isolated copy of the app
               (baseline), then apply each hypothesis' code mutation to its own
               copy and reproduce again. A cause is VALIDATED only if its
@@ -140,6 +153,10 @@ Options:
   AI commands target ${DEFAULT_AI_BASE_URL} unless --base-url is given.
   --base-url <url>   Run the plan against another environment.
   --headed           Show the browser window.
+  --browser-channel <c>  Which browser to drive: auto (default: Playwright's
+                     Chromium if installed, else Google Chrome, else Microsoft
+                     Edge, which comes with Windows), chromium, chrome or msedge.
+                     The browser actually used is recorded in every run.
   --verbose          Also stream structured logs to stderr.
 
 Exit codes:
@@ -151,9 +168,12 @@ Exit codes:
   4  inconclusive (execution error, timeout, INCONCLUSIVE)
   5  invalid plan (not executed)
   6  unsupported plan (not executed)
+  7  engine error: no browser could be started on this machine. Nothing was
+     concluded about the site or the application. Run "pnpm exegezis doctor"
+     (the same command works in Windows CMD, PowerShell, macOS and Linux).
 `;
 
-const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify", "root-cause", "inspect"] as const;
+const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify", "root-cause", "inspect", "doctor"] as const;
 const PLANNERS: readonly Planner[] = ["anthropic", "mock"];
 
 export function parseCliArgs(argv: readonly string[]): Command {
@@ -185,6 +205,9 @@ export function parseCliArgs(argv: readonly string[]): Command {
         "storage-state": { type: "string" },
         "strict-readonly": { type: "boolean", default: false },
         "ignore-robots": { type: "boolean", default: false },
+        "browser-channel": { type: "string" },
+        install: { type: "boolean", default: false },
+        json: { type: "boolean", default: false },
         output: { type: "string", default: "./runs" },
         actions: { type: "string" },
         headed: { type: "boolean", default: false },
@@ -210,17 +233,18 @@ export function parseCliArgs(argv: readonly string[]): Command {
   if (values.output === "") throw new UsageError("--output must not be empty.");
 
   const allowed: Record<(typeof COMMANDS)[number], string[]> = {
-    observe: ["url", "actions"],
-    run: ["plan", "base-url"],
-    reproduce: ["plan", "base-url", "runs"],
+    observe: ["url", "actions", "browser-channel"],
+    run: ["plan", "base-url", "browser-channel"],
+    reproduce: ["plan", "base-url", "runs", "browser-channel"],
     compile: ["plan"],
-    verify: ["plan", "base-url", "runs"],
-    validate: ["plan", "base-url"],
-    benchmark: ["suite", "base-url", "runs", "case", "planner", "model", "no-examples"],
-    "generate-plan": ["symptom", "base-url", "planner", "model", "mock-response", "examples"],
-    "ai-verify": ["symptom", "base-url", "runs", "planner", "model", "mock-response", "examples"],
-    "root-cause": ["suite", "runs", "case"],
-    inspect: ["url", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay", "checks", "storage-state", "strict-readonly", "ignore-robots"],
+    verify: ["plan", "base-url", "runs", "browser-channel"],
+    validate: ["plan", "base-url", "browser-channel"],
+    benchmark: ["suite", "base-url", "runs", "case", "planner", "model", "no-examples", "browser-channel"],
+    "generate-plan": ["symptom", "base-url", "planner", "model", "mock-response", "examples", "browser-channel"],
+    "ai-verify": ["symptom", "base-url", "runs", "planner", "model", "mock-response", "examples", "browser-channel"],
+    "root-cause": ["suite", "runs", "case", "browser-channel"],
+    inspect: ["url", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay", "checks", "storage-state", "strict-readonly", "ignore-robots", "browser-channel"],
+    doctor: ["install", "json"],
   };
   for (const option of [
     "url",
@@ -245,6 +269,9 @@ export function parseCliArgs(argv: readonly string[]): Command {
     "storage-state",
     "strict-readonly",
     "ignore-robots",
+    "browser-channel",
+    "install",
+    "json",
   ] as const) {
     const value = values[option];
     if (value === undefined || value === false) continue;
@@ -252,11 +279,15 @@ export function parseCliArgs(argv: readonly string[]): Command {
       throw new UsageError(`Option --${option} is not valid for "${command}".`);
     }
   }
-  if (command === "compile" && (values.headed || values.verbose)) {
-    throw new UsageError('Options --headed and --verbose are not valid for "compile".');
+  if ((command === "compile" || command === "doctor") && (values.headed || values.verbose)) {
+    throw new UsageError(`Options --headed and --verbose are not valid for "${command}".`);
   }
 
-  const common: Common = { output: values.output, headed: values.headed, verbose: values.verbose };
+  const channel = values["browser-channel"] ?? "auto";
+  if (!(BROWSER_CHANNELS as readonly string[]).includes(channel)) {
+    throw new UsageError(`--browser-channel must be one of ${BROWSER_CHANNELS.join(", ")}, got "${channel}".`);
+  }
+  const common: Common = { output: values.output, headed: values.headed, verbose: values.verbose, browserChannel: channel as BrowserChannelArg };
   const baseUrl = values["base-url"] === undefined ? {} : { baseUrl: httpUrl("--base-url", values["base-url"]) };
 
   switch (command) {
@@ -271,6 +302,8 @@ export function parseCliArgs(argv: readonly string[]): Command {
     }
     case "compile":
       return { kind: "compile", planFile: requirePlan(values.plan), output: values.output };
+    case "doctor":
+      return { kind: "doctor", install: values.install, json: values.json };
     case "run":
       return { kind: "run", planFile: requirePlan(values.plan), ...baseUrl, ...common };
     case "reproduce":

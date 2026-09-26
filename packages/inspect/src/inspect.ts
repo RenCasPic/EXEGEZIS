@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, relative } from "node:path";
-import { BrowserAdapter, HttpProbe } from "@exegezis/adapter-browser";
+import { BrowserAdapter, HttpProbe, type BrowserChannel, type ConcreteChannel } from "@exegezis/adapter-browser";
 import { compileToPlaywright } from "@exegezis/compiler-playwright";
 import {
   buildFindings,
@@ -14,6 +14,7 @@ import {
   hashJson,
   InspectionReport,
   INSPECTABLE,
+  isEngineUnavailable,
   NetworkFile,
   normalizePageUrl,
   ObservationsFile,
@@ -22,6 +23,7 @@ import {
   silentLogger,
   TestPlan,
   type CheckResult,
+  type EngineErrorInfo,
   type FindingGroup,
   type PageVisit,
   type PageWrite,
@@ -52,6 +54,8 @@ export interface InspectOptions {
   headed?: boolean;
   /** Tests only (self-signed fixtures): the CLI never sets it. */
   ignoreHTTPSErrors?: boolean;
+  /** Which browser to drive (see adapter-browser browsers.ts). Default: auto. */
+  browserChannel?: BrowserChannel;
   /** Internal links probed per run, beyond the pages visited. */
   maxLinkChecks?: number;
   onProgress?: (progress: InspectionProgress) => void;
@@ -73,6 +77,8 @@ const PLAYWRIGHT_VERSION = (require("playwright/package.json") as { version: str
 interface Visit {
   visit: PageVisit;
   evidence: Omit<PageEvidence, "links"> | null;
+  /** The browser the adapter actually started for this visit. */
+  browser: { channel: ConcreteChannel; version: string; system: boolean } | null;
 }
 
 export function userAgentFor(version: string): string {
@@ -139,6 +145,9 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
     const pages: PageVisit[] = [];
     const visits: Visit[] = [];
     const externalLinks = new Map<string, string>();
+    // The browser could not start on this machine: stop at once. Nothing more
+    // is visited, no page is marked UNREACHABLE for it, no finding is derived.
+    let engineError: EngineErrorInfo | null = null;
 
     const visit = async (url: string, depth: number, run: number): Promise<Visit> => {
       const wait = cfg.delayMs - (Date.now() - lastNavigation);
@@ -150,61 +159,66 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       return v;
     };
 
-    // Run 1: discovery.
-    await report({ phase: "crawl", run: 1 });
-    const targets: { url: string; depth: number }[] = [];
-    const queue: { url: string; depth: number }[] = [{ url: entry, depth: 0 }];
-    const seen = new Set([entry]);
-    while (queue.length > 0) {
-      const next = queue.shift() as { url: string; depth: number };
-      if (overBudget()) {
-        totalTimeoutReached = true;
-        pages.push(skipped(next.url, next.depth, "SKIPPED_BUDGET", "the total time budget was used up"));
-        continue;
-      }
-      if (targets.length >= cfg.maxPages) {
-        pages.push(skipped(next.url, next.depth, "SKIPPED_BUDGET", `--max-pages ${cfg.maxPages} reached`));
-        continue;
-      }
-      await report({ current: next.url, pagesPlanned: Math.min(cfg.maxPages, targets.length + queue.length + 1) });
-      const v = await visit(next.url, next.depth, 1);
-      targets.push(next);
-      await report({ pagesDone: targets.length });
-      if (next.depth === 0 && ["BLOCKED", "UNREACHABLE", "TIMEOUT"].includes(v.visit.status)) break;
-      if (v.evidence === null || (v.visit.status !== "OK" && v.visit.status !== "DEGRADED")) continue;
-      for (const link of v.evidence.inspection.links) {
-        const url = normalizePageUrl(link.href);
-        if (new URL(url).origin !== origin) {
-          if (!externalLinks.has(url)) externalLinks.set(url, next.url);
-          continue;
-        }
-        if (seen.has(url)) continue;
-        seen.add(url);
-        if (!allowed(url)) {
-          pages.push(skipped(url, next.depth + 1, "SKIPPED_ROBOTS", "disallowed by robots.txt"));
-          continue;
-        }
-        if (next.depth + 1 <= cfg.maxDepth) queue.push({ url, depth: next.depth + 1 });
-      }
-    }
-
-    // Runs 2..N: the same pages, fresh contexts. No re-discovery: a stable page set.
-    const revisit = targets.filter((t) => {
-      const first = pages.find((p) => p.run === 1 && p.url === t.url);
-      return first !== undefined && INSPECTABLE.includes(first.status);
-    });
-    for (let run = 2; run <= cfg.runs; run++) {
-      await report({ phase: "repeat", run, pagesDone: 0, pagesPlanned: revisit.length });
-      for (const [i, t] of revisit.entries()) {
+    try {
+      // Run 1: discovery.
+      await report({ phase: "crawl", run: 1 });
+      const targets: { url: string; depth: number }[] = [];
+      const queue: { url: string; depth: number }[] = [{ url: entry, depth: 0 }];
+      const seen = new Set([entry]);
+      while (queue.length > 0) {
+        const next = queue.shift() as { url: string; depth: number };
         if (overBudget()) {
           totalTimeoutReached = true;
-          pages.push(skipped(t.url, t.depth, "SKIPPED_BUDGET", "the total time budget was used up", run));
+          pages.push(skipped(next.url, next.depth, "SKIPPED_BUDGET", "the total time budget was used up"));
           continue;
         }
-        await report({ current: t.url });
-        await visit(t.url, t.depth, run);
-        await report({ pagesDone: i + 1 });
+        if (targets.length >= cfg.maxPages) {
+          pages.push(skipped(next.url, next.depth, "SKIPPED_BUDGET", `--max-pages ${cfg.maxPages} reached`));
+          continue;
+        }
+        await report({ current: next.url, pagesPlanned: Math.min(cfg.maxPages, targets.length + queue.length + 1) });
+        const v = await visit(next.url, next.depth, 1);
+        targets.push(next);
+        await report({ pagesDone: targets.length });
+        if (next.depth === 0 && ["BLOCKED", "UNREACHABLE", "TIMEOUT"].includes(v.visit.status)) break;
+        if (v.evidence === null || (v.visit.status !== "OK" && v.visit.status !== "DEGRADED")) continue;
+        for (const link of v.evidence.inspection.links) {
+          const url = normalizePageUrl(link.href);
+          if (new URL(url).origin !== origin) {
+            if (!externalLinks.has(url)) externalLinks.set(url, next.url);
+            continue;
+          }
+          if (seen.has(url)) continue;
+          seen.add(url);
+          if (!allowed(url)) {
+            pages.push(skipped(url, next.depth + 1, "SKIPPED_ROBOTS", "disallowed by robots.txt"));
+            continue;
+          }
+          if (next.depth + 1 <= cfg.maxDepth) queue.push({ url, depth: next.depth + 1 });
+        }
       }
+
+      // Runs 2..N: the same pages, fresh contexts. No re-discovery: a stable page set.
+      const revisit = targets.filter((t) => {
+        const first = pages.find((p) => p.run === 1 && p.url === t.url);
+        return first !== undefined && INSPECTABLE.includes(first.status);
+      });
+      for (let run = 2; run <= cfg.runs; run++) {
+        await report({ phase: "repeat", run, pagesDone: 0, pagesPlanned: revisit.length });
+        for (const [i, t] of revisit.entries()) {
+          if (overBudget()) {
+            totalTimeoutReached = true;
+            pages.push(skipped(t.url, t.depth, "SKIPPED_BUDGET", "the total time budget was used up", run));
+            continue;
+          }
+          await report({ current: t.url });
+          await visit(t.url, t.depth, run);
+          await report({ pagesDone: i + 1 });
+        }
+      }
+    } catch (error) {
+      if (!isEngineUnavailable(error)) throw error;
+      engineError = error.toInfo();
     }
 
     // Link statuses per run: a visited page answers for itself; other internal links get one GET each.
@@ -226,7 +240,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
     };
 
     const results: CheckResult[] = [];
-    for (const { visit: v, evidence } of visits) {
+    for (const { visit: v, evidence } of engineError === null ? visits : []) {
       const runChecks = evidence !== null && (v.status === "OK" || v.status === "DEGRADED" || (v.status === "HTTP_ERROR" && v.depth === 0));
       let links: LinkStatus[] = [];
       if (runChecks) {
@@ -269,6 +283,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
           blocked: (evidence?.inspection.blockedWrites ?? []).some((b) => b.method === x.request.method && b.url === x.request.url),
         })),
     );
+    const browser = visits.find((v) => v.browser !== null)?.browser ?? null;
     const firstAxe = visits.find((v) => v.evidence?.inspection.axe !== null && v.evidence?.inspection.axe !== undefined)?.evidence?.inspection.axe ?? null;
     const reportOptions = {
       maxPages: cfg.maxPages,
@@ -296,10 +311,12 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
         axe: firstAxe?.version ?? null,
         axeRules: firstAxe?.rules ?? [],
         checks: checks.map((c) => ({ id: c.id, version: c.version })),
+        browser,
       },
       robots: { respected: options.ignoreRobots !== true, fetched: robotsFetched, disallow: robots?.disallow ?? [] },
       totalTimeoutReached,
-      status: deriveInspectionStatus(pages, totalTimeoutReached),
+      engineError,
+      status: deriveInspectionStatus(pages, totalTimeoutReached, engineError !== null),
       pages,
       externalLinks: [...externalLinks.entries()].map(([url, from]) => ({ url, from })),
       pageWrites,
@@ -387,6 +404,7 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
   });
   const adapter = new BrowserAdapter({
     headless: options.headed !== true,
+    browserChannel: options.browserChannel ?? "auto",
     inspect: true,
     userAgent,
     trace: run === 1,
@@ -428,5 +446,7 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
     consoleFile !== null && network !== null && inspection !== null
       ? { page: url, origin, depth, run, runPath, console: consoleFile, network, inspection, observations, hasTrace: run === 1 && outcome.manifest.artifacts.some((a) => a.type === "trace") }
       : null;
-  return { visit, evidence };
+  const b = outcome.metadata.environment?.browser;
+  const browser = b?.channel === undefined ? null : { channel: b.channel, version: b.version, system: b.system === true };
+  return { visit, evidence, browser };
 }

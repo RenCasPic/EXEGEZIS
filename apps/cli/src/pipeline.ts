@@ -18,6 +18,11 @@ import { reproduceWithProgress } from "./reproduce.js";
 import { createAdapter, printer, runLogger, type CliIo, type LoadedPlan } from "./shared.js";
 
 export const BUG_REPORT_FILE = "bug-report.json";
+
+function browserUsed(reproduction: ReproductionResult): { browserChannel?: "chromium" | "chrome" | "msedge" } {
+  const channel = reproduction.outcomes.find((o) => o.metadata.environment?.browser?.channel !== undefined)?.metadata.environment?.browser?.channel;
+  return channel === undefined ? {} : { browserChannel: channel };
+}
 export const VALIDATION_FILE = "validation.json";
 
 export interface PipelineOptions {
@@ -100,6 +105,8 @@ export async function verifyPlan(io: CliIo, loaded: LoadedPlan, options: Pipelin
       steps: compiled.spec.steps,
       baseUrl,
       outputDir: join(options.dir, "compiled-test-results"),
+      // The spec runs in the same browser the reproduction used (e.g. system Edge).
+      ...browserUsed(reproduction),
     });
     compiledTest = { ...execution, specPath: compiled.spec.fileName };
   } else {

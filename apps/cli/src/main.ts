@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
-import { toErrorInfo } from "@exegezis/core";
+import { isEngineUnavailable, toErrorInfo } from "@exegezis/core";
 import { EXIT, HELP, parseCliArgs, UsageError } from "./args.js";
 import { compileCommand } from "./compile.js";
 import { observeCommand } from "./observe.js";
@@ -13,7 +13,9 @@ import { verifyCommand } from "./verify.js";
 import { benchmarkCommand } from "./benchmark.js";
 import { aiVerifyCommand, generatePlanCommand } from "./ai-commands.js";
 import { inspectCommand } from "./inspect.js";
+import { doctorCommand, printEngineError } from "./doctor.js";
 import { rootCauseCommand } from "./root-cause.js";
+import { useBrowserChannel } from "./shared.js";
 
 const require = createRequire(import.meta.url);
 export const VERSION = (require("../package.json") as { version: string }).version;
@@ -22,6 +24,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
   try {
     const command = parseCliArgs(argv);
     const exegezisVersion = VERSION;
+    if ("browserChannel" in command) useBrowserChannel(command.browserChannel);
     switch (command.kind) {
       case "help":
         io.stdout.write(HELP);
@@ -51,11 +54,18 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         return await rootCauseCommand({ ...command, exegezisVersion }, io);
       case "inspect":
         return await inspectCommand({ ...command, exegezisVersion }, io);
+      case "doctor":
+        return await doctorCommand(command, io, VERSION);
     }
   } catch (error) {
     if (error instanceof UsageError) {
       io.stderr.write(`Error: ${error.message}\n`);
       return EXIT.usage;
+    }
+    if (isEngineUnavailable(error)) {
+      // Not a verdict: nothing was concluded about the target.
+      printEngineError(io, error.toInfo());
+      return EXIT.engineError;
     }
     const info = toErrorInfo(error);
     io.stderr.write(`Internal error: ${info.message}\n${info.stack ?? ""}\n`);

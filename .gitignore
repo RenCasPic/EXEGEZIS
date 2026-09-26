@@ -21,3 +21,4 @@ apps/cli/test/.tmp-ai/
 .env
 apps/cli/test/.tmp-rc/
 packages/inspect/test/.tmp-e2e/
+apps/cli/test/.tmp-engine/

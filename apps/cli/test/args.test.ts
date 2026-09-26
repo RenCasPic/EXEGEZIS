@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { parseCliArgs, UsageError } from "../src/args.js";
 
-const common = { output: "./runs", headed: false, verbose: false };
+const common = { output: "./runs", headed: false, verbose: false, browserChannel: "auto" };
 
 describe("parseCliArgs", () => {
   it("parses observe with defaults and every option", () => {
     expect(parseCliArgs(["observe", "--url", "http://localhost:3000"])).toEqual({ kind: "observe", url: "http://localhost:3000/", ...common });
     expect(
       parseCliArgs(["observe", "--url", "https://app.test/x", "--output", "out", "--actions", "plan.json", "--headed", "--verbose"]),
-    ).toEqual({ kind: "observe", url: "https://app.test/x", actionsFile: "plan.json", output: "out", headed: true, verbose: true });
+    ).toEqual({ kind: "observe", url: "https://app.test/x", actionsFile: "plan.json", output: "out", headed: true, verbose: true, browserChannel: "auto" });
   });
 
   it("parses run, reproduce, compile and verify", () => {

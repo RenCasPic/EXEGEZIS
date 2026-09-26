@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import { BrowserAdapter } from "@exegezis/adapter-browser";
+import { BrowserAdapter, type BrowserChannel } from "@exegezis/adapter-browser";
 import type { SpecRuntime } from "@exegezis/compiler-playwright";
 import {
   describeAssertion,
@@ -63,8 +63,17 @@ export async function loadTestPlan(io: CliIo, file: string): Promise<LoadedPlan>
   return { plan: result.data, path: file.replaceAll("\\", "/"), hash: hashJson(redactPlan(result.data)) };
 }
 
+/** --browser-channel, set once per CLI invocation (main.ts); every adapter of the command uses it. */
+let browserChannel: BrowserChannel = "auto";
+export function useBrowserChannel(channel: BrowserChannel): void {
+  browserChannel = channel;
+}
+export function currentBrowserChannel(): BrowserChannel {
+  return browserChannel;
+}
+
 export function createAdapter(headed: boolean, options: { coverage?: boolean } = {}): BrowserAdapter {
-  return new BrowserAdapter({ headless: !headed, ...(options.coverage === true ? { coverage: true } : {}) });
+  return new BrowserAdapter({ headless: !headed, browserChannel, ...(options.coverage === true ? { coverage: true } : {}) });
 }
 
 /** Spec settings mirroring the adapter, so the compiled test runs like EXEGEZIS did. */

@@ -2,11 +2,13 @@ import { join } from "node:path";
 import { SEVERITIES, ulid } from "@exegezis/core";
 import { INSPECTION_REPORT_FILE, inspectSite } from "@exegezis/inspect";
 import { EXIT, UsageError, type InspectArgs } from "./args.js";
+import { printEngineError } from "./doctor.js";
 import { absolute, displayPath, printer, type CliIo } from "./shared.js";
 
 export interface InspectCommandOptions extends InspectArgs {
   output: string;
   headed: boolean;
+  browserChannel: "auto" | "chromium" | "chrome" | "msedge";
   verbose: boolean;
   exegezisVersion: string;
 }
@@ -14,7 +16,8 @@ export interface InspectCommandOptions extends InspectArgs {
 /**
  * `exegezis inspect --url <url>`. Exit codes: 0 no VERIFIED finding above
  * info, 1 VERIFIED findings, 4 BLOCKED / UNREACHABLE / TIMEOUT (nothing could
- * be concluded about the site).
+ * be concluded about the site), 7 ENGINE_ERROR (no browser could start on
+ * this machine; the site was not judged).
  */
 export async function inspectCommand(options: InspectCommandOptions, io: CliIo): Promise<number> {
   const out = printer(io);
@@ -40,6 +43,7 @@ export async function inspectCommand(options: InspectCommandOptions, io: CliIo):
       strictReadonly: options.strictReadonly,
       ignoreRobots: options.ignoreRobots,
       headed: options.headed,
+      browserChannel: options.browserChannel,
       ...(options.maxPages === undefined ? {} : { maxPages: options.maxPages }),
       ...(options.maxDepth === undefined ? {} : { maxDepth: options.maxDepth }),
       ...(options.pageTimeoutMs === undefined ? {} : { pageTimeoutMs: options.pageTimeoutMs }),
@@ -64,6 +68,16 @@ export async function inspectCommand(options: InspectCommandOptions, io: CliIo):
   const s = report.summary;
   out();
   out(`Status:  ${report.status}`);
+  if (report.status === "ENGINE_ERROR" && report.engineError !== null) {
+    out();
+    printEngineError(io, report.engineError);
+    out();
+    out("Report:");
+    out(displayPath(io, join(dir, INSPECTION_REPORT_FILE), false));
+    return EXIT.engineError;
+  }
+  const b = report.tools.browser;
+  if (b !== null) out(`Browser: ${b.channel} ${b.version}${b.system ? " (installed on this system, not Playwright's own Chromium)" : " (Playwright's Chromium)"}`);
   const entry = report.pages.find((p) => p.depth === 0 && p.run === 1);
   if (report.status !== "COMPLETED" && entry?.reason !== null && entry?.reason !== undefined) out(`Reason:  ${entry.reason}`);
   out(`Pages:   ${s.pagesVisited} visited · ${report.pages.filter((p) => p.status === "SKIPPED_ROBOTS").length} skipped by robots.txt · ${report.externalLinks.length} external links listed, not visited`);

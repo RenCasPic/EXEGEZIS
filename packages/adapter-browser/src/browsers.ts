@@ -1,5 +1,18 @@
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { EngineUnavailableError, type EngineAttempt } from "@exegezis/core";
 import { chromium, type Browser } from "playwright";
+
+const require = createRequire(import.meta.url);
+
+/** The Playwright CLI this adapter drives (for `exegezis doctor --install`, which installs *its* Chromium). */
+export function playwrightCliPath(): string {
+  return join(dirname(require.resolve("playwright/package.json")), "cli.js");
+}
+
+export function playwrightVersion(): string {
+  return (require("playwright/package.json") as { version: string }).version;
+}
 
 /**
  * Which browser drives a run.

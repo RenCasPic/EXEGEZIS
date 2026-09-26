@@ -11,6 +11,8 @@ export {
   candidatesFor,
   launchBrowser,
   launchErrorSummary,
+  playwrightCliPath,
+  playwrightVersion,
   probeBrowsers,
   remedyFor,
   type BrowserChannel,
