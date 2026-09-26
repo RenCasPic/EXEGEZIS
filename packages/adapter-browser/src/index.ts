@@ -5,3 +5,17 @@ export { BrowserAdapterOptions, type BrowserAdapterOptionsInput } from "./option
 export { BrowserSession, TRACE_FILE } from "./session.js";
 export { sanitizeTraceArchive, type TraceSanitizeResult } from "./trace-redaction.js";
 export { HttpProbe, type HttpProbeOptions, type ProbeResult } from "./probe.js";
+export {
+  BROWSER_CHANNELS,
+  CHANNEL_LABEL,
+  candidatesFor,
+  launchBrowser,
+  launchErrorSummary,
+  probeBrowsers,
+  remedyFor,
+  type BrowserChannel,
+  type BrowserProbe,
+  type ConcreteChannel,
+  type LaunchedBrowser,
+  type Launcher,
+} from "./browsers.js";

@@ -9,6 +9,8 @@ import { z } from "zod";
  */
 export const BrowserAdapterOptions = z.strictObject({
   browser: z.literal("chromium").default("chromium"),
+  /** auto: Playwright's Chromium, else system Chrome, else system Edge (see browsers.ts). */
+  browserChannel: z.enum(["auto", "chromium", "chrome", "msedge"]).default("auto"),
   headless: z.boolean().default(true),
   viewport: Viewport.default({ width: 1280, height: 720 }),
   locale: z.string().default("en-US"),
