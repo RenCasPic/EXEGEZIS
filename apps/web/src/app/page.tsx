@@ -1,6 +1,7 @@
 import { ArrowRight, Beaker, Globe, LayoutList, Microscope } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { groupStats } from "@exegezis/core";
 import { InspectForm } from "@/components/home/inspect-form";
 import { EmptyState, Panel } from "@/components/ui/primitives";
 import { EvidenceMeter, NotImplemented, ReplayTag, RunHistory, StatusPill, VerdictPill } from "@/components/ui/status";
@@ -247,14 +248,14 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               <ul>
                 {inspections.slice(0, 5).map((i) => {
                   const r = i.report.status === "ok" ? i.report.value : null;
-                  const verified = r?.findings.filter((f) => f.verdict === "VERIFIED" && f.severity !== "info").length ?? null;
+                  const g = r === null ? null : groupStats(r.groups, r.findings);
                   return (
                     <li key={i.id} className="border-b border-line last:border-b-0">
                       <Link href={`/inspections/${i.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-hover/50">
                         <div className="min-w-0 flex-1">
                           <div className="truncate font-mono text-[12px] text-fg">{r?.target.url ?? i.relDir}</div>
                           <div className="text-[11px] text-muted">
-                            {r === null ? "informe no válido" : `${verified} verificados · ${r.summary.intermittent} intermitentes · ${haceTiempo(r.finishedAt)}`}
+                            {r === null || g === null ? "informe no válido" : `${g.problems} problemas · ${g.elements} elementos · ${haceTiempo(r.finishedAt)}`}
                           </div>
                         </div>
                         {r === null ? <StatusPill status="INVALID" tone="bad" size="xs" /> : <StatusPill status={r.status} tone={INSPECTION_STATUS_TONE[r.status]} size="xs" />}

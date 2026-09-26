@@ -1,15 +1,17 @@
-import { SEVERITIES, type Finding, type InspectionReport } from "@exegezis/core";
+import { groupStats, SEVERITIES, type Finding, type InspectionReport } from "@exegezis/core";
 import { AlertTriangle, Download, ExternalLink, FileCode2, Globe, ListChecks, Wrench } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { EngineProblem } from "@/components/ui/copy-command";
 import { FilterForm } from "@/components/ui/filter-form";
+import { IssueGroupList } from "@/components/inspection/issue-groups";
 import { buttonClass, CodeBlock, EmptyState, Meta, Mono, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
 import { SeverityLabel } from "@/components/inspection/severity";
 import { RunHistory, StatusPill, VerdictPill } from "@/components/ui/status";
 import type { InspectionRef } from "@/lib/evidence/discover";
-import { filterFindings, findInspection, loadFindingEvidence, pageRows, parseFindingFilters, sortFindings, type FindingEvidence } from "@/lib/evidence/inspections";
+import { filterFindings, filterGroups, findInspection, loadFindingEvidence, pageRows, parseFindingFilters, sortFindings, type FindingEvidence } from "@/lib/evidence/inspections";
 import { absoluteTime, duration } from "@/lib/format";
 import { CHECK_LABEL, INSPECTION_STATUS_TEXT, INSPECTION_STATUS_TONE, PAGE_STATUS_TONE, SEVERITY_LABEL, shortUrl } from "@/lib/inspection-labels";
 import { artifactUrl } from "@/lib/urls";
@@ -214,6 +216,19 @@ export default async function InspectionPage({ params, searchParams }: { params:
   const intermittent = sortFindings(report.findings.filter((f) => f.verdict === "INTERMITTENT"));
   const shown = filterFindings(verified, filters);
   const filtered = filters.severity !== null || filters.check !== null || filters.page !== null || filters.q !== "";
+  const query = await searchParams;
+  const view: "groups" | "elements" = query["vista"] === "elementos" ? "elements" : "groups";
+  const stats = groupStats(report.groups, report.findings);
+  const problemGroups = report.groups.filter((g) => g.verified > 0);
+  const intermittentGroups = report.groups.filter((g) => g.verified === 0);
+  const shownGroups = filterGroups(problemGroups, report.findings, filters);
+  const viewHref = (v: "groups" | "elements") => {
+    const next = new URLSearchParams();
+    for (const [k, val] of Object.entries(query)) if (typeof val === "string" && k !== "vista" && val !== "") next.set(k, val);
+    if (v === "elements") next.set("vista", "elementos");
+    const q = next.toString();
+    return q === "" ? `/inspections/${inspection.id}` : `/inspections/${inspection.id}?${q}`;
+  };
   const pages = pageRows(report);
   const checksWithFindings = [...new Set(report.findings.map((f) => f.checkId))].sort();
   const pagesWithFindings = [...new Set(report.findings.map((f) => f.page))].sort();
@@ -261,23 +276,35 @@ export default async function InspectionPage({ params, searchParams }: { params:
 
       {report.engineError === null && (
         <>
-        <section aria-label="Resumen por severidad" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-          {SEVERITIES.map((sev) => (
-            <Stat key={sev} label={`${SEVERITY_LABEL[sev]} · verificados`} value={s.verified[sev]} />
+        <section aria-label="Resumen" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          <Stat label="Problemas verificados" value={stats.problems} hint={`${stats.elements} elementos en ${stats.pages} páginas`} />
+          {(["critical", "serious", "moderate", "minor"] as const).map((sev) => (
+            <Stat key={sev} label={`${SEVERITY_LABEL[sev]}`} value={stats.bySeverity[sev]} hint="problemas" />
           ))}
-          <Stat label="Intermitentes" value={s.intermittent} hint="aparte, sin spec" />
+          <Stat label="Intermitentes" value={stats.intermittentProblems} hint={`${stats.intermittentElements} elementos, aparte, sin spec`} />
         </section>
 
+        <nav aria-label="Vista" className="flex flex-wrap items-center gap-1 text-[13px]">
+          <Link href={viewHref("groups")} aria-current={view === "groups" ? "page" : undefined} className={view === "groups" ? "rounded-md bg-hover px-2.5 py-1 font-medium text-fg" : "rounded-md px-2.5 py-1 text-muted hover:text-fg"}>
+            Por problema ({problemGroups.length})
+          </Link>
+          <Link href={viewHref("elements")} aria-current={view === "elements" ? "page" : undefined} className={view === "elements" ? "rounded-md bg-hover px-2.5 py-1 font-medium text-fg" : "rounded-md px-2.5 py-1 text-muted hover:text-fg"}>
+            Ver cada elemento ({verified.length})
+          </Link>
+          {stats.info > 0 && <span className="ml-auto text-[12px] text-muted">{stats.info} de información (SEO básico), no cuentan como problemas</span>}
+        </nav>
+
         <Panel
-          title={`Hallazgos verificados (${verified.length})`}
+          title={view === "groups" ? `Problemas (${problemGroups.length})` : `Hallazgos verificados (${verified.length})`}
           icon={<ListChecks />}
-          subtitle={`presentes en ${report.options.runs}/${report.options.runs} repeticiones`}
+          subtitle={view === "groups" ? "agrupados por lo que hay que arreglar, de mayor a menor impacto" : `un hallazgo por elemento y página, presentes en ${report.options.runs}/${report.options.runs} repeticiones`}
           bodyClassName="p-0"
         >
           {verified.length > 0 && (
             <div className="border-b border-line px-4 py-3">
               <Suspense>
                 <FilterForm
+                  hidden={view === "elements" ? { vista: "elementos" } : {}}
                   selects={[
                     { name: "severity", label: "Severidad", options: [{ value: "", label: "Todas" }, ...SEVERITIES.map((v) => ({ value: v, label: SEVERITY_LABEL[v] }))] },
                     { name: "check", label: "Comprobación", options: [{ value: "", label: "Todas" }, ...checksWithFindings.map((c) => ({ value: c, label: CHECK_LABEL[c] ?? c }))] },
@@ -287,7 +314,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
               </Suspense>
               {filtered && (
                 <p className="mt-2 text-xs text-muted" aria-live="polite">
-                  {shown.length} de {verified.length} con estos filtros.
+                  {view === "groups" ? `${shownGroups.length} de ${problemGroups.length} problemas con estos filtros.` : `${shown.length} de ${verified.length} con estos filtros.`}
                 </p>
               )}
             </div>
@@ -298,13 +325,23 @@ export default async function InspectionPage({ params, searchParams }: { params:
                 ? "Ninguna comprobación encontró un problema en todas las repeticiones. Esto no significa que el sitio no tenga bugs: las comprobaciones genéricas no detectan errores de lógica."
                 : INSPECTION_STATUS_TEXT[report.status]}
             </EmptyState>
+          ) : view === "groups" ? (
+            <IssueGroupList inspectionId={inspection.id} groups={shownGroups} report={report} empty="Ningún problema coincide con los filtros." />
           ) : (
             <FindingList inspection={inspection} report={report} findings={shown} empty="Ningún hallazgo coincide con los filtros." />
           )}
         </Panel>
 
-        <Panel title={`Intermitentes (${intermittent.length})`} subtitle="observados solo en algunas repeticiones; no son VERIFIED" bodyClassName="p-0">
-          <FindingList inspection={inspection} report={report} findings={intermittent} empty="Ninguno: todo lo observado apareció en todas las repeticiones o en ninguna." />
+        <Panel
+          title={view === "groups" ? `Intermitentes (${intermittentGroups.length})` : `Intermitentes (${intermittent.length})`}
+          subtitle="observados solo en algunas repeticiones; no son VERIFIED"
+          bodyClassName="p-0"
+        >
+          {view === "groups" ? (
+            <IssueGroupList inspectionId={inspection.id} groups={intermittentGroups} report={report} empty="Ninguno: todo lo observado apareció en todas las repeticiones o en ninguna." />
+          ) : (
+            <FindingList inspection={inspection} report={report} findings={intermittent} empty="Ninguno: todo lo observado apareció en todas las repeticiones o en ninguna." />
+          )}
         </Panel>
 
         <Panel id="page-writes" title={`Escrituras de la página (${writes.length})`} icon={<AlertTriangle />} subtitle="peticiones no-GET lanzadas por la propia página" bodyClassName="p-0">

@@ -12,6 +12,7 @@ const FAMILY: Record<string, Tone> = {
   CANDIDATE: "warn",
   SUFFICIENT: "warn",
   INTERMITTENT: "warn",
+  MIXED: "warn",
   FLAKY: "warn",
   INCONCLUSIVE: "q",
   INSUFFICIENT: "q",

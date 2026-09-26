@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/ui/auto-refresh";
 import { ButtonLink, EmptyState, PageHeader, Panel, tableClass } from "@/components/ui/primitives";
+import { groupStats } from "@exegezis/core";
 import { StatusPill } from "@/components/ui/status";
 import { listInspections } from "@/lib/evidence/inspections";
 import { haceTiempo } from "@/lib/format";
@@ -74,7 +75,7 @@ export default async function InspectionsPage() {
               <tbody>
                 {inspections.map((i) => {
                   const r = i.report.status === "ok" ? i.report.value : null;
-                  const verified = r === null ? null : r.findings.filter((f) => f.verdict === "VERIFIED" && f.severity !== "info").length;
+                  const g = r === null ? null : groupStats(r.groups, r.findings);
                   return (
                     <tr key={i.id} className={tableClass.tr}>
                       <td className={tableClass.td}>
@@ -90,8 +91,8 @@ export default async function InspectionsPage() {
                           <StatusPill status={r.status} tone={INSPECTION_STATUS_TONE[r.status]} size="xs" />
                         )}
                       </td>
-                      <td className={`${tableClass.td} font-mono`}>{verified ?? "—"}</td>
-                      <td className={`${tableClass.td} font-mono`}>{r?.summary.intermittent ?? "—"}</td>
+                      <td className={`${tableClass.td} whitespace-nowrap font-mono text-[12px]`}>{g === null ? "—" : `${g.problems} problemas · ${g.elements} elementos`}</td>
+                      <td className={`${tableClass.td} whitespace-nowrap font-mono text-[12px]`}>{g === null ? "—" : `${g.intermittentProblems} · ${g.intermittentElements} el.`}</td>
                       <td className={`${tableClass.td} font-mono`}>{r?.summary.pagesVisited ?? "—"}</td>
                       <td className={`${tableClass.td} whitespace-nowrap text-xs text-muted`}>{r === null ? "—" : haceTiempo(r.finishedAt)}</td>
                       <td className={tableClass.td}>

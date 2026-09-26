@@ -5,6 +5,7 @@ import {
   SEVERITIES,
   type ConsoleMessageEvidence,
   type Finding,
+  type IssueGroup,
   type InspectionReport,
   type NetworkExchangeEvidence,
   type PageErrorEvidence,
@@ -62,6 +63,20 @@ export function filterFindings(findings: readonly Finding[], f: FindingFilters):
 }
 
 const SEVERITY_ORDER = new Map(SEVERITIES.map((s, i) => [s, i]));
+
+/** The same filters, applied to issue groups (a group matches if the filter matches the group or any of its elements). */
+export function filterGroups(groups: readonly IssueGroup[], findings: readonly Finding[], f: FindingFilters): IssueGroup[] {
+  const byId = new Map(findings.map((x) => [x.id, x]));
+  const q = f.q.trim().toLowerCase();
+  return groups.filter((g) => {
+    if (f.severity !== null && g.severity !== f.severity) return false;
+    if (f.check !== null && g.checkId !== f.check) return false;
+    if (f.page !== null && !g.pages.includes(f.page)) return false;
+    if (q === "") return true;
+    const texts = [g.id, g.title, g.key, ...g.findings.map((id) => byId.get(id)?.title ?? "")];
+    return texts.some((t) => t.toLowerCase().includes(q));
+  });
+}
 
 /** Most severe first, then by id: the order the report is read in. */
 export function sortFindings(findings: readonly Finding[]): Finding[] {
