@@ -229,7 +229,7 @@ El recuento varía en uno de una inspección a otra, porque el sitio cambia un p
 
 **Intermitente aparte:** `POST pagead2…/ccm/collect → ERR_NAME_NOT_RESOLVED` (3 elementos), un píxel publicitario de terceros.
 
-En la práctica, arreglar 4 colores (los dos tonos de texto, sobre blanco y sobre crema) resuelve 287 de los 295 elementos.
+En la práctica, arreglar 4 colores (los dos tonos de texto, sobre blanco y sobre crema) resuelve 286 de los 295 elementos verificados.
 
 ## 9. Agrupación de hallazgos
 
