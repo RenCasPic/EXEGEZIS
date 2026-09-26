@@ -1,4 +1,4 @@
-export { BROWSER_ADAPTER_DESCRIPTOR, BrowserAdapter } from "./adapter.js";
+export { BROWSER_ADAPTER_DESCRIPTOR, BrowserAdapter, WAF_TOKEN_HEADER, type AdapterAccess } from "./adapter.js";
 export { axeSelector, evaluateAssertion, matchesRequestUrl, SUPPORTED_ASSERTIONS, type AssertionContext, type EvaluateOptions } from "./assertions.js";
 export { toLocator } from "./locator.js";
 export { BrowserAdapterOptions, type BrowserAdapterOptionsInput } from "./options.js";

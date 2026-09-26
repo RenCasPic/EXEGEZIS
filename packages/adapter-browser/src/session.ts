@@ -77,6 +77,8 @@ export class BrowserSession implements AdapterSession {
     private readonly logger: Logger,
     readonly environment: Environment,
     tracing: boolean,
+    /** Saved access (session, credentials, token) is loaded: a trace that is not fully redacted is not kept. */
+    private readonly withAccess = false,
   ) {
     this.tracing = tracing;
     this.attachListeners();
@@ -430,6 +432,11 @@ export class BrowserSession implements AdapterSession {
     }
     try {
       const result = sanitizeTraceArchive(await readFile(path), this.recorder.secrets);
+      if (this.withAccess && result.leaks > 0) {
+        await rm(path, { force: true });
+        this.recorder.emit("COLLECTOR_FAILED", "adapter", { collector: "trace", error: { name: "TraceNotRedacted", message: `${result.leaks} secret value(s) could not be removed` } });
+        return { status: "failed", detail: `trace discarded: ${result.leaks} secret value(s) of the saved access could not be redacted` };
+      }
       await writeFile(path, result.data);
       this.logger.info("trace sanitized", { ...result, data: undefined });
       await this.recorder.registerFile("trace", TRACE_FILE, "application/zip", result.leaks === 0 ? "verified" : "failed", {

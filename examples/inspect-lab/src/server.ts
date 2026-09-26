@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
+import { handleAccess } from "./access.ts";
 
 /*
  * inspect-lab: the fixture of `exegezis inspect`.
@@ -17,6 +18,7 @@ import { createServer as createHttpsServer } from "node:https";
  * never trigger them) and posts /api/track by itself on load (a page write);
  * /private/* is disallowed by robots.txt; /blocked/ is a CAPTCHA wall;
  * /healthy/ is a healthy section (0 findings expected).
+ * /access/* are the access fixtures, one per block kind (see access.ts).
  * /groups/ (3 pages) repeats one low-contrast card (#9ca3af on white) on
  * every page, adds a second colour pair (#c4862a on white) on /groups/b, and
  * logs a console error whose numbers change on every load: issue grouping
@@ -116,6 +118,12 @@ function send(res: ServerResponse, status: number, type: string, body: string, h
 function handler(secure: boolean) {
   return (req: IncomingMessage, res: ServerResponse): void => {
     const url = new URL(req.url ?? "/", "http://lab.test");
+    if (url.pathname.startsWith("/access/") || url.pathname === "/__lab/access" || url.pathname === "/__lab/expire-sessions" || url.pathname === "/__lab/waf-token") {
+      void handleAccess(req, res, url, PORT).then((handled) => {
+        if (!handled) send(res, 404, "text/plain", "Not found");
+      });
+      return;
+    }
     const method = req.method ?? "GET";
     if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
       const key = `${method} ${url.pathname}`;
