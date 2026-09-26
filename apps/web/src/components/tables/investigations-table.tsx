@@ -1,9 +1,12 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { NotImplemented, OutcomePill, SourceTag, StatusPill } from "@/components/ui/status";
+import { NotImplemented, OutcomePill, ReplayTag, SourceTag, StatusPill, VerdictPill } from "@/components/ui/status";
 import { tableClass } from "@/components/ui/primitives";
 import type { InvestigationSummary } from "@/lib/evidence/investigations";
+import { isReplay } from "@/lib/evidence/cases";
+import { isExpectedNegative } from "@/lib/filters";
 import { absoluteTime, percent, relativeTime } from "@/lib/format";
+import { shortReason } from "@/lib/reasons";
 
 const KIND_LABEL: Record<InvestigationSummary["ref"]["kind"], string> = {
   "benchmark-case": "Benchmark case",
@@ -18,7 +21,29 @@ function Status({ s }: { s: InvestigationSummary }) {
     const tone = s.generation.status === "generated" ? "q" : s.generation.status === "declined" ? "warn" : "bad";
     return <StatusPill status={s.generation.status === "generated" ? "PLAN ONLY" : s.generation.status.replace("_", " ").toUpperCase()} tone={tone} size="xs" />;
   }
-  return <OutcomePill outcome={s.outcome} size="xs" />;
+  const why = shortReason(s.outcome, s.outcomeReason);
+  return (
+    <span className="flex flex-col items-start gap-0.5">
+      <OutcomePill outcome={s.outcome} size="xs" />
+      {why !== null && (
+        <span className="text-[11px] text-muted" title={s.outcomeReason ?? undefined}>
+          {why}
+        </span>
+      )}
+      {isExpectedNegative(s) && <span className="text-[11px] text-muted">expected for this negative case</span>}
+    </span>
+  );
+}
+
+/** The latest root-cause investigation of this bug, linked; NOT RUN when there is none. */
+function RootCause({ s }: { s: InvestigationSummary }) {
+  if (s.rootCause === null) return <StatusPill status="NOT RUN" tone="q" size="xs" title="No root-cause experiment has been run for this bug (exegezis root-cause)." />;
+  return (
+    <Link href={`/verification/root-causes/${s.rootCause.entryId}`} className="inline-flex flex-col items-start gap-0.5 hover:underline">
+      <VerdictPill verdict={s.rootCause.status} size="xs" />
+      <span className="text-[11px] text-muted">evidence {s.rootCause.evidenceLevel.toLowerCase()}</span>
+    </Link>
+  );
 }
 
 export function Reproduction({ s }: { s: InvestigationSummary }) {
@@ -70,6 +95,7 @@ export function InvestigationsTable({
                   <span className="truncate">{s.ref.caseId ?? s.planId ?? s.ref.id}</span>
                   <span>·</span>
                   <span className="shrink-0">{KIND_LABEL[s.ref.kind]}</span>
+                  {isReplay(s) && <ReplayTag title="Recorded planner response (mock): not a live AI result">REPLAY</ReplayTag>}
                 </span>
               </td>
               {has("source") && (
@@ -90,7 +116,7 @@ export function InvestigationsTable({
               )}
               {has("rootCause") && (
                 <td className={tableClass.td}>
-                  <NotImplemented size="xs" />
+                  <RootCause s={s} />
                 </td>
               )}
               {has("fix") && (

@@ -2,7 +2,7 @@ import { Beaker, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EmptyState, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
-import { SourceTag, StatusPill } from "@/components/ui/status";
+import { ReplayTag, SourceTag, StatusPill } from "@/components/ui/status";
 import { getIndex, getRootCauses } from "@/lib/evidence/investigations";
 import { latestPerCase } from "@/lib/evidence/root-causes";
 import { absoluteTime, percent, relativeTime } from "@/lib/format";
@@ -15,7 +15,11 @@ export default async function BenchmarksPage() {
   const rcFalse = latestRootCauses.filter((r) => r.evaluation?.falseValidation === true).length;
   const runs = index.benchmarks.flatMap((b) => (b.result.status === "ok" ? [{ ref: b, r: b.result.value }] : []));
   const broken = index.benchmarks.filter((b) => b.result.status !== "ok");
-  const sum = (f: (r: (typeof runs)[number]["r"]) => number) => runs.reduce((n, x) => n + f(x.r), 0);
+  // Runs that replay recorded planner responses (mock) are listed, but never counted as results.
+  const isReplayRun = (r: (typeof runs)[number]["r"]) => r.planner?.provider === "mock";
+  const live = runs.filter((x) => !isReplayRun(x.r));
+  const replays = runs.length - live.length;
+  const sum = (f: (r: (typeof runs)[number]["r"]) => number) => live.reduce((n, x) => n + f(x.r), 0);
 
   return (
     <div className="flex flex-col gap-5">
@@ -24,22 +28,26 @@ export default async function BenchmarksPage() {
         description="Suites of seeded bugs and negative cases with an independent expected outcome. Benchmark A uses plans written by people; Benchmark B uses plans written by the AI planner from a symptom."
       />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-        <Stat label="Benchmark runs" value={runs.length} hint={`${runs.filter((x) => x.ref.archived).length} archived in the repository`} />
+        <Stat
+          label="Benchmark runs"
+          value={live.length}
+          hint={`${live.filter((x) => x.ref.archived).length} archived in the repository${replays > 0 ? ` · ${replays} replay runs not counted` : ""}`}
+        />
         <Stat label="Cases evaluated" value={sum((r) => r.summary.total)} hint={`${sum((r) => r.summary.passed)} matched the expected outcome`} />
         <Stat label="Verified reproductions" value={sum((r) => r.summary.truePositives)} hint={`${sum((r) => r.summary.falseNegatives)} seeded bugs missed`} />
         <Stat
-          label="Validated root causes"
-          value={latestRootCauses.filter((r) => r.report.decision.status === "VALIDATED").length}
-          hint={
-            <Link href="/verification/root-causes" className={rcFalse > 0 ? "text-bad hover:underline" : "hover:underline"}>
-              {latestRootCauses.length} root-cause cases · {rcFalse} false validation{rcFalse === 1 ? "" : "s"}
-            </Link>
-          }
+          label="Falsos VERIFIED (reproducción)"
+          value={<span className={sum((r) => r.summary.falsePositives) === 0 ? "text-fg" : "text-bad"}>{sum((r) => r.summary.falsePositives)}</span>}
+          hint="VERIFIED on a negative benchmark case"
         />
         <Stat
-          label="False validations"
-          value={<span className={sum((r) => r.summary.falsePositives) === 0 ? "text-ok" : "text-bad"}>{sum((r) => r.summary.falsePositives)}</span>}
-          hint="VERIFIED on a negative case"
+          label="Falsas validaciones (causa raíz)"
+          value={<span className={rcFalse === 0 ? "text-fg" : "text-bad"}>{rcFalse}</span>}
+          hint={
+            <Link href="/verification/root-causes" className="text-accent-text hover:underline">
+              {latestRootCauses.filter((r) => r.report.decision.status === "VALIDATED").length} validated of {latestRootCauses.length} root-cause cases
+            </Link>
+          }
         />
       </div>
 
@@ -78,7 +86,9 @@ export default async function BenchmarksPage() {
                         "A · human-written"
                       ) : (
                         <>
-                          B · {r.planner?.model ?? r.planner?.provider} <span className="font-mono text-faint">{r.planner?.promptVersion}</span>
+                          B ·{" "}
+                          {isReplayRun(r) ? <ReplayTag title="Recorded planner responses (mock planner): not a live AI run, not counted">REPLAY</ReplayTag> : (r.planner?.model ?? r.planner?.provider)}{" "}
+                          <span className="font-mono text-faint">{r.planner?.promptVersion}</span>
                           <div className="text-[11px] text-faint">{r.planner?.examples === true ? "with examples (leave-one-out)" : "no examples"}</div>
                         </>
                       )}

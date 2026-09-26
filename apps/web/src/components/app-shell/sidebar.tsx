@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   Beaker,
   BookOpenCheck,
+  CircleCheckBig,
   Bot,
   FolderGit2,
   Gauge,
@@ -28,6 +29,7 @@ export interface SidebarCounts {
   active: number;
   verified: number;
   needsEvidence: number;
+  expected: number;
 }
 
 interface Item {
@@ -66,6 +68,7 @@ export function SidebarNav({ counts, onNavigate }: { counts: SidebarCounts; onNa
           count: counts.needsEvidence,
           match: investigationsList("needs-evidence"),
         },
+        { href: "/investigations?status=expected", label: "Expected", icon: <CircleCheckBig />, count: counts.expected, match: investigationsList("expected") },
       ],
     },
     {

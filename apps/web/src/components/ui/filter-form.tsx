@@ -9,7 +9,18 @@ import { useRef, useTransition } from "react";
  * field applies on Enter or when it loses focus. Without JavaScript the form
  * still submits as a plain GET.
  */
-export function FilterForm({ selects, textLabel = "Buscar" }: { selects: { name: string; label: string; options: { value: string; label: string }[] }[]; textLabel?: string }) {
+export function FilterForm({
+  selects,
+  textLabel = "Buscar",
+  placeholder,
+  hidden = {},
+}: {
+  selects: { name: string; label: string; options: { value: string; label: string }[] }[];
+  textLabel?: string;
+  placeholder?: string;
+  /** Other URL parameters the form keeps (e.g. the active status tab). */
+  hidden?: Record<string, string>;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -36,6 +47,9 @@ export function FilterForm({ selects, textLabel = "Buscar" }: { selects: { name:
       className="flex flex-wrap items-end gap-2"
       aria-busy={pending}
     >
+      {Object.entries(hidden).map(([k, v]) => (
+        <input key={k} type="hidden" name={k} value={v} />
+      ))}
       {selects.map((s) => (
         <label key={s.name} className="flex min-w-0 flex-col gap-1 text-[11px] text-muted">
           {s.label}
@@ -52,7 +66,7 @@ export function FilterForm({ selects, textLabel = "Buscar" }: { selects: { name:
         {textLabel}
         <span className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-faint" aria-hidden />
-          <input type="search" name="q" defaultValue={params.get("q") ?? ""} onBlur={apply} className="h-8 w-full rounded-md border border-line-strong bg-panel pr-2 pl-7 text-[13px] text-fg" />
+          <input type="search" name="q" defaultValue={params.get("q") ?? ""} placeholder={placeholder} onBlur={apply} className="h-8 w-full rounded-md border border-line-strong bg-panel pr-2 pl-7 text-[13px] text-fg" />
         </span>
       </label>
     </form>

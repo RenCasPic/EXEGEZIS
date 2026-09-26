@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { EmptyState, Meta, Mono, PageHeader, Panel } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
-import { NotImplemented, StatusPill } from "@/components/ui/status";
+import { NotImplemented } from "@/components/ui/status";
 import { getSummaries } from "@/lib/evidence/investigations";
 import { relativeTime } from "@/lib/format";
 import { environmentOf, listProjects } from "@/lib/projects";
@@ -71,7 +71,7 @@ export default async function ProjectsPage() {
                       <div key={s.id} className="rounded-md border border-line px-3 py-2">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-[12px] text-fg">{s.id}</span>
-                          <StatusPill status={s.planSource === "human" ? "HUMAN PLANS" : "AI PLANS"} tone="q" size="xs" />
+                          <span className="rounded border border-line-strong px-1.5 py-px text-[11px] text-muted">{s.planSource === "human" ? "human plans" : "AI plans"}</span>
                           <span className="text-xs text-faint">{s.cases} cases</span>
                         </div>
                         <div className="mt-1 font-mono text-[11px] text-faint">starts: {s.command}</div>

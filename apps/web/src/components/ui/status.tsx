@@ -79,9 +79,9 @@ export function NotImplemented({ size }: { size?: "xs" | "sm" }) {
 /** Where a piece of data comes from. There is no demo data in this UI. */
 export function SourceTag({ kind }: { kind: "real" | "archived" }) {
   return kind === "real" ? (
-    <span className="rounded border border-line-strong px-1.5 py-px text-[11px] text-muted">Real evidence</span>
+    <span className="whitespace-nowrap rounded border border-line-strong px-1.5 py-px text-[11px] text-muted">Real evidence</span>
   ) : (
-    <span className="rounded border border-line-strong px-1.5 py-px text-[11px] text-muted">Archived result</span>
+    <span className="whitespace-nowrap rounded border border-line-strong px-1.5 py-px text-[11px] text-muted">Archived result</span>
   );
 }
 

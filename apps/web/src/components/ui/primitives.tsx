@@ -160,7 +160,8 @@ export function CodeBlock({ code, className, lineNumbers = true, maxHeight = "32
 }
 
 export const tableClass = {
-  wrap: "overflow-x-auto",
+  /** Scrolls sideways when it must, with fading edges that say so. */
+  wrap: "scroll-hint overflow-x-auto",
   table: "w-full border-collapse text-left text-[13px]",
   th: "sticky top-0 whitespace-nowrap border-b border-line bg-panel px-3 py-2 text-[11px] font-medium text-faint",
   tr: "border-b border-line last:border-b-0 hover:bg-hover/50",

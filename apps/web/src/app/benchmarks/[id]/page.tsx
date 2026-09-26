@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { join } from "node:path";
 import { BenchmarkSuite } from "@exegezis/core";
 import { Meta, Mono, PageHeader, Panel, tableClass } from "@/components/ui/primitives";
-import { NotImplemented, OutcomePill, SourceTag, StatusPill } from "@/components/ui/status";
+import { NotImplemented, OutcomePill, ReplayTag, SourceTag, StatusPill } from "@/components/ui/status";
 import { findBenchmark, getIndex } from "@/lib/evidence/investigations";
 import { readArtifact, valueOf } from "@/lib/evidence/read";
 import { absoluteTime, duration, percent } from "@/lib/format";
@@ -53,9 +53,10 @@ export default async function BenchmarkPage({ params }: { params: Promise<{ id: 
           <div className="flex items-center gap-2">
             <StatusPill status={`${r.summary.passed}/${r.summary.total} PASS`} tone={r.summary.failed === 0 ? "ok" : "bad"} />
             <SourceTag kind={ref.archived ? "archived" : "real"} />
+            {r.planner?.provider === "mock" && <ReplayTag title="Recorded planner responses (mock planner): the engine ran for real, the plans are replayed">REPLAY</ReplayTag>}
           </div>
         }
-        title={`${r.suite} · ${r.planSource === "human" ? "Benchmark A (human plans)" : "Benchmark B (AI plans)"}`}
+        title={`${r.suite} · ${r.planSource === "human" ? "Benchmark A (human plans)" : r.planner?.provider === "mock" ? "Benchmark B (replayed AI plans)" : "Benchmark B (AI plans)"}`}
         description={suiteDef?.description}
       />
 

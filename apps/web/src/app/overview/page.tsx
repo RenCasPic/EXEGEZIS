@@ -4,6 +4,7 @@ import Link from "next/link";
 import { InvestigationsTable } from "@/components/tables/investigations-table";
 import { ButtonLink, EmptyState, PageHeader, Panel, Stat } from "@/components/ui/primitives";
 import { NotImplemented, StatusPill } from "@/components/ui/status";
+import { isReplay } from "@/lib/evidence/cases";
 import { getIndex, getSummaries } from "@/lib/evidence/investigations";
 import { STAGES, NOT_IMPLEMENTED_STAGES } from "@/lib/evidence/stages";
 import { duration, median, percent, relativeTime } from "@/lib/format";
@@ -15,14 +16,16 @@ export default async function OverviewPage() {
   const [all, index, scope] = await Promise.all([getSummaries(), getIndex(), getScope()]);
   const summaries = all.filter((s) => inScope(s, scope));
 
-  const verified = summaries.filter((s) => s.outcome === "VERIFIED");
+  // Replayed planner responses (mock) are not results: they are listed elsewhere, never counted here.
+  const verified = summaries.filter((s) => s.outcome === "VERIFIED" && !isReplay(s));
   const distinctBugs = new Set(verified.map((s) => s.ref.caseId ?? s.planId ?? s.ref.id));
   const runs = new Set(summaries.map((s) => s.ref.benchmarkId ?? s.ref.id));
   const benchmarkCases = summaries.filter((s) => s.ref.kind === "benchmark-case").length;
   const verifyTimes = verified.map((s) => s.reproductionMs).filter((ms) => ms !== null);
   const benchmarks = index.benchmarks.flatMap((b) => (b.result.status === "ok" ? [{ ref: b, result: b.result.value }] : []));
-  const falseVerified = benchmarks.reduce((n, b) => n + b.result.summary.falsePositives, 0);
-  const negativeCases = benchmarks.reduce((n, b) => n + b.result.summary.falsePositives + b.result.summary.trueNegatives, 0);
+  const liveBenchmarks = benchmarks.filter((b) => b.result.planner?.provider !== "mock");
+  const falseVerified = liveBenchmarks.reduce((n, b) => n + b.result.summary.falsePositives, 0);
+  const negativeCases = liveBenchmarks.reduce((n, b) => n + b.result.summary.falsePositives + b.result.summary.trueNegatives, 0);
 
   const stageCoverage = STAGES.map((stage) => {
     if (NOT_IMPLEMENTED_STAGES.includes(stage.id)) return { stage, count: null };
@@ -110,7 +113,7 @@ export default async function OverviewPage() {
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[13px] font-medium text-fg">{result.suite}</div>
                       <div className="truncate font-mono text-[11px] text-faint">
-                        {result.planSource === "generated" ? `AI plans${result.planner?.examples === false ? " · no examples" : ""}` : "human plans"} ·{" "}
+                        {result.planSource === "generated" ? (result.planner?.provider === "mock" ? "replayed AI plans (not counted)" : `AI plans${result.planner?.examples === false ? " · no examples" : ""}`) : "human plans"} ·{" "}
                         {ref.archived ? "archived" : relativeTime(result.finishedAt)}
                       </div>
                     </div>

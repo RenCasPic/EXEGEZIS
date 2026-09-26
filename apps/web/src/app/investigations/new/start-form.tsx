@@ -4,19 +4,16 @@ import { AlertTriangle, Loader2, Play } from "lucide-react";
 import { useActionState, useState } from "react";
 import { startInvestigation, type StartState } from "@/app/actions";
 import { buttonClass } from "@/components/ui/primitives";
-import { NotImplemented } from "@/components/ui/status";
 
 const field = "w-full rounded-md border border-line bg-panel-2 px-3 py-2 text-[13px] text-fg outline-none placeholder:text-faint focus:border-line-strong";
 const labelClass = "mb-1.5 flex items-center gap-2 text-[13px] font-medium text-fg";
 
 export function StartForm({
   projects,
-  repository,
   credentials,
   defaultBaseUrl,
 }: {
   projects: string[];
-  repository: string;
   credentials: boolean;
   defaultBaseUrl: string;
 }) {
@@ -49,7 +46,7 @@ export function StartForm({
             Target URL
           </label>
           <input id="baseUrl" name="baseUrl" type="url" required value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} className={`${field} font-mono`} />
-          <p className="mt-1.5 text-xs text-faint">The application must already be running there.</p>
+          <p className="mt-1.5 text-xs text-faint">The application must already be running there. It is checked before the planner is called.</p>
         </div>
         <div>
           <label htmlFor="project" className={labelClass}>
@@ -63,13 +60,6 @@ export function StartForm({
             ))}
             <option value="">Unassigned</option>
           </select>
-        </div>
-        <div>
-          <span className={labelClass}>
-            Repository <NotImplemented size="xs" />
-          </span>
-          <div className={`${field} cursor-not-allowed font-mono text-muted`}>{repository}</div>
-          <p className="mt-1.5 text-xs text-faint">Detected locally. Code is not read or analysed by any stage yet.</p>
         </div>
         <div>
           <label htmlFor="runs" className={labelClass}>

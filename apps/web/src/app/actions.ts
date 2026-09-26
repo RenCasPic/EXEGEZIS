@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { isLoopbackHost } from "@/lib/inspect-checks";
+import { probeTarget } from "@/lib/probe";
 import { parseInspectForm } from "@/lib/inspect-options";
 import { plannerCredentialsConfigured, startInspection, startJob } from "@/lib/jobs";
 import { SCOPE_COOKIE } from "@/lib/scope";
@@ -57,6 +58,9 @@ export async function startInvestigation(_prev: StartState, form: FormData): Pro
     return { error: "No planner credentials: set EXEGEZIS_ANTHROPIC_API_KEY in the repository's .env file.", fields: raw };
   }
   const { symptom, expected, actual, baseUrl, runs, project } = parsed.data;
+  // The planner call costs money and time: never spend it on a target that is not up.
+  const reachable = await probeTarget(baseUrl);
+  if (reachable !== null) return { error: reachable, fields: raw };
   const text = [symptom, expected === "" ? null : `Expected: ${expected}`, actual === "" ? null : `Actual: ${actual}`].filter((l) => l !== null).join("\n");
   let jobId: string;
   try {

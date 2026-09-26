@@ -3,7 +3,7 @@ import { AlertTriangle, Download, ExternalLink, FileCode2, Globe, ListChecks, Wr
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { FilterForm } from "@/components/inspection/filter-form";
+import { FilterForm } from "@/components/ui/filter-form";
 import { buttonClass, CodeBlock, EmptyState, Meta, Mono, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
 import { SeverityLabel } from "@/components/inspection/severity";
 import { RunHistory, StatusPill, VerdictPill } from "@/components/ui/status";

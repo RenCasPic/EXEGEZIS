@@ -1,5 +1,7 @@
-import { Plus, Search, SearchX } from "lucide-react";
+import { Plus, SearchX } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
+import { FilterForm } from "@/components/ui/filter-form";
 import type { Metadata } from "next";
 import { InvestigationsTable } from "@/components/tables/investigations-table";
 import { ButtonLink, EmptyState, PageHeader, Panel } from "@/components/ui/primitives";
@@ -55,7 +57,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1">
           {STATUS_FILTERS.map((f) => {
-            const count = f.id === "active" ? jobs.filter((j) => j.status === "running").length : bySource.filter((s) => matchesStatus(s, f.id) && matchesQuery(s, q)).length;
+            const count = f.id === "active" ? jobs.filter((j) => j.job.kind === "ai-verify" && j.status === "running").length : bySource.filter((s) => matchesStatus(s, f.id) && matchesQuery(s, q)).length;
             return (
               <Link
                 key={f.id}
@@ -71,23 +73,14 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
             );
           })}
         </div>
-        <form className="flex items-center gap-2" action="/investigations">
-          {status !== "all" && <input type="hidden" name="status" value={status} />}
-          <select name="source" defaultValue={source} className="h-8 rounded-md border border-line bg-panel px-2 text-[13px] text-fg">
-            {SOURCES.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-          <label className="flex h-8 items-center gap-2 rounded-md border border-line bg-panel px-2.5">
-            <Search className="size-3.5 text-faint" />
-            <input name="q" defaultValue={q} placeholder="Search title, symptom, id…" className="w-56 bg-transparent text-[13px] text-fg outline-none placeholder:text-faint" />
-          </label>
-          <button type="submit" className="h-8 rounded-md border border-line-strong bg-panel-2 px-3 text-[13px] text-fg hover:bg-hover">
-            Apply
-          </button>
-        </form>
+        <Suspense>
+          <FilterForm
+            textLabel="Search"
+            placeholder="Title, symptom, id…"
+            hidden={status === "all" ? {} : { status }}
+            selects={[{ name: "source", label: "Source", options: SOURCES.map((x) => ({ value: x.id === "all" ? "" : x.id, label: x.label })) }]}
+          />
+        </Suspense>
       </div>
 
       {pendingJobs.length > 0 && (

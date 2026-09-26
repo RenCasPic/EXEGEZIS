@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PLANNER_V1 } from "@exegezis/planner";
 import { EmptyState, Mono, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
-import { OutcomePill, StatusPill } from "@/components/ui/status";
+import { OutcomePill, ReplayTag, StatusPill } from "@/components/ui/status";
+import { isReplay } from "@/lib/evidence/cases";
 import { getSummaries } from "@/lib/evidence/investigations";
 import { duration, median, relativeTime } from "@/lib/format";
 import { getScope, inScope } from "@/lib/scope";
@@ -15,10 +16,13 @@ const GEN_TONE = { generated: "ok", declined: "warn", invalid_generation: "bad",
 export default async function PlannerPage() {
   const [all, scope] = await Promise.all([getSummaries(), getScope()]);
   const rows = all.filter((s) => inScope(s, scope) && s.generation !== null);
-  const count = (status: string) => rows.filter((s) => s.generation?.status === status).length;
-  const latencies = rows.map((s) => s.generation?.latencyMs ?? null).filter((v) => v !== null);
-  const tokensIn = rows.reduce((n, s) => n + (s.generation?.inputTokens ?? 0), 0);
-  const tokensOut = rows.reduce((n, s) => n + (s.generation?.outputTokens ?? 0), 0);
+  // Replayed (mock) responses are listed but never counted as model calls, latencies or tokens.
+  const live = rows.filter((s) => !isReplay(s));
+  const replays = rows.length - live.length;
+  const count = (status: string) => live.filter((s) => s.generation?.status === status).length;
+  const latencies = live.map((s) => s.generation?.latencyMs ?? null).filter((v) => v !== null);
+  const tokensIn = live.reduce((n, s) => n + (s.generation?.inputTokens ?? 0), 0);
+  const tokensOut = live.reduce((n, s) => n + (s.generation?.outputTokens ?? 0), 0);
 
   return (
     <div className="flex flex-col gap-5">
@@ -32,7 +36,7 @@ export default async function PlannerPage() {
         }
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat label="Planner calls" value={rows.length} />
+        <Stat label="Planner calls" value={live.length} hint={replays > 0 ? `${replays} replayed responses not counted` : "live model calls"} />
         <Stat label="Generated" value={count("generated")} />
         <Stat label="Declined" value={count("declined")} hint="symptom not testable as written" />
         <Stat label="Invalid / error" value={count("invalid_generation") + count("error")} hint="never repaired, never executed" />
@@ -71,13 +75,16 @@ export default async function PlannerPage() {
                         </span>
                       </td>
                       <td className={tableClass.td}>
-                        <StatusPill status={g.status.replace("_", " ").toUpperCase()} tone={GEN_TONE[g.status]} size="xs" />
+                        <span className="flex flex-wrap items-center gap-1">
+                          <StatusPill status={g.status.replace("_", " ").toUpperCase()} tone={GEN_TONE[g.status]} size="xs" />
+                          {isReplay(s) && <ReplayTag title="Recorded planner response (mock): not a live model call">REPLAY</ReplayTag>}
+                        </span>
                       </td>
                       <td className={`${tableClass.td} font-mono text-[11px] text-muted`}>
                         {g.model ?? g.provider ?? "—"} · {g.promptVersion}
                       </td>
                       <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{g.examples ?? "—"}</td>
-                      <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{duration(g.latencyMs)}</td>
+                      <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{isReplay(s) ? "—" : duration(g.latencyMs)}</td>
                       <td className={`${tableClass.td} whitespace-nowrap font-mono text-[11px] text-muted`}>
                         {g.inputTokens === null ? "—" : `${g.inputTokens} / ${g.outputTokens ?? 0}`}
                       </td>
