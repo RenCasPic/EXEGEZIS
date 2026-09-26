@@ -130,6 +130,12 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
 
+  packages/access:
+    dependencies:
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+
   packages/adapter-browser:
     dependencies:
       '@axe-core/playwright':

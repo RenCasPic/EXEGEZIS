@@ -50,6 +50,15 @@ export default defineConfig({
       },
       {
         test: {
+          name: "access",
+          root: "packages/access",
+          include: ["test/**/*.test.ts"],
+          // DPAPI round trips spawn Windows PowerShell (~1 s each).
+          testTimeout: 60_000,
+        },
+      },
+      {
+        test: {
           name: "web",
           root: "apps/web",
           include: ["test/**/*.test.ts", "test/**/*.test.tsx"],

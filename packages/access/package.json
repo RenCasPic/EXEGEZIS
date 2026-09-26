@@ -1,0 +1,21 @@
+{
+  "name": "@exegezis/access",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EXEGEZIS saved access (sessions, HTTP credentials, WAF tokens): encrypted per origin, outside the repository, with the key protected by the operating system.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}
