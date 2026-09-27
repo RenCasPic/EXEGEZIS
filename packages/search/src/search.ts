@@ -150,11 +150,12 @@ interface ExactResult {
 
 function runExact(q: CompiledQuery, visits: readonly WalkedVisit[], now: Date): ExactResult {
   const observations: SearchObservation[] = [];
-  const excl = new Map<string, { blocks: number; pages: Set<string>; keys: Set<string> }>();
+  // Blocks are counted once however many loads saw them (same page, same text).
+  const excl = new Map<string, { blocks: Set<string>; pages: Set<string>; keys: Set<string> }>();
   const exclFor = (term: string) => {
     let e = excl.get(term);
     if (e === undefined) {
-      e = { blocks: 0, pages: new Set(), keys: new Set() };
+      e = { blocks: new Set(), pages: new Set(), keys: new Set() };
       excl.set(term, e);
     }
     return e;
@@ -171,7 +172,7 @@ function runExact(q: CompiledQuery, visits: readonly WalkedVisit[], now: Date): 
       const matches = matchBlock(block, q, lang, now);
       if (reason !== null) {
         const e = exclFor(reason);
-        if (by !== null) e.blocks += 1;
+        if (by !== null) e.blocks.add(JSON.stringify([v.page, block.kind, block.text]));
         e.pages.add(v.page);
         for (const m of matches) e.keys.add(toObservation(ref, block, m).key);
         continue;
@@ -184,7 +185,7 @@ function runExact(q: CompiledQuery, visits: readonly WalkedVisit[], now: Date): 
     observations,
     excluded: q.excluded.map((e) => {
       const x = excl.get(e.label);
-      return { term: e.label, scope: q.excludeScope, blocks: x?.blocks ?? 0, pages: x?.pages.size ?? 0, hits: x === undefined ? 0 : [...x.keys].filter((k) => !reported.has(k)).length };
+      return { term: e.label, scope: q.excludeScope, blocks: x?.blocks.size ?? 0, pages: x?.pages.size ?? 0, hits: x === undefined ? 0 : [...x.keys].filter((k) => !reported.has(k)).length };
     }),
   };
 }

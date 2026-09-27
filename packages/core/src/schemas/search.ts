@@ -208,7 +208,7 @@ export type SearchHit = z.infer<typeof SearchHit>;
 export const ExclusionCount = z.strictObject({
   term: z.string(),
   scope: z.enum(["block", "page"]),
-  /** Blocks (or pages) left out because they contain the term, summed over runs. */
+  /** Distinct blocks that contain the term (counted once, whatever the number of loads). */
   blocks: z.int().nonnegative(),
   pages: z.int().nonnegative(),
   /** Distinct hits that would otherwise have been reported. */
