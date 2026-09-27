@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
@@ -13,4 +14,5 @@ const config: NextConfig = {
   devIndicators: false,
 };
 
-export default config;
+// next-intl without locale routing: the request config reads the language cookie.
+export default createNextIntlPlugin("./src/i18n/request.ts")(config);

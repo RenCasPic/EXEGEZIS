@@ -11,6 +11,7 @@ import {
   TestPlan,
   ulidTime,
   type BenchmarkCaseResult,
+  type EngineMessage,
   type Provenance,
   type VerificationOutcome,
 } from "@exegezis/core";
@@ -40,6 +41,8 @@ export interface InvestigationSummary {
   /** Where `outcome` comes from: an executed BugReport, or the benchmark record of an unexecuted case. */
   outcomeSource: "bug-report" | "benchmark" | null;
   outcomeReason: string | null;
+  /** The reason as a code and parameters (absent in older reports: then outcomeReason is shown as recorded). */
+  outcomeMessage: EngineMessage | null;
   reproduction: BugReport["reproduction"] | null;
   /** Wall time of the reproduction (all attempts), from reproduction.json. */
   reproductionMs: number | null;
@@ -155,6 +158,7 @@ async function buildSummary(index: WorkspaceIndex, ref: InvestigationRef, rootCa
     outcome,
     outcomeSource,
     outcomeReason,
+    outcomeMessage: outcomeSource === "bug-report" ? (report?.outcomeMessage ?? null) : null,
     reproduction: report?.reproduction ?? null,
     reproductionMs:
       reproductionLoaded.status === "ok"
@@ -207,6 +211,7 @@ async function buildSummary(index: WorkspaceIndex, ref: InvestigationRef, rootCa
     outcome: summary.outcome,
     executed: report !== null,
     outcomeReason: summary.outcomeReason,
+    outcomeMessage: summary.outcomeMessage,
     reproduction: summary.reproduction,
     running,
     evidenceOnDisk,

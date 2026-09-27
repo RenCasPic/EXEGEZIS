@@ -184,6 +184,9 @@ importers:
 
   packages/core:
     dependencies:
+      intl-messageformat:
+        specifier: 11.2.15
+        version: 11.2.15
       zod:
         specifier: ^4.6.5
         version: 4.6.5

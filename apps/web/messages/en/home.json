@@ -1,0 +1,73 @@
+{
+  "title": "Home",
+  "tabs": {
+    "inspect": "Inspect",
+    "search": "Search"
+  },
+  "eyebrowInspect": "WEB INSPECTION",
+  "eyebrowSearch": "SEARCH A SITE",
+  "headingInspect": "Check any web page.",
+  "headingSearch": "Find what you need on a site.",
+  "introInspect": "EXEGEZIS walks the site in clean browsers, repeats every visit and only marks as verified what appears in every repetition, with its evidence and a Playwright spec.",
+  "introSearch": "Exact words (no AI, checked on every load) or by meaning (the AI proposes and every quote is checked letter by letter on the page). You always see how many pages were searched.",
+  "haveSymptom": "Do you have a specific symptom? Open an investigation",
+  "proven": {
+    "title": "What has been proven",
+    "note": "One value per case (its latest real result). Runs with recorded answers (replay) do not count."
+  },
+  "metrics": {
+    "verifiedBugs": "Verified bugs",
+    "verifiedBugsHint": "{reproductions, plural, one {# reproduction} other {# reproductions}} · {attempts, plural, one {# browser run} other {# browser runs}}",
+    "validatedCauses": "Validated root causes",
+    "validatedCausesHint": "against the alternatives tested, in {cases, plural, one {# case} other {# cases}}",
+    "falseValidations": "{count, plural, one {# false validation} other {# false validations}}",
+    "falseVerified": "False verified in negative cases",
+    "falseVerifiedHint": "out of {count, plural, one {# negative case evaluated} other {# negative cases evaluated}}",
+    "median": "Median time to verify",
+    "medianNone": "no timings: archived results do not keep reproduction.json",
+    "medianHint": "over {count, plural, one {# verified bug} other {# verified bugs}} (all runs)"
+  },
+  "cases": {
+    "title": "Activity per case",
+    "all": "All investigations",
+    "filterLabel": "Filter cases",
+    "filters": {
+      "all": "All",
+      "proven": "Proven",
+      "pending": "Pending",
+      "expected": "Expected"
+    },
+    "none": "No cases yet",
+    "noneBody": "Open an investigation or run",
+    "noneInFilter": "No case in this filter",
+    "tryAnother": "Try another filter.",
+    "expectedWas": "Expected: {expected}",
+    "notAsExpected": "≠ expected ({expected})",
+    "asExpected": "= expected",
+    "negativeNoEvidence": "A negative case has no bug to prove",
+    "evidenceNone": "Evidence —",
+    "replayTitle": "Recorded planner answer (mock): not a live AI result",
+    "replays": "+{count} replay",
+    "replaysTitle": "{count, plural, one {# run with recorded planner answers, not counted in the metrics} other {# runs with recorded planner answers, not counted in the metrics}}",
+    "ai": "AI",
+    "humanPlan": "Human plan"
+  },
+  "recent": {
+    "title": "Recent inspections",
+    "all": "All",
+    "none": "You have not inspected any site yet",
+    "noneBody": "Type a URL above. The result will appear here with its verified findings.",
+    "invalid": "invalid report",
+    "line": "{problems, plural, one {# problem} other {# problems}} · {elements, plural, one {# element} other {# elements}} · {when}"
+  },
+  "capabilities": {
+    "title": "What it can prove today",
+    "cases": "{count, plural, one {# case} other {# cases}}"
+  },
+  "shortcuts": {
+    "label": "Shortcuts",
+    "investigations": "Investigations",
+    "rootCauses": "Root causes",
+    "benchmarks": "Benchmarks"
+  }
+}

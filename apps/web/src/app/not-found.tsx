@@ -1,10 +1,12 @@
 import { FileQuestion } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { ButtonLink, EmptyState } from "@/components/ui/primitives";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getTranslations("shell.notFound");
   return (
-    <EmptyState icon={<FileQuestion />} title="Not found" action={<ButtonLink href="/investigations">All investigations</ButtonLink>}>
-      Nothing on disk matches this address. Run directories may have been deleted, or the id is wrong.
+    <EmptyState icon={<FileQuestion />} title={t("title")} action={<ButtonLink href="/investigations">{t("action")}</ButtonLink>}>
+      {t("body")}
     </EmptyState>
   );
 }

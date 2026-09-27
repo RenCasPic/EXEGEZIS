@@ -1,0 +1,73 @@
+{
+  "title": "Inicio",
+  "tabs": {
+    "inspect": "Inspeccionar",
+    "search": "Buscar"
+  },
+  "eyebrowInspect": "INSPECCIÓN WEB",
+  "eyebrowSearch": "BÚSQUEDA EN UN SITIO",
+  "headingInspect": "Revisa cualquier página web.",
+  "headingSearch": "Busca lo que necesites en un sitio.",
+  "introInspect": "EXEGEZIS recorre el sitio en navegadores limpios, repite cada visita y solo marca como verificado lo que aparece en todas las repeticiones, con su evidencia y un spec de Playwright.",
+  "introSearch": "Palabras exactas (sin IA, comprobadas en cada carga) o por significado (la IA propone y cada cita se verifica letra por letra en la página). Siempre verás cuántas páginas se revisaron.",
+  "haveSymptom": "¿Tienes un síntoma concreto? Abre una investigación",
+  "proven": {
+    "title": "Lo demostrado",
+    "note": "Un valor por caso (su último resultado real). Las ejecuciones con respuestas grabadas (replay) no cuentan."
+  },
+  "metrics": {
+    "verifiedBugs": "Bugs verificados",
+    "verifiedBugsHint": "{reproductions, plural, one {# reproducción} other {# reproducciones}} · {attempts, plural, one {# ejecución en navegador} other {# ejecuciones en navegador}}",
+    "validatedCauses": "Causas validadas",
+    "validatedCausesHint": "frente a las alternativas probadas, en {cases, plural, one {# caso} other {# casos}}",
+    "falseValidations": "{count, plural, one {# validación falsa} other {# validaciones falsas}}",
+    "falseVerified": "Falsos verificados en casos negativos",
+    "falseVerifiedHint": "de {count, plural, one {# caso negativo evaluado} other {# casos negativos evaluados}}",
+    "median": "Mediana hasta verificar",
+    "medianNone": "sin tiempos: los resultados archivados no guardan reproduction.json",
+    "medianHint": "sobre {count, plural, one {# bug verificado} other {# bugs verificados}} (todas las ejecuciones)"
+  },
+  "cases": {
+    "title": "Actividad por caso",
+    "all": "Todas las investigaciones",
+    "filterLabel": "Filtrar casos",
+    "filters": {
+      "all": "Todos",
+      "proven": "Demostrados",
+      "pending": "Pendientes",
+      "expected": "Esperados"
+    },
+    "none": "Aún no hay casos",
+    "noneBody": "Abre una investigación o ejecuta",
+    "noneInFilter": "Ningún caso en este filtro",
+    "tryAnother": "Prueba con otro filtro.",
+    "expectedWas": "Se esperaba: {expected}",
+    "notAsExpected": "≠ esperado ({expected})",
+    "asExpected": "= esperado",
+    "negativeNoEvidence": "Un caso negativo no tiene bug que evidenciar",
+    "evidenceNone": "Evidencia —",
+    "replayTitle": "Respuesta grabada del planner (mock): no es un resultado de IA en vivo",
+    "replays": "+{count} replay",
+    "replaysTitle": "{count, plural, one {# ejecución con respuestas grabadas del planner, fuera de las métricas} other {# ejecuciones con respuestas grabadas del planner, fuera de las métricas}}",
+    "ai": "IA",
+    "humanPlan": "Plan humano"
+  },
+  "recent": {
+    "title": "Inspecciones recientes",
+    "all": "Todas",
+    "none": "Todavía no has inspeccionado ningún sitio",
+    "noneBody": "Escribe una URL arriba. El resultado aparecerá aquí con sus hallazgos verificados.",
+    "invalid": "informe no válido",
+    "line": "{problems, plural, one {# problema} other {# problemas}} · {elements, plural, one {# elemento} other {# elementos}} · {when}"
+  },
+  "capabilities": {
+    "title": "Qué puede demostrar hoy",
+    "cases": "{count, plural, one {# caso} other {# casos}}"
+  },
+  "shortcuts": {
+    "label": "Atajos",
+    "investigations": "Investigaciones",
+    "rootCauses": "Causas raíz",
+    "benchmarks": "Benchmarks"
+  }
+}

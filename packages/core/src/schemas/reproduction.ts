@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EngineMessage, englishOf, msg } from "../messages.js";
 import { RunId, Timestamp } from "./common.js";
 import { Provenance } from "./policy.js";
 import { RunVerdict } from "./run.js";
@@ -54,8 +55,10 @@ export const Reproduction = z
     /** failures / attempts; null when there were no attempts. */
     rate: z.number().min(0).max(1).nullable(),
     status: ReproductionStatus,
-    /** Deterministic explanation of `status`. */
+    /** Deterministic explanation of `status` (English). */
     reason: z.string(),
+    /** The same explanation as a code and parameters, for every language (absent in older reports). */
+    message: EngineMessage.optional(),
     runs: z.array(ReproductionAttempt),
   })
   .refine((r) => r.passes + r.failures + r.timeouts + r.errors === r.attempts, {
@@ -75,40 +78,22 @@ export type Reproduction = z.infer<typeof Reproduction>;
 export function classifyReproduction(runs: readonly Pick<ReproductionAttempt, "verdict" | "failureSignature">[]): {
   status: ReproductionStatus;
   reason: string;
+  message: EngineMessage;
 } {
-  if (runs.length === 0) return { status: "NOT_RUN", reason: "no attempts were executed" };
+  const out = (status: ReproductionStatus, message: EngineMessage) => ({ status, reason: englishOf(message), message });
+  if (runs.length === 0) return out("NOT_RUN", msg("reproNoAttempts"));
   const errors = runs.filter((r) => r.verdict === "error" || r.verdict === "no_assertions").length;
   const timeouts = runs.filter((r) => r.verdict === "timeout").length;
   const failures = runs.filter((r) => r.verdict === "failed");
   const passes = runs.filter((r) => r.verdict === "passed").length;
-  if (timeouts > 0) {
-    return {
-      status: "INCONCLUSIVE",
-      reason: `${timeouts} of ${runs.length} attempts timed out without a conclusion; a timeout is never counted as a failure`,
-    };
-  }
-  if (errors > 0) {
-    return {
-      status: "INCONCLUSIVE",
-      reason: `${errors} of ${runs.length} attempts could not be evaluated; errors are never counted as failures`,
-    };
-  }
-  if (passes === runs.length) {
-    return { status: "NOT_REPRODUCED", reason: `all ${runs.length} attempts met every expectation` };
-  }
+  if (timeouts > 0) return out("INCONCLUSIVE", msg("reproTimeouts", { timeouts, runs: runs.length }));
+  if (errors > 0) return out("INCONCLUSIVE", msg("reproErrors", { errors, runs: runs.length }));
+  if (passes === runs.length) return out("NOT_REPRODUCED", msg("reproAllPassed", { runs: runs.length }));
   if (failures.length === runs.length) {
     const signatures = new Set(failures.map((r) => r.failureSignature));
-    return signatures.size === 1
-      ? { status: "REPRODUCED", reason: `all ${runs.length} attempts failed identically` }
-      : {
-          status: "INCONCLUSIVE",
-          reason: `all attempts failed, but in ${signatures.size} different ways; the failure is not stable`,
-        };
+    return signatures.size === 1 ? out("REPRODUCED", msg("reproAllFailed", { runs: runs.length })) : out("INCONCLUSIVE", msg("reproUnstable", { ways: signatures.size }));
   }
-  return {
-    status: "FLAKY",
-    reason: `${failures.length} of ${runs.length} attempts failed and ${passes} passed; the behavior is not deterministic`,
-  };
+  return out("FLAKY", msg("reproFlaky", { failures: failures.length, runs: runs.length, passes }));
 }
 
 export function buildReproduction(input: {
@@ -124,7 +109,7 @@ export function buildReproduction(input: {
   const failures = runs.filter((r) => r.verdict === "failed").length;
   const passes = runs.filter((r) => r.verdict === "passed").length;
   const timeouts = runs.filter((r) => r.verdict === "timeout").length;
-  const { status, reason } = classifyReproduction(runs);
+  const { status, reason, message } = classifyReproduction(runs);
   return Reproduction.parse({
     schemaVersion: "exegezis.reproduction/v1",
     ...input,
@@ -136,5 +121,6 @@ export function buildReproduction(input: {
     rate: runs.length === 0 ? null : failures / runs.length,
     status,
     reason,
+    message,
   });
 }

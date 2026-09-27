@@ -1,0 +1,63 @@
+{
+  "source": {
+    "real": "Real evidence",
+    "archived": "Archived result"
+  },
+  "evidenceMeter": {
+    "none": "Evidence: not measured",
+    "level": "Evidence: {level} ({index} of {total})"
+  },
+  "runHistory": "Runs: {proven} proven, {inconclusive} inconclusive, {notProven} not proven",
+  "stages": {
+    "symptom": {
+      "label": "Symptom",
+      "text": "A description in plain language"
+    },
+    "plan": {
+      "label": "Plan",
+      "text": "A test plan written by the AI or by a person"
+    },
+    "reproduction": {
+      "label": "Reproduction",
+      "text": "Repeated runs in clean browsers"
+    },
+    "evidence": {
+      "label": "Evidence",
+      "text": "Traces, network, console, DOM and screenshots"
+    },
+    "investigation": {
+      "label": "Investigation",
+      "text": "Experiments with code mutations"
+    },
+    "root_cause": {
+      "label": "Root cause",
+      "text": "Validated against the alternatives tested"
+    },
+    "fix": {
+      "label": "Fix",
+      "text": "Propose and apply a change"
+    },
+    "verification": {
+      "label": "Fix verification",
+      "text": "Before and after the change"
+    }
+  },
+  "stageDetail": {
+    "noSymptom": "This investigation started from a plan, not from a symptom.",
+    "humanPlan": "The plan was written by a person; no model was involved.",
+    "waitingPlanner": "Waiting for the planner.",
+    "noPlannerOutput": "No planner output was recorded.",
+    "reproducing": "The engine is executing the plan.",
+    "notExecuted": "No plan was executed, so nothing was reproduced or ruled out.",
+    "notExecutedEnded": "No plan was executed, so nothing was reproduced or ruled out. The investigation ended {outcome} without running anything.",
+    "evidenceOnDisk": "Evidence bundles of every attempt are on disk.",
+    "evidenceNotArchived": "Archived results keep the report, not the evidence bundles.",
+    "evidenceRunning": "Evidence is being captured.",
+    "noEvidence": "Nothing was executed, so no evidence exists.",
+    "noRootCauseRun": "No root-cause experiment has been run for this bug (exegezis root-cause).",
+    "experiments": "{hypotheses, plural, one {# hypothesis} other {# hypotheses}}, {experiments, plural, one {# intervention experiment} other {# intervention experiments}} on isolated copies.",
+    "fixNotImplemented": "No fix generation yet. EXEGEZIS has not proposed or applied any code change as a fix (experimental mutations are discarded).",
+    "verificationNotImplemented": "No before/after fix verification yet. Only the bug reproduction and root-cause experiments are verified.",
+    "runsFailed": "{failures}/{attempts} runs failed the expectation."
+  }
+}

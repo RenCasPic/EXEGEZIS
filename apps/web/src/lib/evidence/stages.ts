@@ -1,43 +1,57 @@
-import type { RootCauseStatus, VerificationOutcome } from "@exegezis/core";
+import type { EngineMessage, RootCauseStatus, VerificationOutcome } from "@exegezis/core";
 import type { GenerationRecord } from "./generation";
 
 /**
  * The investigation chain shown in the UI. Each stage's status is derived
  * only from artifacts on disk; stages the engine does not have yet are
- * `NOT IMPLEMENTED`, never a placeholder result.
+ * `NOT_IMPLEMENTED`, never a placeholder result. Statuses are codes and
+ * details are catalog keys, engine messages or recorded content: the UI
+ * words them in the reader's language (docs/11-i18n.md).
  */
-export const STAGES = [
-  { id: "symptom", label: "Symptom" },
-  { id: "plan", label: "AI Plan" },
-  { id: "reproduction", label: "Reproduction" },
-  { id: "evidence", label: "Evidence" },
-  { id: "investigation", label: "Investigation" },
-  { id: "root_cause", label: "Root Cause" },
-  { id: "fix", label: "Fix" },
-  { id: "verification", label: "Verification" },
-] as const;
+export const STAGES = [{ id: "symptom" }, { id: "plan" }, { id: "reproduction" }, { id: "evidence" }, { id: "investigation" }, { id: "root_cause" }, { id: "fix" }, { id: "verification" }] as const;
 export type StageId = (typeof STAGES)[number]["id"];
 
 /** Visual family of a status; the label always says exactly what happened. */
 export type Tone = "ok" | "off" | "warn" | "bad" | "q" | "running" | "unimplemented";
 
+/** Keys under common.stageDetail in the catalogs. */
+export type StageDetailKey =
+  | "noSymptom"
+  | "humanPlan"
+  | "waitingPlanner"
+  | "noPlannerOutput"
+  | "reproducing"
+  | "notExecuted"
+  | "notExecutedEnded"
+  | "evidenceOnDisk"
+  | "evidenceNotArchived"
+  | "evidenceRunning"
+  | "noEvidence"
+  | "noRootCauseRun"
+  | "experiments"
+  | "fixNotImplemented"
+  | "verificationNotImplemented";
+
+export type StageDetail =
+  | { kind: "key"; key: StageDetailKey; values?: Record<string, string | number> }
+  /** Engine text: a message when the report has one, else the recorded English text. */
+  | { kind: "engine"; message: EngineMessage | null; text: string | null; failures?: number; attempts?: number }
+  /** Recorded content that is never translated (a symptom, a model's answer). */
+  | { kind: "content"; text: string };
+
 export interface StageState {
   id: StageId;
-  label: string;
+  /** A status code (PROVIDED, NOT_RUN, VERIFIED…), translated by StatusPill. */
   status: string;
   tone: Tone;
-  detail: string;
+  detail: StageDetail;
 }
 
 /** Capabilities EXEGEZIS does not have yet. Shown as such everywhere. */
 export const NOT_IMPLEMENTED_STAGES: readonly StageId[] = ["fix", "verification"];
 
-export const NOT_IMPLEMENTED_DETAIL: Record<"fix" | "verification", string> = {
-  fix: "No fix generation yet. EXEGEZIS has not proposed or applied any code change as a fix (experimental mutations are discarded).",
-  verification: "No before/after fix verification yet. Only the bug reproduction and root-cause experiments are verified.",
-};
-
-export const NO_ROOT_CAUSE_RUN = "No root-cause experiment has been run for this bug (exegezis root-cause).";
+/** Stage statuses that mean nothing was reached yet. */
+export const NOT_REACHED: readonly string[] = ["NOT_PROVIDED", "NOT_RUN", "AWAITING_EVIDENCE", "HUMAN_PLAN"];
 
 export function rootCauseTone(status: RootCauseStatus): Tone {
   return status === "VALIDATED" ? "ok" : status === "REFUTED" ? "off" : "q";
@@ -54,6 +68,7 @@ export interface StageInput {
   /** True only when a plan was executed and a BugReport exists. */
   executed: boolean;
   outcomeReason: string | null;
+  outcomeMessage: EngineMessage | null;
   reproduction: { failures: number; attempts: number } | null;
   running: boolean;
   /** Attempt directories exist on disk (false for archived results). */
@@ -80,76 +95,57 @@ export function outcomeTone(outcome: VerificationOutcome): Tone {
   }
 }
 
-export const label = (value: string): string => value.replaceAll("_", " ");
-
 export function deriveStages(input: StageInput): StageState[] {
-  const stage = (id: StageId, status: string, tone: Tone, detail: string): StageState => ({
-    id,
-    label: STAGES.find((s) => s.id === id)?.label ?? id,
-    status,
-    tone,
-    detail,
-  });
+  const stage = (id: StageId, status: string, tone: Tone, detail: StageDetail): StageState => ({ id, status, tone, detail });
+  const key = (k: StageDetailKey, values?: Record<string, string | number>): StageDetail => (values === undefined ? { kind: "key", key: k } : { kind: "key", key: k, values });
 
-  const symptom =
-    input.symptom !== null
-      ? stage("symptom", "PROVIDED", "ok", input.symptom)
-      : stage("symptom", "NOT PROVIDED", "q", "This investigation started from a plan, not from a symptom.");
+  const symptom = input.symptom !== null ? stage("symptom", "PROVIDED", "ok", { kind: "content", text: input.symptom }) : stage("symptom", "NOT_PROVIDED", "q", key("noSymptom"));
 
   let plan: StageState;
   if (input.generation !== null) {
     const status = input.generation.status;
-    const tone: Tone =
-      status === "generated" ? "ok" : status === "declined" ? "warn" : status === "invalid_generation" ? "bad" : "off";
-    plan = stage("plan", label(status).toUpperCase(), tone, input.generationDetail ?? "");
+    const tone: Tone = status === "generated" ? "ok" : status === "declined" ? "warn" : status === "invalid_generation" ? "bad" : "off";
+    plan = stage("plan", status.toUpperCase(), tone, { kind: "content", text: input.generationDetail ?? "" });
   } else if (input.planSource === "human") {
-    plan = stage("plan", "HUMAN PLAN", "q", "The plan was written by a person; no model was involved.");
+    plan = stage("plan", "HUMAN_PLAN", "q", key("humanPlan"));
   } else if (input.running) {
-    plan = stage("plan", "RUNNING", "running", "Waiting for the planner.");
+    plan = stage("plan", "RUNNING", "running", key("waitingPlanner"));
   } else {
-    plan = stage("plan", "NOT RUN", "q", "No planner output was recorded.");
+    plan = stage("plan", "NOT_RUN", "q", key("noPlannerOutput"));
   }
 
   let reproduction: StageState;
   if (input.outcome !== null && input.executed) {
     const repro = input.reproduction;
-    const detail = repro === null ? (input.outcomeReason ?? "") : `${repro.failures}/${repro.attempts} runs failed the expectation. ${input.outcomeReason ?? ""}`;
-    reproduction = stage("reproduction", label(input.outcome), outcomeTone(input.outcome), detail.trim());
+    reproduction = stage("reproduction", input.outcome, outcomeTone(input.outcome), {
+      kind: "engine",
+      message: input.outcomeMessage,
+      text: input.outcomeReason,
+      ...(repro === null ? {} : { failures: repro.failures, attempts: repro.attempts }),
+    });
   } else if (input.running) {
-    reproduction = stage("reproduction", "RUNNING", "running", "The engine is executing the plan.");
+    reproduction = stage("reproduction", "RUNNING", "running", key("reproducing"));
   } else {
-    const recorded = input.outcome === null ? "" : ` The investigation ended ${label(input.outcome)} without running anything.`;
-    reproduction = stage("reproduction", "NOT RUN", "q", `No plan was executed, so nothing was reproduced or ruled out.${recorded}`);
+    reproduction = stage("reproduction", "NOT_RUN", "q", input.outcome === null ? key("notExecuted") : key("notExecutedEnded", { outcome: input.outcome }));
   }
 
   let evidence: StageState;
-  if (input.evidenceOnDisk) {
-    evidence = stage("evidence", "AVAILABLE", "ok", "Evidence bundles of every attempt are on disk.");
-  } else if (input.archived && input.executed) {
-    evidence = stage("evidence", "NOT ARCHIVED", "q", "Archived results keep the report, not the evidence bundles.");
-  } else if (input.running) {
-    evidence = stage("evidence", "RUNNING", "running", "Evidence is being captured.");
-  } else {
-    evidence = stage("evidence", "AWAITING EVIDENCE", "q", "Nothing was executed, so no evidence exists.");
-  }
+  if (input.evidenceOnDisk) evidence = stage("evidence", "AVAILABLE", "ok", key("evidenceOnDisk"));
+  else if (input.archived && input.executed) evidence = stage("evidence", "NOT_ARCHIVED", "q", key("evidenceNotArchived"));
+  else if (input.running) evidence = stage("evidence", "RUNNING", "running", key("evidenceRunning"));
+  else evidence = stage("evidence", "AWAITING_EVIDENCE", "q", key("noEvidence"));
 
+  const rc = input.rootCause;
   return [
     symptom,
     plan,
     reproduction,
     evidence,
-    input.rootCause === null
-      ? stage("investigation", "NOT RUN", "q", NO_ROOT_CAUSE_RUN)
-      : stage(
-          "investigation",
-          `${input.rootCause.experiments} EXPERIMENTS`,
-          input.rootCause.experiments > 0 ? "ok" : "warn",
-          `${input.rootCause.hypotheses} hypotheses, ${input.rootCause.experiments} intervention experiments on isolated copies.`,
-        ),
-    input.rootCause === null
-      ? stage("root_cause", "NOT RUN", "q", NO_ROOT_CAUSE_RUN)
-      : stage("root_cause", label(input.rootCause.status), rootCauseTone(input.rootCause.status), input.rootCause.reason),
-    stage("fix", "NOT IMPLEMENTED", "unimplemented", NOT_IMPLEMENTED_DETAIL.fix),
-    stage("verification", "NOT IMPLEMENTED", "unimplemented", NOT_IMPLEMENTED_DETAIL.verification),
+    rc === null
+      ? stage("investigation", "NOT_RUN", "q", key("noRootCauseRun"))
+      : stage("investigation", "EXPERIMENTS", rc.experiments > 0 ? "ok" : "warn", key("experiments", { hypotheses: rc.hypotheses, experiments: rc.experiments })),
+    rc === null ? stage("root_cause", "NOT_RUN", "q", key("noRootCauseRun")) : stage("root_cause", rc.status, rootCauseTone(rc.status), { kind: "engine", message: null, text: rc.reason }),
+    stage("fix", "NOT_IMPLEMENTED", "unimplemented", key("fixNotImplemented")),
+    stage("verification", "NOT_IMPLEMENTED", "unimplemented", key("verificationNotImplemented")),
   ];
 }

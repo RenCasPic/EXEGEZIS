@@ -19,6 +19,7 @@ import {
   Search,
   Settings,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
@@ -43,6 +44,7 @@ interface Item {
 }
 
 export function SidebarNav({ counts, onNavigate }: { counts: SidebarCounts; onNavigate?: () => void }) {
+  const t = useTranslations("shell.nav");
   const path = usePathname();
   const status = useSearchParams().get("status");
   const investigationsList = (s: string | null) => (p: string, current: string | null) => p === "/investigations" && current === s;
@@ -51,49 +53,49 @@ export function SidebarNav({ counts, onNavigate }: { counts: SidebarCounts; onNa
     {
       title: null,
       items: [
-        { href: "/", label: "Inicio", icon: <Home />, match: (p) => p === "/" },
-        { href: "/overview", label: "Overview", icon: <Gauge />, match: (p) => p.startsWith("/overview") },
-        { href: "/inspections", label: "Inspections", icon: <Globe />, match: (p) => p.startsWith("/inspections") },
-        { href: "/searches", label: "Búsquedas", icon: <Search />, match: (p) => p.startsWith("/searches") },
+        { href: "/", label: t("home"), icon: <Home />, match: (p) => p === "/" },
+        { href: "/overview", label: t("overview"), icon: <Gauge />, match: (p) => p.startsWith("/overview") },
+        { href: "/inspections", label: t("inspections"), icon: <Globe />, match: (p) => p.startsWith("/inspections") },
+        { href: "/searches", label: t("searches"), icon: <Search />, match: (p) => p.startsWith("/searches") },
       ],
     },
     {
-      title: "Investigations",
+      title: t("investigationsGroup"),
       items: [
-        { href: "/investigations", label: "All Investigations", icon: <LayoutList />, count: counts.all, match: investigationsList(null) },
-        { href: "/investigations?status=active", label: "Active", icon: <Activity />, count: counts.active, match: investigationsList("active") },
-        { href: "/investigations?status=verified", label: "Verified", icon: <BadgeCheck />, count: counts.verified, match: investigationsList("verified") },
+        { href: "/investigations", label: t("allInvestigations"), icon: <LayoutList />, count: counts.all, match: investigationsList(null) },
+        { href: "/investigations?status=active", label: t("active"), icon: <Activity />, count: counts.active, match: investigationsList("active") },
+        { href: "/investigations?status=verified", label: t("verified"), icon: <BadgeCheck />, count: counts.verified, match: investigationsList("verified") },
         {
           href: "/investigations?status=needs-evidence",
-          label: "Needs Evidence",
+          label: t("needsEvidence"),
           icon: <HelpCircle />,
           count: counts.needsEvidence,
           match: investigationsList("needs-evidence"),
         },
-        { href: "/investigations?status=expected", label: "Expected", icon: <CircleCheckBig />, count: counts.expected, match: investigationsList("expected") },
+        { href: "/investigations?status=expected", label: t("expected"), icon: <CircleCheckBig />, count: counts.expected, match: investigationsList("expected") },
       ],
     },
     {
-      title: "Verification",
+      title: t("verificationGroup"),
       items: [
-        { href: "/verification/reproductions", label: "Reproductions", icon: <Repeat />, match: (p) => p.startsWith("/verification/reproductions") },
-        { href: "/planner", label: "AI Plans", icon: <Bot />, match: (p) => p.startsWith("/planner") },
-        { href: "/verification/root-causes", label: "Root Causes", icon: <Microscope />, match: (p) => p.startsWith("/verification/root-causes") },
-        { href: "/verification/fixes", label: "Fixes", icon: <GitPullRequestDraft />, tag: "N/I", match: (p) => p.startsWith("/verification/fixes") },
+        { href: "/verification/reproductions", label: t("reproductions"), icon: <Repeat />, match: (p) => p.startsWith("/verification/reproductions") },
+        { href: "/planner", label: t("aiPlans"), icon: <Bot />, match: (p) => p.startsWith("/planner") },
+        { href: "/verification/root-causes", label: t("rootCauses"), icon: <Microscope />, match: (p) => p.startsWith("/verification/root-causes") },
+        { href: "/verification/fixes", label: t("fixes"), icon: <GitPullRequestDraft />, tag: t("notImplementedTag"), match: (p) => p.startsWith("/verification/fixes") },
       ],
     },
     {
       title: null,
       items: [
-        { href: "/projects", label: "Projects", icon: <FolderGit2 />, match: (p) => p.startsWith("/projects") },
-        { href: "/benchmarks", label: "Benchmarks", icon: <Beaker />, match: (p) => p.startsWith("/benchmarks") },
-        { href: "/settings", label: "Settings", icon: <Settings />, match: (p) => p.startsWith("/settings") },
+        { href: "/projects", label: t("projects"), icon: <FolderGit2 />, match: (p) => p.startsWith("/projects") },
+        { href: "/benchmarks", label: t("benchmarks"), icon: <Beaker />, match: (p) => p.startsWith("/benchmarks") },
+        { href: "/settings", label: t("settings"), icon: <Settings />, match: (p) => p.startsWith("/settings") },
       ],
     },
   ];
 
   return (
-    <nav className="flex flex-col gap-4" aria-label="Main">
+    <nav className="flex flex-col gap-4" aria-label={t("label")}>
       {groups.map((group, i) => (
         <div key={group.title ?? `g${i}`} className="flex flex-col gap-px">
           {group.title !== null && <div className="px-2 pb-1 text-[11px] font-medium text-faint">{group.title}</div>}
@@ -114,7 +116,7 @@ export function SidebarNav({ counts, onNavigate }: { counts: SidebarCounts; onNa
                 <span className="flex-1 truncate">{item.label}</span>
                 {item.count !== undefined && <span className="font-mono text-[11px] text-faint">{item.count}</span>}
                 {item.tag !== undefined && (
-                  <span title="Not implemented yet" className="rounded border border-dashed border-line-strong px-1 font-mono text-[9px] text-faint">
+                  <span title={t("notImplementedYet")} className="rounded border border-dashed border-line-strong px-1 font-mono text-[9px] text-faint">
                     {item.tag}
                   </span>
                 )}
@@ -128,22 +130,24 @@ export function SidebarNav({ counts, onNavigate }: { counts: SidebarCounts; onNa
 }
 
 export function SidebarBrand() {
+  const t = useTranslations("shell");
   return (
     <Link href="/" className="flex items-center gap-2.5 px-2">
       <LogoMark className="size-7 shrink-0 text-fg" />
       <div className="leading-tight">
         <div className="font-mono text-[13px] font-semibold tracking-[0.18em] text-fg">EXEGEZIS</div>
-        <div className="text-[11px] text-faint">Software Verification</div>
+        <div className="text-[11px] text-faint">{t("brandTagline")}</div>
       </div>
     </Link>
   );
 }
 
 export function SidebarFooter({ workspace, repository, user }: { workspace: string; repository: string; user: string }) {
+  const t = useTranslations("shell.footer");
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-3">
       <div className="px-2">
-        <div className="text-[11px] font-medium text-faint">Workspace</div>
+        <div className="text-[11px] font-medium text-faint">{t("workspace")}</div>
         <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-fg">
           <BookOpenCheck className="size-3.5 text-faint" />
           {workspace}
@@ -158,7 +162,7 @@ export function SidebarFooter({ workspace, repository, user }: { workspace: stri
         </span>
         <div className="min-w-0 leading-tight">
           <div className="truncate text-[13px] text-fg">{user}</div>
-          <div className="text-[11px] text-faint">Local user · no auth</div>
+          <div className="text-[11px] text-faint">{t("localUser")}</div>
         </div>
       </div>
     </div>

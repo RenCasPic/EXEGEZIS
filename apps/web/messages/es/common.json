@@ -1,0 +1,63 @@
+{
+  "source": {
+    "real": "Evidencia real",
+    "archived": "Resultado archivado"
+  },
+  "evidenceMeter": {
+    "none": "Evidencia: sin medir",
+    "level": "Evidencia: {level} ({index} de {total})"
+  },
+  "runHistory": "Ejecuciones: {proven} demostradas, {inconclusive} inconclusas, {notProven} no demostradas",
+  "stages": {
+    "symptom": {
+      "label": "Síntoma",
+      "text": "Descripción en lenguaje natural"
+    },
+    "plan": {
+      "label": "Plan",
+      "text": "Plan de prueba escrito por la IA o por una persona"
+    },
+    "reproduction": {
+      "label": "Reproducción",
+      "text": "Ejecución repetida en navegadores limpios"
+    },
+    "evidence": {
+      "label": "Evidencia",
+      "text": "Trazas, red, consola, DOM y capturas"
+    },
+    "investigation": {
+      "label": "Investigación",
+      "text": "Experimentos con mutaciones del código"
+    },
+    "root_cause": {
+      "label": "Causa raíz",
+      "text": "Validada frente a las alternativas probadas"
+    },
+    "fix": {
+      "label": "Arreglo",
+      "text": "Proponer y aplicar un cambio"
+    },
+    "verification": {
+      "label": "Verificación del arreglo",
+      "text": "Antes y después del cambio"
+    }
+  },
+  "stageDetail": {
+    "noSymptom": "Esta investigación empezó con un plan, no con un síntoma.",
+    "humanPlan": "El plan lo escribió una persona; no intervino ningún modelo.",
+    "waitingPlanner": "Esperando al planner.",
+    "noPlannerOutput": "No se registró ninguna respuesta del planner.",
+    "reproducing": "El motor está ejecutando el plan.",
+    "notExecuted": "No se ejecutó ningún plan, así que no se reprodujo ni se descartó nada.",
+    "notExecutedEnded": "No se ejecutó ningún plan, así que no se reprodujo ni se descartó nada. La investigación terminó en {outcome} sin ejecutar nada.",
+    "evidenceOnDisk": "La evidencia de cada intento está en el disco.",
+    "evidenceNotArchived": "Los resultados archivados guardan el informe, no la evidencia.",
+    "evidenceRunning": "Se está capturando la evidencia.",
+    "noEvidence": "No se ejecutó nada, así que no hay evidencia.",
+    "noRootCauseRun": "No se ha ejecutado ningún experimento de causa raíz para este bug (exegezis root-cause).",
+    "experiments": "{hypotheses, plural, one {# hipótesis} other {# hipótesis}}, {experiments, plural, one {# experimento de intervención} other {# experimentos de intervención}} en copias aisladas.",
+    "fixNotImplemented": "Aún no se generan arreglos. EXEGEZIS no ha propuesto ni aplicado ningún cambio de código como arreglo (las mutaciones experimentales se descartan).",
+    "verificationNotImplemented": "Aún no se verifica un arreglo antes y después. Solo se verifican la reproducción del bug y los experimentos de causa raíz.",
+    "runsFailed": "{failures}/{attempts} ejecuciones incumplieron la expectativa."
+  }
+}

@@ -2,7 +2,6 @@
 export type ThemePreference = "light" | "dark" | "system";
 
 export const THEME_PREFERENCES: readonly ThemePreference[] = ["light", "dark", "system"];
-export const THEME_LABEL: Record<ThemePreference, string> = { light: "Claro", dark: "Oscuro", system: "Sistema" };
 export const THEME_STORAGE_KEY = "exegezis-theme";
 
 /**

@@ -1,6 +1,7 @@
 "use client";
 
 import { CornerDownLeft, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -13,6 +14,7 @@ export interface PaletteItem {
 }
 
 export function CommandPalette({ items, open, onOpenChange }: { items: PaletteItem[]; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const t = useTranslations("shell.palette");
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -61,7 +63,7 @@ export function CommandPalette({ items, open, onOpenChange }: { items: PaletteIt
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Search"
+        aria-label={t("label")}
         className="w-full max-w-xl overflow-hidden rounded-xl border border-line-strong bg-panel shadow-2xl"
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -88,13 +90,13 @@ export function CommandPalette({ items, open, onOpenChange }: { items: PaletteIt
                 onOpenChange(false);
               }
             }}
-            placeholder="Search investigations, benchmarks, pages…"
+            placeholder={t("placeholder")}
             className="h-12 flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-faint"
           />
           <kbd className="rounded border border-line-strong px-1 font-mono text-[10px] text-faint">Esc</kbd>
         </div>
         <div ref={list} className="max-h-[50vh] overflow-y-auto p-1.5">
-          {results.length === 0 && <div className="px-3 py-8 text-center text-sm text-muted">No results for “{query}”.</div>}
+          {results.length === 0 && <div className="px-3 py-8 text-center text-sm text-muted">{t("noResults")}</div>}
           {results.map((item, i) => (
             <button
               key={`${item.group}:${item.href}`}
@@ -105,7 +107,9 @@ export function CommandPalette({ items, open, onOpenChange }: { items: PaletteIt
               className={cn("flex w-full items-center gap-3 rounded-md px-3 py-2 text-left", i === cursor ? "bg-hover" : "")}
             >
               <span className="w-24 shrink-0 text-[11px] text-faint">{item.group}</span>
-              <span className="min-w-0 flex-1 truncate text-[13px] text-fg">{item.title}</span>
+              <span className="min-w-0 flex-1 truncate text-[13px] text-fg" translate="no">
+                {item.title}
+              </span>
               {item.hint !== undefined && <span className="shrink-0 font-mono text-[11px] text-faint">{item.hint}</span>}
               {i === cursor && <CornerDownLeft className="size-3.5 shrink-0 text-faint" />}
             </button>

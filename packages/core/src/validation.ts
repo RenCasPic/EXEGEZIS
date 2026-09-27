@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EngineMessage, englishOf, msg } from "./messages.js";
 import type { AdapterDescriptor } from "./adapter.js";
 import { resolveNavigationUrl } from "./schemas/action.js";
 import { normalizeText } from "./schemas/assertion.js";
@@ -61,7 +62,10 @@ export const ValidationIssue = z.strictObject({
   code: IssueCode,
   severity: IssueSeverity,
   stepIndex: z.int().positive().optional(),
+  /** English. */
   message: z.string(),
+  /** The same message as a code and parameters, for every language (absent in older reports). */
+  detail: EngineMessage.optional(),
 });
 export type ValidationIssue = z.infer<typeof ValidationIssue>;
 
@@ -106,8 +110,8 @@ const LABELLED_ROLES = new Set(["textbox", "searchbox", "combobox", "checkbox", 
 
 export function validatePlan(plan: TestPlan, options: ValidateOptions): PlanValidation {
   const issues: ValidationIssue[] = [];
-  const issue = (code: IssueCode, severity: IssueSeverity, message: string, stepIndex?: number): void => {
-    issues.push({ code, severity, message, ...(stepIndex === undefined ? {} : { stepIndex }) });
+  const issue = (code: IssueCode, severity: IssueSeverity, detail: EngineMessage, stepIndex?: number): void => {
+    issues.push({ code, severity, message: englishOf(detail), detail, ...(stepIndex === undefined ? {} : { stepIndex }) });
   };
   const timeouts = resolveTimeouts(plan.timeouts);
   const steps = plan.steps.map((step, i) => ({ step, index: i + 1 }));
@@ -116,23 +120,23 @@ export function validatePlan(plan: TestPlan, options: ValidateOptions): PlanVali
   for (const { step, index } of steps) {
     if (step.type === "assert") {
       if (!options.descriptor.assertions.includes(step.assertion.kind)) {
-        issue("UNSUPPORTED_ASSERTION", "unsupported", `"${step.assertion.kind}" assertions are not supported by the adapter`, index);
+        issue("UNSUPPORTED_ASSERTION", "unsupported", msg("valUnsupportedAssertion", { kind: step.assertion.kind }), index);
       }
     } else if (step.type !== "observe" && !options.descriptor.actions.includes(step.type)) {
-      issue("UNSUPPORTED_ACTION", "unsupported", `"${step.type}" actions are not supported by the adapter`, index);
+      issue("UNSUPPORTED_ACTION", "unsupported", msg("valUnsupportedAction", { type: step.type }), index);
     }
   }
 
   // Structure.
   const first = steps.find(({ step }) => step.type !== "observe");
   if (first !== undefined && first.step.type !== "navigate") {
-    issue("FIRST_STEP_NOT_NAVIGATE", "error", "the plan must navigate before acting or asserting; it would start on a blank page", first.index);
+    issue("FIRST_STEP_NOT_NAVIGATE", "error", msg("valFirstNotNavigate"), first.index);
   }
   const seen = new Map<string, number>();
   for (const { step, index } of steps) {
     if (step.type !== "assert" || step.id === undefined) continue;
     const previous = seen.get(step.id);
-    if (previous !== undefined) issue("DUPLICATE_STEP_ID", "error", `assertion id "${step.id}" is also used by step ${previous}`, index);
+    if (previous !== undefined) issue("DUPLICATE_STEP_ID", "error", msg("valDuplicateId", { id: step.id, step: previous }), index);
     seen.set(step.id, index);
   }
 
@@ -142,7 +146,7 @@ export function validatePlan(plan: TestPlan, options: ValidateOptions): PlanVali
     issue(
       "NO_EXPECTATION",
       options.mode === "verification" ? "error" : "warning",
-      "the plan declares no expectation (assertion with purpose \"expectation\"), so it cannot demonstrate a bug",
+      msg("valNoExpectation"),
     );
   }
   if (options.mode === "verification") {
@@ -152,7 +156,7 @@ export function validatePlan(plan: TestPlan, options: ValidateOptions): PlanVali
         issue(
           "EXPECTATION_WITHOUT_ANCHOR",
           "anchoring",
-          "no anchor assertion establishes the application state before this expectation",
+          msg("valNoAnchor"),
           index,
         );
       }
@@ -160,7 +164,7 @@ export function validatePlan(plan: TestPlan, options: ValidateOptions): PlanVali
         issue(
           "EXPECTATION_WITHOUT_ACTION",
           "anchoring",
-          "no action happens before this expectation: it checks an initial state the plan did not establish",
+          msg("valNoAction"),
           index,
         );
       }
@@ -168,7 +172,7 @@ export function validatePlan(plan: TestPlan, options: ValidateOptions): PlanVali
     const lastExpectation = expectations.at(-1)?.index ?? 0;
     for (const { step, index } of steps) {
       if (step.type === "assert" && step.purpose === "anchor" && index > lastExpectation && lastExpectation > 0) {
-        issue("ANCHOR_AFTER_LAST_EXPECTATION", "warning", "anchor after the last expectation: it cannot support it", index);
+        issue("ANCHOR_AFTER_LAST_EXPECTATION", "warning", msg("valAnchorAfter"), index);
       }
     }
   }
@@ -197,7 +201,7 @@ export function validatePlan(plan: TestPlan, options: ValidateOptions): PlanVali
             issue(
               "TARGET_NOT_IN_REFERENCE",
               check.required ? "error" : "warning",
-              `${describeTarget(check.target)} does not exist on the observed page, and no earlier step could have created it`,
+              msg("valTargetMissing", { target: describeTarget(check.target) }),
               index,
             );
           }
@@ -219,7 +223,7 @@ export function validatePlan(plan: TestPlan, options: ValidateOptions): PlanVali
           issue(
             "TIMEOUT_BELOW_OBSERVED_LATENCY",
             "warning",
-            `assertion timeout ${timeout} ms is below twice the slowest response observed (${Math.round(page.latency.slowestResponseMs)} ms): a slow response could look like a failure`,
+            msg("valAssertionTimeout", { timeout, slowest: Math.round(page.latency.slowestResponseMs) }),
             index,
           );
         }
@@ -228,7 +232,7 @@ export function validatePlan(plan: TestPlan, options: ValidateOptions): PlanVali
         issue(
           "TIMEOUT_BELOW_OBSERVED_LATENCY",
           "warning",
-          `navigation timeout ${timeouts.navigationMs} ms is below twice the observed load time (${Math.round(page.latency.navigationMs)} ms)`,
+          msg("valNavigationTimeout", { timeout: timeouts.navigationMs, load: Math.round(page.latency.navigationMs) }),
         );
       }
     }

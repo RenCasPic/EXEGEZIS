@@ -60,7 +60,7 @@ export function buildBugReport(input: BugReportInput): BugReport {
     policy: input.policy,
   });
 
-  const { outcome, reason: outcomeReason } = deriveOutcome(input.validation, reproduction, criteria);
+  const { outcome, reason: outcomeReason, message: outcomeMessage } = deriveOutcome(input.validation, reproduction, criteria);
   return BugReport.parse({
     schemaVersion: "exegezis.bug-report/v1",
     bugId: plan.id,
@@ -68,6 +68,7 @@ export function buildBugReport(input: BugReportInput): BugReport {
     ...(plan.description === undefined ? {} : { description: plan.description }),
     outcome,
     outcomeReason,
+    outcomeMessage,
     provenance: plan.provenance,
     validation: { status: input.validation.status, issues: input.validation.issues, reference: input.validation.reference },
     generatedAt: input.generatedAt ?? new Date().toISOString(),
@@ -90,6 +91,7 @@ export function buildBugReport(input: BugReportInput): BugReport {
       errors: reproduction.errors,
       rate: reproduction.rate,
       reason: reproduction.reason,
+      ...(reproduction.message === undefined ? {} : { message: reproduction.message }),
     },
     evidence: representative === undefined || failed === undefined || runPath === undefined ? [] : evidenceRefs(representative, failed, runPath),
     evidenceChain:

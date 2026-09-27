@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EngineMessage, englishOf, msg } from "../messages.js";
 import { PlanValidation } from "../validation.js";
 import { Assertion, type AssertionResult } from "./assertion.js";
 import { Timestamp } from "./common.js";
@@ -34,7 +35,10 @@ export const VerificationCriterion = z.strictObject({
   id: CriterionId,
   description: z.string(),
   met: z.boolean(),
+  /** English. */
   detail: z.string(),
+  /** The same detail as a code and parameters, for every language (absent in older reports). */
+  message: EngineMessage.optional(),
 });
 export type VerificationCriterion = z.infer<typeof VerificationCriterion>;
 
@@ -109,11 +113,12 @@ export interface VerificationInput {
  */
 export function evaluateVerification(input: VerificationInput): VerificationCriterion[] {
   const { plan, validation, reproduction, representative, compiledTest, policy } = input;
-  const criterion = (id: CriterionId, met: boolean, detail: string): VerificationCriterion => ({
+  const criterion = (id: CriterionId, met: boolean, message: EngineMessage): VerificationCriterion => ({
     id,
     description: CRITERIA_DESCRIPTIONS[id],
     met,
-    detail,
+    detail: englishOf(message),
+    message,
   });
 
   const usable = validation.status === "valid" || validation.status === "weakly_anchored";
@@ -122,12 +127,10 @@ export function evaluateVerification(input: VerificationInput): VerificationCrit
     "plan_valid",
     usable,
     usable
-      ? `semantic validation: ${validation.status}${
-          validation.reference === null
-            ? " (no reference observation)"
-            : `, ${validation.reference.targetsChecked} target(s) checked against the observed page`
-        }`
-      : `semantic validation: ${validation.status} (${blocking.join(", ")})`,
+      ? validation.reference === null
+        ? msg("critValidation", { status: validation.status })
+        : msg("critValidationChecked", { status: validation.status, targets: validation.reference.targetsChecked })
+      : msg("critValidationBlocked", { status: validation.status, codes: blocking.join(", ") }),
   );
 
   const expectations = plan.steps.filter((s) => s.type === "assert" && s.purpose === "expectation").length;
@@ -135,9 +138,7 @@ export function evaluateVerification(input: VerificationInput): VerificationCrit
   const expectation = criterion(
     "expectation_defined",
     hasAssertions(plan) && expectations > 0,
-    expectations > 0
-      ? `${expectations} expectation(s) and ${anchors} anchor(s) declared in plan ${plan.id}`
-      : "the plan declares no expectation",
+    expectations > 0 ? msg("critExpectations", { expectations, anchors, plan: plan.id }) : msg("critNoExpectation"),
   );
 
   const anchored = criterion("anchored", ...checkAnchoring(input));
@@ -146,62 +147,59 @@ export function evaluateVerification(input: VerificationInput): VerificationCrit
   const reproduced = criterion(
     "reproduced",
     reproduction.status === "REPRODUCED" && enoughAttempts,
-    `${reproduction.status}: ${reproduction.failures}/${reproduction.attempts} failed, ${reproduction.errors} errors` +
-      (enoughAttempts ? "" : ` (at least ${policy.minAttempts} attempts required)`),
+    msg(enoughAttempts ? "critReproduced" : "critReproducedTooFew", {
+      status: reproduction.status,
+      failures: reproduction.failures,
+      attempts: reproduction.attempts,
+      errors: reproduction.errors,
+      ...(enoughAttempts ? {} : { min: policy.minAttempts }),
+    }),
   );
 
   const evidence = criterion("evidence_captured", ...checkEvidence(representative));
 
   let executable: VerificationCriterion;
   if (compiledTest === undefined || compiledTest.status === "not_run") {
-    executable = criterion("executable_test", false, "the compiled test was not executed");
+    executable = criterion("executable_test", false, msg("critTestNotRun"));
   } else if (compiledTest.status !== "failed") {
     executable = criterion(
       "executable_test",
       false,
-      compiledTest.status === "passed"
-        ? "the compiled test passed: it does not demonstrate the failure"
-        : `the compiled test could not run: ${compiledTest.message ?? "unknown error"}`,
+      compiledTest.status === "passed" ? msg("critTestPassed") : msg("critTestCouldNotRun", { message: compiledTest.message ?? "unknown error" }),
     );
   } else if (representative === undefined || compiledTest.failedAtStep !== representative.stoppedAtStep) {
     executable = criterion(
       "executable_test",
       false,
-      `the compiled test failed at step ${compiledTest.failedAtStep ?? "?"} but EXEGEZIS observed the failure at step ${representative?.stoppedAtStep ?? "?"}`,
+      msg("critTestOtherStep", { failed: compiledTest.failedAtStep ?? "?", observed: representative?.stoppedAtStep ?? "?" }),
     );
   } else {
     executable = criterion(
       "executable_test",
       true,
-      `${compiledTest.runner} failed at step ${compiledTest.failedAtStep}, the same step EXEGEZIS observed`,
+      msg("critTestSameStep", { runner: compiledTest.runner, step: compiledTest.failedAtStep ?? "?" }),
     );
   }
 
   return [planValid, expectation, anchored, reproduced, evidence, executable];
 }
 
-function checkAnchoring({ validation, representative, policy }: VerificationInput): [boolean, string] {
+function checkAnchoring({ validation, representative, policy }: VerificationInput): [boolean, EngineMessage] {
   const weak = validation.issues.filter((i) => i.severity === "anchoring");
   if (policy.requireStrongAnchoring && weak.length > 0) {
-    return [false, `weakly anchored: ${weak.map((i) => `step ${i.stepIndex ?? "?"} ${i.code}`).join(", ")}`];
+    // A list of messages would be joined with «; »; these steps are joined with commas, as always.
+    return [false, msg("critWeaklyAnchored", { steps: weak.map((i) => englishOf(msg("critWeakStep", { step: i.stepIndex ?? "?", code: i.code }))).join(", ") })];
   }
   if (representative === undefined) {
-    return [weak.length === 0, weak.length === 0 ? "every expectation is preceded by an anchor and an action" : "weakly anchored (allowed by policy)"];
+    return [weak.length === 0, weak.length === 0 ? msg("critAnchoredEvery") : msg("critWeakAllowed")];
   }
   const failing = representative.assertion;
-  if (failing.purpose !== "expectation") {
-    return [
-      false,
-      `the failing assertion (step ${failing.stepIndex}) is an anchor: the premise of the plan about the application does not hold, which is not a bug`,
-    ];
-  }
+  if (failing.purpose !== "expectation") return [false, msg("critFailingIsAnchor", { step: failing.stepIndex })];
   const anchorResults = representative.assertions.filter((a) => a.purpose === "anchor" && a.stepIndex < failing.stepIndex);
-  if (policy.requireStrongAnchoring && anchorResults.length === 0) {
-    return [false, "no anchor was evaluated before the failing expectation"];
-  }
+  if (policy.requireStrongAnchoring && anchorResults.length === 0) return [false, msg("critNoAnchorEvaluated")];
   const notPassed = anchorResults.filter((a) => a.status !== "passed");
-  if (notPassed.length > 0) return [false, `anchor(s) did not pass: steps ${notPassed.map((a) => a.stepIndex).join(", ")}`];
-  return [true, `${anchorResults.length} anchor(s) passed before the failing expectation at step ${failing.stepIndex}`];
+  if (notPassed.length > 0) return [false, msg("critAnchorsNotPassed", { steps: notPassed.map((a) => a.stepIndex).join(", ") })];
+  return [true, msg("critAnchorsPassed", { count: anchorResults.length, step: failing.stepIndex })];
 }
 
 /**
@@ -211,49 +209,49 @@ function checkAnchoring({ validation, representative, policy }: VerificationInpu
  */
 export function deriveOutcome(
   validation: PlanValidation,
-  reproduction: Pick<Reproduction, "status" | "reason">,
+  reproduction: Pick<Reproduction, "status" | "reason" | "message">,
   criteria: readonly VerificationCriterion[],
-): { outcome: VerificationOutcome; reason: string } {
+): { outcome: VerificationOutcome; reason: string; message: EngineMessage } {
+  const out = (outcome: VerificationOutcome, message: EngineMessage) => ({ outcome, reason: englishOf(message), message });
+  /** An issue, a reproduction or a criterion from an older report may have only its English text. */
+  const issueMessage = (i: { message: string; detail?: EngineMessage | undefined }) => i.detail ?? msg("outcomeIssues", { issues: i.message });
   if (validation.status === "unsupported") {
-    const messages = validation.issues.filter((i) => i.severity === "unsupported").map((i) => i.message);
-    return { outcome: "UNSUPPORTED", reason: messages.join("; ") };
+    return out("UNSUPPORTED", msg("outcomeIssues", { issues: validation.issues.filter((i) => i.severity === "unsupported").map(issueMessage) }));
   }
   if (validation.status === "invalid") {
-    const messages = validation.issues.filter((i) => i.severity === "error").map((i) => i.message);
-    return { outcome: "INVALID_PLAN", reason: messages.join("; ") };
+    return out("INVALID_PLAN", msg("outcomeIssues", { issues: validation.issues.filter((i) => i.severity === "error").map(issueMessage) }));
   }
+  const reproductionMessage = reproduction.message ?? msg("outcomeIssues", { issues: reproduction.reason });
   switch (reproduction.status) {
     case "FLAKY":
-      return { outcome: "FLAKY", reason: reproduction.reason };
+      return out("FLAKY", reproductionMessage);
     case "NOT_REPRODUCED":
-      return { outcome: "NOT_VERIFIED", reason: `the expectation held: ${reproduction.reason}` };
+      return out("NOT_VERIFIED", msg("outcomeExpectationHeld", { reason: reproductionMessage }));
     case "NOT_RUN":
     case "INCONCLUSIVE":
-      return { outcome: "INCONCLUSIVE", reason: reproduction.reason };
+      return out("INCONCLUSIVE", reproductionMessage);
     case "REPRODUCED": {
       const unmet = criteria.filter((c) => !c.met);
       return unmet.length === 0
-        ? { outcome: "VERIFIED", reason: "every verification criterion is met" }
-        : { outcome: "INCONCLUSIVE", reason: `the failure reproduced, but: ${unmet.map((c) => c.detail).join("; ")}` };
+        ? out("VERIFIED", msg("outcomeVerified"))
+        : out("INCONCLUSIVE", msg("outcomeUnmet", { details: unmet.map((c) => c.message ?? msg("outcomeIssues", { issues: c.detail })) }));
     }
   }
 }
 
-function checkEvidence(representative: VerificationInput["representative"]): [boolean, string] {
-  if (representative === undefined) return [false, "no failing attempt to take evidence from"];
+function checkEvidence(representative: VerificationInput["representative"]): [boolean, EngineMessage] {
+  if (representative === undefined) return [false, msg("critNoFailingAttempt")];
   const { assertion, manifest } = representative;
-  if (assertion.status !== "failed") return [false, `the representative assertion is ${assertion.status}, not failed`];
+  if (assertion.status !== "failed") return [false, msg("critAssertionNotFailed", { status: assertion.status })];
   const links = assertion.evidence;
-  if (links?.screenshot === undefined || links.accessibilitySnapshotId === undefined) {
-    return [false, "the failed assertion is not linked to a screenshot and an accessibility snapshot"];
-  }
-  if (!manifest.complete) return [false, "the failing run's manifest is incomplete"];
+  if (links?.screenshot === undefined || links.accessibilitySnapshotId === undefined) return [false, msg("critNotLinked")];
+  if (!manifest.complete) return [false, msg("critManifestIncomplete")];
   const present = new Set(manifest.artifacts.map((a) => a.type));
   const missing = REQUIRED_EVIDENCE.filter((type) => !present.has(type));
-  if (missing.length > 0) return [false, `missing evidence: ${missing.join(", ")}`];
+  if (missing.length > 0) return [false, msg("critMissingEvidence", { types: missing.join(", ") })];
   const leaking = manifest.artifacts.filter((a) => a.redaction === "failed").map((a) => a.path);
-  if (leaking.length > 0) return [false, `redaction failed for: ${leaking.join(", ")}`];
-  return [true, `${REQUIRED_EVIDENCE.join(", ")} captured; failure linked to ${links.screenshot.id} and ${links.accessibilitySnapshotId}`];
+  if (leaking.length > 0) return [false, msg("critRedactionFailed", { paths: leaking.join(", ") })];
+  return [true, msg("critEvidenceCaptured", { types: REQUIRED_EVIDENCE.join(", "), screenshot: links.screenshot.id, snapshot: links.accessibilitySnapshotId })];
 }
 
 export const EvidenceRef = z.strictObject({
@@ -281,8 +279,10 @@ export const BugReport = z
     title: z.string(),
     description: z.string().optional(),
     outcome: VerificationOutcome,
-    /** Deterministic explanation of `outcome`. */
+    /** Deterministic explanation of `outcome` (English). */
     outcomeReason: z.string(),
+    /** The same explanation as a code and parameters, for every language (absent in older reports). */
+    outcomeMessage: EngineMessage.optional(),
     /** Where the plan came from (human, model...), carried from the plan. */
     provenance: Provenance,
     validation: PlanValidation.pick({ status: true, issues: true, reference: true }),
@@ -304,6 +304,7 @@ export const BugReport = z
       errors: z.int().nonnegative(),
       rate: z.number().nullable(),
       reason: z.string(),
+      message: EngineMessage.optional(),
     }),
     evidence: z.array(EvidenceRef),
     evidenceChain: z.array(EvidenceChainLink),

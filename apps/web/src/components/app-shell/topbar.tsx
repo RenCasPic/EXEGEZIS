@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, Menu, Search, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, useTransition } from "react";
@@ -8,6 +9,7 @@ import { setScope } from "@/app/actions";
 import { cn } from "@/lib/cn";
 import { CommandPalette, type PaletteItem } from "./command-palette";
 import { SidebarBrand, SidebarNav, type SidebarCounts } from "./sidebar";
+import { LanguageSwitcher } from "./language-switcher";
 import { ThemeSwitcher } from "./theme-switcher";
 
 export interface RunningJob {
@@ -47,6 +49,7 @@ function ScopeSelect({ label, value, options, onChange, disabled }: { label: str
 }
 
 export function Topbar({ projects, environments, scope, palette, running, counts, user }: TopbarProps) {
+  const t = useTranslations("shell.topbar");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -72,23 +75,23 @@ export function Topbar({ projects, environments, scope, palette, running, counts
   return (
     <>
       <header className="sticky top-0 z-30 flex h-13 items-center gap-2 border-b border-line bg-bg/85 px-4 backdrop-blur md:gap-3 lg:px-6">
-        <button type="button" className="rounded-md p-1.5 text-muted hover:bg-hover hover:text-fg lg:hidden" onClick={() => setDrawer(true)} aria-label="Open navigation">
+        <button type="button" className="rounded-md p-1.5 text-muted hover:bg-hover hover:text-fg lg:hidden" onClick={() => setDrawer(true)} aria-label={t("openNavigation")}>
           <Menu className="size-4" />
         </button>
         <div className={cn("flex min-w-0 items-center gap-2", pending && "opacity-60")}>
           <ScopeSelect
-            label="Project"
+            label={t("project")}
             value={scope.project ?? ""}
             disabled={pending}
-            options={[{ id: "", label: "All projects" }, ...projects]}
+            options={[{ id: "", label: t("allProjects") }, ...projects]}
             onChange={(v) => update(v === "" ? null : v, scope.environment)}
           />
           <div className="hidden md:block">
             <ScopeSelect
-              label="Environment"
+              label={t("environment")}
               value={scope.environment ?? ""}
               disabled={pending}
-              options={[{ id: "", label: "All" }, ...environments.map((e) => ({ id: e, label: e }))]}
+              options={[{ id: "", label: t("allEnvironments") }, ...environments.map((e) => ({ id: e, label: e }))]}
               onChange={(v) => update(scope.project, v === "" ? null : v)}
             />
           </div>
@@ -100,29 +103,32 @@ export function Topbar({ projects, environments, scope, palette, running, counts
           className="flex h-8 items-center gap-2 rounded-md border border-line bg-panel px-2.5 text-[13px] text-faint hover:text-muted sm:w-56"
         >
           <Search className="size-3.5" />
-          <span className="hidden flex-1 text-left sm:inline">Search</span>
+          <span className="hidden flex-1 text-left sm:inline">{t("search")}</span>
           <kbd className="hidden rounded border border-line-strong px-1 font-mono text-[10px] sm:inline">⌘ K</kbd>
         </button>
+        <LanguageSwitcher />
         <ThemeSwitcher />
         <div className="relative" ref={activityRef}>
           <button
             type="button"
             onClick={() => setActivity((v) => !v)}
             className="relative grid size-8 place-items-center rounded-md text-muted hover:bg-hover hover:text-fg"
-            aria-label={`Activity: ${running.length} running`}
+            aria-label={t("activity", { count: running.length })}
           >
             <Bell className="size-4" />
             {running.length > 0 && <span className="animate-pulse-dot absolute top-1.5 right-1.5 size-1.5 rounded-full bg-q" />}
           </button>
           {activity && (
             <div className="absolute right-0 mt-2 w-80 rounded-lg border border-line-strong bg-panel p-1.5 shadow-2xl">
-              <div className="px-2.5 py-1.5 text-[11px] font-medium text-faint">Running and queued</div>
+              <div className="px-2.5 py-1.5 text-[11px] font-medium text-faint">{t("runningAndQueued")}</div>
               {running.length === 0 ? (
-                <div className="px-2.5 pb-2.5 text-[13px] text-muted">Nothing is running. Notifications beyond local runs are not implemented.</div>
+                <div className="px-2.5 pb-2.5 text-[13px] text-muted">{t("nothingRunning")}</div>
               ) : (
                 running.map((job) => (
                   <Link key={job.id} href={`/jobs/${job.id}`} onClick={() => setActivity(false)} className="block rounded-md px-2.5 py-2 hover:bg-hover">
-                    <div className="truncate text-[13px] text-fg">{job.symptom}</div>
+                    <div className="truncate text-[13px] text-fg" translate="no">
+                      {job.symptom}
+                    </div>
                     <div className="font-mono text-[11px] text-muted">{job.id}</div>
                   </Link>
                 ))
@@ -130,7 +136,7 @@ export function Topbar({ projects, environments, scope, palette, running, counts
             </div>
           )}
         </div>
-        <span title={`${user} (local, no authentication)`} className="grid size-8 place-items-center rounded-full border border-line-strong bg-panel-2 font-mono text-[11px] uppercase text-muted">
+        <span title={t("user", { user })} className="grid size-8 place-items-center rounded-full border border-line-strong bg-panel-2 font-mono text-[11px] uppercase text-muted">
           {user.slice(0, 2)}
         </span>
       </header>
@@ -143,7 +149,7 @@ export function Topbar({ projects, environments, scope, palette, running, counts
           <aside className="absolute inset-y-0 left-0 flex w-64 flex-col gap-5 overflow-y-auto border-r border-line bg-bg p-3">
             <div className="flex items-center justify-between">
               <SidebarBrand />
-              <button type="button" onClick={() => setDrawer(false)} className="rounded-md p-1.5 text-muted hover:bg-hover" aria-label="Close navigation">
+              <button type="button" onClick={() => setDrawer(false)} className="rounded-md p-1.5 text-muted hover:bg-hover" aria-label={t("closeNavigation")}>
                 <X className="size-4" />
               </button>
             </div>
