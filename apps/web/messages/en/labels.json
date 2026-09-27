@@ -86,7 +86,8 @@
     "VALID": "Valid",
     "WEAKLY_ANCHORED": "Weakly anchored",
     "WARNING": "Warning",
-    "ANCHORING": "Anchoring"
+    "ANCHORING": "Anchoring",
+    "PLAN_ONLY": "Plan only"
   },
   "severity": {
     "critical": "Critical",

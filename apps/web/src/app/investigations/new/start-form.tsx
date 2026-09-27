@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, Loader2, Play } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { startInvestigation, type StartState } from "@/app/actions";
 import { EngineProblem } from "@/components/ui/copy-command";
@@ -18,6 +19,7 @@ export function StartForm({
   credentials: boolean;
   defaultBaseUrl: string;
 }) {
+  const t = useTranslations("investigations.new");
   const [state, action, pending] = useActionState<StartState, FormData>(startInvestigation, { error: null });
   const [baseUrl, setBaseUrl] = useState(state.fields?.baseUrl ?? defaultBaseUrl);
   const f = state.fields;
@@ -26,7 +28,7 @@ export function StartForm({
     <form action={action} className="flex flex-col gap-5">
       <div>
         <label htmlFor="symptom" className={labelClass}>
-          Symptom
+          {t("symptom")}
         </label>
         <textarea
           id="symptom"
@@ -35,23 +37,23 @@ export function StartForm({
           minLength={12}
           rows={5}
           defaultValue={f?.symptom ?? ""}
-          placeholder="Describe what is going wrong, as a user would: what you did, and what happened."
+          placeholder={t("symptomPlaceholder")}
           className={field}
         />
-        <p className="mt-1.5 text-xs text-faint">This text is redacted for secrets and sent to the planner. It is the only thing the model sees besides the page structure.</p>
+        <p className="mt-1.5 text-xs text-faint">{t("symptomHelp")}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
           <label htmlFor="baseUrl" className={labelClass}>
-            Target URL
+            {t("targetUrl")}
           </label>
           <input id="baseUrl" name="baseUrl" type="url" required value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} className={`${field} font-mono`} />
-          <p className="mt-1.5 text-xs text-faint">The application must already be running there. It is checked before the planner is called.</p>
+          <p className="mt-1.5 text-xs text-faint">{t("targetHelp")}</p>
         </div>
         <div>
           <label htmlFor="project" className={labelClass}>
-            Project
+            {t("project")}
           </label>
           <select id="project" name="project" defaultValue={f?.project ?? projects[0] ?? ""} className={field}>
             {projects.map((p) => (
@@ -59,53 +61,52 @@ export function StartForm({
                 {p}
               </option>
             ))}
-            <option value="">Unassigned</option>
+            <option value="">{t("unassigned")}</option>
           </select>
         </div>
         <div>
           <label htmlFor="runs" className={labelClass}>
-            Attempts
+            {t("attempts")}
           </label>
           <select id="runs" name="runs" defaultValue={f?.runs ?? "5"} className={field}>
             {[3, 5, 10].map((n) => (
               <option key={n} value={n}>
-                {n} runs
+                {t("runs", { count: n })}
               </option>
             ))}
           </select>
-          <p className="mt-1.5 text-xs text-faint">A bug is VERIFIED only if every attempt fails identically.</p>
+          <p className="mt-1.5 text-xs text-faint">{t("attemptsHelp")}</p>
         </div>
       </div>
 
       <details className="rounded-md border border-line">
-        <summary className="cursor-pointer px-3 py-2 text-[13px] text-muted hover:text-fg">Optional context</summary>
+        <summary className="cursor-pointer px-3 py-2 text-[13px] text-muted hover:text-fg">{t("optional")}</summary>
         <div className="grid gap-4 border-t border-line p-3 md:grid-cols-2">
           <div>
             <label htmlFor="expected" className={labelClass}>
-              Expected behavior
+              {t("expected")}
             </label>
             <textarea id="expected" name="expected" rows={2} defaultValue={f?.expected ?? ""} className={field} />
           </div>
           <div>
             <label htmlFor="actual" className={labelClass}>
-              Actual behavior
+              {t("actual")}
             </label>
             <textarea id="actual" name="actual" rows={2} defaultValue={f?.actual ?? ""} className={field} />
           </div>
-          <p className="text-xs text-faint md:col-span-2">Appended to the symptom as “Expected: …” / “Actual: …”. Linking a related issue is not implemented.</p>
+          <p className="text-xs text-faint md:col-span-2">{t("optionalHelp")}</p>
         </div>
       </details>
 
       <div className="rounded-md border border-line bg-panel-2 p-3 text-xs text-muted">
-        <div className="mb-1 font-medium text-fg">What happens</div>
-        Runs <code className="font-mono">exegezis ai-verify</code> locally: one planner call (Anthropic) writes a TestPlan, the deterministic engine validates it against the
-        live page, executes it, reproduces it and writes a BugReport. The model never decides the verdict. Each run costs one planner call.
+        <div className="mb-1 font-medium text-fg">{t("whatHappens")}</div>
+        {t("whatHappensBody", { command: "exegezis ai-verify" })}
       </div>
 
       {!credentials && (
         <div className="flex items-start gap-2 rounded-md border border-warn/40 bg-warn-bg p-3 text-[13px] text-warn">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-          No planner credentials found. Add EXEGEZIS_ANTHROPIC_API_KEY to the repository’s .env file to start investigations from here.
+          {t("noCredentials")}
         </div>
       )}
       {state.error !== null &&
@@ -121,7 +122,7 @@ export function StartForm({
       <div className="flex justify-end">
         <button type="submit" disabled={pending || !credentials} className={buttonClass("primary")}>
           {pending ? <Loader2 className="animate-spin" /> : <Play />}
-          Start Investigation
+          {t("start")}
         </button>
       </div>
     </form>

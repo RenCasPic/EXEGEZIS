@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { z } from "zod";
 import { BROWSER_CHANNEL_IDS, type BrowserChannelId } from "./inspect-checks";
 import { cliEntry } from "./jobs";
+import { ui, type UiMessage } from "./ui-message";
 import { repoRoot } from "./workspace";
 
 /**
@@ -18,7 +19,7 @@ const DoctorJson = z.looseObject({
 });
 export type DoctorJson = z.infer<typeof DoctorJson>;
 
-export type BrowserCheck = { ok: true; label: string; version: string | null } | { ok: false; message: string; remedy: string[] };
+export type BrowserCheck = { ok: true; label: string; version: string | null } | { ok: false; message: UiMessage; remedy: string[] };
 
 /** The fixes, as commands that work unchanged in Windows CMD, PowerShell, macOS and Linux. */
 export const BROWSER_REMEDY = [
@@ -29,8 +30,8 @@ export const BROWSER_REMEDY = [
 let cached: { at: number; report: DoctorJson } | null = null;
 const TTL_MS = 5 * 60_000;
 
-async function runDoctor(): Promise<DoctorJson | string> {
-  if (!existsSync(cliEntry())) return "The CLI is not built: run `pnpm build` first.";
+async function runDoctor(): Promise<{ report: DoctorJson } | { error: UiMessage }> {
+  if (!existsSync(cliEntry())) return { error: ui("common.errors.cliNotBuilt") };
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [cliEntry(), "doctor", "--json"], { cwd: repoRoot(), windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
     let out = "";
@@ -38,14 +39,14 @@ async function runDoctor(): Promise<DoctorJson | string> {
     const timer = setTimeout(() => child.kill(), 120_000);
     child.on("error", (e) => {
       clearTimeout(timer);
-      resolve(`exegezis doctor could not run: ${e.message}`);
+      resolve({ error: ui("common.errors.doctorFailed", { error: e.message }) });
     });
     child.on("exit", () => {
       clearTimeout(timer);
       try {
-        resolve(DoctorJson.parse(JSON.parse(out)));
+        resolve({ report: DoctorJson.parse(JSON.parse(out)) });
       } catch {
-        resolve("exegezis doctor did not answer with a readable report.");
+        resolve({ error: ui("common.errors.doctorUnreadable") });
       }
     });
   });
@@ -58,7 +59,10 @@ export function evaluate(report: DoctorJson, channel: BrowserChannelId): Browser
   const tried = channel === "auto" ? report.browsers : report.browsers.filter((b) => b.channel === channel);
   return {
     ok: false,
-    message: `No se puede arrancar ${channel === "auto" ? "ningún navegador" : `el navegador «${channel}»`} en este equipo (${tried.map((b) => `${b.label}: ${b.error ?? "no disponible"}`).join("; ")}). El problema está en este equipo, no en el sitio.`,
+    message:
+      channel === "auto"
+        ? ui("common.errors.noBrowser", { details: tried.map((b) => `${b.label}: ${b.error ?? "—"}`).join("; ") })
+        : ui("common.errors.noBrowserChannel", { channel, details: tried.map((b) => `${b.label}: ${b.error ?? "—"}`).join("; ") }),
     remedy: BROWSER_REMEDY,
   };
 }
@@ -69,8 +73,9 @@ export async function checkBrowser(channel: BrowserChannelId = "auto"): Promise<
     const hit = evaluate(cached.report, channel);
     if (hit.ok) return hit;
   }
-  const report = await runDoctor();
-  if (typeof report === "string") return { ok: false, message: report, remedy: BROWSER_REMEDY };
+  const answer = await runDoctor();
+  if ("error" in answer) return { ok: false, message: answer.error, remedy: BROWSER_REMEDY };
+  const report = answer.report;
   const result = evaluate(report, channel);
   cached = result.ok ? { at: Date.now(), report } : null;
   return result;

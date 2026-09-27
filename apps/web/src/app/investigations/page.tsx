@@ -3,23 +3,22 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { FilterForm } from "@/components/ui/filter-form";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { InvestigationsTable } from "@/components/tables/investigations-table";
 import { ButtonLink, EmptyState, PageHeader, Panel } from "@/components/ui/primitives";
 import { StatusPill } from "@/components/ui/status";
 import { cn } from "@/lib/cn";
 import { getSummaries } from "@/lib/evidence/investigations";
 import { matchesQuery, matchesStatus, parseStatusFilter, STATUS_FILTERS } from "@/lib/filters";
-import { relativeTime } from "@/lib/format";
+import { getFormat } from "@/i18n/server";
 import { listJobs } from "@/lib/jobs";
 import { getScope, inScope } from "@/lib/scope";
 
-export const metadata: Metadata = { title: "Investigations" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("investigations.list"))("title") };
+}
 
-const SOURCES = [
-  { id: "all", label: "All sources" },
-  { id: "adhoc", label: "Ad-hoc runs" },
-  { id: "benchmark", label: "Benchmark cases" },
-] as const;
+const SOURCES = [{ id: "all" }, { id: "adhoc" }, { id: "benchmark" }] as const;
 
 export default async function InvestigationsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
@@ -28,7 +27,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
   const q = one(params.q) ?? "";
   const source = SOURCES.some((s) => s.id === one(params.source)) ? (one(params.source) as (typeof SOURCES)[number]["id"]) : "all";
 
-  const [all, scope, jobs] = await Promise.all([getSummaries(), getScope(), listJobs()]);
+  const [all, scope, jobs, t, common, f] = await Promise.all([getSummaries(), getScope(), listJobs(), getTranslations("investigations.list"), getTranslations("common"), getFormat()]);
   const scoped = all.filter((s) => inScope(s, scope));
   const bySource = scoped.filter((s) => source === "all" || (source === "benchmark") === (s.ref.kind === "benchmark-case"));
   const rows = bySource.filter((s) => matchesStatus(s, status) && matchesQuery(s, q));
@@ -45,11 +44,11 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title="Investigations"
-        description="Every verification EXEGEZIS has recorded: ad-hoc runs and benchmark cases, newest first."
+        title={t("title")}
+        description={t("description")}
         actions={
           <ButtonLink href="/investigations/new" variant="primary">
-            <Plus /> New Investigation
+            <Plus /> {t("new")}
           </ButtonLink>
         }
       />
@@ -67,7 +66,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
                   f.id === status ? "bg-hover text-fg" : "text-muted hover:bg-hover/60 hover:text-fg",
                 )}
               >
-                {f.label}
+                {common(`statusFilter.${f.id}`)}
                 <span className="font-mono text-[11px] text-faint">{count}</span>
               </Link>
             );
@@ -75,23 +74,25 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
         </div>
         <Suspense>
           <FilterForm
-            textLabel="Search"
-            placeholder="Title, symptom, id…"
+            textLabel={t("search")}
+            placeholder={t("searchPlaceholder")}
             hidden={status === "all" ? {} : { status }}
-            selects={[{ name: "source", label: "Source", options: SOURCES.map((x) => ({ value: x.id === "all" ? "" : x.id, label: x.label })) }]}
+            selects={[{ name: "source", label: t("source"), options: SOURCES.map((x) => ({ value: x.id === "all" ? "" : x.id, label: t(`sources.${x.id}`) })) }]}
           />
         </Suspense>
       </div>
 
       {pendingJobs.length > 0 && (
-        <Panel title="Starting" subtitle="Started from the UI; waiting for the first artifacts" bodyClassName="p-0">
+        <Panel title={t("starting")} subtitle={t("startingSubtitle")} bodyClassName="p-0">
           <ul>
             {pendingJobs.map(({ job }) => (
               <li key={job.id} className="border-b border-line last:border-b-0">
                 <Link href={`/jobs/${job.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-hover/50">
                   <StatusPill status="RUNNING" tone="running" size="xs" />
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-fg">{job.kind === "ai-verify" ? job.symptom : job.url}</span>
-                  <span className="text-xs text-faint">{relativeTime(job.startedAt)}</span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-fg" translate="no">
+                    {job.kind === "ai-verify" ? job.symptom : job.url}
+                  </span>
+                  <span className="text-xs text-faint">{f.relative(job.startedAt)}</span>
                 </Link>
               </li>
             ))}
@@ -99,15 +100,13 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
         </Panel>
       )}
 
-      <Panel title={`${rows.length} investigation${rows.length === 1 ? "" : "s"}`} bodyClassName="p-0">
+      <Panel title={t("count", { count: rows.length })} bodyClassName="p-0">
         <InvestigationsTable
           rows={rows}
           columns={["project", "status", "reproduction", "rootCause", "fix", "created"]}
           empty={
-            <EmptyState icon={<SearchX />} title="Nothing matches these filters">
-              {status === "active"
-                ? "No investigation is running. Only runs started from this UI are tracked while they run."
-                : "Try another status, source or search term."}
+            <EmptyState icon={<SearchX />} title={t("nothing")}>
+              {status === "active" ? t("noneRunning") : t("tryAnother")}
             </EmptyState>
           }
         />

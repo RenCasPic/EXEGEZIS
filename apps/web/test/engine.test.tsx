@@ -1,4 +1,7 @@
+import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
+import { CATALOGS } from "../src/i18n/messages";
+import { translateUi } from "../src/lib/ui-message";
 import { describe, expect, it } from "vitest";
 import { EngineProblem } from "../src/components/ui/copy-command";
 import { BROWSER_REMEDY, checkBrowser, evaluate, type DoctorJson } from "../src/lib/browser-check";
@@ -26,7 +29,9 @@ describe("browser preflight before a job is created", () => {
     const result = evaluate(doctor([]), "auto");
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.message).toMatch(/El problema está en este equipo, no en el sitio/);
+    expect(result.message.key).toBe("common.errors.noBrowser");
+    const es = createTranslator({ locale: "es", messages: CATALOGS.es as never });
+    expect(translateUi(es as never, result.message)).toMatch(/El problema está en este equipo, no en el sitio/);
     expect(result.remedy).toEqual(BROWSER_REMEDY);
   });
 

@@ -3,11 +3,12 @@ import { isAbsolute, resolve } from "node:path";
 import { z } from "zod";
 import type { StartInspectionInput } from "./jobs";
 import { BROWSER_CHANNEL_IDS, INSPECT_CHECKS, INSPECT_DEFAULTS } from "./inspect-checks";
+import { ui, type UiMessage } from "./ui-message";
 import { repoRoot } from "./workspace";
 
 export { INSPECT_CHECKS, INSPECT_DEFAULTS };
 
-const optionalInt = (min: number, max: number, name: string) =>
+const optionalInt = (min: number, max: number, key: string) =>
   z
     .string()
     .trim()
@@ -15,7 +16,7 @@ const optionalInt = (min: number, max: number, name: string) =>
       if (v === "") return null;
       const n = Number(v);
       if (!Number.isInteger(n) || n < min || n > max) {
-        ctx.addIssue({ code: "custom", message: `${name}: un entero entre ${min} y ${max}.` });
+        ctx.addIssue({ code: "custom", message: key, params: { min, max } });
         return z.NEVER;
       }
       return n;
@@ -31,18 +32,18 @@ export const InspectForm = z.strictObject({
       try {
         u = new URL(v);
       } catch {
-        ctx.addIssue({ code: "custom", message: "Escribe una URL completa, con http:// o https://." });
+        ctx.addIssue({ code: "custom", message: "common.errors.urlInvalid" });
         return z.NEVER;
       }
       if (u.protocol !== "http:" && u.protocol !== "https:") {
-        ctx.addIssue({ code: "custom", message: "Solo se pueden inspeccionar URLs http(s)." });
+        ctx.addIssue({ code: "custom", message: "common.errors.urlProtocol" });
         return z.NEVER;
       }
       return u.toString();
     }),
-  runs: optionalInt(1, 20, "Repeticiones"),
-  maxPages: optionalInt(1, 500, "Páginas"),
-  maxDepth: optionalInt(0, 10, "Profundidad"),
+  runs: optionalInt(1, 20, "common.errors.runsRange"),
+  maxPages: optionalInt(1, 500, "common.errors.pagesRange"),
+  maxDepth: optionalInt(0, 10, "common.errors.depthRange"),
   checks: z.array(z.enum(INSPECT_CHECKS.map((c) => c.id))),
   storageState: z.string().trim(),
   strictReadonly: z.boolean(),
@@ -51,16 +52,22 @@ export const InspectForm = z.strictObject({
   noSession: z.boolean(),
 });
 
-export type InspectFormResult = { ok: true; input: StartInspectionInput } | { ok: false; error: string };
+export type InspectFormResult = { ok: true; input: StartInspectionInput } | { ok: false; error: UiMessage };
 
 export function parseInspectForm(raw: Record<keyof z.input<typeof InspectForm>, unknown>): InspectFormResult {
   const parsed = InspectForm.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues.map((i) => i.message).join(" ") };
+  if (!parsed.success) {
+    // The first problem, as a catalog key: our own issues carry the key; Zod's own (a wrong enum value) is an invalid option.
+    const issue = parsed.error.issues[0];
+    const key = issue?.code === "custom" && issue.message.startsWith("common.errors.") ? issue.message : issue?.path[0] === "checks" ? "common.errors.checksInvalid" : "common.errors.invalidOption";
+    const params = issue?.code === "custom" ? ((issue as { params?: Record<string, number> }).params ?? undefined) : undefined;
+    return { ok: false, error: ui(key, params) };
+  }
   const v = parsed.data;
   let storageState: string | null = null;
   if (v.storageState !== "") {
     storageState = isAbsolute(v.storageState) ? v.storageState : resolve(repoRoot(), v.storageState);
-    if (!existsSync(storageState)) return { ok: false, error: `No existe el archivo storageState: ${v.storageState}` };
+    if (!existsSync(storageState)) return { ok: false, error: ui("common.errors.storageStateMissing", { path: v.storageState }) };
   }
   return {
     ok: true,

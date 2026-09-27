@@ -6,13 +6,16 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { discover } from "../src/lib/evidence/discover";
 import { loadSummaries, type InvestigationSummary } from "../src/lib/evidence/investigations";
 import { isExpectedNegative, matchesStatus } from "../src/lib/filters";
+import { createTranslator } from "next-intl";
+import { CATALOGS } from "../src/i18n/messages";
 import { probeTarget } from "../src/lib/probe";
+import { translateUi } from "../src/lib/ui-message";
 import { shortReason } from "../src/lib/reasons";
 
 describe("short reasons for results that are not VERIFIED", () => {
   it("names the recorded reason, never invents one", () => {
-    expect(shortReason("INCONCLUSIVE", "the failure reproduced, but: the failing assertion (step 4) is an anchor: the premise of the plan about the application does not hold, which is not a bug")).toBe("false premise");
-    expect(shortReason("INCONCLUSIVE", "the failure reproduced, but: weakly anchored: step 2 EXPECTATION_WITHOUT_ANCHOR")).toBe("weak anchor");
+    expect(shortReason("INCONCLUSIVE", "the failure reproduced, but: the failing assertion (step 4) is an anchor: the premise of the plan about the application does not hold, which is not a bug")).toBe("falsePremise");
+    expect(shortReason("INCONCLUSIVE", "the failure reproduced, but: weakly anchored: step 2 EXPECTATION_WITHOUT_ANCHOR")).toBe("weakAnchor");
     expect(shortReason("INCONCLUSIVE", "10 of 10 attempts timed out without a conclusion; a timeout is never counted as a failure")).toBe("timeout");
     expect(shortReason("INCONCLUSIVE", "something new")).toBeNull();
     expect(shortReason("VERIFIED", "every verification criterion is met")).toBeNull();
@@ -83,8 +86,14 @@ describe("the target check before the planner is called", () => {
         probe.close(() => done(typeof a === "object" && a !== null ? a.port : 0));
       });
     });
-    expect(await probeTarget(`http://127.0.0.1:${closed}/`, 2000)).toMatch(/did not respond \(connection refused: nothing is listening at that address\).*the planner was not called/);
+    const refused = await probeTarget(`http://127.0.0.1:${closed}/`, 2000);
+    expect(refused).toEqual({ key: "common.errors.targetDown", values: { url: `http://127.0.0.1:${closed}/`, cause: { key: "common.errors.cause.ECONNREFUSED" } } });
+    // In both languages, with the cause inside.
+    const en = createTranslator({ locale: "en", messages: CATALOGS.en as never });
+    const es = createTranslator({ locale: "es", messages: CATALOGS.es as never });
+    expect(translateUi(en as never, refused!)).toMatch(/did not respond \(connection refused: nothing is listening at that address\).*the planner was not called/);
+    expect(translateUi(es as never, refused!)).toMatch(/no respondió \(conexión rechazada: no hay nada escuchando en esa dirección\).*no se llamó al planner/);
     // localhost resolves to ::1 and 127.0.0.1: the real cause is inside an AggregateError with an empty message.
-    expect(await probeTarget(`http://localhost:${closed}/`, 2000)).toMatch(/\(connection refused/);
+    expect((await probeTarget(`http://localhost:${closed}/`, 2000))?.values?.["cause"]).toEqual({ key: "common.errors.cause.ECONNREFUSED" });
   });
 });

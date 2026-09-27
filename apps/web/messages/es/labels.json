@@ -86,7 +86,8 @@
     "VALID": "Válido",
     "WEAKLY_ANCHORED": "Anclaje débil",
     "WARNING": "Aviso",
-    "ANCHORING": "Anclaje"
+    "ANCHORING": "Anclaje",
+    "PLAN_ONLY": "Solo plan"
   },
   "severity": {
     "critical": "Crítica",

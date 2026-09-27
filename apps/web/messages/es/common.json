@@ -59,5 +59,63 @@
     "fixNotImplemented": "Aún no se generan arreglos. EXEGEZIS no ha propuesto ni aplicado ningún cambio de código como arreglo (las mutaciones experimentales se descartan).",
     "verificationNotImplemented": "Aún no se verifica un arreglo antes y después. Solo se verifican la reproducción del bug y los experimentos de causa raíz.",
     "runsFailed": "{failures}/{attempts} ejecuciones incumplieron la expectativa."
+  },
+  "statusFilter": {
+    "all": "Todas",
+    "active": "En curso",
+    "verified": "Verificadas",
+    "needs-evidence": "Faltan pruebas",
+    "expected": "Esperadas",
+    "not-verified": "No verificadas",
+    "failed": "Fallidas"
+  },
+  "shortReason": {
+    "falsePremise": "premisa falsa",
+    "weakAnchor": "anclaje débil",
+    "timeout": "tiempo agotado",
+    "evaluationErrors": "errores de evaluación",
+    "unstable": "inestable",
+    "missingEvidence": "falta evidencia",
+    "redactionFailed": "falló la redacción",
+    "unsupportedAssertion": "aserción no soportada",
+    "missingTarget": "falta el objetivo",
+    "notExecuted": "sin ejecutar"
+  },
+  "errors": {
+    "urlInvalid": "Escribe una URL completa, con http:// o https://.",
+    "urlProtocol": "Solo se pueden inspeccionar URLs http(s).",
+    "runsRange": "Repeticiones: un entero entre {min} y {max}.",
+    "loadsRange": "Cargas por página: un entero entre {min} y {max}.",
+    "pagesRange": "Páginas: un entero entre {min} y {max}.",
+    "depthRange": "Profundidad: un entero entre {min} y {max}.",
+    "checksInvalid": "Elige las comprobaciones de la lista.",
+    "invalidOption": "Una opción del formulario no es válida.",
+    "storageStateMissing": "No existe el archivo storageState: {path}",
+    "permissionInspect": "Confirma que tienes permiso para inspeccionar este sitio.",
+    "permissionSearch": "Confirma que tienes permiso para revisar este sitio.",
+    "noBrowser": "No se puede arrancar ningún navegador en este equipo ({details}). El problema está en este equipo, no en el sitio.",
+    "noBrowserChannel": "No se puede arrancar el navegador «{channel}» en este equipo ({details}). El problema está en este equipo, no en el sitio.",
+    "notAvailable": "no disponible",
+    "cliNotBuilt": "El CLI no está compilado: ejecuta primero pnpm build.",
+    "doctorFailed": "exegezis doctor no se pudo ejecutar: {error}",
+    "doctorUnreadable": "exegezis doctor no respondió con un informe legible.",
+    "symptomShort": "Describe el síntoma al menos con una frase.",
+    "symptomLong": "El síntoma es demasiado largo (3000 caracteres como máximo).",
+    "targetUrl": "Usa una URL de destino http(s).",
+    "attemptsRange": "Intentos: un entero entre 2 y 20.",
+    "noCredentials": "No hay credenciales del planner: añade EXEGEZIS_ANTHROPIC_API_KEY al archivo .env del repositorio.",
+    "targetDown": "El destino {url} no respondió ({cause}). Arranca primero la aplicación o revisa la URL de destino; no se llamó al planner.",
+    "cause": {
+      "ECONNREFUSED": "conexión rechazada: no hay nada escuchando en esa dirección",
+      "ENOTFOUND": "el nombre no se resuelve",
+      "EAI_AGAIN": "el nombre no se pudo resolver ahora (DNS)",
+      "ETIMEDOUT": "se agotó el tiempo de la conexión",
+      "ECONNRESET": "se reinició la conexión",
+      "CERT_HAS_EXPIRED": "su certificado TLS ha caducado",
+      "timeout": "sin respuesta dentro del tiempo límite",
+      "unknown": "error de red desconocido",
+      "other": "{detail}"
+    },
+    "unexpected": "Error inesperado: {detail}"
   }
 }

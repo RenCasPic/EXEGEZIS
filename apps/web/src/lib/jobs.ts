@@ -7,6 +7,14 @@ import { z } from "zod";
 import { readArtifact, readText } from "./evidence/read";
 import { displayPath, repoRoot, runsDir } from "./workspace";
 
+/** The CLI has no build to run (pnpm build). Shown translated by the action that caught it. */
+export class CliNotBuiltError extends Error {
+  override readonly name = "CliNotBuiltError";
+  constructor() {
+    super("The CLI is not built: run `pnpm build` first.");
+  }
+}
+
 /**
  * Work started from the UI. The UI never verifies or inspects anything itself:
  * it starts the real CLI (`exegezis ai-verify` or `exegezis inspect`) as a
@@ -311,7 +319,7 @@ export interface StartJobInput {
 }
 
 export async function startJob(input: StartJobInput): Promise<JobRecord> {
-  if (!existsSync(cliEntry())) throw new Error("The CLI is not built: run `pnpm build` first.");
+  if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const id = ulid();
   await mkdir(jobDir(id), { recursive: true });
   const job: JobRecord = { ...newJobBase(id), status: "running", kind: "ai-verify", planner: "anthropic", ...input };
@@ -352,7 +360,7 @@ async function runNextInspection(): Promise<void> {
 }
 
 export async function startInspection(input: StartInspectionInput): Promise<JobRecord> {
-  if (!existsSync(cliEntry())) throw new Error("The CLI is not built: run `pnpm build` first.");
+  if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const id = ulid();
   await mkdir(jobDir(id), { recursive: true });
   const job: InspectJob = { ...newJobBase(id), status: "queued", kind: "inspect", ...input };
@@ -365,7 +373,7 @@ export async function startInspection(input: StartInspectionInput): Promise<JobR
 export type StartSearchInput = Omit<SearchJob, keyof typeof JobBase | "kind">;
 
 export async function startSearch(input: StartSearchInput): Promise<JobRecord> {
-  if (!existsSync(cliEntry())) throw new Error("The CLI is not built: run `pnpm build` first.");
+  if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const id = ulid();
   await mkdir(jobDir(id), { recursive: true });
   const job: SearchJob = SearchJob.parse({ ...newJobBase(id), status: "queued", kind: "search", ...input });
@@ -397,7 +405,7 @@ export interface StartAccessInput {
 
 /** Opens the visible window (one at a time is enough: it is a person's task). */
 export async function startAccessLogin(input: StartAccessInput): Promise<JobRecord> {
-  if (!existsSync(cliEntry())) throw new Error("The CLI is not built: run `pnpm build` first.");
+  if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const id = ulid();
   await mkdir(jobDir(id), { recursive: true });
   const job: AccessJob = { ...newJobBase(id), status: "running", kind: "access", ...input, relaunchedJobId: null };

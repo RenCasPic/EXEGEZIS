@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowLeft, FileJson } from "lucide-react";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClaimsPanel } from "@/components/investigation/claims-panel";
@@ -14,14 +15,15 @@ import { Meta, Mono, Panel } from "@/components/ui/primitives";
 import { OutcomePill, SourceTag, StatusPill } from "@/components/ui/status";
 import { loadAttempt } from "@/lib/evidence/attempt";
 import { getRootCauses, loadInvestigation } from "@/lib/evidence/investigations";
-import { absoluteTime, relativeTime } from "@/lib/format";
+import { getFormat } from "@/i18n/server";
 import { environmentOf } from "@/lib/projects";
 import { artifactUrl } from "@/lib/urls";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const detail = await loadInvestigation(id);
-  return { title: detail?.summary.title ?? "Investigation" };
+  const t = await getTranslations("investigations.detail");
+  return { title: detail?.summary.title ?? t("metaTitle") };
 }
 
 export default async function InvestigationPage({
@@ -36,6 +38,7 @@ export default async function InvestigationPage({
   const detail = await loadInvestigation(id);
   if (detail === null) notFound();
   const { summary, report, attempts } = detail;
+  const [t, stages, f] = await Promise.all([getTranslations("investigations.detail"), getTranslations("common.stages"), getFormat()]);
 
   const wanted = typeof query.attempt === "string" ? query.attempt : null;
   const selected =
@@ -48,43 +51,43 @@ export default async function InvestigationPage({
   const rootCauseReport = rootCause?.report.status === "ok" ? rootCause.report.value : null;
   const tab: EvidenceTab = EVIDENCE_TABS.includes(query.tab as EvidenceTab) ? (query.tab as EvidenceTab) : "timeline";
 
-  const title = summary.outcome === "VERIFIED" ? "Verified Bug" : null;
+  const title = summary.outcome === "VERIFIED" ? t("verifiedBug") : null;
 
   return (
     <div className="flex flex-col gap-5">
       <AutoRefresh active={summary.job?.status === "running" && summary.outcome === null} />
       <div className="flex flex-col gap-3 border-b border-line pb-5">
         <Link href="/investigations" className="flex w-fit items-center gap-1 text-xs text-muted hover:text-fg">
-          <ArrowLeft className="size-3" /> Investigations
+          <ArrowLeft className="size-3" /> {t("back")}
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <OutcomePill outcome={summary.outcome} />
           {title !== null && <span className="text-[13px] font-medium text-ok">{title}</span>}
-          {summary.outcomeSource === "benchmark" && <span className="text-xs text-faint">(benchmark record: no plan was executed)</span>}
+          {summary.outcomeSource === "benchmark" && <span className="text-xs text-faint">{t("benchmarkRecord")}</span>}
           <SourceTag kind={summary.ref.archived ? "archived" : "real"} />
         </div>
-        <h1 className="text-[22px] font-semibold tracking-tight text-fg">{summary.title}</h1>
+        <h1 className="text-[22px] font-semibold tracking-tight text-fg" translate="no">
+          {summary.title}
+        </h1>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px] text-muted">
           <span className="text-fg">{summary.ref.caseId ?? summary.planId ?? summary.ref.id}</span>
           <span className="text-faint">·</span>
-          <span>{summary.project ?? "Unassigned"}</span>
+          <span>{summary.project ?? t("unassigned")}</span>
           <span className="text-faint">·</span>
-          <span>{environmentOf(summary.target) ?? "unknown environment"}</span>
+          <span>{environmentOf(summary.target) ?? t("unknownEnvironment")}</span>
           <span className="text-faint">·</span>
-          <span title={absoluteTime(summary.createdAt)}>Created {relativeTime(summary.createdAt)}</span>
+          <span title={f.absolute(summary.createdAt)}>{t("created", { when: f.relative(summary.createdAt) })}</span>
           {summary.provenance?.source === "model" && (
             <>
               <span className="text-faint">·</span>
-              <span>
-                plan by {summary.provenance.model ?? summary.provenance.generator} ({summary.provenance.promptVersion})
-              </span>
+              <span>{t("planBy", { model: summary.provenance.model ?? summary.provenance.generator ?? "", prompt: summary.provenance.promptVersion ?? "" })}</span>
             </>
           )}
           {summary.ref.benchmarkId !== null && (
             <>
               <span className="text-faint">·</span>
               <Link href={`/benchmarks/${summary.ref.benchmarkId}`} className="text-accent-text hover:underline">
-                benchmark run
+                {t("benchmarkRun")}
               </Link>
             </>
           )}
@@ -92,7 +95,7 @@ export default async function InvestigationPage({
             <>
               <span className="text-faint">·</span>
               <Link href={`/jobs/${summary.job.id}`} className="text-accent-text hover:underline">
-                CLI output
+                {t("cliOutput")}
               </Link>
             </>
           )}
@@ -103,7 +106,7 @@ export default async function InvestigationPage({
         <div className="flex items-start gap-2 rounded-md border border-bad/40 bg-bad-bg p-3 text-[13px] text-bad">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           <div>
-            Some artifacts failed schema validation and are not shown:
+            {t("problems")}
             <ul className="mt-1 list-disc pl-5 font-mono text-[12px]">
               {detail.problems.map((p) => (
                 <li key={p}>{p}</li>
@@ -137,27 +140,27 @@ export default async function InvestigationPage({
         </div>
 
         <aside className="flex flex-col gap-5 xl:sticky xl:top-18 xl:self-start">
-          <Panel title="Report" icon={<FileJson />}>
+          <Panel title={t("report")} icon={<FileJson />}>
             {report === null ? (
-              <p className="text-[13px] text-muted">No BugReport: the plan was not executed.</p>
+              <p className="text-[13px] text-muted">{t("noReport")}</p>
             ) : (
               <Meta
                 className="text-[12px]"
                 items={[
-                  { label: "Bug id", value: <Mono>{report.bugId}</Mono> },
-                  { label: "Outcome", value: <OutcomePill outcome={report.outcome} size="xs" /> },
-                  { label: "Failing step", value: report.failingStep === null ? "—" : `${report.failingStep.index}${report.failingStep.id === undefined ? "" : ` (${report.failingStep.id})`}` },
-                  { label: "Min. attempts", value: report.policy.minAttempts },
-                  { label: "Strong anchors", value: report.policy.requireStrongAnchoring ? "required" : "not required" },
-                  { label: "Plan hash", value: <Mono className="break-all text-[11px]">{report.plan.hash.replace("sha256:", "").slice(0, 16)}…</Mono> },
-                  { label: "Browser", value: report.environment?.browser === undefined ? "—" : `${report.environment.browser.name} ${report.environment.browser.version}` },
-                  { label: "Engine", value: `exegezis ${report.exegezisVersion}` },
-                  { label: "Generated", value: absoluteTime(report.generatedAt) },
+                  { label: t("bugId"), value: <Mono>{report.bugId}</Mono> },
+                  { label: t("outcome"), value: <OutcomePill outcome={report.outcome} size="xs" /> },
+                  { label: t("failingStep"), value: report.failingStep === null ? "—" : `${report.failingStep.index}${report.failingStep.id === undefined ? "" : ` (${report.failingStep.id})`}` },
+                  { label: t("minAttempts"), value: report.policy.minAttempts },
+                  { label: t("strongAnchors"), value: report.policy.requireStrongAnchoring ? t("required") : t("notRequired") },
+                  { label: t("planHash"), value: <Mono className="break-all text-[11px]">{report.plan.hash.replace("sha256:", "").slice(0, 16)}…</Mono> },
+                  { label: t("browser"), value: report.environment?.browser === undefined ? "—" : `${report.environment.browser.name} ${report.environment.browser.version}` },
+                  { label: t("engine"), value: `exegezis ${report.exegezisVersion}` },
+                  { label: t("generated"), value: f.absolute(report.generatedAt) },
                 ]}
               />
             )}
           </Panel>
-          <Panel title="Files">
+          <Panel title={t("files")}>
             <ul className="flex flex-col gap-1 font-mono text-[12px]">
               {detail.files.map((f) => (
                 <li key={f}>
@@ -176,11 +179,11 @@ export default async function InvestigationPage({
             </ul>
             <p className="mt-3 break-all font-mono text-[11px] text-faint">{summary.ref.relDir}</p>
           </Panel>
-          <Panel title="Stages">
+          <Panel title={t("stages")}>
             <ul className="flex flex-col gap-2">
               {summary.stages.map((s) => (
                 <li key={s.id} className="flex items-center justify-between gap-2 text-[12px]">
-                  <span className="text-muted">{s.label}</span>
+                  <span className="text-muted">{stages(`${s.id}.label`)}</span>
                   <StatusPill status={s.status} tone={s.tone} size="xs" />
                 </li>
               ))}

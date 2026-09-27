@@ -59,5 +59,63 @@
     "fixNotImplemented": "No fix generation yet. EXEGEZIS has not proposed or applied any code change as a fix (experimental mutations are discarded).",
     "verificationNotImplemented": "No before/after fix verification yet. Only the bug reproduction and root-cause experiments are verified.",
     "runsFailed": "{failures}/{attempts} runs failed the expectation."
+  },
+  "statusFilter": {
+    "all": "All",
+    "active": "Active",
+    "verified": "Verified",
+    "needs-evidence": "Needs evidence",
+    "expected": "Expected",
+    "not-verified": "Not verified",
+    "failed": "Failed"
+  },
+  "shortReason": {
+    "falsePremise": "false premise",
+    "weakAnchor": "weak anchor",
+    "timeout": "timeout",
+    "evaluationErrors": "evaluation errors",
+    "unstable": "unstable",
+    "missingEvidence": "missing evidence",
+    "redactionFailed": "redaction failed",
+    "unsupportedAssertion": "unsupported assertion",
+    "missingTarget": "missing target",
+    "notExecuted": "not executed"
+  },
+  "errors": {
+    "urlInvalid": "Write a full URL, with http:// or https://.",
+    "urlProtocol": "Only http(s) URLs can be inspected.",
+    "runsRange": "Repetitions: an integer between {min} and {max}.",
+    "loadsRange": "Loads per page: an integer between {min} and {max}.",
+    "pagesRange": "Pages: an integer between {min} and {max}.",
+    "depthRange": "Depth: an integer between {min} and {max}.",
+    "checksInvalid": "Choose checks from the list.",
+    "invalidOption": "An option of the form is not valid.",
+    "storageStateMissing": "The storageState file does not exist: {path}",
+    "permissionInspect": "Confirm that you have permission to inspect this site.",
+    "permissionSearch": "Confirm that you have permission to review this site.",
+    "noBrowser": "No browser can start on this machine ({details}). The problem is on this machine, not on the site.",
+    "noBrowserChannel": "The browser «{channel}» cannot start on this machine ({details}). The problem is on this machine, not on the site.",
+    "notAvailable": "not available",
+    "cliNotBuilt": "The CLI is not built: run pnpm build first.",
+    "doctorFailed": "exegezis doctor could not run: {error}",
+    "doctorUnreadable": "exegezis doctor did not answer with a readable report.",
+    "symptomShort": "Describe the symptom in at least a sentence.",
+    "symptomLong": "The symptom is too long (3000 characters at most).",
+    "targetUrl": "Use an http(s) target URL.",
+    "attemptsRange": "Attempts: an integer between 2 and 20.",
+    "noCredentials": "No planner credentials: set EXEGEZIS_ANTHROPIC_API_KEY in the repository's .env file.",
+    "targetDown": "The target {url} did not respond ({cause}). Start the application first, or check the target URL; the planner was not called.",
+    "cause": {
+      "ECONNREFUSED": "connection refused: nothing is listening at that address",
+      "ENOTFOUND": "the name does not resolve",
+      "EAI_AGAIN": "the name could not be resolved right now (DNS)",
+      "ETIMEDOUT": "the connection timed out",
+      "ECONNRESET": "the connection was reset",
+      "CERT_HAS_EXPIRED": "its TLS certificate has expired",
+      "timeout": "no answer within the time limit",
+      "unknown": "unknown network error",
+      "other": "{detail}"
+    },
+    "unexpected": "Unexpected error: {detail}"
   }
 }
