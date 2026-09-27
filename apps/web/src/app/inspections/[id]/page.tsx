@@ -4,12 +4,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { BlockNotice } from "@/components/access/block-notice";
 import { EngineProblem } from "@/components/ui/copy-command";
 import { FilterForm } from "@/components/ui/filter-form";
 import { IssueGroupList } from "@/components/inspection/issue-groups";
 import { buttonClass, CodeBlock, EmptyState, Meta, Mono, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
 import { SeverityLabel } from "@/components/inspection/severity";
 import { RunHistory, StatusPill, VerdictPill } from "@/components/ui/status";
+import { accessEntry } from "@/lib/access";
 import type { InspectionRef } from "@/lib/evidence/discover";
 import { filterFindings, filterGroups, findInspection, loadFindingEvidence, pageRows, parseFindingFilters, sortFindings, type FindingEvidence } from "@/lib/evidence/inspections";
 import { absoluteTime, duration } from "@/lib/format";
@@ -234,6 +236,9 @@ export default async function InspectionPage({ params, searchParams }: { params:
   const pagesWithFindings = [...new Set(report.findings.map((f) => f.page))].sort();
   const writes = report.pageWrites;
   const s = report.summary;
+  const entryBlock = report.pages.find((p) => p.depth === 0 && p.run === 1)?.block ?? null;
+  const savedAccess = entryBlock === null ? null : await accessEntry(report.target.origin);
+  const usedAccess = [report.access.session && "sesión", report.access.httpCredentials && "usuario y contraseña HTTP", report.access.wafToken && "token del WAF"].filter((x) => typeof x === "string");
 
   return (
     <div lang="es" className="flex flex-col gap-6">
@@ -254,6 +259,10 @@ export default async function InspectionPage({ params, searchParams }: { params:
           remedy={report.engineError.remedy}
           detail={[report.engineError.message, ...report.engineError.attempts.map((a) => `${a.engine}: ${a.error}`)]}
         />
+      )}
+
+      {entryBlock !== null && (
+        <BlockNotice block={entryBlock} origin={report.target.origin} inspectionId={inspection.id} relaunchJobId={inspection.jobId} hasWafToken={savedAccess?.kinds.includes("wafToken") === true} />
       )}
 
       {writes.length > 0 && (
@@ -427,7 +436,21 @@ export default async function InspectionPage({ params, searchParams }: { params:
                     ? `respetado${report.robots.fetched ? "" : " (no encontrado)"}${report.robots.disallow.length > 0 ? ` · Disallow ${report.robots.disallow.join(", ")}` : ""}`
                     : "ignorado (--ignore-robots)",
                 },
-                { label: "Sesión", value: report.options.storageState ? "storageState (no se registra su contenido)" : "ninguna" },
+                {
+                  label: "Acceso",
+                  value:
+                    usedAccess.length > 0 ? (
+                      <span>
+                        con sesión: {usedAccess.join(", ")}
+                        <span className="block text-[12px] text-muted">Guardado cifrado en este equipo; su contenido no se registra.{report.access.traceDropped ? " El trace no se guardó porque no se podía redactar." : ""}</span>
+                      </span>
+                    ) : report.options.storageState ? (
+                      "storageState (no se registra su contenido)"
+                    ) : (
+                      "visitante anónimo"
+                    ),
+                },
+                ...(report.rateLimit.retries > 0 ? [{ label: "Límite de peticiones", value: `${report.rateLimit.retries} esperas (${Math.round(report.rateLimit.waitedSeconds)} s en total)` }] : []),
                 {
                   label: "Navegador",
                   value:
@@ -453,6 +476,21 @@ export default async function InspectionPage({ params, searchParams }: { params:
               <FileCode2 className="size-3.5" /> inspection-report.json
             </a>
           </Panel>
+
+          {report.skippedForSafety.length > 0 && (
+            <Panel title={`Omitidos por seguridad (${report.skippedForSafety.length})`} subtitle="parecen cerrar sesión o borrar algo: nunca se visitan" bodyClassName="p-0">
+              <ul className="max-h-72 overflow-auto">
+                {report.skippedForSafety.map((l) => (
+                  <li key={`${l.url} ${l.from}`} className="border-b border-line px-4 py-2 last:border-b-0">
+                    <div className="break-all font-mono text-[12px] text-fg">{l.url}</div>
+                    <div className="font-mono text-[11px] text-faint">
+                      desde {shortUrl(l.from, report.target.origin)} · {l.reason}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
 
           <Panel title={`Enlaces externos (${report.externalLinks.length})`} subtitle="listados, no visitados ni comprobados" bodyClassName="p-0">
             {report.externalLinks.length === 0 ? (
