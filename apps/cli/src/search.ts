@@ -182,7 +182,8 @@ async function searchRun(c: SearchRunArgs, io: CliIo, exegezisVersion: string): 
   if (saved.warning !== null) io.stderr.write(`Warning: ${saved.warning}\n`);
   if (access !== null) out("Access:  with the saved access of this site (--no-session to search as an anonymous visitor)");
   else if (def.options.noSession) out("Access:  anonymous visitor (--no-session)");
-  out(`Budget:  ${def.options.maxPages ?? 20} pages, depth ${def.options.maxDepth ?? 2}, ${runs} load${runs === 1 ? "" : "s"} per page${reuse === undefined ? "" : ` · reusing the pages of ${reuse.report.id} (the site is not visited again)`}`);
+  const shown = reuse === undefined ? { maxPages: def.options.maxPages ?? 20, maxDepth: def.options.maxDepth ?? 2, runs } : reuse.report.options;
+  out(`Budget:  ${shown.maxPages} pages, depth ${shown.maxDepth}, ${shown.runs} load${shown.runs === 1 ? "" : "s"} per page${reuse === undefined ? "" : ` · reusing the pages of ${reuse.report.id} (the site is not visited again)`}`);
   const usesModel = def.query.kind === "meaning" || (def.query.kind === "template" && def.query.meaning !== null);
   if (usesModel) out(`Model:   ${model} · cost limit ${maxCostUsd.toFixed(2)} USD (estimated before any call)`);
   out();
