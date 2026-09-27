@@ -18,7 +18,7 @@ function ShotCrop({ searchId, shot, rect }: { searchId: string; shot: VisitShot;
     <a href={href} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border border-line bg-white" title="Abrir la captura completa">
       <svg viewBox={`0 ${y0} ${shot.width} ${h}`} className="block h-auto w-full" role="img" aria-label="Captura de la página con el bloque marcado">
         <image href={href} x="0" y="0" width={shot.width} height={shot.height} />
-        <rect x={rect.x - 4} y={rect.y - 4} width={rect.width + 8} height={rect.height + 8} fill="none" stroke="#ff2d55" strokeWidth="4" rx="4" />
+        <rect x={rect.x - 4} y={rect.y - 4} width={rect.width + 8} height={rect.height + 8} fill="none" className="stroke-bad" strokeWidth="4" rx="4" />
       </svg>
     </a>
   );
