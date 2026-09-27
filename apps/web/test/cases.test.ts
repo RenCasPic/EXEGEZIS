@@ -30,6 +30,7 @@ function summary(p: {
     outcome: p.outcome,
     outcomeSource: "bug-report",
     outcomeReason: null,
+    outcomeMessage: null,
     reproduction: p.attempts === undefined ? null : ({ attempts: p.attempts, failures: p.attempts } as InvestigationSummary["reproduction"]),
     reproductionMs: p.ms ?? null,
     provenance: null,

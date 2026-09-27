@@ -17,6 +17,7 @@ const BASE: StageInput = {
   outcome: "VERIFIED",
   executed: true,
   outcomeReason: "every verification criterion is met",
+  outcomeMessage: null,
   reproduction: { failures: 10, attempts: 10 },
   running: false,
   evidenceOnDisk: true,
@@ -29,31 +30,31 @@ const statusOf = (input: StageInput, id: string) => deriveStages(input).find((s)
 describe("deriveStages", () => {
   it("shows the real verdict, NOT RUN for an uninvestigated root cause and NOT IMPLEMENTED for fixes", () => {
     const stages = deriveStages(BASE);
-    expect(stages.map((s) => s.status)).toEqual(["PROVIDED", "GENERATED", "VERIFIED", "AVAILABLE", "NOT RUN", "NOT RUN", "NOT IMPLEMENTED", "NOT IMPLEMENTED"]);
+    expect(stages.map((s) => s.status)).toEqual(["PROVIDED", "GENERATED", "VERIFIED", "AVAILABLE", "NOT_RUN", "NOT_RUN", "NOT_IMPLEMENTED", "NOT_IMPLEMENTED"]);
     expect(NOT_IMPLEMENTED_STAGES).toEqual(["fix", "verification"]);
     for (const id of NOT_IMPLEMENTED_STAGES) expect(stages.find((s) => s.id === id)?.tone).toBe("unimplemented");
   });
 
   it("shows the root-cause decision exactly as recorded", () => {
     const rc = { status: "VALIDATED" as const, experiments: 3, hypotheses: 3, reason: "H1 is the only hypothesis..." };
-    expect(statusOf({ ...BASE, rootCause: rc }, "investigation")).toBe("3 EXPERIMENTS");
+    expect(statusOf({ ...BASE, rootCause: rc }, "investigation")).toBe("EXPERIMENTS");
     expect(statusOf({ ...BASE, rootCause: rc }, "root_cause")).toBe("VALIDATED");
-    expect(statusOf({ ...BASE, rootCause: { ...rc, status: "INSUFFICIENT_EVIDENCE" } }, "root_cause")).toBe("INSUFFICIENT EVIDENCE");
+    expect(statusOf({ ...BASE, rootCause: { ...rc, status: "INSUFFICIENT_EVIDENCE" } }, "root_cause")).toBe("INSUFFICIENT_EVIDENCE");
   });
 
   it("never reports a reproduction for a plan that was not executed", () => {
     const declined: StageInput = { ...BASE, generation: { status: "declined" }, outcome: "INCONCLUSIVE", executed: false, reproduction: null, evidenceOnDisk: false };
     expect(statusOf(declined, "plan")).toBe("DECLINED");
-    expect(statusOf(declined, "reproduction")).toBe("NOT RUN");
-    expect(statusOf(declined, "evidence")).toBe("AWAITING EVIDENCE");
+    expect(statusOf(declined, "reproduction")).toBe("NOT_RUN");
+    expect(statusOf(declined, "evidence")).toBe("AWAITING_EVIDENCE");
   });
 
   it("says archived evidence is not archived instead of pretending it exists", () => {
-    expect(statusOf({ ...BASE, archived: true, evidenceOnDisk: false }, "evidence")).toBe("NOT ARCHIVED");
+    expect(statusOf({ ...BASE, archived: true, evidenceOnDisk: false }, "evidence")).toBe("NOT_ARCHIVED");
   });
 
   it("labels human plans and running jobs", () => {
-    expect(statusOf({ ...BASE, generation: null, planSource: "human" }, "plan")).toBe("HUMAN PLAN");
+    expect(statusOf({ ...BASE, generation: null, planSource: "human" }, "plan")).toBe("HUMAN_PLAN");
     expect(statusOf({ ...BASE, outcome: null, executed: false, reproduction: null, running: true, evidenceOnDisk: false }, "reproduction")).toBe("RUNNING");
   });
 });
@@ -123,7 +124,7 @@ describe("discovery of the archived Benchmark B results", () => {
     expect(summaries.find((s) => s.ref.caseId === "BUG-003")?.rootCause?.status).toBe("INSUFFICIENT_EVIDENCE");
     expect(summaries.find((s) => s.ref.caseId === "HEALTHY-001")?.rootCause).toBeNull();
     for (const s of summaries) {
-      for (const id of NOT_IMPLEMENTED_STAGES) expect(s.stages.find((st) => st.id === id)?.status).toBe("NOT IMPLEMENTED");
+      for (const id of NOT_IMPLEMENTED_STAGES) expect(s.stages.find((st) => st.id === id)?.status).toBe("NOT_IMPLEMENTED");
     }
   });
 
@@ -133,7 +134,7 @@ describe("discovery of the archived Benchmark B results", () => {
     for (const s of ambiguous) {
       expect(s.generation?.status).toBe("declined");
       expect(s.outcomeSource).toBe("benchmark");
-      expect(s.stages.find((st) => st.id === "reproduction")?.status).toBe("NOT RUN");
+      expect(s.stages.find((st) => st.id === "reproduction")?.status).toBe("NOT_RUN");
       expect(s.evidenceOnDisk).toBe(false);
     }
   });

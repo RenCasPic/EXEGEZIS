@@ -99,7 +99,7 @@ export function EvidencePanel({
                     key={a.runId}
                     href={query({ attempt: a.runId })}
                     scroll={false}
-                    title={t("attemptTitle", { runId: a.runId, verdict: verdict(a.verdict) })}
+                    title={t("attemptTitle", { runId: a.runId, verdict: verdict(a.verdict as "passed") })}
                     className={cn(
                       "flex h-6 min-w-6 items-center justify-center rounded border px-1.5 font-mono text-[11px]",
                       selected ? "border-accent-text text-fg" : "border-line text-muted hover:border-line-strong hover:text-fg",
