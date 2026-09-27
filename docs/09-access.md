@@ -108,3 +108,63 @@ Comprobaciones:
 - (b) Reglas contra los falsos LOGIN_WALL, con tests.
 - (c) Aviso de que las sesiones con DPAPI solo se abren con este usuario en este equipo.
 - (d) El orden de detección, documentado y con tests.
+
+## 8. Resultados (2026-09-27)
+
+**Tipos de bloqueo implementados.** Cada tipo tiene su fixture en inspect-lab y su test.
+
+| Tipo | Detección probada | Solución en la UI |
+|---|---|---|
+| HTTP_AUTH | 401 + `WWW-Authenticate: Basic` | Formulario de usuario y contraseña (cifrado, por stdin al CLI) |
+| BOT_CHALLENGE | Fixture `.cf-turnstile`; real: nowsecure.nl | Token del WAF (recomendado) o ventana con confirmación de permiso |
+| SESSION_EXPIRED | Sesión guardada + redirección a login | «Renovar la sesión»; el aviso también sale en la home antes de lanzar |
+| LOGIN_WALL | Redirección a `/sign-in` (sí es muro); caja de login en la cabecera y `/sign-in` directo (no son muros) | «Abrir ventana para acceder» |
+| CONSENT_WALL | Banner fijo que tapa la vista y bloquea el scroll | «Abrir ventana para elegir» |
+| RATE_LIMITED | 429 + `Retry-After` (se espera y se sigue) | Automática; «Volver a inspeccionar» si se supera el tope |
+| FORBIDDEN | 403 sin marcadores | Explicación + token del WAF |
+| UNREACHABLE · NETWORK_RESTRICTED | Dominio que no resuelve / IP privada | Explicación, sin reintentos |
+
+**Números:**
+- `pnpm verify` en verde: 461 tests en 41 archivos. Los de Accesos son:
+  - 5 del almacén cifrado;
+  - 14 de clasificación y orden de detección;
+  - 15 e2e con sesión;
+  - 7 de la web: ningún secreto en páginas ni respuestas, estados activo y caducado, ajustes, borrado y visitante anónimo.
+- Benchmark A: 9/9. Benchmark B (mock): 7/7. Los mismos veredictos que antes.
+- nowsecure.nl sigue saliendo `BLOCKED · BOT_CHALLENGE` (marcador `.cf-turnstile`). Sin reintentos contra el desafío.
+
+**Interfaz:**
+- **Aviso de bloqueo:** en el detalle de la inspección y en la página del job.
+- **Ajustes → Accesos** (`/settings/access`): sitios, tipos, estado, último uso y caducidad, con Renovar y Borrar. También tiene «este sitio es mío» para robots, usuario HTTP, token del WAF, la nota de DPAPI por usuario y «Añadir un sitio».
+- **Home:** avisa si hay acceso guardado y si ha caducado, e incluye la opción «Inspeccionar como visitante anónimo».
+- **Detalle de la inspección:** «Acceso: con sesión (…)» o «visitante anónimo», las esperas por límite de peticiones y los enlaces omitidos por seguridad.
+
+**Desviaciones:**
+- NETWORK_RESTRICTED se guarda en el mismo campo `block`, con estado de página UNREACHABLE: se muestra como subtipo, tal como se decidió.
+- La prueba real en `/prayer` la hace René; los pasos están abajo.
+
+**Prueba en `/prayer` (René, en CMD):**
+
+```
+cd C:\Users\PC_SYSTEM\Documents\GitHub\EXEGEZIS
+pnpm build
+pnpm exegezis inspect --url https://www.jesushealingministry.net/prayer --max-pages 1 --max-depth 0 --runs 1
+```
+Esperado: `Status: BLOCKED` y `Block: LOGIN_WALL`, con la redirección a `/sign-in`.
+
+```
+pnpm exegezis session login --url https://www.jesushealingministry.net/prayer
+```
+En la ventana: inicia sesión como siempre. Cuando veas la página de oración, vuelve a CMD y pulsa Enter, o cierra la ventana. Esperado: `Saved: session for https://www.jesushealingministry.net`.
+
+```
+pnpm exegezis inspect --url https://www.jesushealingministry.net/prayer --max-pages 5 --max-depth 1
+```
+Esperado:
+- `Access: with saved session`;
+- la página ya no sale como LOGIN_WALL;
+- los enlaces de cerrar sesión aparecen en «omitidos por seguridad».
+
+robots.txt excluye `/prayer`, `/dashboard` y otras rutas: la URL inicial se visita igualmente, pero las demás rutas excluidas se saltan salvo que el sitio sea tuyo y lo marques:
+
+`pnpm exegezis session set --url https://www.jesushealingministry.net/ --robots-owner yes`
