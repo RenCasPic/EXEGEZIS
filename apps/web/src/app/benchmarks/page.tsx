@@ -1,16 +1,19 @@
 import { Beaker, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { EmptyState, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
 import { ReplayTag, SourceTag, StatusPill } from "@/components/ui/status";
 import { getIndex, getRootCauses } from "@/lib/evidence/investigations";
 import { latestPerCase } from "@/lib/evidence/root-causes";
-import { absoluteTime, percent, relativeTime } from "@/lib/format";
+import { getFormat } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Benchmarks" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("benchmarks.list"))("metaTitle") };
+}
 
 export default async function BenchmarksPage() {
-  const [index, rootCauses] = await Promise.all([getIndex(), getRootCauses()]);
+  const [index, rootCauses, t, f] = await Promise.all([getIndex(), getRootCauses(), getTranslations("benchmarks.list"), getFormat()]);
   const latestRootCauses = latestPerCase(rootCauses).flatMap((e) => (e.report.status === "ok" ? [{ report: e.report.value, evaluation: e.evaluation }] : []));
   const rcFalse = latestRootCauses.filter((r) => r.evaluation?.falseValidation === true).length;
   const runs = index.benchmarks.flatMap((b) => (b.result.status === "ok" ? [{ ref: b, r: b.result.value }] : []));
@@ -24,52 +27,50 @@ export default async function BenchmarksPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title="Verification Benchmark"
-        description="Suites of seeded bugs and negative cases with an independent expected outcome. Benchmark A uses plans written by people; Benchmark B uses plans written by the AI planner from a symptom."
+        title={t("title")}
+        description={t("description")}
       />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
         <Stat
-          label="Benchmark runs"
+          label={t("runs")}
           value={live.length}
-          hint={`${live.filter((x) => x.ref.archived).length} archived in the repository${replays > 0 ? ` · ${replays} replay runs not counted` : ""}`}
+          hint={replays > 0 ? t("runsHintReplays", { archived: live.filter((x) => x.ref.archived).length, replays }) : t("runsHint", { archived: live.filter((x) => x.ref.archived).length })}
         />
-        <Stat label="Cases evaluated" value={sum((r) => r.summary.total)} hint={`${sum((r) => r.summary.passed)} matched the expected outcome`} />
-        <Stat label="Verified reproductions" value={sum((r) => r.summary.truePositives)} hint={`${sum((r) => r.summary.falseNegatives)} seeded bugs missed`} />
+        <Stat label={t("cases")} value={sum((r) => r.summary.total)} hint={t("casesHint", { count: sum((r) => r.summary.passed) })} />
+        <Stat label={t("verified")} value={sum((r) => r.summary.truePositives)} hint={t("verifiedHint", { count: sum((r) => r.summary.falseNegatives) })} />
         <Stat
-          label="Falsos VERIFIED (reproducción)"
+          label={t("falseVerified")}
           value={<span className={sum((r) => r.summary.falsePositives) === 0 ? "text-fg" : "text-bad"}>{sum((r) => r.summary.falsePositives)}</span>}
-          hint="VERIFIED on a negative benchmark case"
+          hint={t("falseVerifiedHint")}
         />
         <Stat
-          label="Falsas validaciones (causa raíz)"
+          label={t("falseValidations")}
           value={<span className={rcFalse === 0 ? "text-fg" : "text-bad"}>{rcFalse}</span>}
           hint={
             <Link href="/verification/root-causes" className="text-accent-text hover:underline">
-              {latestRootCauses.filter((r) => r.report.decision.status === "VALIDATED").length} validated of {latestRootCauses.length} root-cause cases
+              {t("falseValidationsHint", { validated: latestRootCauses.filter((r) => r.report.decision.status === "VALIDATED").length, total: latestRootCauses.length })}
             </Link>
           }
         />
       </div>
 
-      <Panel title={`${runs.length} runs`} icon={<Beaker />} bodyClassName="p-0">
+      <Panel title={t("count", { count: runs.length })} icon={<Beaker />} bodyClassName="p-0">
         {runs.length === 0 ? (
-          <EmptyState title="No benchmark results">
-            Run <code className="font-mono">pnpm exegezis benchmark --suite buggy-shop</code> or <code className="font-mono">--suite buggy-shop-ai --planner anthropic</code>.
-          </EmptyState>
+          <EmptyState title={t("none")}>{t("noneBody", { a: "pnpm exegezis benchmark --suite buggy-shop", b: "--suite buggy-shop-ai --planner anthropic" })}</EmptyState>
         ) : (
           <div className={tableClass.wrap}>
             <table className={tableClass.table}>
               <thead>
                 <tr>
-                  <th className={tableClass.th}>Run</th>
-                  <th className={tableClass.th}>Plans</th>
-                  <th className={tableClass.th}>Result</th>
+                  <th className={tableClass.th}>{t("colRun")}</th>
+                  <th className={tableClass.th}>{t("colPlans")}</th>
+                  <th className={tableClass.th}>{t("colResult")}</th>
                   <th className={tableClass.th}>TP / FN</th>
                   <th className={tableClass.th}>FP / TN</th>
-                  <th className={tableClass.th}>Inconclusive</th>
-                  <th className={tableClass.th}>Source</th>
-                  <th className={tableClass.th}>Finished</th>
-                  <th className={tableClass.th} aria-label="Open" />
+                  <th className={tableClass.th}>{t("colInconclusive")}</th>
+                  <th className={tableClass.th}>{t("colSource")}</th>
+                  <th className={tableClass.th}>{t("colFinished")}</th>
+                  <th className={tableClass.th} aria-label={t("colRun")} />
                 </tr>
               </thead>
               <tbody>
@@ -83,18 +84,18 @@ export default async function BenchmarksPage() {
                     </td>
                     <td className={`${tableClass.td} text-[12px] text-muted`}>
                       {r.planSource === "human" ? (
-                        "A · human-written"
+                        t("humanWritten")
                       ) : (
                         <>
                           B ·{" "}
-                          {isReplayRun(r) ? <ReplayTag title="Recorded planner responses (mock planner): not a live AI run, not counted">REPLAY</ReplayTag> : (r.planner?.model ?? r.planner?.provider)}{" "}
+                          {isReplayRun(r) ? <ReplayTag title={t("replayTitle")} /> : (r.planner?.model ?? r.planner?.provider)}{" "}
                           <span className="font-mono text-faint">{r.planner?.promptVersion}</span>
-                          <div className="text-[11px] text-faint">{r.planner?.examples === true ? "with examples (leave-one-out)" : "no examples"}</div>
+                          <div className="text-[11px] text-faint">{r.planner?.examples === true ? t("withExamples") : t("noExamples")}</div>
                         </>
                       )}
                     </td>
                     <td className={tableClass.td}>
-                      <StatusPill status={`${r.summary.passed}/${r.summary.total} PASS`} tone={r.summary.failed === 0 ? "ok" : "bad"} size="xs" />
+                      <StatusPill status={t("passed", { passed: r.summary.passed, total: r.summary.total })} tone={r.summary.failed === 0 ? "ok" : "bad"} size="xs" />
                     </td>
                     <td className={`${tableClass.td} font-mono text-[12px]`}>
                       {r.summary.truePositives} / {r.summary.falseNegatives}
@@ -102,15 +103,15 @@ export default async function BenchmarksPage() {
                     <td className={`${tableClass.td} font-mono text-[12px]`}>
                       <span className={r.summary.falsePositives > 0 ? "text-bad" : ""}>{r.summary.falsePositives}</span> / {r.summary.trueNegatives}
                     </td>
-                    <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{percent(r.metrics.inconclusiveRate, 1)}</td>
+                    <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{f.percent(r.metrics.inconclusiveRate, 1)}</td>
                     <td className={tableClass.td}>
                       <SourceTag kind={ref.archived ? "archived" : "real"} />
                     </td>
-                    <td className={`${tableClass.td} whitespace-nowrap text-muted`} title={absoluteTime(r.finishedAt)}>
-                      {relativeTime(r.finishedAt)}
+                    <td className={`${tableClass.td} whitespace-nowrap text-muted`} title={f.absolute(r.finishedAt)}>
+                      {f.relative(r.finishedAt)}
                     </td>
                     <td className={`${tableClass.td} w-8`}>
-                      <Link href={`/benchmarks/${ref.id}`} aria-label={`Open ${ref.id}`} className="text-faint hover:text-fg">
+                      <Link href={`/benchmarks/${ref.id}`} aria-label={t("open", { id: ref.id })} className="text-faint hover:text-fg">
                         <ChevronRight className="size-4" />
                       </Link>
                     </td>
@@ -123,7 +124,7 @@ export default async function BenchmarksPage() {
       </Panel>
       {broken.length > 0 && (
         <p className="text-xs text-bad">
-          {broken.length} benchmark result file(s) could not be read or failed schema validation: {broken.map((b) => b.relDir).join(", ")}
+          {t("broken", { count: broken.length })} {broken.map((b) => b.relDir).join(", ")}
         </p>
       )}
     </div>
