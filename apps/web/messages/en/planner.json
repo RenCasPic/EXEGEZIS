@@ -1,1 +1,26 @@
-{}
+{
+  "title": "AI plans",
+  "description": "Every planner call on record. The planner writes a test plan from a symptom, once, and never decides a verdict. Current prompt:",
+  "calls": "Planner calls",
+  "callsReplays": "{count, plural, one {# replayed response not counted} other {# replayed responses not counted}}",
+  "callsLive": "live model calls",
+  "generated": "Generated",
+  "declined": "Declined",
+  "declinedHint": "symptom not testable as written",
+  "invalid": "Invalid / error",
+  "invalidHint": "never repaired, never executed",
+  "median": "Median latency",
+  "tokens": "{input} in / {output} out tokens total",
+  "count": "{count, plural, one {# generation} other {# generations}}",
+  "none": "No planner calls recorded",
+  "noneBody": "Start an investigation from a symptom, or run the AI benchmark.",
+  "colSymptom": "Symptom",
+  "colPlanner": "Planner",
+  "colModel": "Model · prompt",
+  "colExamples": "Examples",
+  "colLatency": "Latency",
+  "colTokens": "Tokens",
+  "colVerdict": "Engine verdict",
+  "colWhen": "When",
+  "replayTitle": "Recorded planner response (mock): not a live model call"
+}

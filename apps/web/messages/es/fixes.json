@@ -1,1 +1,9 @@
-{}
+{
+  "title": "Arreglos",
+  "description": "Cambios de código propuestos y su verificación antes y después.",
+  "why": "EXEGEZIS no ha propuesto ni aplicado ningún cambio de código, y no se ha verificado ningún arreglo.",
+  "r1": "Una causa raíz validada que arreglar.",
+  "r2": "Un cambio propuesto, revisado por una persona.",
+  "r3": "La misma reproducción pasando después del cambio (antes: falla; después: pasa).",
+  "r4": "Los tests de regresión pasando, con la reproducción añadida como test de regresión."
+}

@@ -69,5 +69,42 @@
     "generated": "Generado",
     "artifacts": "Artefactos",
     "groundTruth": "Respuesta conocida del benchmark (nunca se muestra al motor)"
+  },
+  "list": {
+    "title": "Causas raíz",
+    "description": "Causas establecidas por intervención: el cambio de código de cada hipótesis se aplica a una copia aislada de la aplicación y se vuelve a ejecutar la reproducción. Una causa solo queda validada si su intervención eliminó el bug en todas las ejecuciones y las hipótesis alternativas quedaron refutadas.",
+    "cases": "Casos",
+    "casesHint": "último resultado de cada uno · {count, plural, one {# experimento} other {# experimentos}}",
+    "validated": "Validadas",
+    "insufficient": "Evidencia insuficiente",
+    "insufficientHint": "incógnitas honestas",
+    "refuted": "Hipótesis refutadas",
+    "falseValidations": "Validaciones falsas",
+    "falseValidationsHint": "frente a la respuesta conocida del benchmark ({count} evaluadas)",
+    "panel": "{count, plural, one {# investigación de causa raíz} other {# investigaciones de causa raíz}} (todas las ejecuciones)",
+    "none": "Aún no hay investigaciones de causa raíz",
+    "noneBody": "Ejecuta {command}.",
+    "colCase": "Caso",
+    "colDecision": "Decisión",
+    "colEvidence": "Evidencia",
+    "colRootCause": "Causa raíz",
+    "colExperiment": "Experimento",
+    "colRefuted": "Refutadas",
+    "colGroundTruth": "Respuesta conocida",
+    "colWhen": "Cuándo",
+    "candidate": "Candidata {id}:",
+    "correct": "correcto",
+    "honestUnknown": "incógnita honesta (esperada)",
+    "expectedStatus": "se esperaba {status}",
+    "invalid": "{count, plural, one {# informe no supera} other {# informes no superan}} la validación de su esquema y no se {count, plural, one {muestra} other {muestran}} (una decisión que no se deduce de sus experimentos se rechaza):"
+  },
+  "detail": {
+    "title": "Causa raíz",
+    "loadFailed": "No se pudo cargar este informe.",
+    "missing": "Falta root-cause-report.json.",
+    "back": "Causas raíz",
+    "heading": "{case} · causa raíz por intervención",
+    "description": "Plan de reproducción {plan} ({path}). {hypotheses, plural, one {# hipótesis} other {# hipótesis}}, {experiments, plural, one {# experimento} other {# experimentos}}.",
+    "reproductions": "Reproducciones verificadas de este bug"
   }
 }

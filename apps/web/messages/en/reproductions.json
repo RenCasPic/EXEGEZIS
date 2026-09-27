@@ -1,1 +1,22 @@
-{}
+{
+  "title": "Reproductions",
+  "description": "Every executed plan: how many attempts failed the expectation, and whether the compiled Playwright test agreed.",
+  "executed": "Executed plans",
+  "reproduced": "Reproduced",
+  "reproducedHint": "every attempt failed identically",
+  "browserRuns": "Browser runs",
+  "browserRunsHint": "attempts across all reproductions",
+  "verified": "Verified",
+  "verifiedHint": "all six criteria met",
+  "count": "{count, plural, one {# reproduction} other {# reproductions}}",
+  "none": "No executed plans yet",
+  "noneBody": "Run a verification from the CLI or start an investigation.",
+  "colBug": "Bug",
+  "colVerdict": "Verdict",
+  "colReproduction": "Reproduction",
+  "colStatus": "Status",
+  "colTest": "Playwright test",
+  "colEvidence": "Evidence",
+  "colLast": "Last verified",
+  "open": "Open"
+}

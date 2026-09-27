@@ -1,1 +1,26 @@
-{}
+{
+  "title": "Planes de la IA",
+  "description": "Todas las llamadas al planner registradas. El planner escribe un plan de prueba a partir de un síntoma, una sola vez, y nunca decide un veredicto. Prompt actual:",
+  "calls": "Llamadas al planner",
+  "callsReplays": "{count, plural, one {# respuesta grabada no cuenta} other {# respuestas grabadas no cuentan}}",
+  "callsLive": "llamadas reales al modelo",
+  "generated": "Generados",
+  "declined": "Rechazados",
+  "declinedHint": "síntoma no comprobable tal como está escrito",
+  "invalid": "No válidos / error",
+  "invalidHint": "nunca se reparan ni se ejecutan",
+  "median": "Latencia mediana",
+  "tokens": "{input} tokens de entrada / {output} de salida en total",
+  "count": "{count, plural, one {# generación} other {# generaciones}}",
+  "none": "No hay llamadas al planner registradas",
+  "noneBody": "Empieza una investigación a partir de un síntoma o ejecuta el benchmark con IA.",
+  "colSymptom": "Síntoma",
+  "colPlanner": "Planner",
+  "colModel": "Modelo · prompt",
+  "colExamples": "Ejemplos",
+  "colLatency": "Latencia",
+  "colTokens": "Tokens",
+  "colVerdict": "Veredicto del motor",
+  "colWhen": "Cuándo",
+  "replayTitle": "Respuesta grabada del planner (mock): no es una llamada real al modelo"
+}

@@ -87,7 +87,8 @@
     "WEAKLY_ANCHORED": "Weakly anchored",
     "WARNING": "Warning",
     "ANCHORING": "Anchoring",
-    "PLAN_ONLY": "Plan only"
+    "PLAN_ONLY": "Plan only",
+    "NO_ASSERTIONS": "No assertions"
   },
   "severity": {
     "critical": "Critical",

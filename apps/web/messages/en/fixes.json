@@ -1,1 +1,9 @@
-{}
+{
+  "title": "Fixes",
+  "description": "Proposed code changes and their before/after verification.",
+  "why": "EXEGEZIS has not proposed or applied any code change, and no fix has been verified.",
+  "r1": "A validated root cause to fix.",
+  "r2": "A proposed change, reviewed by a person.",
+  "r3": "The same reproduction passing after the change (before: fails, after: passes).",
+  "r4": "The regression suite passing, with the reproduction added as a regression test."
+}

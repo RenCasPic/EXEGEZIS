@@ -1,17 +1,22 @@
 import { FlaskConical } from "lucide-react";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { EmptyState, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
 import { SourceTag, StatusPill } from "@/components/ui/status";
 import { getRootCauses } from "@/lib/evidence/investigations";
 import { latestPerCase } from "@/lib/evidence/root-causes";
-import { label, rootCauseTone } from "@/lib/evidence/stages";
-import { absoluteTime, relativeTime } from "@/lib/format";
+import { decideRootCause } from "@exegezis/core";
+import { EngineText } from "@/components/ui/engine-text";
+import { rootCauseTone } from "@/lib/evidence/stages";
+import { getFormat } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Root causes" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("rootCauses.list"))("title") };
+}
 
 export default async function RootCausesPage() {
-  const entries = await getRootCauses();
+  const [entries, t, status, f] = await Promise.all([getRootCauses(), getTranslations("rootCauses.list"), getTranslations("labels.status"), getFormat()]);
   const valid = entries.flatMap((e) => (e.report.status === "ok" ? [{ entry: e, report: e.report.value }] : []));
   const invalid = entries.filter((e) => e.report.status !== "ok");
   // Stats describe the latest result of each case; the table lists every run.
@@ -22,38 +27,36 @@ export default async function RootCausesPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title="Root Causes"
-        description="Causes established by intervention: each hypothesis' code change is applied to an isolated copy of the application and the reproduction is run again. A cause is VALIDATED only if its intervention removed the bug in every run and the competing hypotheses were refuted."
+        title={t("title")}
+        description={t("description")}
       />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-        <Stat label="Cases" value={latest.length} hint={`latest result of each · ${latest.reduce((n, v) => n + v.report.experiments.length, 0)} experiments`} />
-        <Stat label="Validated" value={latest.filter((v) => v.report.decision.status === "VALIDATED").length} />
-        <Stat label="Insufficient evidence" value={latest.filter((v) => v.report.decision.status === "INSUFFICIENT_EVIDENCE").length} hint="honest unknowns" />
-        <Stat label="Hypotheses refuted" value={latest.reduce((n, v) => n + v.report.outcomes.filter((o) => o.status === "REFUTED").length, 0)} />
+        <Stat label={t("cases")} value={latest.length} hint={t("casesHint", { count: latest.reduce((n, v) => n + v.report.experiments.length, 0) })} />
+        <Stat label={t("validated")} value={latest.filter((v) => v.report.decision.status === "VALIDATED").length} />
+        <Stat label={t("insufficient")} value={latest.filter((v) => v.report.decision.status === "INSUFFICIENT_EVIDENCE").length} hint={t("insufficientHint")} />
+        <Stat label={t("refuted")} value={latest.reduce((n, v) => n + v.report.outcomes.filter((o) => o.status === "REFUTED").length, 0)} />
         <Stat
-          label="False validations"
+          label={t("falseValidations")}
           value={<span className={falseValidations > 0 ? "text-bad" : "text-ok"}>{falseValidations}</span>}
-          hint={`against the benchmark ground truth (${evaluated.length} evaluated)`}
+          hint={t("falseValidationsHint", { count: evaluated.length })}
         />
       </div>
-      <Panel title={`${valid.length} root-cause investigations (every run)`} icon={<FlaskConical />} bodyClassName="p-0">
+      <Panel title={t("panel", { count: valid.length })} icon={<FlaskConical />} bodyClassName="p-0">
         {valid.length === 0 ? (
-          <EmptyState title="No root-cause investigation yet">
-            Run <code className="font-mono">pnpm exegezis root-cause</code>.
-          </EmptyState>
+          <EmptyState title={t("none")}>{t("noneBody", { command: "pnpm exegezis root-cause" })}</EmptyState>
         ) : (
           <div className={tableClass.wrap}>
             <table className={tableClass.table}>
               <thead>
                 <tr>
-                  <th className={tableClass.th}>Case</th>
-                  <th className={tableClass.th}>Decision</th>
-                  <th className={tableClass.th}>Evidence</th>
-                  <th className={tableClass.th}>Root cause</th>
-                  <th className={tableClass.th}>Experiment</th>
-                  <th className={tableClass.th}>Refuted</th>
-                  <th className={tableClass.th}>Ground truth</th>
-                  <th className={tableClass.th}>When</th>
+                  <th className={tableClass.th}>{t("colCase")}</th>
+                  <th className={tableClass.th}>{t("colDecision")}</th>
+                  <th className={tableClass.th}>{t("colEvidence")}</th>
+                  <th className={tableClass.th}>{t("colRootCause")}</th>
+                  <th className={tableClass.th}>{t("colExperiment")}</th>
+                  <th className={tableClass.th}>{t("colRefuted")}</th>
+                  <th className={tableClass.th}>{t("colGroundTruth")}</th>
+                  <th className={tableClass.th}>{t("colWhen")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -72,11 +75,19 @@ export default async function RootCausesPage() {
                         </div>
                       </td>
                       <td className={tableClass.td}>
-                        <StatusPill status={label(report.decision.status)} tone={rootCauseTone(report.decision.status)} size="xs" />
+                        <StatusPill status={report.decision.status} tone={rootCauseTone(report.decision.status)} size="xs" />
                       </td>
-                      <td className={`${tableClass.td} font-mono text-[11px] text-muted`}>{report.decision.evidenceLevel}</td>
+                      <td className={`${tableClass.td} font-mono text-[11px] text-muted`}>{status(report.decision.evidenceLevel)}</td>
                       <td className={`${tableClass.td} max-w-[26rem] text-[12px] text-muted`}>
-                        {report.decision.status === "VALIDATED" ? report.decision.statement : report.decision.candidateHypothesisId !== null ? `Candidate ${report.decision.candidateHypothesisId}: ${report.decision.statement ?? ""}` : report.decision.reason}
+                        {report.decision.status === "VALIDATED" ? (
+                          <span translate="no">{report.decision.statement}</span>
+                        ) : report.decision.candidateHypothesisId !== null ? (
+                          <>
+                            {t("candidate", { id: report.decision.candidateHypothesisId })} <span translate="no">{report.decision.statement ?? ""}</span>
+                          </>
+                        ) : (
+                          <EngineText message={report.decision.message ?? decideRootCause(report.baseline, report.experiments, report.outcomes, report.policy).message} text={report.decision.reason} />
+                        )}
                       </td>
                       <td className={`${tableClass.td} whitespace-nowrap font-mono text-[12px]`}>
                         {win === undefined ? "—" : `${win.baseline.reproduced}/${win.baseline.runs} → ${win.arm.counts.reproduced}/${win.arm.counts.runs}`}
@@ -88,15 +99,15 @@ export default async function RootCausesPage() {
                         {evaluation === null ? (
                           <span className="text-faint">—</span>
                         ) : evaluation.falseValidation ? (
-                          <span className="text-bad">FALSE VALIDATION</span>
+                          <span className="text-bad">{status("FALSE_VALIDATION")}</span>
                         ) : evaluation.correct === true ? (
-                          <span className="text-ok">correct</span>
+                          <span className="text-ok">{t("correct")}</span>
                         ) : (
-                          <span className="text-muted">{evaluation.matchesExpected ? "honest unknown (expected)" : `expected ${evaluation.expectedStatus}`}</span>
+                          <span className="text-muted">{evaluation.matchesExpected ? t("honestUnknown") : t("expectedStatus", { status: status(evaluation.expectedStatus) })}</span>
                         )}
                       </td>
-                      <td className={`${tableClass.td} whitespace-nowrap text-muted`} title={absoluteTime(report.generatedAt)}>
-                        {relativeTime(report.generatedAt)}
+                      <td className={`${tableClass.td} whitespace-nowrap text-muted`} title={f.absolute(report.generatedAt)}>
+                        {f.relative(report.generatedAt)}
                       </td>
                     </tr>
                   );
@@ -108,7 +119,7 @@ export default async function RootCausesPage() {
       </Panel>
       {invalid.length > 0 && (
         <p className="text-xs text-bad">
-          {invalid.length} report(s) failed schema validation and are not shown (a decision that does not follow from its experiments is rejected):{" "}
+          {t("invalid", { count: invalid.length })}{" "}
           {invalid.map((e) => e.ref.relDir).join(", ")}
         </p>
       )}

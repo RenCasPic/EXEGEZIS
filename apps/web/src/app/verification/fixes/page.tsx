@@ -1,22 +1,13 @@
 import { GitPullRequestDraft } from "lucide-react";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { NotImplementedPage } from "@/components/investigation/not-implemented-page";
 
-export const metadata: Metadata = { title: "Fixes" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("fixes"))("title") };
+}
 
-export default function FixesPage() {
-  return (
-    <NotImplementedPage
-      title="Fixes"
-      description="Proposed code changes and their before/after verification."
-      icon={<GitPullRequestDraft />}
-      why="EXEGEZIS has not proposed or applied any code change, and no fix has been verified."
-      requires={[
-        "A validated root cause to fix.",
-        "A proposed change, reviewed by a person.",
-        "The same reproduction passing after the change (before: fails, after: passes).",
-        "The regression suite passing, with the reproduction added as a regression test.",
-      ]}
-    />
-  );
+export default async function FixesPage() {
+  const t = await getTranslations("fixes");
+  return <NotImplementedPage title={t("title")} description={t("description")} icon={<GitPullRequestDraft />} why={t("why")} requires={[t("r1"), t("r2"), t("r3"), t("r4")]} />;
 }

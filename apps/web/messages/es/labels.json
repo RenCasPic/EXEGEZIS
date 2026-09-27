@@ -87,7 +87,8 @@
     "WEAKLY_ANCHORED": "Anclaje débil",
     "WARNING": "Aviso",
     "ANCHORING": "Anclaje",
-    "PLAN_ONLY": "Solo plan"
+    "PLAN_ONLY": "Solo plan",
+    "NO_ASSERTIONS": "Sin aserciones"
   },
   "severity": {
     "critical": "Crítica",

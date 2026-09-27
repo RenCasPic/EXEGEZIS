@@ -1,1 +1,22 @@
-{}
+{
+  "title": "Reproducciones",
+  "description": "Cada plan ejecutado: cuántos intentos incumplieron la expectativa y si el test de Playwright compilado estuvo de acuerdo.",
+  "executed": "Planes ejecutados",
+  "reproduced": "Reproducidos",
+  "reproducedHint": "todos los intentos fallaron de la misma forma",
+  "browserRuns": "Ejecuciones en navegador",
+  "browserRunsHint": "intentos en todas las reproducciones",
+  "verified": "Verificados",
+  "verifiedHint": "se cumplen los seis criterios",
+  "count": "{count, plural, one {# reproducción} other {# reproducciones}}",
+  "none": "Aún no hay planes ejecutados",
+  "noneBody": "Ejecuta una verificación desde el CLI o empieza una investigación.",
+  "colBug": "Bug",
+  "colVerdict": "Veredicto",
+  "colReproduction": "Reproducción",
+  "colStatus": "Estado",
+  "colTest": "Test de Playwright",
+  "colEvidence": "Evidencia",
+  "colLast": "Última verificación",
+  "open": "Abrir"
+}

@@ -69,5 +69,42 @@
     "generated": "Generated",
     "artifacts": "Artifacts",
     "groundTruth": "Benchmark ground truth (never shown to the engine)"
+  },
+  "list": {
+    "title": "Root causes",
+    "description": "Causes established by intervention: each hypothesis' code change is applied to an isolated copy of the application and the reproduction is run again. A cause is validated only if its intervention removed the bug in every run and the competing hypotheses were refuted.",
+    "cases": "Cases",
+    "casesHint": "latest result of each · {count, plural, one {# experiment} other {# experiments}}",
+    "validated": "Validated",
+    "insufficient": "Insufficient evidence",
+    "insufficientHint": "honest unknowns",
+    "refuted": "Hypotheses refuted",
+    "falseValidations": "False validations",
+    "falseValidationsHint": "against the benchmark ground truth ({count} evaluated)",
+    "panel": "{count, plural, one {# root-cause investigation} other {# root-cause investigations}} (every run)",
+    "none": "No root-cause investigation yet",
+    "noneBody": "Run {command}.",
+    "colCase": "Case",
+    "colDecision": "Decision",
+    "colEvidence": "Evidence",
+    "colRootCause": "Root cause",
+    "colExperiment": "Experiment",
+    "colRefuted": "Refuted",
+    "colGroundTruth": "Ground truth",
+    "colWhen": "When",
+    "candidate": "Candidate {id}:",
+    "correct": "correct",
+    "honestUnknown": "honest unknown (expected)",
+    "expectedStatus": "expected {status}",
+    "invalid": "{count, plural, one {# report failed} other {# reports failed}} schema validation and {count, plural, one {is} other {are}} not shown (a decision that does not follow from its experiments is rejected):"
+  },
+  "detail": {
+    "title": "Root cause",
+    "loadFailed": "This report could not be loaded.",
+    "missing": "root-cause-report.json is missing.",
+    "back": "Root causes",
+    "heading": "{case} · root cause by intervention",
+    "description": "Reproduction plan {plan} ({path}). {hypotheses, plural, one {# hypothesis} other {# hypotheses}}, {experiments, plural, one {# experiment} other {# experiments}}.",
+    "reproductions": "Verified reproductions of this bug"
   }
 }
