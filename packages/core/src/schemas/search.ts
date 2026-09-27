@@ -232,6 +232,8 @@ export const SearchAiUsage = z.strictObject({
   pagesSent: z.array(z.string()),
   /** Blocks the redaction changed before sending. */
   redactions: z.int().nonnegative(),
+  /** Blocks repeated on several pages (header, footer…) sent only once, with their first page. */
+  repeatedBlocks: z.int().nonnegative().default(0),
   /** Why the model part did not run or stopped (cost limit, no credentials…). */
   error: z.string().nullable(),
 });

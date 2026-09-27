@@ -270,7 +270,7 @@ async function analyze(options: SearchSiteOptions, walked: Walked, includeHidden
 }
 
 function emptyUsage(provider: string, model: string, maxCostUsd: number, error: string | null): SearchAiUsage {
-  return { provider, model, promptVersion: MEANING_PROMPT_VERSION, estimateUsd: 0, maxCostUsd, inputTokens: 0, outputTokens: 0, costUsd: 0, latencyMs: 0, calls: 0, pagesSent: [], redactions: 0, error };
+  return { provider, model, promptVersion: MEANING_PROMPT_VERSION, estimateUsd: 0, maxCostUsd, inputTokens: 0, outputTokens: 0, costUsd: 0, latencyMs: 0, calls: 0, pagesSent: [], redactions: 0, repeatedBlocks: 0, error };
 }
 
 export async function loadSearchReport(dir: string): Promise<SearchReport> {

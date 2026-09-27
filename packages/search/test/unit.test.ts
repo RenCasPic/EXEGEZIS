@@ -153,6 +153,44 @@ describe("search by meaning (mock model)", () => {
     expect(r.usage.redactions).toBe(1);
   });
 
+  it("an answer cut at the output limit is not lost: the batch is split in two and asked again", async () => {
+    const users: string[] = [];
+    const client = {
+      provider: "test",
+      model: "claude-sonnet-5",
+      count: () => Promise.resolve(null),
+      complete: (_s: string, user: string) => {
+        users.push(user);
+        // The first (whole) request is cut; the halves answer normally.
+        if (users.length === 1) return Promise.resolve({ text: '{"findings":[{"page":"https://a.test/","blockId":"b1","quo', inputTokens: 100, outputTokens: 8000, stopReason: "max_tokens" as const });
+        const found = user.includes("[b1]") ? [{ page: "https://a.test/", blockId: "b1", quote: "recomendamos ir siempre al doctor", reason: "médico", relevance: "high" }] : [];
+        return Promise.resolve({ text: JSON.stringify({ findings: found }), inputTokens: 50, outputTokens: 50, stopReason: "end" as const });
+      },
+    };
+    const r = await runMeaning({ client, description: "medicina", pages: PAGES, maxCostUsd: 1 });
+    expect(users).toHaveLength(3);
+    expect(users[1]).toContain("[b1]");
+    expect(users[1]).not.toContain("[b2]");
+    expect(r.usage.error).toBeNull();
+    expect(r.candidates.filter((c) => c.verified)).toHaveLength(1);
+  });
+
+  it("a block repeated on several pages (header, footer) is sent once", async () => {
+    let sent = "";
+    const client = new MockSearchClient((_s, user) => {
+      sent = user;
+      return answer([]);
+    });
+    const footer = { id: "b9", kind: "text" as const, level: null, text: "La oración no sustituye la atención médica.", selector: "footer", rect: null, visible: true, source: null };
+    const pages: MeaningPage[] = [
+      { page: "https://a.test/", runPath: null, lang: "es", blocks: [footer] },
+      { page: "https://a.test/b", runPath: null, lang: "es", blocks: [{ ...footer, id: "b3" }] },
+    ];
+    const r = await runMeaning({ client, description: "medicina", pages, maxCostUsd: 1 });
+    expect(sent.match(/no sustituye/g)).toHaveLength(1);
+    expect(r.usage.repeatedBlocks).toBe(1);
+  });
+
   it("shows the estimate and respects the limit: nothing is sent above it", async () => {
     const client = new MockSearchClient(() => answer([]));
     const r = await runMeaning({ client, description: "medicina", pages: PAGES, maxCostUsd: 0.001 });
