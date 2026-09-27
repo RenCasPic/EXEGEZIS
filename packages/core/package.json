@@ -18,5 +18,8 @@
   "dependencies": {
     "intl-messageformat": "11.2.15",
     "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@formatjs/icu-messageformat-parser": "3.5.20"
   }
 }

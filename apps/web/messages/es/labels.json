@@ -97,5 +97,12 @@
   "statusTitle": "Código técnico: {code}",
   "blocked": "Bloqueada · {kind}",
   "original": "(original)",
-  "originalTitle": "Texto registrado por una versión anterior de EXEGEZIS, en su idioma original"
+  "originalTitle": "Texto registrado por una versión anterior de EXEGEZIS, en su idioma original",
+  "attemptVerdict": {
+    "passed": "pasó",
+    "failed": "falló",
+    "timeout": "tiempo agotado",
+    "error": "error",
+    "no_assertions": "sin aserciones"
+  }
 }

@@ -1,1 +1,117 @@
-{}
+{
+  "pipeline": {
+    "label": "Investigation pipeline"
+  },
+  "symptom": {
+    "title": "Symptom",
+    "sourceCase": "Benchmark case definition (case.json)",
+    "sourceUi": "Entered in this UI",
+    "sourcePlan": "Recorded in the generated plan",
+    "source": "Source",
+    "caseKind": "Case kind",
+    "positive": "Positive (a seeded bug)",
+    "negative": "Negative (must never be VERIFIED)",
+    "expectedOutcome": "Expected outcome",
+    "benchmarkResult": "Benchmark result"
+  },
+  "evidence": {
+    "title": "Evidence",
+    "attemptSubtitle": "attempt {attempt}",
+    "observed": "Observed",
+    "attempt": "Attempt",
+    "attemptTitle": "{runId} · {verdict}",
+    "footer": "Everything above was recorded by the browser adapter during this attempt. Highlighted rows are cited by the bug report. Nothing here is inferred.",
+    "tabs": {
+      "timeline": "Timeline",
+      "assertions": "Assertions",
+      "console": "Console",
+      "network": "Network",
+      "dom": "DOM",
+      "screenshot": "Screenshot",
+      "accessibility": "Accessibility",
+      "trace": "Trace",
+      "manifest": "Manifest"
+    }
+  },
+  "reproduction": {
+    "title": "Reproduction",
+    "openTest": "Open the Playwright test",
+    "compiledTitle": "Compiled Playwright test",
+    "runner": "Runner",
+    "result": "Result",
+    "failedAtStep": "Failed at step",
+    "message": "Message",
+    "duration": "Duration",
+    "compiledNote": "Generated from the plan by the compiler and run with the standard Playwright runner, independently of the EXEGEZIS engine. A verified bug requires it to fail at the same step.",
+    "nothingExecuted": "Nothing was executed. The benchmark recorded {outcome} because {why}.",
+    "plannerDeclined": "the planner declined",
+    "noValidPlan": "no valid plan was produced",
+    "noOutcome": "no outcome",
+    "verdict": "Verdict",
+    "runsFailed": "Runs that failed the expectation",
+    "runsBreakdown": "{passes} passed · {timeouts} timed out · {errors, plural, one {# error} other {# errors}}",
+    "rate": "Reproduction rate",
+    "expected": "Expected",
+    "fromPlan": "(from the plan)",
+    "actual": "Actual",
+    "observed": "Observed",
+    "criteriaTitle": "Verification criteria (all six required for a verified bug)",
+    "attempts": "Attempts",
+    "colRun": "Run",
+    "colVerdict": "Verdict",
+    "colStoppedAt": "Stopped at",
+    "colDuration": "Duration",
+    "colEvidence": "Evidence",
+    "cited": "cited in the report",
+    "step": "step {step}",
+    "viewing": "Viewing",
+    "view": "View",
+    "notOnDisk": "not on disk",
+    "noReproductionFile": "reproduction.json is not available for this result (archived results keep only the report)."
+  },
+  "criteria": {
+    "plan_valid": "A semantically valid plan",
+    "expectation_defined": "A defined expected behavior",
+    "anchored": "An expectation anchored in a verified state",
+    "reproduced": "A reproducible failing execution",
+    "evidence_captured": "Captured evidence",
+    "executable_test": "A deterministic executable test that fails"
+  },
+  "rootCause": {
+    "title": "Root cause",
+    "subtitle": "root-cause investigation of {bug} · plan {plan}",
+    "open": "Open",
+    "rule": "A cause is only shown as validated when an intervention on an isolated copy removed the bug in every run and the competing hypotheses were refuted.",
+    "run": "Run:"
+  },
+  "fix": {
+    "title": "Fix",
+    "proposedChange": "Proposed change",
+    "proposedNone": "None (root-cause mutations are experiments, discarded after each run; they are not fixes)",
+    "filesChanged": "Files changed",
+    "none": "None",
+    "regressionTest": "Regression test",
+    "regressionExists": "The compiled reproduction test ({path}) exists, but it has not been used as a regression test for any fix."
+  },
+  "fixVerification": {
+    "title": "Fix verification",
+    "bugReproduced": "Bug reproduced",
+    "fixApplied": "Fix applied",
+    "reproductionPasses": "Reproduction passes",
+    "regressionPasses": "Regression suite passes",
+    "before": "Before (real)",
+    "notExecuted": "not executed",
+    "attemptsFailed": "attempts failed the expectation",
+    "after": "After",
+    "noFix": "no fix to run against",
+    "regression": "Regression suite",
+    "regressionNotRun": "Not run: there is no fix.",
+    "result": "Result",
+    "noFixNotVerified": "No fix · not verified"
+  },
+  "notImplemented": {
+    "records": "0 records",
+    "notYet": "EXEGEZIS does not produce this yet",
+    "requires": "What this stage will require before anything appears here"
+  }
+}

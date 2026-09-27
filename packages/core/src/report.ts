@@ -1,3 +1,5 @@
+import { stepMessage } from "./describe-messages.js";
+import { englishOf, msg } from "./messages.js";
 import type { RunOutcome } from "./execute.js";
 import { describeTarget } from "./schemas/target.js";
 import type { AssertionResult } from "./schemas/assertion.js";
@@ -78,7 +80,7 @@ export function buildBugReport(input: BugReportInput): BugReport {
     target: reproduction.targetUrl,
     expected:
       failed === undefined ? null : { description: failed.description, assertion: failed.assertion, value: failed.expected },
-    actual: failed === undefined ? null : { value: failed.actual, message: failed.message },
+    actual: failed === undefined ? null : { value: failed.actual, message: failed.message, ...(failed.detail === undefined ? {} : { detail: failed.detail }) },
     failingStep:
       failed === undefined ? null : { index: failed.stepIndex, ...(failed.stepId === undefined ? {} : { id: failed.stepId }) },
     reproduction: {
@@ -157,7 +159,7 @@ function evidenceChain(timeline: readonly TimelineEvent[], failed: AssertionResu
   ];
   const action = timeline.find((e) => e.id === links?.actionEventId);
   if (action?.type === "ACTION_STARTED") {
-    chain.push({ stage: "action", ref: action.id, summary: describeStep(action.payload.step) });
+    chain.push({ stage: "action", ref: action.id, summary: describeStep(action.payload.step), message: stepMessage(action.payload.step) });
   }
   if (links?.observationId !== undefined) {
     chain.push({
@@ -166,14 +168,12 @@ function evidenceChain(timeline: readonly TimelineEvent[], failed: AssertionResu
       summary: [links.screenshot?.id, links.accessibilitySnapshotId, links.domSnapshot?.id].filter(Boolean).join(" + "),
     });
   }
-  chain.push({ stage: "assertion", ref: links?.assertionEventId ?? failed.id, summary: `${failed.kind} assertion evaluated ${failed.attempts} time(s) over ${Math.round(failed.durationMs)} ms` });
-  chain.push({ stage: "failure", ref: failed.id, summary: failed.message });
+  const evaluated = msg("chainAssertion", { kind: failed.kind, attempts: failed.attempts, ms: Math.round(failed.durationMs) });
+  chain.push({ stage: "assertion", ref: links?.assertionEventId ?? failed.id, summary: englishOf(evaluated), message: evaluated });
+  chain.push({ stage: "failure", ref: failed.id, summary: failed.message, ...(failed.detail === undefined ? {} : { message: failed.detail }) });
   if (links !== undefined) {
-    chain.push({
-      stage: "evidence",
-      ref: `${links.window.fromEventId}..${links.window.toEventId}`,
-      summary: `${links.network.length} network, ${links.console.length} console, ${links.pageErrors.length} page error record(s) in the window; full trace available`,
-    });
+    const window = msg("chainWindow", { network: links.network.length, console: links.console.length, errors: links.pageErrors.length });
+    chain.push({ stage: "evidence", ref: `${links.window.fromEventId}..${links.window.toEventId}`, summary: englishOf(window), message: window });
   }
   return chain;
 }

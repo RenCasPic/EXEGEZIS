@@ -15,6 +15,11 @@ import {
   type ConsoleMessageEvidence,
   type NetworkExchangeEvidence,
   type PageErrorEvidence,
+  englishOf,
+  msg,
+  type EngineCode,
+  type EngineMessage,
+  type MessageParam,
 } from "@exegezis/core";
 import { AxeBuilder } from "@axe-core/playwright";
 import type { Page } from "playwright";
@@ -34,7 +39,10 @@ interface Sample {
   outcome: "pass" | "contradicts" | "absent" | "error";
   expected: Json;
   actual: Json;
+  /** English (older readers). */
   message: string;
+  /** The same message as a code and parameters, for every language. */
+  detail: EngineMessage;
   errorKind?: AssertionErrorKind;
   matches?: number;
 }
@@ -92,7 +100,7 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
       expected: assertion.expected,
       actual,
       matches: 1,
-      message: `text of ${describeTarget(assertion.target)} was ${JSON.stringify(actual)}; expected it to ${verb(assertion.operator)} ${JSON.stringify(assertion.expected)}`,
+      ...say("evalText", { target: describeTarget(assertion.target), actual: JSON.stringify(actual), op: assertion.operator, expected: JSON.stringify(assertion.expected) }),
     };
   },
 
@@ -103,8 +111,8 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
     if (count > 1) return ambiguous(assertion.target, assertion.expected, count);
     if (count === 0) {
       return assertion.expected === "hidden"
-        ? { outcome: "pass", expected: "hidden", actual: "absent", matches: 0, message: `${subject} is absent` }
-        : absent(assertion.expected, `${subject} never appeared`);
+        ? { outcome: "pass", expected: "hidden", actual: "absent", matches: 0, ...say("evalAbsent", { subject }) }
+        : absent(assertion.expected, msg("evalNeverAppeared", { subject }));
     }
     const actual = (await locator.isVisible()) ? "visible" : "hidden";
     return {
@@ -112,7 +120,7 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
       expected: assertion.expected,
       actual,
       matches: 1,
-      message: `${subject} was ${actual}; expected ${assertion.expected}`,
+      ...say("evalState", { subject, actual, expected: assertion.expected }),
     };
   },
 
@@ -121,15 +129,15 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
     const subject = describeTarget(assertion.target);
     if (count === 0) {
       return assertion.expected === "absent"
-        ? { outcome: "pass", expected: "absent", actual: "absent", matches: 0, message: `${subject} is absent` }
-        : absent(assertion.expected, `${subject} never appeared`);
+        ? { outcome: "pass", expected: "absent", actual: "absent", matches: 0, ...say("evalAbsent", { subject }) }
+        : absent(assertion.expected, msg("evalNeverAppeared", { subject }));
     }
     return {
       outcome: assertion.expected === "present" ? "pass" : "contradicts",
       expected: assertion.expected,
       actual: "present",
       matches: count,
-      message: `${subject} was present (${count} match${count === 1 ? "" : "es"}); expected ${assertion.expected}`,
+      ...say("evalPresent", { subject, count, expected: assertion.expected }),
     };
   },
 
@@ -142,7 +150,7 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
       expected: assertion.expected,
       actual,
       matches: 1,
-      message: `attribute ${assertion.name} of ${describeTarget(assertion.target)} was ${JSON.stringify(actual)}; expected it to ${verb(assertion.operator)} ${JSON.stringify(assertion.expected)}`,
+      ...say("evalAttribute", { name: assertion.name, target: describeTarget(assertion.target), actual: JSON.stringify(actual), op: assertion.operator, expected: JSON.stringify(assertion.expected) }),
     };
   },
 
@@ -153,20 +161,20 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
       outcome: matchesString(actual, assertion.operator, expected) ? "pass" : "contradicts",
       expected,
       actual,
-      message: `page URL was ${JSON.stringify(actual)}; expected it to ${verb(assertion.operator)} ${JSON.stringify(expected)}`,
+      ...say("evalUrl", { actual: JSON.stringify(actual), op: assertion.operator, expected: JSON.stringify(expected) }),
     });
   },
 
   async count({ page }, assertion) {
     const actual = await toLocator(page, assertion.target).count();
     const subject = describeTarget(assertion.target);
-    if (actual === 0 && assertion.expected > 0) return absent(assertion.expected, `${subject} matched no element`);
+    if (actual === 0 && assertion.expected > 0) return absent(assertion.expected, msg("evalNoMatch", { subject }));
     return {
       outcome: actual === assertion.expected ? "pass" : "contradicts",
       expected: assertion.expected,
       actual,
       matches: actual,
-      message: `${subject} matched ${actual} element(s); expected ${assertion.expected}`,
+      ...say("evalCount", { subject, actual, expected: assertion.expected }),
     };
   },
 
@@ -179,35 +187,35 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
     };
     const exchange = await context.lastResponse(request.method, request.path);
     const response = exchange?.response;
-    if (exchange === undefined || response === undefined) return absent(expectedJson, `no response to ${label} was observed`);
+    if (exchange === undefined || response === undefined) return absent(expectedJson, msg("evalNoResponse", { request: label }));
 
     const actual: { status: number; body?: { pointer: string; value: Json } } = { status: response.status };
     let pass = expected.status === undefined || response.status === expected.status;
-    const problems: string[] = [];
-    if (!pass) problems.push(`status was ${response.status}, expected ${expected.status}`);
+    const problems: EngineMessage[] = [];
+    if (!pass) problems.push(msg("evalStatusWas", { actual: response.status, expected: expected.status ?? "?" }));
 
     if (expected.body !== undefined) {
       const body = response.body;
       if (body === undefined || !body.captured) {
-        return error("body_unavailable", expectedJson, `the body of the response to ${label} was not captured`, 1);
+        return error("body_unavailable", expectedJson, msg("evalBodyNotCaptured", { request: label }), 1);
       }
       let document: unknown;
       try {
         document = JSON.parse(body.text);
       } catch {
-        return error("body_unavailable", expectedJson, `the body of the response to ${label} is not JSON`, 1);
+        return error("body_unavailable", expectedJson, msg("evalBodyNotJson", { request: label }), 1);
       }
       const value = resolveJsonPointer(document, expected.body.pointer);
       if (value === REDACTED) {
-        return error("value_redacted", expectedJson, `body${expected.body.pointer} is redacted evidence and cannot be compared`, 1);
+        return error("value_redacted", expectedJson, msg("evalBodyRedacted", { pointer: expected.body.pointer }), 1);
       }
       actual.body = { pointer: expected.body.pointer, value: (value === undefined ? null : value) as Json };
       const bodyPass = value !== undefined && canonicalJson(value) === canonicalJson(expected.body.equals);
       if (!bodyPass) {
         problems.push(
           value === undefined
-            ? `body${expected.body.pointer} does not exist`
-            : `body${expected.body.pointer} was ${JSON.stringify(value)}, expected ${JSON.stringify(expected.body.equals)}`,
+            ? msg("evalBodyMissing", { pointer: expected.body.pointer })
+            : msg("evalBodyWas", { pointer: expected.body.pointer, actual: JSON.stringify(value), expected: JSON.stringify(expected.body.equals) }),
         );
       }
       pass = pass && bodyPass;
@@ -218,7 +226,7 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
       expected: expectedJson,
       actual,
       matches: 1,
-      message: pass ? `response to ${label} met the expectation` : `response to ${label}: ${problems.join("; ")}`,
+      ...(pass ? say("evalResponseMet", { request: label }) : say("evalResponseProblems", { request: label, problems })),
     };
   },
 
@@ -231,10 +239,9 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
       expected: "absent",
       actual: hits.length === 0 ? "absent" : hits.slice(0, 5),
       matches: hits.length,
-      message:
-        hits.length === 0
-          ? `no console ${assertion.level} contains ${JSON.stringify(assertion.contains)}`
-          : `${hits.length} console ${assertion.level}(s) contain ${JSON.stringify(assertion.contains)}: ${JSON.stringify(hits[0])}`,
+      ...(hits.length === 0
+        ? say("evalNoConsole", { level: assertion.level, text: JSON.stringify(assertion.contains) })
+        : say("evalConsoleHits", { count: hits.length, level: assertion.level, text: JSON.stringify(assertion.contains), first: JSON.stringify(hits[0]) })),
     };
   },
 
@@ -245,7 +252,7 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
       expected: "absent",
       actual: hits.length === 0 ? "absent" : hits.slice(0, 5),
       matches: hits.length,
-      message: hits.length === 0 ? `no page error contains ${JSON.stringify(assertion.contains)}` : `uncaught page error: ${hits[0] ?? ""}`,
+      ...(hits.length === 0 ? say("evalNoPageError", { text: JSON.stringify(assertion.contains) }) : say("evalPageError", { first: hits[0] ?? "" })),
     };
   },
 
@@ -254,17 +261,19 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
     const matching = (await context.exchanges()).filter((x) => (method === undefined || x.request.method === method) && matchesRequestUrl(x.request.url, url));
     const bad = matching.filter((x) => x.failure !== undefined || (x.response !== undefined && x.response.status >= 400));
     const describe = (x: NetworkExchangeEvidence) => (x.failure !== undefined ? `failed: ${x.failure.errorText}` : `${x.response?.status ?? "no response"}`);
+    const first = bad[0];
     return {
       outcome: bad.length === 0 ? "pass" : "contradicts",
       expected: "ok",
       actual: bad.length === 0 ? (matching.length === 0 ? "not requested" : "ok") : bad.slice(0, 5).map(describe),
       matches: matching.length,
-      message:
-        bad.length === 0
-          ? matching.length === 0
-            ? `the page made no request to ${url}`
-            : `${matching.length} request(s) to ${url} succeeded`
-          : `request to ${method ?? "ANY"} ${url} ${describe(bad[0] as NetworkExchangeEvidence)}`,
+      ...(first === undefined
+        ? matching.length === 0
+          ? say("evalNoRequest", { url })
+          : say("evalRequestsOk", { count: matching.length, url })
+        : first.failure !== undefined
+          ? say("evalRequestFailed", { method: method ?? "ANY", url, error: first.failure.errorText })
+          : say("evalRequestStatus", { method: method ?? "ANY", url, status: first.response?.status ?? "no response" })),
     };
   },
 
@@ -279,7 +288,7 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
       expected: "ok",
       actual: status,
       matches: 1,
-      message: `GET ${url} answered ${status}${status < 400 ? "" : "; expected a status below 400"}`,
+      ...say(status < 400 ? "evalLink" : "evalLinkBad", { url, status }),
     };
   },
 
@@ -294,10 +303,7 @@ const EVALUATORS: { [K in AssertionKind]: Evaluator<K> | null } = {
       expected: "no_violation",
       actual: hits.length === 0 ? "no_violation" : "violation",
       matches: hits.length,
-      message:
-        hits.length === 0
-          ? `axe ${results.testEngine.version} rule ${assertion.rule}: no violation on ${JSON.stringify(assertion.selector)}`
-          : `axe ${results.testEngine.version} rule ${assertion.rule} is violated by ${JSON.stringify(assertion.selector)}`,
+      ...say(hits.length === 0 ? "evalA11yOk" : "evalA11yViolated", { version: results.testEngine.version, rule: assertion.rule, selector: JSON.stringify(assertion.selector) }),
     };
   },
 };
@@ -333,7 +339,7 @@ export async function evaluateAssertion(
       errorKind: "unsupported",
       expected: null,
       actual: null,
-      message: `"${assertion.kind}" assertions are not supported by the browser adapter`,
+      ...say("evalUnsupported", { kind: assertion.kind }),
       attempts: 1,
     };
   }
@@ -349,7 +355,7 @@ export async function evaluateAssertion(
     try {
       last = await evaluator(context, assertion);
     } catch (thrown) {
-      last = error("evaluation_error", null, `${describeAssertion(assertion)}: ${toErrorInfo(thrown).message}`);
+      last = error("evaluation_error", null, msg("evalError", { assertion: describeAssertion(assertion), error: toErrorInfo(thrown).message }));
     }
     lastAt = performance.now();
     const key = `${last.outcome}|${canonicalJson(last.actual)}`;
@@ -371,15 +377,15 @@ export async function evaluateAssertion(
   };
   switch (last.outcome) {
     case "pass":
-      return { status: "passed", message: last.message, ...base };
+      return { status: "passed", message: last.message, detail: last.detail, ...base };
     case "contradicts": {
       const stableFor = lastAt - stableSince;
       return stableFor >= options.stabilityMs
-        ? { status: "failed", message: last.message, ...base }
+        ? { status: "failed", message: last.message, detail: last.detail, ...base }
         : {
             status: "timeout",
             timeoutReason: "value_unsettled",
-            message: `${last.message} (value still changing at the timeout: stable for ${Math.round(stableFor)} of ${options.stabilityMs} ms)`,
+            ...say("evalUnsettled", { base: last.detail, stable: Math.round(stableFor), needed: options.stabilityMs }),
             ...base,
           };
     }
@@ -387,11 +393,11 @@ export async function evaluateAssertion(
       return {
         status: "timeout",
         timeoutReason: "subject_absent",
-        message: `${last.message} within ${options.timeoutMs} ms`,
+        ...say("evalWithin", { base: last.detail, ms: options.timeoutMs }),
         ...base,
       };
     case "error":
-      return { status: "error", errorKind: last.errorKind ?? "evaluation_error", message: last.message, ...base };
+      return { status: "error", errorKind: last.errorKind ?? "evaluation_error", message: last.message, detail: last.detail, ...base };
   }
 }
 
@@ -405,23 +411,25 @@ async function resolveSingle(
 ): Promise<{ locator: ReturnType<typeof toLocator> } | { sample: Sample }> {
   const locator = toLocator(page, assertion.target);
   const count = await locator.count();
-  if (count === 0) return { sample: absent(assertion.expected, `${describeTarget(assertion.target)} matched no element`) };
+  if (count === 0) return { sample: absent(assertion.expected, msg("evalNoMatch", { subject: describeTarget(assertion.target) })) };
   if (count > 1) return { sample: ambiguous(assertion.target, assertion.expected, count) };
   return { locator };
 }
 
-function absent(expected: Json, message: string): Sample {
-  return { outcome: "absent", expected, actual: null, message, matches: 0 };
+/** A message in English (older readers) and as a code with parameters (every language). */
+function say(code: EngineCode, params: Record<string, MessageParam>): { message: string; detail: EngineMessage } {
+  const detail = msg(code, params);
+  return { message: englishOf(detail), detail };
+}
+
+function absent(expected: Json, detail: EngineMessage): Sample {
+  return { outcome: "absent", expected, actual: null, message: englishOf(detail), detail, matches: 0 };
 }
 
 function ambiguous(target: Parameters<typeof describeTarget>[0], expected: Json, count: number): Sample {
-  return error("target_ambiguous", expected, `${describeTarget(target)} matched ${count} elements; a target must match exactly one`, count);
+  return error("target_ambiguous", expected, msg("evalAmbiguous", { target: describeTarget(target), count }), count);
 }
 
-function error(errorKind: AssertionErrorKind, expected: Json, message: string, matches?: number): Sample {
-  return { outcome: "error", errorKind, expected, actual: null, message, ...(matches === undefined ? {} : { matches }) };
-}
-
-function verb(operator: "equals" | "contains" | "matches"): string {
-  return operator === "equals" ? "equal" : operator === "contains" ? "contain" : "match";
+function error(errorKind: AssertionErrorKind, expected: Json, detail: EngineMessage, matches?: number): Sample {
+  return { outcome: "error", errorKind, expected, actual: null, message: englishOf(detail), detail, ...(matches === undefined ? {} : { matches }) };
 }

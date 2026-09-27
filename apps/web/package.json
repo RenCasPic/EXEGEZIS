@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@exegezis/inspect": "workspace:*",
+    "@formatjs/icu-messageformat-parser": "3.5.20",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.13.6",
     "@types/react": "^19.3.0",

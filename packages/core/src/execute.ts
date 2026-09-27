@@ -1,6 +1,7 @@
 import { arch, platform, release } from "node:os";
 import { supportsAction, supportsAssertion, type Adapter, type AdapterSession } from "./adapter.js";
 import { canonicalJson, hashJson } from "./hash.js";
+import { englishOf, msg } from "./messages.js";
 import { isEngineUnavailable, type EngineUnavailableError } from "./engine.js";
 import type { Logger } from "./logger.js";
 import type { RunRecorder } from "./recorder.js";
@@ -346,7 +347,10 @@ export async function executeRun(options: ExecuteRunOptions): Promise<RunOutcome
         errorKind: "unsupported",
         expected: null,
         actual: null,
-        message: `adapter "${adapter.descriptor.id}" cannot evaluate "${step.assertion.kind}" assertions`,
+        ...(() => {
+          const detail = msg("evalAdapterCannot", { adapter: adapter.descriptor.id, kind: step.assertion.kind });
+          return { message: englishOf(detail), detail };
+        })(),
         attempts: 1,
       };
     } else {

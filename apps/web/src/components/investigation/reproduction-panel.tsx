@@ -1,12 +1,16 @@
 import { Check, Code2, Repeat, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import type { BugReport, Reproduction } from "@exegezis/core";
+import { EngineText } from "@/components/ui/engine-text";
 import { CodeBlock, Meta, Mono, Panel, tableClass } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
 import { OutcomePill, StatusPill } from "@/components/ui/status";
 import { cn } from "@/lib/cn";
 import type { AttemptEntry, InvestigationSummary } from "@/lib/evidence/investigations";
-import { compactJson, duration, percent } from "@/lib/format";
+import { useFormat } from "@/i18n/client";
+import { compactJson } from "@/lib/format";
+import { StageDetailText } from "./stage-detail";
 
 const VERDICT_TONE = { passed: "q", failed: "bad", timeout: "warn", error: "warn", no_assertions: "q" } as const;
 
@@ -29,6 +33,10 @@ export function ReproductionPanel({
   spec: { path: string; source: string } | null;
   investigationId: string;
 }) {
+  const t = useTranslations("investigations.reproduction");
+  const crit = useTranslations("investigations.criteria");
+  const status = useTranslations("labels.status");
+  const f = useFormat();
   const stage = summary.stages.find((s) => s.id === "reproduction");
   const r = report?.reproduction ?? null;
   const compiled = report?.compiledTest ?? null;
@@ -36,28 +44,25 @@ export function ReproductionPanel({
   return (
     <Panel
       id="reproduction"
-      title="Reproduction"
+      title={t("title")}
       icon={<Repeat />}
       actions={
         spec !== null && compiled !== null ? (
-          <Sheet trigger={<><Code2 /> Open Playwright Test</>} title="Compiled Playwright test" subtitle={`${spec.path} · sha256 ${compiled.sha256.slice(0, 12)}…`}>
+          <Sheet trigger={<><Code2 /> {t("openTest")}</>} title={t("compiledTitle")} subtitle={`${spec.path} · sha256 ${compiled.sha256.slice(0, 12)}…`}>
             <div className="flex flex-col gap-4">
               <Meta
                 items={[
-                  { label: "Runner", value: <Mono>{compiled.runner}</Mono> },
+                  { label: t("runner"), value: <Mono>{compiled.runner}</Mono> },
                   {
-                    label: "Result",
+                    label: t("result"),
                     value: <StatusPill status={compiled.status.toUpperCase()} tone={compiled.status === "failed" ? "bad" : compiled.status === "passed" ? "q" : "warn"} size="xs" />,
                   },
-                  ...(compiled.failedAtStep === undefined ? [] : [{ label: "Failed at step", value: compiled.failedAtStep }]),
-                  ...(compiled.message === undefined ? [] : [{ label: "Message", value: <Mono>{compiled.message}</Mono> }]),
-                  { label: "Duration", value: duration(compiled.durationMs) },
+                  ...(compiled.failedAtStep === undefined ? [] : [{ label: t("failedAtStep"), value: compiled.failedAtStep }]),
+                  ...(compiled.message === undefined ? [] : [{ label: t("message"), value: <Mono>{compiled.message}</Mono> }]),
+                  { label: t("duration"), value: f.duration(compiled.durationMs) },
                 ]}
               />
-              <p className="text-xs text-muted">
-                Generated from the plan by the compiler and run with the standard Playwright runner, independently of the EXEGEZIS engine. A VERIFIED bug requires
-                it to fail at the same step.
-              </p>
+              <p className="text-xs text-muted">{t("compiledNote")}</p>
               <CodeBlock code={spec.source} maxHeight="none" />
             </div>
           </Sheet>
@@ -69,34 +74,40 @@ export function ReproductionPanel({
           {stage !== undefined && <StatusPill status={stage.status} tone={stage.tone} />}
           <p className="text-[13px] text-muted">
             {summary.outcomeSource === "benchmark"
-              ? `Nothing was executed. The benchmark recorded ${summary.outcome ?? "no outcome"} because ${summary.generation?.status === "declined" ? "the planner declined" : "no valid plan was produced"}.`
-              : stage?.detail}
+              ? t("nothingExecuted", { outcome: summary.outcome === null ? t("noOutcome") : status(summary.outcome), why: summary.generation?.status === "declined" ? t("plannerDeclined") : t("noValidPlan") })
+              : stage !== undefined && <StageDetailText detail={stage.detail} />}
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-5">
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-md border border-line bg-panel-2 p-3">
-              <div className="text-xs text-muted">Verdict</div>
+              <div className="text-xs text-muted">{t("verdict")}</div>
               <div className="mt-1.5">
                 <OutcomePill outcome={report.outcome} />
               </div>
-              <div className="mt-2 text-xs text-faint">{report.outcomeReason}</div>
+              <div className="mt-2 text-xs text-faint">
+                <EngineText message={report.outcomeMessage} text={report.outcomeReason} />
+              </div>
             </div>
             <div className="rounded-md border border-line bg-panel-2 p-3">
-              <div className="text-xs text-muted">Runs that failed the expectation</div>
+              <div className="text-xs text-muted">{t("runsFailed")}</div>
               <div className="mt-1 font-mono text-[22px] font-semibold text-fg">
                 {r?.failures ?? 0} <span className="text-faint">/ {r?.attempts ?? 0}</span>
               </div>
               <div className="text-xs text-faint">
-                {r?.passes ?? 0} passed · {r?.timeouts ?? 0} timed out · {r?.errors ?? 0} errors
+                {t("runsBreakdown", { passes: r?.passes ?? 0, timeouts: r?.timeouts ?? 0, errors: r?.errors ?? 0 })}
               </div>
             </div>
             <div className="rounded-md border border-line bg-panel-2 p-3">
-              <div className="text-xs text-muted">Reproduction rate</div>
-              <div className="mt-1 font-mono text-[22px] font-semibold text-fg">{percent(r?.rate ?? null)}</div>
+              <div className="text-xs text-muted">{t("rate")}</div>
+              <div className="mt-1 font-mono text-[22px] font-semibold text-fg">{f.percent(r?.rate ?? null)}</div>
               <div className="text-xs text-faint">
-                {r?.status.replace("_", " ")}: {r?.reason}
+                {r !== null && (
+                  <>
+                    {status(r.status)}: <EngineText message={r.message} text={r.reason} />
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -105,30 +116,34 @@ export function ReproductionPanel({
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-md border border-line p-3">
                 <div className="mb-1.5 flex items-center gap-2 text-xs font-medium text-muted">
-                  Expected <span className="font-normal normal-case tracking-normal text-faint">(from the plan)</span>
+                  {t("expected")} <span className="font-normal normal-case tracking-normal text-faint">{t("fromPlan")}</span>
                 </div>
-                <div className="text-[13px] text-fg">{report.expected?.description ?? "—"}</div>
+                <div className="text-[13px] text-fg" translate="no">
+                  {report.expected?.description ?? "—"}
+                </div>
                 {report.expected !== null && <div className="mt-1.5 font-mono text-[12px] text-ok">{compactJson(report.expected.value)}</div>}
               </div>
               <div className="rounded-md border border-bad/30 bg-bad-bg p-3">
                 <div className="mb-1.5 flex items-center gap-2 text-xs font-medium text-muted">
-                  Actual <span className="rounded border border-line-strong px-1 text-[10px] tracking-wider text-muted">Observed</span>
+                  {t("actual")} <span className="rounded border border-line-strong px-1 text-[10px] tracking-wider text-muted">{t("observed")}</span>
                 </div>
-                <div className="text-[13px] text-fg">{report.actual?.message ?? "—"}</div>
+                <div className="text-[13px] text-fg">{report.actual === null ? "—" : <EngineText text={report.actual.message} />}</div>
                 {report.actual !== null && <div className="mt-1.5 font-mono text-[12px] text-bad">{compactJson(report.actual.value)}</div>}
               </div>
             </div>
           )}
 
           <div>
-            <div className="mb-2 text-xs font-medium text-muted">Verification criteria (all six required for VERIFIED)</div>
+            <div className="mb-2 text-xs font-medium text-muted">{t("criteriaTitle")}</div>
             <ul className="grid gap-1.5 md:grid-cols-2">
               {report.criteria.map((c) => (
                 <li key={c.id} className="flex items-start gap-2 rounded-md border border-line px-3 py-2">
                   {c.met ? <Check className="mt-0.5 size-3.5 shrink-0 text-ok" /> : <X className="mt-0.5 size-3.5 shrink-0 text-bad" />}
                   <div className="min-w-0">
-                    <div className="text-[13px] text-fg">{c.description}</div>
-                    <div className="break-words text-xs text-faint">{c.detail}</div>
+                    <div className="text-[13px] text-fg">{crit(c.id)}</div>
+                    <div className="break-words text-xs text-faint">
+                      <EngineText message={c.message} text={c.detail} />
+                    </div>
                   </div>
                 </li>
               ))}
@@ -137,17 +152,17 @@ export function ReproductionPanel({
 
           {attempts.length > 0 && (
             <div>
-              <div className="mb-2 text-xs font-medium text-muted">Attempts</div>
+              <div className="mb-2 text-xs font-medium text-muted">{t("attempts")}</div>
               <div className={cn(tableClass.wrap, "rounded-md border border-line")}>
                 <table className={tableClass.table}>
                   <thead>
                     <tr>
                       <th className={tableClass.th}>#</th>
-                      <th className={tableClass.th}>Run</th>
-                      <th className={tableClass.th}>Verdict</th>
-                      <th className={tableClass.th}>Stopped at</th>
-                      <th className={tableClass.th}>Duration</th>
-                      <th className={tableClass.th}>Evidence</th>
+                      <th className={tableClass.th}>{t("colRun")}</th>
+                      <th className={tableClass.th}>{t("colVerdict")}</th>
+                      <th className={tableClass.th}>{t("colStoppedAt")}</th>
+                      <th className={tableClass.th}>{t("colDuration")}</th>
+                      <th className={tableClass.th}>{t("colEvidence")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -156,20 +171,20 @@ export function ReproductionPanel({
                         <td className={`${tableClass.td} font-mono text-faint`}>{a.attempt}</td>
                         <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>
                           {a.runId}
-                          {a.runId === representativeRunId && <span className="ml-2 text-[10px] text-accent-text">cited in report</span>}
+                          {a.runId === representativeRunId && <span className="ml-2 text-[10px] text-accent-text">{t("cited")}</span>}
                         </td>
                         <td className={tableClass.td}>
                           <StatusPill status={a.verdict.toUpperCase()} tone={VERDICT_TONE[a.verdict as keyof typeof VERDICT_TONE] ?? "q"} size="xs" />
                         </td>
-                        <td className={`${tableClass.td} font-mono text-[12px]`}>{a.stoppedAtStep === null ? "—" : `step ${a.stoppedAtStep}`}</td>
-                        <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{duration(a.durationMs)}</td>
+                        <td className={`${tableClass.td} font-mono text-[12px]`}>{a.stoppedAtStep === null ? "—" : t("step", { step: a.stoppedAtStep })}</td>
+                        <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{f.duration(a.durationMs)}</td>
                         <td className={tableClass.td}>
                           {a.onDisk ? (
                             <Link href={`/investigations/${investigationId}?attempt=${a.runId}#evidence`} scroll={false} className="text-[12px] text-accent-text hover:underline">
-                              {a.runId === selectedRunId ? "Viewing" : "View"}
+                              {a.runId === selectedRunId ? t("viewing") : t("view")}
                             </Link>
                           ) : (
-                            <span className="text-[12px] text-faint">not on disk</span>
+                            <span className="text-[12px] text-faint">{t("notOnDisk")}</span>
                           )}
                         </td>
                       </tr>
@@ -179,7 +194,7 @@ export function ReproductionPanel({
               </div>
             </div>
           )}
-          {reproduction === null && attempts.length === 0 && <p className="text-xs text-faint">reproduction.json is not available for this result (archived results keep only the report).</p>}
+          {reproduction === null && attempts.length === 0 && <p className="text-xs text-faint">{t("noReproductionFile")}</p>}
         </div>
       )}
     </Panel>

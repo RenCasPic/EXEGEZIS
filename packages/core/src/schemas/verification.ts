@@ -268,7 +268,10 @@ export type EvidenceRef = z.infer<typeof EvidenceRef>;
 export const EvidenceChainLink = z.strictObject({
   stage: z.enum(["expectation", "action", "observation", "assertion", "failure", "evidence"]),
   ref: z.string(),
+  /** English, or content (the plan's own description of the expectation). */
   summary: z.string(),
+  /** The summary as a code and parameters, when the engine wrote it (absent for content and in older reports). */
+  message: EngineMessage.optional(),
 });
 export type EvidenceChainLink = z.infer<typeof EvidenceChainLink>;
 
@@ -292,7 +295,7 @@ export const BugReport = z
     criteria: z.array(VerificationCriterion).length(6),
     target: z.string(),
     expected: z.strictObject({ description: z.string(), assertion: Assertion, value: z.json() }).nullable(),
-    actual: z.strictObject({ value: z.json(), message: z.string() }).nullable(),
+    actual: z.strictObject({ value: z.json(), message: z.string(), detail: EngineMessage.optional() }).nullable(),
     failingStep: z.strictObject({ index: z.int().positive(), id: z.string().optional() }).nullable(),
     reproduction: z.strictObject({
       path: z.string(),

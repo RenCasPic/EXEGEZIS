@@ -1,1 +1,117 @@
-{}
+{
+  "pipeline": {
+    "label": "Etapas de la investigación"
+  },
+  "symptom": {
+    "title": "Síntoma",
+    "sourceCase": "Definición del caso del benchmark (case.json)",
+    "sourceUi": "Escrito en esta interfaz",
+    "sourcePlan": "Registrado en el plan generado",
+    "source": "Origen",
+    "caseKind": "Tipo de caso",
+    "positive": "Positivo (un bug sembrado)",
+    "negative": "Negativo (nunca debe salir verificado)",
+    "expectedOutcome": "Resultado esperado",
+    "benchmarkResult": "Resultado del benchmark"
+  },
+  "evidence": {
+    "title": "Evidencia",
+    "attemptSubtitle": "intento {attempt}",
+    "observed": "Observado",
+    "attempt": "Intento",
+    "attemptTitle": "{runId} · {verdict}",
+    "footer": "Todo lo anterior lo registró el adaptador del navegador durante este intento. Las filas resaltadas las cita el informe del bug. Nada aquí es una deducción.",
+    "tabs": {
+      "timeline": "Cronología",
+      "assertions": "Aserciones",
+      "console": "Consola",
+      "network": "Red",
+      "dom": "DOM",
+      "screenshot": "Captura",
+      "accessibility": "Accesibilidad",
+      "trace": "Trace",
+      "manifest": "Manifiesto"
+    }
+  },
+  "reproduction": {
+    "title": "Reproducción",
+    "openTest": "Abrir el test de Playwright",
+    "compiledTitle": "Test de Playwright compilado",
+    "runner": "Ejecutor",
+    "result": "Resultado",
+    "failedAtStep": "Falló en el paso",
+    "message": "Mensaje",
+    "duration": "Duración",
+    "compiledNote": "El compilador lo genera a partir del plan y se ejecuta con el ejecutor estándar de Playwright, sin el motor de EXEGEZIS. Un bug verificado exige que falle en el mismo paso.",
+    "nothingExecuted": "No se ejecutó nada. El benchmark registró {outcome} porque {why}.",
+    "plannerDeclined": "el planner se negó",
+    "noValidPlan": "no se produjo ningún plan válido",
+    "noOutcome": "ningún resultado",
+    "verdict": "Veredicto",
+    "runsFailed": "Ejecuciones que incumplieron la expectativa",
+    "runsBreakdown": "{passes} pasaron · {timeouts} agotaron el tiempo · {errors, plural, one {# error} other {# errores}}",
+    "rate": "Tasa de reproducción",
+    "expected": "Esperado",
+    "fromPlan": "(del plan)",
+    "actual": "Real",
+    "observed": "Observado",
+    "criteriaTitle": "Criterios de verificación (los seis son necesarios para verificar un bug)",
+    "attempts": "Intentos",
+    "colRun": "Ejecución",
+    "colVerdict": "Veredicto",
+    "colStoppedAt": "Se detuvo en",
+    "colDuration": "Duración",
+    "colEvidence": "Evidencia",
+    "cited": "citado en el informe",
+    "step": "paso {step}",
+    "viewing": "Viendo",
+    "view": "Ver",
+    "notOnDisk": "no está en el disco",
+    "noReproductionFile": "reproduction.json no está disponible para este resultado (los resultados archivados solo guardan el informe)."
+  },
+  "criteria": {
+    "plan_valid": "Un plan semánticamente válido",
+    "expectation_defined": "Un comportamiento esperado definido",
+    "anchored": "Una expectativa anclada en un estado verificado",
+    "reproduced": "Una ejecución fallida reproducible",
+    "evidence_captured": "Evidencia capturada",
+    "executable_test": "Un test ejecutable determinista que falla"
+  },
+  "rootCause": {
+    "title": "Causa raíz",
+    "subtitle": "investigación de causa raíz de {bug} · plan {plan}",
+    "open": "Abrir",
+    "rule": "Una causa solo aparece como validada cuando una intervención en una copia aislada eliminó el bug en todas las ejecuciones y las hipótesis alternativas quedaron refutadas.",
+    "run": "Ejecuta:"
+  },
+  "fix": {
+    "title": "Arreglo",
+    "proposedChange": "Cambio propuesto",
+    "proposedNone": "Ninguno (las mutaciones de causa raíz son experimentos que se descartan tras cada ejecución; no son arreglos)",
+    "filesChanged": "Archivos cambiados",
+    "none": "Ninguno",
+    "regressionTest": "Test de regresión",
+    "regressionExists": "El test de reproducción compilado ({path}) existe, pero no se ha usado como test de regresión de ningún arreglo."
+  },
+  "fixVerification": {
+    "title": "Verificación del arreglo",
+    "bugReproduced": "Bug reproducido",
+    "fixApplied": "Arreglo aplicado",
+    "reproductionPasses": "La reproducción pasa",
+    "regressionPasses": "Los tests de regresión pasan",
+    "before": "Antes (real)",
+    "notExecuted": "sin ejecutar",
+    "attemptsFailed": "intentos incumplieron la expectativa",
+    "after": "Después",
+    "noFix": "no hay arreglo con el que comparar",
+    "regression": "Tests de regresión",
+    "regressionNotRun": "Sin ejecutar: no hay arreglo.",
+    "result": "Resultado",
+    "noFixNotVerified": "Sin arreglo · no verificado"
+  },
+  "notImplemented": {
+    "records": "0 registros",
+    "notYet": "EXEGEZIS aún no produce esto",
+    "requires": "Lo que esta etapa necesitará antes de que aparezca algo aquí"
+  }
+}

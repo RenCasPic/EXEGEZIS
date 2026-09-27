@@ -1,4 +1,5 @@
 import { FileSearch } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import type { BugReport } from "@exegezis/core";
 import {
@@ -18,21 +19,10 @@ import { StatusPill } from "@/components/ui/status";
 import { cn } from "@/lib/cn";
 import type { AttemptEvidence } from "@/lib/evidence/attempt";
 import type { AttemptEntry, InvestigationSummary } from "@/lib/evidence/investigations";
+import { StageDetailText } from "./stage-detail";
 
 export const EVIDENCE_TABS = ["timeline", "assertions", "console", "network", "dom", "screenshot", "accessibility", "trace", "manifest"] as const;
 export type EvidenceTab = (typeof EVIDENCE_TABS)[number];
-
-const TAB_LABEL: Record<EvidenceTab, string> = {
-  timeline: "Timeline",
-  assertions: "Assertions",
-  console: "Console",
-  network: "Network",
-  dom: "DOM",
-  screenshot: "Screenshot",
-  accessibility: "Accessibility",
-  trace: "Trace",
-  manifest: "Manifest",
-};
 
 /** Evidence ids the BugReport cites (event ranges are expanded against the timeline). */
 function citedIds(report: BugReport | null, evidence: AttemptEvidence): Set<string> {
@@ -68,6 +58,8 @@ export function EvidencePanel({
   tab: EvidenceTab;
   investigationId: string;
 }) {
+  const t = useTranslations("investigations.evidence");
+  const verdict = useTranslations("labels.attemptVerdict");
   const stage = summary.stages.find((s) => s.id === "evidence");
   const base = `/investigations/${investigationId}`;
   const query = (patch: { attempt?: string; tab?: string }) => {
@@ -81,23 +73,23 @@ export function EvidencePanel({
   return (
     <Panel
       id="evidence"
-      title="Evidence"
+      title={t("title")}
       icon={<FileSearch />}
-      subtitle={evidence === null ? undefined : `attempt ${evidence.runPath.split("/").pop() ?? ""}`}
+      subtitle={evidence === null ? undefined : t("attemptSubtitle", { attempt: evidence.runPath.split("/").pop() ?? "" })}
       actions={
         <>
-          <span className="rounded border border-line-strong px-1.5 py-px font-mono text-[10px] text-muted">Observed</span>
+          <span className="rounded border border-line-strong px-1.5 py-px font-mono text-[10px] text-muted">{t("observed")}</span>
           {stage !== undefined && <StatusPill status={stage.status} tone={stage.tone} size="xs" />}
         </>
       }
       bodyClassName="p-0"
     >
       {evidence === null ? (
-        <p className="p-4 text-[13px] text-muted">{stage?.detail}</p>
+        <p className="p-4 text-[13px] text-muted">{stage !== undefined && <StageDetailText detail={stage.detail} />}</p>
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-1.5 border-b border-line px-4 py-2">
-            <span className="mr-1 text-xs text-faint">Attempt</span>
+            <span className="mr-1 text-xs text-faint">{t("attempt")}</span>
             {attempts
               .filter((a) => a.onDisk)
               .map((a) => {
@@ -107,7 +99,7 @@ export function EvidencePanel({
                     key={a.runId}
                     href={query({ attempt: a.runId })}
                     scroll={false}
-                    title={`${a.runId} · ${a.verdict}`}
+                    title={t("attemptTitle", { runId: a.runId, verdict: verdict(a.verdict) })}
                     className={cn(
                       "flex h-6 min-w-6 items-center justify-center rounded border px-1.5 font-mono text-[11px]",
                       selected ? "border-accent-text text-fg" : "border-line text-muted hover:border-line-strong hover:text-fg",
@@ -120,12 +112,12 @@ export function EvidencePanel({
                 );
               })}
           </div>
-          <TabLinks active={tab} tabs={EVIDENCE_TABS.map((t) => ({ id: t, label: TAB_LABEL[t], href: query({ tab: t }) }))} />
+          <TabLinks active={tab} tabs={EVIDENCE_TABS.map((id) => ({ id, label: t(`tabs.${id}`), href: query({ tab: id }) }))} />
           <div className="max-h-[40rem] overflow-y-auto">
             <EvidenceTabBody tab={tab} evidence={evidence} investigationId={investigationId} highlight={citedIds(report, evidence)} />
           </div>
           <div className="border-t border-line px-4 py-2 text-[11px] text-faint">
-            Everything above was recorded by the browser adapter during this attempt. Highlighted rows are cited by the BugReport. Nothing here is inferred.
+            {t("footer")}
           </div>
         </>
       )}

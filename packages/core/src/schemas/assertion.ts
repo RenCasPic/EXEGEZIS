@@ -1,3 +1,4 @@
+import { EngineMessage } from "../messages.js";
 import { z } from "zod";
 import { ElementTarget, describeTarget } from "./target.js";
 import { Timestamp } from "./common.js";
@@ -266,7 +267,10 @@ export const AssertionEvaluation = z.strictObject({
   status: AssertionStatus,
   expected: z.json(),
   actual: z.json(),
+  /** English (older readers). */
   message: z.string(),
+  /** The same message as a code and parameters, for every language (absent in older runs). */
+  detail: EngineMessage.optional(),
   errorKind: AssertionErrorKind.optional(),
   timeoutReason: AssertionTimeoutReason.optional(),
   /** Elements (or responses) matched by the target at the last attempt. */

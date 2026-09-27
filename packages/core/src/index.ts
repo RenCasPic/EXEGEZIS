@@ -32,3 +32,4 @@ export * from "./color.js";
 export * from "./search-text.js";
 export * from "./schemas/search.js";
 export * from "./messages.js";
+export * from "./describe-messages.js";

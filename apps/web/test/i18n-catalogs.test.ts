@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { parse, TYPE, type MessageFormatElement } from "@formatjs/icu-messageformat-parser";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { AREAS, CATALOGS } from "../src/i18n/messages";
@@ -21,9 +22,21 @@ function flatten(value: unknown, prefix = ""): Map<string, string> {
   return out;
 }
 
-/** Argument names used in an ICU message ({name}, {count, plural, …}). */
+/** Argument names of an ICU message (plain, plural, select…), from its parsed form; a message that does not parse fails. */
 function placeholders(message: string): string[] {
-  return [...new Set([...message.matchAll(/\{\s*([A-Za-z_][\w]*)\s*(?:[,}])/g)].map((m) => m[1] ?? ""))].sort();
+  const names = new Set<string>();
+  const walk = (elements: MessageFormatElement[]) => {
+    for (const e of elements) {
+      if (e.type === TYPE.argument || e.type === TYPE.number || e.type === TYPE.date || e.type === TYPE.time) names.add(e.value);
+      if (e.type === TYPE.plural || e.type === TYPE.select) {
+        names.add(e.value);
+        for (const option of Object.values(e.options)) walk(option.value);
+      }
+      if (e.type === TYPE.tag) walk(e.children);
+    }
+  };
+  walk(parse(message));
+  return [...names].sort();
 }
 
 describe("message catalogs", () => {

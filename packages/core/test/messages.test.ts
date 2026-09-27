@@ -1,7 +1,23 @@
+import { parse, TYPE, type MessageFormatElement } from "@formatjs/icu-messageformat-parser";
 import { describe, expect, it } from "vitest";
 import { classifyReproduction, deriveOutcome, ENGINE_MESSAGES, EngineMessage, formatEngineMessage, msg } from "../src/index.js";
 
-const args = (t: string) => [...new Set([...t.matchAll(/\{\s*([A-Za-z_]\w*)\s*[,}]/g)].map((m) => m[1]))].sort().join();
+/** Argument names of an ICU message (plain, number, date, plural, select), from its parsed form. */
+function args(message: string): string {
+  const names = new Set<string>();
+  const walk = (elements: MessageFormatElement[]) => {
+    for (const e of elements) {
+      if (e.type === TYPE.argument || e.type === TYPE.number || e.type === TYPE.date || e.type === TYPE.time) names.add(e.value);
+      if (e.type === TYPE.plural || e.type === TYPE.select) {
+        names.add(e.value);
+        for (const option of Object.values(e.options)) walk(option.value);
+      }
+      if (e.type === TYPE.tag) walk(e.children);
+    }
+  };
+  walk(parse(message));
+  return [...names].sort().join();
+}
 
 describe("engine messages", () => {
   it("have the same codes and placeholders in English and Spanish, and no empty text", () => {
