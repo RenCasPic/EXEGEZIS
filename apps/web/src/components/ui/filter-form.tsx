@@ -2,12 +2,13 @@
 
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useRef, useTransition } from "react";
+import { useEffect, useRef, useTransition } from "react";
+import { FILTER_DEBOUNCE_MS, filterHref } from "@/lib/filter-query";
 
 /**
  * Filters live in the URL. Selects apply as soon as they change; the text
- * field applies on Enter or when it loses focus. Without JavaScript the form
- * still submits as a plain GET.
+ * field applies while typing (after a short pause), on Enter and when it
+ * loses focus. Without JavaScript the form still submits as a plain GET.
  */
 export function FilterForm({
   selects,
@@ -27,13 +28,22 @@ export function FilterForm({
   const form = useRef<HTMLFormElement>(null);
   const [pending, start] = useTransition();
 
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancel = () => {
+    if (timer.current !== null) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  useEffect(() => cancel, []);
+
   const apply = () => {
+    cancel();
     if (form.current === null) return;
-    const next = new URLSearchParams();
-    for (const [k, v] of new FormData(form.current)) if (typeof v === "string" && v !== "") next.set(k, v);
-    const query = next.toString();
-    if (query === params.toString()) return;
-    start(() => router.replace(query === "" ? pathname : `${pathname}?${query}`, { scroll: false }));
+    const href = filterHref(pathname, new FormData(form.current), params.toString());
+    if (href !== null) start(() => router.replace(href, { scroll: false }));
+  };
+  const applySoon = () => {
+    cancel();
+    timer.current = setTimeout(apply, FILTER_DEBOUNCE_MS);
   };
 
   return (
@@ -66,7 +76,7 @@ export function FilterForm({
         {textLabel}
         <span className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-faint" aria-hidden />
-          <input type="search" name="q" defaultValue={params.get("q") ?? ""} placeholder={placeholder} onBlur={apply} className="h-8 w-full rounded-md border border-line-strong bg-panel pr-2 pl-7 text-[13px] text-fg" />
+          <input type="search" name="q" defaultValue={params.get("q") ?? ""} placeholder={placeholder} onChange={applySoon} onBlur={apply} className="h-8 w-full rounded-md border border-line-strong bg-panel pr-2 pl-7 text-[13px] text-fg" />
         </span>
       </label>
     </form>
