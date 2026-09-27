@@ -26,6 +26,7 @@
     "@exegezis/planner": "workspace:*",
     "@exegezis/inspect": "workspace:*",
     "@exegezis/access": "workspace:*",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "@exegezis/search": "workspace:*"
   }
 }

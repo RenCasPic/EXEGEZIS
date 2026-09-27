@@ -1,4 +1,5 @@
 import { parseArgs } from "node:util";
+import { parseSearchArgs, SEARCH_HELP, type SearchCommand } from "./search-args.js";
 
 export class UsageError extends Error {
   override readonly name = "UsageError";
@@ -38,7 +39,8 @@ export type Command =
   | ({ kind: "root-cause"; suite: string; runs?: number; caseIds?: string[] } & Common)
   | ({ kind: "inspect" } & InspectArgs & Common)
   | { kind: "doctor"; install: boolean; json: boolean }
-  | SessionCommand;
+  | SessionCommand
+  | SearchCommand;
 
 export const SESSION_ACTIONS = ["login", "list", "delete", "http-auth", "waf-token", "set"] as const;
 export type SessionAction = (typeof SESSION_ACTIONS)[number];
@@ -126,6 +128,8 @@ Usage:
                          [--storage-state <file>] [--strict-readonly] [--ignore-robots] [options]
   exegezis doctor        [--install] [--json]
   exegezis session login|list|delete|http-auth|waf-token|set --url <site> [options]
+  exegezis search        --url <site> (--terms "a, b" | --meaning "<text>" | --template <id>) [options]
+  exegezis search suggest|export|templates …
   exegezis --help | --version
 
 Commands:
@@ -173,6 +177,7 @@ Commands:
               inspect uses a site's saved access automatically (--no-session
               to inspect as an anonymous visitor); with a session it is
               strict read-only unless --allow-page-writes.
+${SEARCH_HELP.slice(1)}
   doctor      Check this machine: Node.js, pnpm and the browsers EXEGEZIS can
               drive (Playwright's Chromium, Google Chrome, Microsoft Edge), with
               their versions, and say what is missing and how to install it.
@@ -217,12 +222,16 @@ Exit codes:
   7  engine error: no browser could be started on this machine. Nothing was
      concluded about the site or the application. Run "pnpm exegezis doctor"
      (the same command works in Windows CMD, PowerShell, macOS and Linux).
+  8  search: the model was not called, its estimate was over the cost
+     limit (the exact part, if any, ran)
 `;
 
 const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify", "root-cause", "inspect", "doctor", "session"] as const;
 const PLANNERS: readonly Planner[] = ["anthropic", "mock"];
 
 export function parseCliArgs(argv: readonly string[]): Command {
+  // `search` has its own sub-actions and options (search-args.ts).
+  if (argv[0] === "search") return parseSearchArgs(argv.slice(1));
   let parsed;
   try {
     parsed = parseArgs({
