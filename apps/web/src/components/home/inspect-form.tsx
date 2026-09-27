@@ -1,7 +1,9 @@
 "use client";
 
-import { AlertTriangle, ChevronDown, Globe, Loader2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ChevronDown, Globe, KeyRound, Loader2, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
+import { accessStatusAction } from "@/app/access-actions";
 import { startInspectionAction, type InspectState } from "@/app/actions";
 import { EngineProblem } from "@/components/ui/copy-command";
 import { buttonClass } from "@/components/ui/primitives";
@@ -36,6 +38,8 @@ function remember(host: string): void {
   }
 }
 
+const ACCESS_KIND: Record<string, string> = { session: "sesión", httpCredentials: "usuario y contraseña HTTP", wafToken: "token del WAF" };
+
 const input = "h-9 w-full rounded-md border border-line-strong bg-panel px-2.5 text-[13px] text-fg";
 
 /**
@@ -56,6 +60,8 @@ export function InspectForm() {
   const [browserChannel, setBrowserChannel] = useState<BrowserChannelId>("auto");
   const [confirmed, setConfirmed] = useState(false);
   const [known, setKnown] = useState(false);
+  const [noSession, setNoSession] = useState(false);
+  const [access, setAccess] = useState<Awaited<ReturnType<typeof accessStatusAction>>>(null);
 
   const host = hostOf(url);
   const external = host !== null && !isLoopbackHost(new URL(url.trim()).hostname);
@@ -65,6 +71,26 @@ export function InspectForm() {
   }, [host]);
   const needsPermission = external && !known;
 
+  // Saved access for this origin (metadata only), to say before launching whether it is used or has expired.
+  useEffect(() => {
+    setAccess(null);
+    if (host === null) return;
+    let live = true;
+    const timer = setTimeout(() => {
+      accessStatusAction(url.trim())
+        .then((a) => {
+          if (live) setAccess(a);
+        })
+        .catch(() => undefined);
+    }, 300);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+    // Only the origin matters: the url is read when the host changes.
+  }, [host]);
+  const accessKinds = access === null ? [] : access.kinds.map((k) => ACCESS_KIND[k] ?? k);
+
   const chips = [
     `${maxPages === "" ? INSPECT_DEFAULTS.maxPages : maxPages} páginas`,
     `profundidad ${maxDepth === "" ? INSPECT_DEFAULTS.maxDepth : maxDepth}`,
@@ -73,6 +99,7 @@ export function InspectForm() {
     ...(checks.length > 0 && checks.length < INSPECT_CHECKS.length ? [`${checks.length} comprobaciones`] : []),
     ...(ignoreRobots ? ["ignora robots.txt"] : []),
     ...(browserChannel === "auto" ? [] : [`navegador: ${browserChannel}`]),
+    ...(access !== null && accessKinds.length > 0 ? [noSession ? "visitante anónimo" : "con sesión"] : []),
   ];
 
   return (
@@ -117,6 +144,30 @@ export function InspectForm() {
           </li>
         ))}
       </ul>
+
+      {access !== null && accessKinds.length > 0 && !noSession && (
+        <p
+          role={access.expired ? "alert" : undefined}
+          className={cn("flex items-start gap-1.5 text-[13px]", access.expired ? "rounded-md border border-warn/30 bg-warn-bg px-3 py-2 text-fg" : "text-muted")}
+        >
+          {access.expired ? <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden /> : <KeyRound className="mt-0.5 size-3.5 shrink-0" aria-hidden />}
+          <span>
+            {access.expired ? (
+              <>
+                La sesión guardada para <span className="font-mono">{access.origin}</span> ha caducado. Renuévala en{" "}
+                <Link href="/settings/access" className="text-accent-text underline">
+                  Ajustes → Accesos
+                </Link>{" "}
+                antes de inspeccionar, o marca «Inspeccionar como visitante anónimo» en las opciones avanzadas.
+              </>
+            ) : (
+              <>
+                Se usará el acceso guardado para <span className="font-mono">{access.origin}</span> ({accessKinds.join(", ")}), en solo lectura estricta.
+              </>
+            )}
+          </span>
+        </p>
+      )}
 
       {needsPermission ? (
         <label id="inspect-permission" className="flex items-start gap-2 rounded-md border border-warn/30 bg-warn-bg px-3 py-2 text-[13px] text-fg">
@@ -192,6 +243,10 @@ export function InspectForm() {
           <label className="flex items-start gap-2 text-[13px] text-fg sm:col-span-3">
             <input type="checkbox" name="ignoreRobots" checked={ignoreRobots} onChange={(e) => setIgnoreRobots(e.target.checked)} className="mt-0.5 size-4 accent-[var(--accent)]" />
             <span>Ignorar robots.txt (la URL inicial se visita siempre; robots.txt solo limita el descubrimiento).</span>
+          </label>
+          <label className="flex items-start gap-2 text-[13px] text-fg sm:col-span-3">
+            <input type="checkbox" name="noSession" checked={noSession} onChange={(e) => setNoSession(e.target.checked)} className="mt-0.5 size-4 accent-[var(--accent)]" />
+            <span>Inspeccionar como visitante anónimo: no usar el acceso guardado para este sitio (sesión, usuario HTTP o token del WAF).</span>
           </label>
         </div>
       </details>
