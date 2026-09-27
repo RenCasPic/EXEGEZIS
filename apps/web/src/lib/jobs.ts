@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { closeSync, existsSync, openSync } from "node:fs";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ulid } from "@exegezis/core";
+import { SuggestedTerm, ulid } from "@exegezis/core";
 import { z } from "zod";
 import { readArtifact, readText } from "./evidence/read";
 import { displayPath, repoRoot, runsDir } from "./workspace";
@@ -55,6 +55,37 @@ export const InspectJob = z.strictObject({
   noSession: z.boolean().default(false),
 });
 
+/** `exegezis search` (docs/10-search.md): exact, by meaning or with a template. */
+export const SearchJob = z.strictObject({
+  ...JobBase,
+  kind: z.literal("search"),
+  url: z.string(),
+  mode: z.enum(["exact", "meaning", "template"]),
+  terms: z.string().nullable(),
+  meaning: z.string().nullable(),
+  template: z.string().nullable(),
+  /** Template: also run its meaning part (uses the model). */
+  withMeaning: z.boolean(),
+  variants: z.boolean(),
+  excludeScope: z.enum(["block", "page"]),
+  suggested: z.array(SuggestedTerm),
+  runs: z.int().nullable(),
+  maxPages: z.int().nullable(),
+  maxDepth: z.int().nullable(),
+  includeHidden: z.boolean(),
+  noSession: z.boolean(),
+  ignoreRobots: z.boolean(),
+  browserChannel: z.enum(["auto", "chromium", "chrome", "msedge"]),
+  /** null: the limit in Settings. A higher value only when the person approved an estimate. */
+  maxCostUsd: z.number().nullable(),
+  /** Run this saved search. */
+  saved: z.string().nullable(),
+  /** Save the definition under this name before running it. */
+  save: z.string().nullable(),
+  /** Directory of an earlier search whose pages are reused (the site is not visited again). */
+  reuse: z.string().nullable(),
+});
+
 /**
  * "Open a window to get access" (docs/09-access.md): `exegezis session login`
  * with a visible browser on this computer. The person presses "Listo" in the
@@ -90,12 +121,13 @@ const InspectRelaunch = z.strictObject({
 /** Jobs written before inspections existed have no `kind`: they are ai-verify jobs. */
 export const JobRecord = z.preprocess(
   (value) => (value !== null && typeof value === "object" && !("kind" in value) ? { ...value, kind: "ai-verify" } : value),
-  z.discriminatedUnion("kind", [AiVerifyJob, InspectJob, AccessJob]),
+  z.discriminatedUnion("kind", [AiVerifyJob, InspectJob, AccessJob, SearchJob]),
 );
 export type JobRecord = z.infer<typeof JobRecord>;
 export type AiVerifyJob = z.infer<typeof AiVerifyJob>;
 export type InspectJob = z.infer<typeof InspectJob>;
 export type AccessJob = z.infer<typeof AccessJob>;
+export type SearchJob = z.infer<typeof SearchJob>;
 
 /** `lost`: the process (or the server that queued it) is gone without reporting back. */
 export type JobStatus = JobRecord["status"] | "lost";
@@ -110,6 +142,7 @@ export const EXIT_MEANING: Record<number, string> = {
   5: "INVALID PLAN",
   6: "UNSUPPORTED",
   7: "ENGINE_ERROR: no browser could start on this machine (nothing was concluded about the target)",
+  8: "COST_LIMIT: the model was not called, its estimate was over the limit",
 };
 
 export const jobsDir = (): string => join(runsDir(), "web", "jobs");
@@ -176,6 +209,31 @@ export function commandFor(job: JobRecord): string[] {
   const output = jobOutputDir(job.id);
   if (job.kind === "access") {
     return ["session", "login", "--url", job.url, "--done-file", accessDoneFile(job.id), ...(job.browserChannel === "auto" ? [] : ["--browser-channel", job.browserChannel])];
+  }
+  if (job.kind === "search") {
+    return [
+      "search",
+      "--url",
+      job.url,
+      ...(job.saved === null ? [] : ["--saved", job.saved]),
+      ...(job.saved !== null ? [] : job.mode === "meaning" ? ["--meaning", job.meaning ?? ""] : job.mode === "template" ? ["--template", job.template ?? ""] : ["--terms", job.terms ?? ""]),
+      ...(job.mode === "template" && job.withMeaning ? ["--with-meaning"] : []),
+      ...(job.variants ? ["--variants"] : []),
+      ...(job.excludeScope === "page" ? ["--exclude-scope", "page"] : []),
+      ...(job.suggested.length === 0 ? [] : ["--suggested", JSON.stringify(job.suggested)]),
+      ...(job.runs === null ? [] : ["--runs", String(job.runs)]),
+      ...(job.maxPages === null ? [] : ["--max-pages", String(job.maxPages)]),
+      ...(job.maxDepth === null ? [] : ["--max-depth", String(job.maxDepth)]),
+      ...(job.includeHidden ? [] : ["--no-hidden"]),
+      ...(job.noSession ? ["--no-session"] : []),
+      ...(job.ignoreRobots ? ["--ignore-robots"] : []),
+      ...(job.browserChannel === "auto" ? [] : ["--browser-channel", job.browserChannel]),
+      ...(job.maxCostUsd === null ? [] : ["--max-cost", String(job.maxCostUsd)]),
+      ...(job.save === null ? [] : ["--save", job.save]),
+      ...(job.reuse === null ? [] : ["--reuse", job.reuse]),
+      "--output",
+      output,
+    ];
   }
   if (job.kind === "ai-verify") {
     return ["ai-verify", "--symptom", job.symptom, "--base-url", job.baseUrl, "--planner", "anthropic", "--runs", String(job.runs), "--output", output];
@@ -275,7 +333,7 @@ export interface StartInspectionInput {
   noSession: boolean;
 }
 
-/** One inspection at a time: the others wait in a queue owned by this server process. */
+/** One browser job (inspection or search) at a time: the others wait in a queue owned by this server process. */
 const inspectionQueue: string[] = [];
 let inspectionRunning: string | null = null;
 
@@ -284,8 +342,8 @@ async function runNextInspection(): Promise<void> {
   const next = inspectionQueue.shift();
   if (next === undefined) return;
   const found = await readJob(next);
-  if (found === null || found.job.kind !== "inspect" || found.job.status !== "queued") return runNextInspection();
-  const job: InspectJob = { ...found.job, status: "running", startedAt: new Date().toISOString() };
+  if (found === null || (found.job.kind !== "inspect" && found.job.kind !== "search") || found.job.status !== "queued") return runNextInspection();
+  const job: InspectJob | SearchJob = { ...found.job, status: "running", startedAt: new Date().toISOString() };
   inspectionRunning = job.id;
   spawnJob(job, () => {
     inspectionRunning = null;
@@ -298,6 +356,19 @@ export async function startInspection(input: StartInspectionInput): Promise<JobR
   const id = ulid();
   await mkdir(jobDir(id), { recursive: true });
   const job: InspectJob = { ...newJobBase(id), status: "queued", kind: "inspect", ...input };
+  await writeJob(job);
+  inspectionQueue.push(id);
+  await runNextInspection();
+  return (await readJob(id))?.job ?? job;
+}
+
+export type StartSearchInput = Omit<SearchJob, keyof typeof JobBase | "kind">;
+
+export async function startSearch(input: StartSearchInput): Promise<JobRecord> {
+  if (!existsSync(cliEntry())) throw new Error("The CLI is not built: run `pnpm build` first.");
+  const id = ulid();
+  await mkdir(jobDir(id), { recursive: true });
+  const job: SearchJob = SearchJob.parse({ ...newJobBase(id), status: "queued", kind: "search", ...input });
   await writeJob(job);
   inspectionQueue.push(id);
   await runNextInspection();
@@ -355,9 +426,9 @@ export const InspectionProgressFile = z.looseObject({
 });
 export type InspectionProgressFile = z.infer<typeof InspectionProgressFile>;
 
-/** The inspection directory a job's CLI created, if any yet. */
-export async function jobInspectionDir(id: string): Promise<string | null> {
-  const base = join(jobOutputDir(id), "inspections");
+/** The inspection (or search) directory a job's CLI created, if any yet. */
+export async function jobInspectionDir(id: string, kind: "inspections" | "searches" = "inspections"): Promise<string | null> {
+  const base = join(jobOutputDir(id), kind);
   try {
     const names = (await readdir(base)).sort();
     const last = names.at(-1);
@@ -367,8 +438,8 @@ export async function jobInspectionDir(id: string): Promise<string | null> {
   }
 }
 
-export async function jobProgress(id: string): Promise<InspectionProgressFile | null> {
-  const dir = await jobInspectionDir(id);
+export async function jobProgress(id: string, kind: "inspections" | "searches" = "inspections"): Promise<InspectionProgressFile | null> {
+  const dir = await jobInspectionDir(id, kind);
   if (dir === null) return null;
   const loaded = await readArtifact(join(dir, "progress.json"), InspectionProgressFile);
   return loaded.status === "ok" ? loaded.value : null;

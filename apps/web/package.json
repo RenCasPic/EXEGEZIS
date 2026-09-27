@@ -20,7 +20,8 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "zod": "^4.6.5",
-    "@exegezis/access": "workspace:*"
+    "@exegezis/access": "workspace:*",
+    "@exegezis/search": "workspace:*"
   },
   "devDependencies": {
     "@exegezis/inspect": "workspace:*",

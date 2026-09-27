@@ -12,7 +12,9 @@ import { inspectionJobState } from "@/lib/inspection-state";
 import { listInspections } from "@/lib/evidence/inspections";
 import { getSummaries } from "@/lib/evidence/investigations";
 import { absoluteTime, duration } from "@/lib/format";
-import { EXIT_MEANING, jobLog, jobProgress, readJob, terminalCommand, type AccessJob, type InspectJob, type InspectionProgressFile, type JobStatus } from "@/lib/jobs";
+import { listSearches } from "@/lib/evidence/searches";
+import { EXIT_MEANING, jobLog, jobProgress, readJob, terminalCommand, type AccessJob, type InspectJob, type InspectionProgressFile, type JobStatus, type SearchJob } from "@/lib/jobs";
+import { SEARCH_STATUS_LABEL, SEARCH_STATUS_TONE } from "@/lib/search-labels";
 
 export const metadata: Metadata = { title: "Run" };
 
@@ -21,6 +23,8 @@ const PHASE: Record<string, string> = {
   crawl: "Recorriendo el sitio",
   repeat: "Repitiendo las visitas",
   specs: "Generando specs",
+  search: "Buscando en el texto",
+  ai: "Consultando a la IA",
   done: "Terminado",
 };
 
@@ -86,6 +90,81 @@ function AccessJobView({ job, status, log }: { job: AccessJob; status: JobStatus
       <Panel title="Salida del CLI" icon={<TerminalSquare />} subtitle="output.log (sin secretos)" bodyClassName="p-0">
         {log === null || log.trim() === "" ? <div className="p-4 text-[13px] text-muted">Todavía no hay salida.</div> : <CodeBlock code={log} lineNumbers={false} className="rounded-none border-0" maxHeight="24rem" />}
       </Panel>
+    </div>
+  );
+}
+
+async function SearchJobView({ job, status, log }: { job: SearchJob; status: JobStatus; log: string | null }) {
+  const [progress, searches] = await Promise.all([jobProgress(job.id, "searches"), listSearches()]);
+  const search = searches.find((s) => s.jobId === job.id) ?? null;
+  const report = search?.report.status === "ok" ? search.report.value : null;
+  const active = status === "running" || status === "queued";
+  const elapsed = (job.finishedAt === null ? Date.now() : Date.parse(job.finishedAt)) - Date.parse(job.startedAt);
+  const what = job.saved !== null ? "búsqueda guardada" : job.mode === "meaning" ? `por significado: «${job.meaning ?? ""}»` : job.mode === "template" ? `plantilla ${job.template ?? ""}` : `exacta: ${job.terms ?? ""}`;
+  return (
+    <div lang="es" className="flex flex-col gap-6">
+      <AutoRefresh active={active} />
+      <PageHeader
+        eyebrow={
+          report !== null ? (
+            <StatusPill status={SEARCH_STATUS_LABEL[report.status]} tone={SEARCH_STATUS_TONE[report.status]} />
+          ) : (
+            <StatusPill status={status === "queued" ? "EN COLA" : status === "running" ? "BUSCANDO" : status === "lost" ? "PERDIDA" : "SIN INFORME"} tone={active ? "running" : "bad"} />
+          )
+        }
+        title={<span className="break-all font-mono text-[20px]">{job.url}</span>}
+        description={
+          <>
+            <span className="block">Búsqueda {what}</span>
+            {status === "queued"
+              ? "Otra inspección o búsqueda está en curso; esta empieza en cuanto termine."
+              : status === "running"
+                ? "El CLI está leyendo el sitio. Esta página sigue su progreso."
+                : status === "lost"
+                  ? "El proceso ya no existe y no informó de su salida (probablemente se reinició el servidor de la UI)."
+                  : report === null
+                    ? "El CLI terminó sin informe: el detalle está en la salida."
+                    : `${report.summary.hits} resultados · se revisaron ${report.coverage.searched} de ${report.coverage.found} páginas.`}
+          </>
+        }
+        actions={
+          search !== null ? (
+            <ButtonLink href={`/searches/${search.id}`} variant="primary">
+              Ver los resultados <ArrowRight />
+            </ButtonLink>
+          ) : undefined
+        }
+      />
+      {job.exitCode === 7 && <EngineProblem message="Ningún navegador pudo arrancar (código de salida 7): no se buscó nada en el sitio." remedy={BROWSER_REMEDY} />}
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="flex min-w-0 flex-col gap-6">
+          {active && (
+            <Panel title="Progreso" subtitle="progress.json">
+              <Progress progress={progress} />
+            </Panel>
+          )}
+          <Panel title="Salida del CLI" icon={<TerminalSquare />} subtitle="output.log" bodyClassName="p-0">
+            {log === null || log.trim() === "" ? (
+              <div className="p-4 text-[13px] text-muted">{status === "queued" ? "En cola: aún no hay salida." : "Todavía no hay salida."}</div>
+            ) : (
+              <CodeBlock code={log} lineNumbers={false} className="rounded-none border-0" maxHeight="36rem" />
+            )}
+          </Panel>
+        </div>
+        <Panel title="Búsqueda">
+          <Meta
+            items={[
+              { label: "Job", value: <Mono>{job.id}</Mono> },
+              { label: "Empezó", value: absoluteTime(job.startedAt) },
+              { label: "Duración", value: duration(elapsed) },
+              { label: "Código de salida", value: job.exitCode === null ? "—" : `${job.exitCode} (${EXIT_MEANING[job.exitCode] ?? "desconocido"})` },
+              ...(job.error === null ? [] : [{ label: "Error", value: <span className="text-bad">{job.error}</span> }]),
+            ]}
+          />
+          <div className="mt-4 text-xs text-faint">Lo mismo desde un terminal:</div>
+          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted">{terminalCommand(job)}</pre>
+        </Panel>
+      </div>
     </div>
   );
 }
@@ -186,6 +265,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const log = await jobLog(id);
   if (job.kind === "inspect") return <InspectJobView job={job} status={status} log={log} />;
   if (job.kind === "access") return <AccessJobView job={job} status={status} log={log} />;
+  if (job.kind === "search") return <SearchJobView job={job} status={status} log={log} />;
 
   const summaries = await getSummaries();
   const investigation = summaries.find((s) => s.ref.jobId === id) ?? null;

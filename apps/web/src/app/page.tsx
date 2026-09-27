@@ -2,8 +2,10 @@ import { ArrowRight, Beaker, Globe, LayoutList, Microscope } from "lucide-react"
 import type { Metadata } from "next";
 import Link from "next/link";
 import { groupStats } from "@exegezis/core";
+import { listTemplates } from "@exegezis/search/light";
 import { InspectForm } from "@/components/home/inspect-form";
-import { EmptyState, Panel } from "@/components/ui/primitives";
+import { SearchForm, type TemplateOption } from "@/components/home/search-form";
+import { EmptyState, Panel, TabLinks } from "@/components/ui/primitives";
 import { EvidenceMeter, NotImplemented, ReplayTag, RunHistory, StatusPill, VerdictPill } from "@/components/ui/status";
 import { cn } from "@/lib/cn";
 import { buildCases, proofMetrics, type CaseGroup, type CaseRow } from "@/lib/evidence/cases";
@@ -115,6 +117,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const filter = FILTERS.find((f) => f.id === params.casos)?.id ?? "all";
   const shown = filter === "all" ? cases : cases.filter((c) => c.group === filter);
   const count = (id: "all" | CaseGroup) => (id === "all" ? cases.length : cases.filter((c) => c.group === id).length);
+  const tab = params.modo === "buscar" ? "search" : "inspect";
+  const templates: TemplateOption[] =
+    tab === "search"
+      ? (await listTemplates().catch(() => [])).map((t) => ({ id: t.id, name: t.name, description: t.description, origin: t.origin, hasExact: t.exact !== null, hasMeaning: t.meaning !== null }))
+      : [];
 
   const stageCounts = STAGES.map((stage) => {
     if (NOT_IMPLEMENTED_STAGES.includes(stage.id)) return { stage, count: null };
@@ -128,14 +135,25 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   return (
     <div lang="es" className="flex flex-col gap-8">
       <section aria-labelledby="home-title" className="rounded-xl border border-line bg-panel p-5 sm:p-7">
-        <div className="text-[12px] font-semibold tracking-wider text-muted">INSPECCIÓN WEB</div>
+        <div className="-mx-5 -mt-5 mb-5 sm:-mx-7 sm:-mt-7">
+          <TabLinks
+            active={tab}
+            tabs={[
+              { id: "inspect", label: "Inspeccionar", href: "/" },
+              { id: "search", label: "Buscar", href: "/?modo=buscar" },
+            ]}
+          />
+        </div>
+        <div className="text-[12px] font-semibold tracking-wider text-muted">{tab === "search" ? "BÚSQUEDA EN UN SITIO" : "INSPECCIÓN WEB"}</div>
         <h1 id="home-title" className="mt-1 text-[26px] font-semibold tracking-tight text-fg sm:text-[30px]">
-          Revisa cualquier página web.
+          {tab === "search" ? "Busca lo que necesites en un sitio." : "Revisa cualquier página web."}
         </h1>
         <p className="mt-1 mb-5 max-w-2xl text-[14px] text-muted">
-          EXEGEZIS recorre el sitio en navegadores limpios, repite cada visita y solo marca como VERIFIED lo que aparece en todas las repeticiones, con su evidencia y un spec de Playwright.
+          {tab === "search"
+            ? "Palabras exactas (sin IA, comprobadas en cada carga) o por significado (la IA propone y cada cita se verifica letra por letra en la página). Siempre verás cuántas páginas se revisaron."
+            : "EXEGEZIS recorre el sitio en navegadores limpios, repite cada visita y solo marca como VERIFIED lo que aparece en todas las repeticiones, con su evidencia y un spec de Playwright."}
         </p>
-        <InspectForm />
+        {tab === "search" ? <SearchForm templates={templates} /> : <InspectForm />}
         <Link href="/investigations/new" className="mt-4 inline-flex items-center gap-1 text-[13px] text-accent-text hover:underline">
           ¿Tienes un síntoma concreto? Abrir una investigación <ArrowRight className="size-3.5" aria-hidden />
         </Link>

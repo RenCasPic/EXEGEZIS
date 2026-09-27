@@ -1,11 +1,12 @@
 import { readFile, stat } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { findInspection } from "@/lib/evidence/inspections";
+import { findSearch } from "@/lib/evidence/searches";
 import { findInvestigation, findRootCause } from "@/lib/evidence/investigations";
 import { isInside } from "@/lib/workspace";
 
 /**
- * Serves one file of an investigation, root-cause or inspection directory, read-only. The id is
+ * Serves one file of an investigation, root-cause, inspection or search directory, read-only. The id is
  * resolved through the discovery index and the path must stay inside that
  * directory. Captured DOM is untrusted page content: it is served under a
  * CSP sandbox with no scripts, and only ever rendered in a sandboxed iframe.
@@ -24,7 +25,7 @@ const TYPES: Record<string, { type: string; download?: boolean }> = {
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string; path: string[] }> }) {
   const { id, path } = await params;
-  const ref = (await findInvestigation(id)) ?? (await findRootCause(id))?.ref ?? (await findInspection(id)) ?? null;
+  const ref = (await findInvestigation(id)) ?? (await findRootCause(id))?.ref ?? (await findInspection(id)) ?? (await findSearch(id)) ?? null;
   if (ref === null) return new Response("Not found", { status: 404 });
   const file = join(ref.dir, ...path.map((p) => decodeURIComponent(p)));
   const kind = TYPES[extname(file).toLowerCase()];

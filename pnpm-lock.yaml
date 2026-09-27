@@ -77,6 +77,9 @@ importers:
       '@exegezis/planner':
         specifier: workspace:*
         version: link:../../packages/planner
+      '@exegezis/search':
+        specifier: workspace:*
+        version: link:../../packages/search
       clsx:
         specifier: ^2.1.1
         version: 2.1.1

@@ -8,35 +8,8 @@ import { startInspectionAction, type InspectState } from "@/app/actions";
 import { EngineProblem } from "@/components/ui/copy-command";
 import { buttonClass } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
+import { hostOf, PERMISSION_TEXT, remember, remembered } from "@/lib/site-permission";
 import { BROWSER_CHANNEL_IDS, BROWSER_CHANNEL_LABEL, INSPECT_CHECKS, INSPECT_DEFAULTS, isLoopbackHost, type BrowserChannelId } from "@/lib/inspect-checks";
-
-const PERMISSION_PREFIX = "exegezis-inspect-permission:";
-const PERMISSION_TEXT = "Inspecciona solo sitios que sean tuyos o para los que tengas permiso.";
-
-function hostOf(value: string): string | null {
-  try {
-    const u = new URL(value.trim());
-    return u.protocol === "http:" || u.protocol === "https:" ? u.host : null;
-  } catch {
-    return null;
-  }
-}
-
-function remembered(host: string): boolean {
-  try {
-    return window.localStorage.getItem(PERMISSION_PREFIX + host) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function remember(host: string): void {
-  try {
-    window.localStorage.setItem(PERMISSION_PREFIX + host, "1");
-  } catch {
-    // Storage unavailable: the confirmation is asked again next time.
-  }
-}
 
 const ACCESS_KIND: Record<string, string> = { session: "sesión", httpCredentials: "usuario y contraseña HTTP", wafToken: "token del WAF" };
 

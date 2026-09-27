@@ -1,6 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { basename, dirname, join, relative } from "node:path";
-import { BenchmarkResult, InspectionReport, RootCauseSuiteResult } from "@exegezis/core";
+import { BenchmarkResult, InspectionReport, RootCauseSuiteResult, SearchReport } from "@exegezis/core";
 import { benchmarksDir, displayPath, runsDir } from "../workspace";
 import { readArtifact, type Loaded } from "./read";
 
@@ -63,9 +63,20 @@ export interface InspectionRef {
   report: Loaded<InspectionReport>;
 }
 
+/** A run of `exegezis search` (`searches/<id>/search-report.json`). */
+export interface SearchRef {
+  id: string;
+  dir: string;
+  relDir: string;
+  /** Web job that produced it, when it was started from the UI. */
+  jobId: string | null;
+  report: Loaded<SearchReport>;
+}
+
 export interface WorkspaceIndex {
   investigations: InvestigationRef[];
   inspections: InspectionRef[];
+  searches: SearchRef[];
   benchmarks: BenchmarkRef[];
   rootCauseRuns: RootCauseRunRef[];
   rootCauses: RootCauseRef[];
@@ -108,6 +119,7 @@ function jobIdFor(dir: string): string | null {
 export async function discover(): Promise<WorkspaceIndex> {
   const investigations: InvestigationRef[] = [];
   const inspections: InspectionRef[] = [];
+  const searches: SearchRef[] = [];
   const benchmarks: BenchmarkRef[] = [];
   const rootCauseRuns: RootCauseRunRef[] = [];
   const rootCauses: RootCauseRef[] = [];
@@ -158,6 +170,11 @@ export async function discover(): Promise<WorkspaceIndex> {
       inspections.push({ id: uniqueId(basename(dir)), dir, relDir, jobId: jobIdFor(dir), report });
       return;
     }
+    if (files.has("search-report.json")) {
+      const report = await readArtifact(join(dir, "search-report.json"), SearchReport);
+      searches.push({ id: uniqueId(basename(dir)), dir, relDir: displayPath(dir), jobId: jobIdFor(dir), report });
+      return;
+    }
     if (files.has("root-cause-result.json")) {
       await addRootCauseRun(dir, archived, suiteDir);
       return;
@@ -198,8 +215,9 @@ export async function discover(): Promise<WorkspaceIndex> {
   investigations.sort(newestFirst);
   // Inspection directories are ULIDs, wherever they live (runs/inspections or a web job).
   inspections.sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
+  searches.sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
   benchmarks.sort(newestFirst);
   rootCauseRuns.sort(newestFirst);
   rootCauses.sort(newestFirst);
-  return { investigations, inspections, benchmarks, rootCauseRuns, rootCauses };
+  return { investigations, inspections, searches, benchmarks, rootCauseRuns, rootCauses };
 }
