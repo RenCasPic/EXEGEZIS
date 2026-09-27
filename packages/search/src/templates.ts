@@ -1,5 +1,5 @@
 import { readdir, readFile, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ExactQuery, MeaningQuery, TemplateQuery } from "@exegezis/core";
 import { z } from "zod";
@@ -33,7 +33,12 @@ export const SearchTemplate = z.strictObject({
 export type SearchTemplate = z.infer<typeof SearchTemplate> & { origin: "repository" | "user" };
 export type SearchTemplateInput = z.input<typeof SearchTemplate>;
 
-export const REPOSITORY_TEMPLATES_DIR = fileURLToPath(new URL("../templates/", import.meta.url));
+/** packages/search/templates (EXEGEZIS_SEARCH_TEMPLATES_DIR overrides it). Resolved from this file, not as a bundler asset. */
+export function repositoryTemplatesDir(): string {
+  const configured = process.env["EXEGEZIS_SEARCH_TEMPLATES_DIR"];
+  if (configured !== undefined && configured !== "") return configured;
+  return join(dirname(fileURLToPath(import.meta.url)), "..", "templates");
+}
 
 async function loadDir(dir: string, origin: "repository" | "user"): Promise<SearchTemplate[]> {
   let names: string[];
@@ -56,7 +61,7 @@ export function userTemplatesDir(dataDir = searchDataDir()): string {
 }
 
 export async function listTemplates(dataDir = searchDataDir()): Promise<SearchTemplate[]> {
-  const repo = await loadDir(REPOSITORY_TEMPLATES_DIR, "repository");
+  const repo = await loadDir(repositoryTemplatesDir(), "repository");
   const user = (await loadDir(userTemplatesDir(dataDir), "user")).filter((t) => !repo.some((r) => r.id === t.id));
   return [...repo, ...user];
 }
@@ -82,7 +87,7 @@ export function templateQuery(t: SearchTemplate, options: { withMeaning: boolean
 
 export async function saveUserTemplate(input: SearchTemplateInput, dataDir = searchDataDir()): Promise<SearchTemplate> {
   const t = SearchTemplate.parse(input);
-  const repo = await loadDir(REPOSITORY_TEMPLATES_DIR, "repository");
+  const repo = await loadDir(repositoryTemplatesDir(), "repository");
   if (repo.some((r) => r.id === t.id)) throw new Error(`"${t.id}" is a repository template: choose another id.`);
   if (t.exact === null && t.meaning === null) throw new Error("A template needs an exact part, a meaning part, or both.");
   await writeJsonFile(join(userTemplatesDir(dataDir), `${t.id}.json`), t);
