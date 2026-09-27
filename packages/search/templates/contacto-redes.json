@@ -1,0 +1,15 @@
+{
+  "id": "contacto-redes",
+  "version": 1,
+  "name": "Datos de contacto y redes sociales",
+  "description": "Dónde aparecen el correo, el teléfono y las redes sociales, para comprobar que son los correctos en todas las páginas. Determinista: no usa IA.",
+  "exact": {
+    "terms": ["facebook", "instagram", "whatsapp", "twitter", "youtube", "tiktok", "telegram", "linkedin"],
+    "phrases": [],
+    "excluded": [],
+    "variants": false,
+    "regex": null,
+    "detectors": ["email", "phone"]
+  },
+  "meaning": null
+}

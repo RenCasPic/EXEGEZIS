@@ -1,0 +1,15 @@
+{
+  "id": "texto-relleno",
+  "version": 1,
+  "name": "Texto de relleno y pendiente",
+  "description": "Lorem ipsum, «próximamente», «en construcción», TODO y similares. Determinista: no usa IA.",
+  "exact": {
+    "terms": ["lorem", "ipsum", "próximamente", "TODO", "TBD", "placeholder", "dummy"],
+    "phrases": ["en construcción", "coming soon", "under construction", "texto de ejemplo", "sample text"],
+    "excluded": [],
+    "variants": false,
+    "regex": null,
+    "detectors": []
+  },
+  "meaning": null
+}

@@ -1,0 +1,17 @@
+{
+  "id": "salud-afirmaciones",
+  "version": 1,
+  "name": "Afirmaciones de salud y promesas de curación",
+  "description": "Menciones a enfermedades, medicina, tratamientos y promesas de curación. La parte exacta no usa IA; la parte por significado (opcional) busca también menciones indirectas y muestra cada cita verificada.",
+  "exact": {
+    "terms": ["medicina", "medicinas", "médico", "médicos", "medicamento", "medicamentos", "enfermedad", "enfermedades", "tratamiento", "tratamientos", "curar", "cura", "curación", "sanar", "sanación", "milagro", "milagros", "cáncer", "diabetes", "doctor", "hospital", "medicine", "disease", "treatment", "cure", "healing", "miracle"],
+    "phrases": ["dejar la medicación", "sin medicamentos", "cura garantizada", "stop your medication"],
+    "excluded": [],
+    "variants": false,
+    "regex": null,
+    "detectors": []
+  },
+  "meaning": {
+    "description": "Afirmaciones sobre la salud: promesas de curación, sanación física, recomendaciones sobre medicinas, médicos o tratamientos, o cualquier mención directa o indirecta a enfermedades y a la medicina."
+  }
+}

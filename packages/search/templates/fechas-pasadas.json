@@ -1,0 +1,8 @@
+{
+  "id": "fechas-pasadas",
+  "version": 1,
+  "name": "Fechas y eventos pasados",
+  "description": "Fechas anteriores al día de la búsqueda (21/03/2024, 2024-03-21, 21 de marzo de 2024, March 21, 2024): eventos o avisos que pueden haber caducado. Determinista: no usa IA.",
+  "exact": { "terms": [], "phrases": [], "excluded": [], "variants": false, "regex": null, "detectors": ["past-date"] },
+  "meaning": null
+}

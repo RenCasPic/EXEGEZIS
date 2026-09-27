@@ -20,6 +20,9 @@
       "path": "packages/access"
     },
     {
+      "path": "packages/search"
+    },
+    {
       "path": "apps/cli"
     }
   ]

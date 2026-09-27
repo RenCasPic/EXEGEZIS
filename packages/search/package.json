@@ -1,0 +1,33 @@
+{
+  "name": "@exegezis/search",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EXEGEZIS searches over a site: exact (deterministic) and by meaning (a model proposes, a literal check verifies), with templates, saved searches, review marks and exports.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./light": {
+      "types": "./dist/light.d.ts",
+      "default": "./dist/light.js"
+    }
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "@exegezis/adapter-browser": "workspace:*",
+    "@exegezis/core": "workspace:*",
+    "@exegezis/inspect": "workspace:*",
+    "@exegezis/planner": "workspace:*",
+    "playwright": "1.63.0",
+    "snowball-stemmers": "0.6.0",
+    "zod": "^4.6.5"
+  }
+}

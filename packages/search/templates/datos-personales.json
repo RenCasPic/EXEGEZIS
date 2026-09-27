@@ -1,0 +1,8 @@
+{
+  "id": "datos-personales",
+  "version": 1,
+  "name": "Datos personales expuestos",
+  "description": "Correos electrónicos y números de teléfono visibles en las páginas. Determinista: no usa IA.",
+  "exact": { "terms": [], "phrases": [], "excluded": [], "variants": false, "regex": null, "detectors": ["email", "phone"] },
+  "meaning": null
+}

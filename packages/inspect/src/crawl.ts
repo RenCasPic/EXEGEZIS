@@ -71,7 +71,7 @@ export interface CrawlOptions {
 }
 
 export interface CrawlProgress {
-  phase: "robots" | "crawl" | "repeat" | "specs" | "done";
+  phase: "robots" | "crawl" | "repeat" | "specs" | "search" | "ai" | "done";
   run: number;
   runs: number;
   pagesDone: number;

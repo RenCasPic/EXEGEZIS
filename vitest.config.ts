@@ -50,6 +50,16 @@ export default defineConfig({
       },
       {
         test: {
+          name: "search",
+          root: "packages/search",
+          include: ["test/**/*.test.ts"],
+          // Real Chromium searches of local fixtures.
+          testTimeout: 180_000,
+          hookTimeout: 120_000,
+        },
+      },
+      {
+        test: {
           name: "access",
           root: "packages/access",
           include: ["test/**/*.test.ts"],
