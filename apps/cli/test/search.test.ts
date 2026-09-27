@@ -86,6 +86,10 @@ describe("exegezis search: runs", () => {
     const csv = readFileSync(join(workDir, "runs-exact", "searches", id!, "export.csv"), "utf8");
     expect(csv.charCodeAt(0)).toBe(0xfeff);
     expect(csv).toContain("médico");
+
+    const pdf = await cli(["search", "export", "--search", id!, "--format", "pdf", "--output", "runs-exact"]);
+    expect(pdf.code).toBe(0);
+    expect(readFileSync(join(workDir, "runs-exact", "searches", id!, "export.pdf")).subarray(0, 5).toString("latin1")).toBe("%PDF-");
   });
 
   it("saves a search and, run again, says what is new", async () => {
