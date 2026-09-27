@@ -29,3 +29,5 @@ export * from "./experiment.js";
 export * from "./schemas/inspection.js";
 export * from "./issue-groups.js";
 export * from "./color.js";
+export * from "./search-text.js";
+export * from "./schemas/search.js";
