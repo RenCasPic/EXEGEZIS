@@ -80,7 +80,13 @@
     "RATE_LIMITED": "Límite de peticiones",
     "FORBIDDEN": "Acceso prohibido",
     "NETWORK_RESTRICTED": "Red restringida",
-    "EXPERIMENTS": "Experimentos"
+    "EXPERIMENTS": "Experimentos",
+    "DECLARED": "Declarado",
+    "OBSERVED": "Observado",
+    "VALID": "Válido",
+    "WEAKLY_ANCHORED": "Anclaje débil",
+    "WARNING": "Aviso",
+    "ANCHORING": "Anclaje"
   },
   "severity": {
     "critical": "Crítica",
@@ -104,5 +110,11 @@
     "timeout": "tiempo agotado",
     "error": "error",
     "no_assertions": "sin aserciones"
+  },
+  "severityIssue": {
+    "error": "Error",
+    "unsupported": "No soportado",
+    "anchoring": "Anclaje",
+    "warning": "Aviso"
   }
 }

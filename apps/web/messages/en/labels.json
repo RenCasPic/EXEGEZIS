@@ -80,7 +80,13 @@
     "RATE_LIMITED": "Rate limited",
     "FORBIDDEN": "Forbidden",
     "NETWORK_RESTRICTED": "Network restricted",
-    "EXPERIMENTS": "Experiments"
+    "EXPERIMENTS": "Experiments",
+    "DECLARED": "Declared",
+    "OBSERVED": "Observed",
+    "VALID": "Valid",
+    "WEAKLY_ANCHORED": "Weakly anchored",
+    "WARNING": "Warning",
+    "ANCHORING": "Anchoring"
   },
   "severity": {
     "critical": "Critical",
@@ -104,5 +110,11 @@
     "timeout": "timeout",
     "error": "error",
     "no_assertions": "no assertions"
+  },
+  "severityIssue": {
+    "error": "Error",
+    "unsupported": "Unsupported",
+    "anchoring": "Anchoring",
+    "warning": "Warning"
   }
 }

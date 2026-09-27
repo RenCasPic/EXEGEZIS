@@ -1,3 +1,4 @@
+import { EngineMessage, englishOf, msg, type EngineCode } from "../messages.js";
 import { z } from "zod";
 import { RelativePath, Timestamp } from "./common.js";
 import { Provenance } from "./policy.js";
@@ -225,6 +226,7 @@ export const Specificity = z.strictObject({
   status: z.enum(["surgical", "not_surgical", "unknown"]),
   changed: z.array(z.strictObject({ key: z.string(), baseline: z.int(), other: z.int() })),
   reason: z.string(),
+  message: EngineMessage.optional(),
 });
 export type Specificity = z.infer<typeof Specificity>;
 
@@ -238,7 +240,7 @@ export const Experiment = z.strictObject({
   arm: ExperimentArm,
   /** intervention rate − baseline rate. */
   delta: z.number(),
-  result: z.strictObject({ status: ExperimentStatus, reason: z.string() }),
+  result: z.strictObject({ status: ExperimentStatus, reason: z.string(), message: EngineMessage.optional() }),
   /** RELEVANCE: executions, in the baseline's failing scenario, of the block the intervention modifies. */
   site: z.strictObject({ file: RelativePath, offset: z.int().nonnegative().nullable(), executions: z.int().nonnegative().nullable() }),
   /** SPECIFICITY: does the intervention change execution where the baseline was correct? */
@@ -262,6 +264,7 @@ export const HypothesisOutcome = z.strictObject({
   status: HypothesisStatus,
   experimentId: z.string().nullable(),
   reason: z.string(),
+  message: EngineMessage.optional(),
 });
 export type HypothesisOutcome = z.infer<typeof HypothesisOutcome>;
 
@@ -290,6 +293,7 @@ export const EvidenceItem = z.strictObject({
   /** Whether the current policy requires it for VALIDATED. */
   required: z.boolean(),
   detail: z.string(),
+  message: EngineMessage.optional(),
 });
 export type EvidenceItem = z.infer<typeof EvidenceItem>;
 
@@ -315,6 +319,7 @@ export const RootCauseDecision = z.strictObject({
   evidenceLevel: EvidenceLevel,
   statement: z.string().nullable(),
   reason: z.string(),
+  message: EngineMessage.optional(),
   /** Required evidence that is not met (empty when VALIDATED). */
   missing: z.array(EvidenceId),
 });
@@ -405,27 +410,19 @@ export function evaluatePrediction(
   baseline: ArmCounts,
   arm: ArmCounts,
   policy: Pick<RootCausePolicy, "runsPerArm">,
-): { status: ExperimentStatus; reason: string } {
-  const summary = `baseline ${baseline.reproduced}/${baseline.runs} reproduced, intervention ${arm.reproduced}/${arm.runs} reproduced (${arm.invalid} invalid)`;
-  if (!baselineReproduced(baseline, policy.runsPerArm)) {
-    return { status: "INCONCLUSIVE", reason: `no stable baseline: ${summary}` };
-  }
-  if (arm.runs < policy.runsPerArm) {
-    return { status: "INCONCLUSIVE", reason: `only ${arm.runs} intervention runs (${policy.runsPerArm} required): ${summary}` };
-  }
-  if (arm.invalid > 0) {
-    return {
-      status: "INCONCLUSIVE",
-      reason: `${arm.invalid} intervention run(s) could not show or rule out the bug (an anchor failed, a timeout or an error): ${summary}`,
-    };
-  }
+): { status: ExperimentStatus; reason: string; message: EngineMessage } {
+  const out = (status: ExperimentStatus, message: EngineMessage) => ({ status, reason: englishOf(message), message });
+  const summary = msg("rcSummary", { baseline: baseline.reproduced, baselineRuns: baseline.runs, arm: arm.reproduced, armRuns: arm.runs, invalid: arm.invalid });
+  if (!baselineReproduced(baseline, policy.runsPerArm)) return out("INCONCLUSIVE", msg("rcNoBaseline", { summary }));
+  if (arm.runs < policy.runsPerArm) return out("INCONCLUSIVE", msg("rcTooFewRuns", { runs: arm.runs, required: policy.runsPerArm, summary }));
+  if (arm.invalid > 0) return out("INCONCLUSIVE", msg("rcInvalidRuns", { invalid: arm.invalid, summary }));
   const eliminated = arm.reproduced === 0;
   const persisted = arm.reproduced === arm.runs;
-  if (!eliminated && !persisted) return { status: "INCONCLUSIVE", reason: `partial effect, the bug became intermittent: ${summary}` };
+  if (!eliminated && !persisted) return out("INCONCLUSIVE", msg("rcPartial", { summary }));
   const predictedEliminated = prediction === "eliminates";
   return eliminated === predictedEliminated
-    ? { status: "CONFIRMED", reason: `predicted the bug ${prediction === "eliminates" ? "disappears" : "persists"}; it did: ${summary}` }
-    : { status: "FALSIFIED", reason: `predicted the bug ${prediction === "eliminates" ? "disappears" : "persists"}; it ${eliminated ? "disappeared" : "persisted"}: ${summary}` };
+    ? out("CONFIRMED", msg("rcConfirmed", { prediction, summary }))
+    : out("FALSIFIED", msg("rcFalsified", { prediction, eliminated: eliminated ? "yes" : "no", summary }));
 }
 
 /**
@@ -435,17 +432,18 @@ export function evaluatePrediction(
  */
 export function hypothesisOutcome(hypothesis: Pick<Hypothesis, "id" | "statement" | "prediction">, experiment: Pick<Experiment, "id" | "result"> | null): HypothesisOutcome {
   const base = { id: hypothesis.id, statement: hypothesis.statement, experimentId: experiment?.id ?? null };
-  if (experiment === null) return { ...base, status: "UNRESOLVED", reason: "not tested" };
-  if (hypothesis.prediction !== "eliminates") {
-    return { ...base, status: "UNRESOLVED", reason: `a "persists" prediction cannot support a cause (${experiment.result.status})` };
-  }
+  const out = (status: HypothesisStatus, message: EngineMessage) => ({ ...base, status, reason: englishOf(message), message });
+  if (experiment === null) return out("UNRESOLVED", msg("rcNotTested"));
+  if (hypothesis.prediction !== "eliminates") return out("UNRESOLVED", msg("rcPersistsPrediction", { status: experiment.result.status }));
+  // An experiment from an older report may have only its English reason.
+  const result = experiment.result.message ?? msg("outcomeIssues", { issues: experiment.result.reason });
   switch (experiment.result.status) {
     case "CONFIRMED":
-      return { ...base, status: "SUPPORTED", reason: experiment.result.reason };
+      return out("SUPPORTED", result);
     case "FALSIFIED":
-      return { ...base, status: "REFUTED", reason: experiment.result.reason };
+      return out("REFUTED", result);
     case "INCONCLUSIVE":
-      return { ...base, status: "UNRESOLVED", reason: experiment.result.reason };
+      return out("UNRESOLVED", result);
   }
 }
 
@@ -459,40 +457,22 @@ export function siteExecutions(coverage: readonly ScriptCoverage[] | null, file:
 
 /** Compares the control scenario of an intervention arm with the baseline's. */
 export function specificityOf(baseline: ControlArm | null, arm: ControlArm | null): Specificity {
-  if (baseline === null || arm === null) return { status: "unknown", changed: [], reason: "no control scenario was run" };
-  if (baseline.error !== null || arm.error !== null) {
-    return { status: "unknown", changed: [], reason: `control scenario failed: ${baseline.error ?? arm.error ?? ""}` };
-  }
-  if (baseline.runs === 0 || baseline.passed !== baseline.runs) {
-    return { status: "unknown", changed: [], reason: `the control scenario does not hold even in the baseline (${baseline.passed}/${baseline.runs})` };
-  }
-  if (arm.passed !== arm.runs) {
-    return {
-      status: "not_surgical",
-      changed: [],
-      reason: `the intervention broke the control scenario, where the baseline is correct (${arm.passed}/${arm.runs} passed)`,
-    };
-  }
-  if (baseline.footprint === null || arm.footprint === null || !baseline.stable || !arm.stable) {
-    return { status: "unknown", changed: [], reason: "execution coverage of the control scenario is missing or unstable" };
-  }
+  const out = (status: Specificity["status"], changed: Specificity["changed"], message: EngineMessage): Specificity => ({ status, changed, reason: englishOf(message), message });
+  if (baseline === null || arm === null) return out("unknown", [], msg("rcNoControl"));
+  if (baseline.error !== null || arm.error !== null) return out("unknown", [], msg("rcControlFailed", { error: baseline.error ?? arm.error ?? "" }));
+  if (baseline.runs === 0 || baseline.passed !== baseline.runs) return out("unknown", [], msg("rcControlNotHolding", { passed: baseline.passed, runs: baseline.runs }));
+  if (arm.passed !== arm.runs) return out("not_surgical", [], msg("rcControlBroken", { passed: arm.passed, runs: arm.runs }));
+  if (baseline.footprint === null || arm.footprint === null || !baseline.stable || !arm.stable) return out("unknown", [], msg("rcCoverageMissing"));
   // A whole file present in one measure and absent in the other is a measurement gap, not a behaviour change.
   const files = (f: Record<string, number>) => new Set(Object.keys(f).map((k) => k.slice(0, k.lastIndexOf("#"))));
   const a = files(baseline.footprint);
   const b = files(arm.footprint);
   const gaps = [...a].filter((f) => !b.has(f)).concat([...b].filter((f) => !a.has(f)));
-  if (gaps.length > 0) return { status: "unknown", changed: [], reason: `coverage of ${gaps.join(", ")} is missing in one of the two measures` };
+  if (gaps.length > 0) return out("unknown", [], msg("rcCoverageGap", { files: gaps.join(", ") }));
   const changed = footprintDiff(baseline.footprint, arm.footprint);
   return changed.length === 0
-    ? { status: "surgical", changed, reason: "the control scenario executes the same functions the same number of times" }
-    : {
-        status: "not_surgical",
-        changed,
-        reason: `the intervention changes execution where the baseline is already correct: ${changed
-          .slice(0, 4)
-          .map((c) => `${c.key} ${c.baseline}→${c.other}`)
-          .join(", ")}`,
-      };
+    ? out("surgical", changed, msg("rcSurgical"))
+    : out("not_surgical", changed, msg("rcNotSurgical", { changes: changed.slice(0, 4).map((c) => `${c.key} ${c.baseline}→${c.other}`).join(", ") }));
 }
 
 interface MatrixInput {
@@ -512,18 +492,20 @@ export function evidenceMatrix({ baseline, experiments, outcomes, policy }: Matr
   const unresolved = outcomes.filter((o) => o.status === "UNRESOLVED");
   const candidate = supported.length === 1 ? (supported[0]?.id ?? null) : null;
   const e = candidate === null ? undefined : experiments.find((x) => x.hypothesisId === candidate);
-  const item = (id: EvidenceId, label: string, status: EvidenceItem["status"], required: boolean, detail: string): EvidenceItem => ({
+  const item = (id: EvidenceId, label: string, status: EvidenceItem["status"], required: boolean, detail: EngineMessage): EvidenceItem => ({
     id,
     label,
     status,
     required,
-    detail,
+    detail: englishOf(detail),
+    message: detail,
   });
-  const na = (id: EvidenceId, label: string, required: boolean) => item(id, label, "not_applicable", required, "no single surviving hypothesis");
+  const na = (id: EvidenceId, label: string, required: boolean) => item(id, label, "not_applicable", required, msg("rcNoSurvivor"));
+  const ratio = (count: number, runs: number) => msg("rcRatio", { count, runs });
 
   const reproduced = baselineReproduced(baseline.counts, policy.runsPerArm);
   const items: EvidenceItem[] = [
-    item("bug_reproduced", "Bug reproduced in every baseline run", reproduced ? "met" : "not_met", true, `${baseline.counts.reproduced}/${baseline.counts.runs}`),
+    item("bug_reproduced", "Bug reproduced in every baseline run", reproduced ? "met" : "not_met", true, ratio(baseline.counts.reproduced, baseline.counts.runs)),
   ];
   if (e === undefined) {
     items.push(
@@ -542,23 +524,23 @@ export function evidenceMatrix({ baseline, experiments, outcomes, policy }: Matr
         "Intervention site executed in the failing scenario",
         executions === null ? "unknown" : executions > 0 ? "met" : "not_met",
         policy.requireExecutedSite,
-        executions === null ? "no coverage of the site" : `${executions} execution(s) of the modified block (relevance, not causality)`,
+        executions === null ? msg("rcNoSiteCoverage") : msg("rcSiteExecutions", { count: executions }),
       ),
-      item("intervention_removes_bug", "Intervention removes the bug (sufficiency)", e.result.status === "CONFIRMED" ? "met" : "not_met", true, e.result.reason),
-      item("prediction_confirmed", "Prediction confirmed", e.result.status === "CONFIRMED" ? "met" : "not_met", true, e.result.status),
+      item("intervention_removes_bug", "Intervention removes the bug (sufficiency)", e.result.status === "CONFIRMED" ? "met" : "not_met", true, e.result.message ?? msg("outcomeIssues", { issues: e.result.reason })),
+      item("prediction_confirmed", "Prediction confirmed", e.result.status === "CONFIRMED" ? "met" : "not_met", true, msg("rcPredictionStatus", { status: e.result.status })),
       item(
         "reversal_restores_bug",
         "Reverting the intervention brings the bug back (A-B-A)",
         e.reversal === null ? "unknown" : reversalMet ? "met" : "not_met",
         policy.requireReversal,
-        e.reversal === null ? "not run" : `${e.reversal.counts.reproduced}/${e.reversal.counts.runs} reproduced after reverting`,
+        e.reversal === null ? msg("rcNotRun") : msg("rcReverted", { reproduced: e.reversal.counts.reproduced, runs: e.reversal.counts.runs }),
       ),
       item(
         "intervention_surgical",
         "Intervention is surgical (no change where the baseline is correct)",
         e.specificity.status === "surgical" ? "met" : e.specificity.status === "not_surgical" ? "not_met" : "unknown",
         policy.requireSurgical,
-        e.specificity.reason,
+        e.specificity.message ?? msg("outcomeIssues", { issues: e.specificity.reason }),
       ),
     );
   }
@@ -568,15 +550,15 @@ export function evidenceMatrix({ baseline, experiments, outcomes, policy }: Matr
       "Alternative hypotheses refuted",
       refuted.length >= policy.minRefutedAlternatives && unresolved.length === 0 ? "met" : "not_met",
       true,
-      `${refuted.length} refuted, ${unresolved.length} unresolved (${policy.minRefutedAlternatives} refutation(s) required)`,
+      msg("rcAlternatives", { refuted: refuted.length, unresolved: unresolved.length, required: policy.minRefutedAlternatives }),
     ),
-    item("unique_survivor", "Exactly one hypothesis survives", supported.length === 1 ? "met" : "not_met", true, `${supported.length} supported`),
+    item("unique_survivor", "Exactly one hypothesis survives", supported.length === 1 ? "met" : "not_met", true, msg("rcSupported", { count: supported.length })),
     item(
       "hypothesis_space_complete",
       "Every plausible cause was among the hypotheses",
       "unknown",
       false,
-      "cannot be established by experiments: VALIDATED means validated against the alternatives tested",
+      msg("rcSpaceUnknown"),
     ),
   );
   return { candidate, items };
@@ -607,6 +589,7 @@ export function decideRootCause(
   const supported = outcomes.filter((o) => o.status === "SUPPORTED");
   const unresolved = outcomes.filter((o) => o.status === "UNRESOLVED");
   const missing = items.filter((i) => i.required && i.status !== "met").map((i) => i.id);
+  const said = (message: EngineMessage) => ({ reason: englishOf(message), message });
 
   if (!baselineReproduced(baseline.counts, policy.runsPerArm)) {
     return {
@@ -614,7 +597,7 @@ export function decideRootCause(
       ...base,
       evidenceLevel: "NONE",
       missing,
-      reason: `the baseline did not reproduce the bug in every run (${baseline.counts.reproduced}/${baseline.counts.runs}, ${policy.runsPerArm} required)`,
+      ...said(msg("rcDecBaseline", { reproduced: baseline.counts.reproduced, runs: baseline.counts.runs, required: policy.runsPerArm })),
     };
   }
   if (outcomes.length > 0 && refuted.length === outcomes.length) {
@@ -623,7 +606,7 @@ export function decideRootCause(
       ...base,
       evidenceLevel: "REPRODUCED",
       missing,
-      reason: `every hypothesis was refuted (${refuted.map((o) => o.id).join(", ")}): the cause is still unknown`,
+      ...said(msg("rcDecAllRefuted", { ids: refuted.map((o) => o.id).join(", ") })),
     };
   }
   if (supported.length > 1) {
@@ -632,7 +615,7 @@ export function decideRootCause(
       ...base,
       evidenceLevel: "SUFFICIENT",
       missing,
-      reason: `the experiments do not discriminate: ${supported.map((o) => o.id).join(" and ")} each removed the bug when neutralized`,
+      ...said(msg("rcDecNotDiscriminating", { ids: supported.map((o) => o.id).join(", ") })),
     };
   }
   if (candidate === null) {
@@ -641,7 +624,7 @@ export function decideRootCause(
       ...base,
       evidenceLevel: "REPRODUCED",
       missing,
-      reason: unresolved.length > 0 ? `unresolved hypotheses remain: ${unresolved.map((o) => o.id).join(", ")}` : "no hypothesis was supported",
+      ...said(unresolved.length > 0 ? msg("rcDecUnresolved", { ids: unresolved.map((o) => o.id).join(", ") }) : msg("rcDecNoneSupported")),
     };
   }
   const statement = supported[0]?.statement ?? null;
@@ -653,16 +636,17 @@ export function decideRootCause(
       statement,
       evidenceLevel: "SUFFICIENT",
       missing,
-      reason:
+      ...said(
         unresolved.length > 0
-          ? `${candidate} removed the bug, but unresolved hypotheses remain: ${unresolved.map((o) => o.id).join(", ")}`
-          : `${candidate} removed the bug, but only ${refuted.length} alternative(s) were refuted (${policy.minRefutedAlternatives} required): one confirming experiment is not enough`,
+          ? msg("rcDecCandidateUnresolved", { candidate, ids: unresolved.map((o) => o.id).join(", ") })
+          : msg("rcDecCandidateFewRefuted", { candidate, refuted: refuted.length, required: policy.minRefutedAlternatives }),
+      ),
     };
   }
   if (missing.length > 0) {
     const details = items
       .filter((i) => missing.includes(i.id))
-      .map((i) => `${i.label.charAt(0).toLowerCase()}${i.label.slice(1)}: ${i.status === "unknown" ? "unknown" : "not met"} (${i.detail})`);
+      .map((i) => msg("rcDecDetail", { label: msg(`rcLabel_${i.id}` as EngineCode), state: i.status === "unknown" ? "unknown" : "not_met", detail: i.message ?? msg("outcomeIssues", { issues: i.detail }) }));
     return {
       status: "INSUFFICIENT_EVIDENCE",
       ...base,
@@ -670,7 +654,7 @@ export function decideRootCause(
       statement,
       evidenceLevel: "CANDIDATE",
       missing,
-      reason: `${candidate} is a root cause candidate — its intervention removes the bug and its alternatives were refuted — but ${details.join("; ")}`,
+      ...said(msg("rcDecCandidate", { candidate, details })),
     };
   }
   return {
@@ -680,9 +664,7 @@ export function decideRootCause(
     statement,
     evidenceLevel: "VALIDATED",
     missing,
-    reason: `${candidate}: its intervention removes the bug in every run, reverting it brings the bug back, its modified code ran in the failing scenario, it changes nothing where the baseline is correct, and ${refuted
-      .map((o) => o.id)
-      .join(", ")} were refuted by their own interventions`,
+    ...said(msg("rcDecValidated", { candidate, refuted: refuted.map((o) => o.id).join(", ") })),
   };
 }
 

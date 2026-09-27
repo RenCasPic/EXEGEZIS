@@ -113,5 +113,82 @@
     "records": "0 registros",
     "notYet": "EXEGEZIS aún no produce esto",
     "requires": "Lo que esta etapa necesitará antes de que aparezca algo aquí"
+  },
+  "plan": {
+    "aiPlan": "Plan de la IA",
+    "testPlan": "Plan de prueba",
+    "subtitle": "{id} · {count, plural, one {# paso} other {# pasos}}",
+    "modelOnly": "El modelo solo escribió este plan. No vio ninguna ejecución y nada de lo que escribió se usa como evidencia: el veredicto sale del motor determinista.",
+    "declined": "El planner se negó a escribir un plan",
+    "plannerError": "Error del planner ({kind})",
+    "invalidGeneration": "Generación no válida ({kind})",
+    "unknownKind": "desconocido",
+    "notRepaired": "No se reparó ni se ejecutó.",
+    "author": "Autor",
+    "authorUnknown": "desconocido",
+    "authorModel": "Modelo",
+    "authorHuman": "Persona",
+    "authorTool": "Herramienta",
+    "providerModel": "Proveedor / modelo",
+    "promptVersion": "Versión del prompt",
+    "latency": "Latencia",
+    "tokens": "Tokens",
+    "tokensValue": "{input} de entrada / {output} de salida",
+    "examples": "Ejemplos en el prompt",
+    "redactions": "Redacciones en la entrada",
+    "written": "Escrito",
+    "validation": "Validación semántica",
+    "targetsChecked": "{checked} objetivo(s) comprobados en la página real, {unchecked} no comprobables antes de ejecutar",
+    "issueStep": "(paso {step})",
+    "failedHere": "falló aquí",
+    "rawOutput": "Respuesta del modelo sin procesar (se conserva para auditoría)",
+    "purpose": {
+      "expectation": "expectativa",
+      "anchor": "ancla"
+    },
+    "stepType": {
+      "navigate": "ir a",
+      "click": "pulsar",
+      "fill": "rellenar",
+      "press": "tecla",
+      "wait": "esperar",
+      "screenshot": "captura",
+      "observe": "observar",
+      "assert": "comprobar"
+    }
+  },
+  "claims": {
+    "title": "Investigación · afirmaciones",
+    "subtitle": "Qué se afirma, y con qué base",
+    "noChain": "Sin cadena de evidencia: el informe no tiene ningún intento fallido que explicar (no se ejecutó ningún plan).",
+    "noChainOutcome": "Sin cadena de evidencia: el informe no tiene ningún intento fallido que explicar ({outcome}).",
+    "stage": {
+      "expectation": "Comportamiento esperado",
+      "action": "Acción",
+      "observation": "Observación",
+      "assertion": "Aserción",
+      "failure": "Fallo",
+      "evidence": "Ventana de evidencia"
+    },
+    "declared": "Declarado",
+    "observed": "Observado",
+    "ref": "ref {ref}",
+    "openTimeline": "abrir en la cronología",
+    "declaredNote": "Declarado en el plan: el comportamiento que según el síntoma está roto, escrito como el comportamiento correcto.",
+    "observedNote": "Registrado por el motor durante el intento.",
+    "future": {
+      "hypothesis": "Hipótesis",
+      "hypothesisDetail": "Una causa candidata, formulada con una intervención y una predicción.",
+      "experiment": "Experimento",
+      "experimentDetail": "La intervención aplicada a una copia aislada, reproducida frente a la línea base.",
+      "decision": "Decisión de causa raíz",
+      "decisionDetail": "Validada solo si una hipótesis resiste y sus alternativas quedan refutadas."
+    },
+    "hypothesisExperiment": "Hipótesis {id} → experimento",
+    "counts": "línea base {baseline}/{runs} → intervención {arm}/{armRuns}",
+    "who": "Quién puede afirmar qué",
+    "whoModel": "El modelo solo puede proponer un plan: una expectativa y los pasos para comprobarla.",
+    "whoEngine": "El motor registra observaciones y deduce el veredicto de seis criterios deterministas.",
+    "whoCause": "Una causa solo la afirma la decisión determinista sobre los experimentos de intervención. Todavía nada puede afirmar un arreglo ni que un arreglo funcione."
   }
 }

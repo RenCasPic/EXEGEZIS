@@ -113,5 +113,82 @@
     "records": "0 records",
     "notYet": "EXEGEZIS does not produce this yet",
     "requires": "What this stage will require before anything appears here"
+  },
+  "plan": {
+    "aiPlan": "AI plan",
+    "testPlan": "Test plan",
+    "subtitle": "{id} · {count, plural, one {# step} other {# steps}}",
+    "modelOnly": "The model only wrote this plan. It did not see any run, and nothing it wrote is used as evidence: the verdict comes from the deterministic engine.",
+    "declined": "The planner declined to write a plan",
+    "plannerError": "Planner error ({kind})",
+    "invalidGeneration": "Invalid generation ({kind})",
+    "unknownKind": "unknown",
+    "notRepaired": "Not repaired and not executed.",
+    "author": "Author",
+    "authorUnknown": "unknown",
+    "authorModel": "Model",
+    "authorHuman": "Human",
+    "authorTool": "Tool",
+    "providerModel": "Provider / model",
+    "promptVersion": "Prompt version",
+    "latency": "Latency",
+    "tokens": "Tokens",
+    "tokensValue": "{input} in / {output} out",
+    "examples": "Few-shot examples",
+    "redactions": "Redactions in input",
+    "written": "Written",
+    "validation": "Semantic validation",
+    "targetsChecked": "{checked} target(s) checked against the live page, {unchecked} not checkable before running",
+    "issueStep": "(step {step})",
+    "failedHere": "failed here",
+    "rawOutput": "Raw model output (kept for audit)",
+    "purpose": {
+      "expectation": "expectation",
+      "anchor": "anchor"
+    },
+    "stepType": {
+      "navigate": "navigate",
+      "click": "click",
+      "fill": "fill",
+      "press": "press",
+      "wait": "wait",
+      "screenshot": "screenshot",
+      "observe": "observe",
+      "assert": "assert"
+    }
+  },
+  "claims": {
+    "title": "Investigation · claims",
+    "subtitle": "What is claimed, and on what basis",
+    "noChain": "No evidence chain: the report has no failing attempt to explain (no plan was executed).",
+    "noChainOutcome": "No evidence chain: the report has no failing attempt to explain ({outcome}).",
+    "stage": {
+      "expectation": "Expected behaviour",
+      "action": "Action",
+      "observation": "Observation",
+      "assertion": "Assertion",
+      "failure": "Failure",
+      "evidence": "Evidence window"
+    },
+    "declared": "Declared",
+    "observed": "Observed",
+    "ref": "ref {ref}",
+    "openTimeline": "open in the timeline",
+    "declaredNote": "Declared in the plan: the behaviour the symptom says is broken, written as the correct behaviour.",
+    "observedNote": "Recorded by the engine during the attempt.",
+    "future": {
+      "hypothesis": "Hypothesis",
+      "hypothesisDetail": "A candidate cause, stated with an intervention and a prediction.",
+      "experiment": "Experiment",
+      "experimentDetail": "The intervention applied to an isolated copy, reproduced against the baseline.",
+      "decision": "Root cause decision",
+      "decisionDetail": "Validated only if one hypothesis survives and its alternatives were refuted."
+    },
+    "hypothesisExperiment": "Hypothesis {id} → experiment",
+    "counts": "baseline {baseline}/{runs} → intervention {arm}/{armRuns}",
+    "who": "Who may claim what",
+    "whoModel": "The model may only propose a plan: an expectation and the steps to test it.",
+    "whoEngine": "The engine records observations and derives the verdict from six deterministic criteria.",
+    "whoCause": "A cause is claimed only by the deterministic decision over intervention experiments. Nothing may yet claim a fix or that a fix works."
   }
 }
