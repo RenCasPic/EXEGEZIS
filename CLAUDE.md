@@ -11,3 +11,5 @@
 ## Instrucciones de terminal para René
 
 Siempre en **CMD de Windows**, nunca PowerShell.
+
+La app web se arranca con `pnpm web` desde la raíz del repositorio (compila y levanta http://127.0.0.1:4100).
