@@ -1,6 +1,6 @@
 # 10 — Búsquedas de contenido en un sitio (propuesta)
 
-Estado: **propuesta, pendiente de aprobación**. Sustituye a la versión anterior (`10-searches.md`).
+Estado: **aprobado por René (2026-09-27)** con las decisiones de la §7. Sustituye a la versión anterior (`10-searches.md`).
 
 **Principios:**
 - La IA propone y el motor determinista verifica.
@@ -41,7 +41,7 @@ Salida en `runs/searches/<id>/search-report.json`.
 ## 2. Schemas (core, Zod)
 
 - **`SearchQuery`**, uno de estos tres:
-  - `exact {terms[], phrases[], excluded[], variants: bool, regex: string|null}`;
+  - `exact {terms[], phrases[], excluded[], excludeScope: block|page (por defecto block), variants: bool (por defecto false), regex: string|null, suggestedTerms[] (aceptados por el usuario, con su origen)}`;
   - `meaning {description}`;
   - `template {id, version, exact?, meaning?}`.
 - **`SearchObservation`** (en bruto, por página y ejecución): `{page, run, blockId, match, context, quote, verifiedQuote}`.
@@ -51,7 +51,7 @@ Salida en `runs/searches/<id>/search-report.json`.
   - `query`, `options` y `tools` (extractor, `snowball-stemmers@0.6.0` y, en semántica, el modelo, la versión del prompt, los tokens, la latencia y el coste);
   - `coverage {found, visited, skipped: {budget, robots, blocked[], safety, engineError}}`;
   - `pages[]` (la misma `PageVisit` de las inspecciones), `observations[]`, `hits[]`;
-  - `discarded {unverifiedQuotes: n}` y `summary`.
+  - `discarded {unverifiedQuotes: n}`, `excluded [{term, scope, blocks, pages, hits}]` y `summary`.
   - Al cargar se re-derivan los veredictos, los conteos, la cobertura y el resumen: si no cuadran, el informe no carga, igual que `InspectionReport`.
 
 ## 3. Normalización y variantes (búsqueda exacta, fase 1)
@@ -66,7 +66,7 @@ La coincidencia es por **palabra completa**: «cura» no coincide dentro de «cu
 
 **Operadores:**
 - `"frase exacta"`;
-- `-palabra` excluye las páginas o bloques que la contengan (a decidir en la §7, punto 4);
+- `-palabra` excluye **solo el bloque** de texto donde aparece (por defecto). La opción «excluir página entera» (`--exclude-scope page`) descarta la página. El informe muestra siempre cuántos resultados, bloques y páginas se excluyeron y por qué palabra: excluir nunca oculta resultados sin que se note;
 - `--regex` es opcional y se aplica sobre el texto normalizado, con un límite de tiempo por página.
 
 **Variantes (`--variants`, opcionales).** Raíz Snowball en español e inglés (`snowball-stemmers` 0.6.0, sin dependencias, licencia ISC), iterada hasta que deja de cambiar. Comprobado en este equipo:
@@ -75,6 +75,8 @@ La coincidencia es por **palabra completa**: «cura» no coincide dentro de «cu
 - **da falsos positivos:** casa = caso («cas»), mesa = mes («mes»).
 
 Por eso las variantes van desactivadas por defecto. Cada resultado encontrado solo por variante lleva la etiqueta «por variante (raíz «enferm»)», para que se vea por qué salió.
+
+**«Sugerir términos relacionados» (fase 2).** Para las derivadas que la raíz no une, la IA propone términos de la misma familia o sinónimos (curar → curación, médico → medicina). El usuario marca cuáles usar y la búsqueda sigue siendo **exacta y determinista**: los términos aceptados se añaden como términos normales, con la etiqueta «término sugerido por IA, aceptado por ti». La IA no ve la página: solo recibe los términos. Hay estimación de coste antes, como en la búsqueda por significado, y se registran el modelo y los tokens.
 
 **Veredicto.** Con N cargas (por defecto 3, en contextos limpios):
 - **VERIFIED** si aparece en las N;
@@ -86,7 +88,7 @@ Visible o no visible es un atributo del resultado, no un veredicto.
 
 1. **Primera pasada sin IA:** recorrido y extracción. Da el texto exacto de cada página.
 2. **Estimación de coste:** tokens contados con el endpoint `count_tokens` de la API (gratuito) o, sin conexión, estimados a 4 caracteres por token. Se multiplican por la tabla de precios del modelo, que queda en código con la fecha y la fuente de la página oficial de precios.
-   - La UI muestra la estimación y pide confirmación si supera el límite (`--max-cost`, por defecto 1 USD).
+   - La UI muestra la estimación y pide confirmación si supera el límite: 1 USD por búsqueda por defecto, configurable en Ajustes y con `--max-cost`.
    - En el CLI, si se supera el límite se para antes de llamar al modelo y se dice cuánto costaría.
 3. **Llamadas.** Se agrupan las páginas por lotes hasta llenar el contexto. El texto va redactado de secretos y datos personales con el mismo `redactText` del planner.
    - La salida es estructurada: `{blockId, quote, reason (una frase), relevance: high|medium|low}`.
@@ -152,15 +154,15 @@ Con AA, temas claro y oscuro, y sin scroll horizontal a 375 px.
 2. **Fase 1:** la extracción, la búsqueda exacta (normalización, operadores, variantes, N cargas), el esquema, el CLI, la sección Búsquedas y la pestaña Buscar.
    - Fixture con: acentos, mayúsculas, plurales, un acordeón oculto, atributos alt, un carrusel cambiante y una página de control.
    - ⚠️ **PARO con una demo para René.**
-3. **Fase 2:** búsqueda por significado, verificación de citas, coste y límite. Probada con un planner mock que devuelve una cita inventada y otra deformada. ⚠️ **PARO.**
+3. **Fase 2:** búsqueda por significado, verificación de citas, coste y límite (configurable en Ajustes), y el botón «Sugerir términos relacionados». Probada con un planner mock que devuelve una cita inventada y otra deformada. ⚠️ **PARO.**
 4. **Fase 3:** plantillas, búsquedas guardadas, «solo lo nuevo», revisión, CSV y PDF. Prueba real en jesushealingministry.net y resultados en §8.
 
-**Decisiones pendientes:**
-1. ¿Conservar la **ñ** al normalizar? Propongo que sí.
-2. ¿Variantes **desactivadas por defecto**, con su etiqueta? Propongo que sí.
-3. ¿Límite de coste por defecto de 1 USD por búsqueda?
-4. Con `-palabra`, ¿se excluye el **bloque** o la **página** entera? Propongo la página, que es lo que suele esperarse.
-5. **Accesos:** quedan pendientes el aviso de bloqueo en el detalle de la inspección, Ajustes > Accesos, el aviso de sesión caducada en la home, los tests de la web y tu prueba en `/prayer`. ¿Los termino antes de la fase 0 (propuesto) o después?
+**Decisiones (aprobadas por René):**
+1. La **ñ** se distingue de la n («año» ≠ «ano»).
+2. Variantes **desactivadas por defecto**. Cada resultado por variante dice por qué salió. En la fase 2 se añade «Sugerir términos relacionados», y la búsqueda sigue siendo exacta.
+3. Límite de coste de **1 USD** por búsqueda por significado, configurable en Ajustes.
+4. `-palabra` excluye **solo el bloque** por defecto, con la opción «excluir página entera». El informe muestra siempre qué se excluyó y por qué palabra.
+5. Primero se terminan los pendientes de Accesos (docs/09) y después empieza la fase 0.
 
 ## 8. Resultados
 
