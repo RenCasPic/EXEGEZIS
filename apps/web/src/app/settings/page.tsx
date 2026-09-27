@@ -40,6 +40,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               {s}
             </Link>
           ))}
+          <Link href="/settings/access" className="rounded-md px-2.5 py-1.5 text-[13px] text-muted hover:bg-hover/60 hover:text-fg">
+            Accesos
+          </Link>
         </nav>
 
         {section === "general" && (
