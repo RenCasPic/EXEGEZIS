@@ -27,16 +27,24 @@ import {
   type ScreenshotEvidence,
   AxeImpact,
   PageInspectionFile,
+  TextBlock,
+  TextBlocksFile,
 } from "@exegezis/core";
 import type { Browser, BrowserContext, ConsoleMessage, Page, Request, Response, WebError } from "playwright";
 import { z } from "zod";
 import { AxeBuilder } from "@axe-core/playwright";
 import { axeSelector, evaluateAssertion } from "./assertions.js";
 import { toLocator } from "./locator.js";
-import { domSettleScript, highlightScript, PAGE_FACTS_SCRIPT, PageFacts, UNHIGHLIGHT_SCRIPT } from "./page-scripts.js";
+import { domSettleScript, highlightScript, PAGE_FACTS_SCRIPT, PageFacts, textBlocksScript, UNHIGHLIGHT_SCRIPT } from "./page-scripts.js";
 import { drainWithDeadline } from "./drain.js";
 import type { BrowserAdapterOptions } from "./options.js";
 import { sanitizeTraceArchive } from "./trace-redaction.js";
+
+/** What the extraction script returns (validated: page scripts are never trusted). */
+const ExtractedText = z.object({ lang: z.string().nullable(), title: z.string(), blocks: z.array(TextBlock), truncated: z.boolean() });
+
+/** axe-core is turned off (search mode): not an error. */
+class AxeSkipped extends Error {}
 
 export const TRACE_FILE = "trace.zip";
 
@@ -366,6 +374,7 @@ export class BrowserSession implements AdapterSession {
     let axeError: string | null = null;
     let highlight: string | null = null;
     try {
+      if (!this.options.axe) throw new AxeSkipped();
       const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
       const rules = [...new Set([...results.passes, ...results.violations, ...results.incomplete, ...results.inapplicable].map((r) => r.id))].sort();
       axe = {
@@ -392,7 +401,7 @@ export class BrowserSession implements AdapterSession {
         await page.evaluate(UNHIGHLIGHT_SCRIPT);
       }
     } catch (error) {
-      axeError = toErrorInfo(error).message;
+      if (!(error instanceof AxeSkipped)) axeError = toErrorInfo(error).message;
     }
 
     const file: PageInspectionFile = {
@@ -417,6 +426,13 @@ export class BrowserSession implements AdapterSession {
     await this.recorder.writeJson("inspection", "inspection.json", PageInspectionFile.parse(file), {
       description: "Web inspection: links, metadata, axe-core results, block signals",
     });
+    if (this.options.extractText) {
+      const extracted = ExtractedText.parse(await page.evaluate<unknown>(textBlocksScript(this.options.includeHiddenText)));
+      const blocks: TextBlocksFile = { schemaVersion: "exegezis.text-blocks/v1", url: this.url(page.url()), ...extracted };
+      await this.recorder.writeJson("text_blocks", "text-blocks.json", TextBlocksFile.parse(blocks), {
+        description: "Page text in blocks (search extraction), with selectors, positions and visibility",
+      });
+    }
   }
 
   private async saveTrace(): Promise<CollectorStatus> {

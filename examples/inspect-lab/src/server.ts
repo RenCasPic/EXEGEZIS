@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
 import { handleAccess } from "./access.ts";
+import { handleSearch } from "./search.ts";
 
 /*
  * inspect-lab: the fixture of `exegezis inspect`.
@@ -19,6 +20,7 @@ import { handleAccess } from "./access.ts";
  * /private/* is disallowed by robots.txt; /blocked/ is a CAPTCHA wall;
  * /healthy/ is a healthy section (0 findings expected).
  * /access/* are the access fixtures, one per block kind (see access.ts).
+ * /search/* are the search fixtures (see search.ts).
  * /groups/ (3 pages) repeats one low-contrast card (#9ca3af on white) on
  * every page, adds a second colour pair (#c4862a on white) on /groups/b, and
  * logs a console error whose numbers change on every load: issue grouping
@@ -124,6 +126,7 @@ function handler(secure: boolean) {
       });
       return;
     }
+    if ((url.pathname.startsWith("/search/") || url.pathname === "/__lab/search-reset") && handleSearch(res, url)) return;
     const method = req.method ?? "GET";
     if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
       const key = `${method} ${url.pathname}`;

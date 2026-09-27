@@ -29,6 +29,12 @@ export const BrowserAdapterOptions = z.strictObject({
   coverage: z.boolean().default(false),
   /** Web inspection mode: also record links, metadata, axe results and block signals (inspection.json). */
   inspect: z.boolean().default(false),
+  /** Inspection mode: run axe-core (off for searches, which only need the text). */
+  axe: z.boolean().default(true),
+  /** Search mode: also record the page text in blocks (text-blocks.json). Needs `inspect`. */
+  extractText: z.boolean().default(false),
+  /** Search mode: include text a visitor does not see, marked as not visible. */
+  includeHiddenText: z.boolean().default(true),
   /** Overrides the browser's User-Agent (web inspection identifies itself). */
   userAgent: z.string().min(1).optional(),
   /** Playwright storageState file for authenticated inspections. Read by Playwright; never recorded. */

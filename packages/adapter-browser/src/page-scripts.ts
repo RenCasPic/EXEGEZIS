@@ -155,3 +155,133 @@ export const UNHIGHLIGHT_SCRIPT = `(() => {
     element.removeAttribute("data-exegezis-highlight");
   }
 })()`;
+
+/**
+ * Search extraction (docs/10-search.md §1): the rendered text of the page in
+ * blocks (headings, paragraphs, list items, cells, buttons, links…), each
+ * with a selector, its position in page coordinates and whether a visitor can
+ * see it; then alt / title / aria-label attributes, and the title, meta
+ * description and Open Graph text. Hidden text (closed accordion, hidden tab,
+ * display:none, aria-hidden) is kept apart and marked, unless left out.
+ */
+export function textBlocksScript(includeHidden: boolean, maxBlocks = 4000, maxText = 4000): string {
+  return String.raw`(() => {
+  const INCLUDE_HIDDEN = ${includeHidden ? "true" : "false"};
+  const MAX_BLOCKS = ${Math.max(1, Math.floor(maxBlocks))};
+  const MAX_TEXT = ${Math.max(1, Math.floor(maxText))};
+  const CONTAINER = new Set(["H1","H2","H3","H4","H5","H6","P","LI","TD","TH","DT","DD","BLOCKQUOTE","FIGCAPTION","CAPTION","SUMMARY","LABEL","BUTTON","PRE","OPTION","LEGEND","DIV","SECTION","ARTICLE","MAIN","HEADER","FOOTER","ASIDE","NAV","FORM","BODY","UL","OL","DL","TABLE","TR","TBODY","THEAD","TFOOT","FIGURE","DETAILS","DIALOG","ADDRESS","CENTER","FIELDSET","HGROUP"]);
+  const KIND = { P: "paragraph", LI: "list-item", TD: "cell", TH: "cell", BLOCKQUOTE: "quote", LABEL: "label", BUTTON: "button", SUMMARY: "button", OPTION: "text" };
+  const cssPath = (el) => {
+    if (el === document.body) return "body";
+    const parts = [];
+    let cur = el;
+    while (cur && cur.nodeType === 1 && cur !== document.body && cur !== document.documentElement && parts.length < 30) {
+      if (cur.id && /^[A-Za-z][\w-]*$/.test(cur.id) && document.querySelectorAll("#" + cur.id).length === 1) {
+        parts.unshift("#" + cur.id);
+        return parts.join(" > ");
+      }
+      const tag = cur.tagName.toLowerCase();
+      const parent = cur.parentElement;
+      if (!parent) { parts.unshift(tag); break; }
+      const same = Array.from(parent.children).filter((c) => c.tagName === cur.tagName);
+      parts.unshift(same.length > 1 ? tag + ":nth-of-type(" + (same.indexOf(cur) + 1) + ")" : tag);
+      cur = parent;
+    }
+    if (cur === document.body) parts.unshift("body");
+    return parts.join(" > ");
+  };
+  const visible = (el) => {
+    if (el.closest('[aria-hidden="true"]') !== null) return false;
+    if (typeof el.checkVisibility === "function" && !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const rectOf = (el) => {
+    const r = el.getBoundingClientRect();
+    return { x: Math.round(r.left + window.scrollX), y: Math.round(r.top + window.scrollY), width: Math.round(r.width), height: Math.round(r.height) };
+  };
+  const clean = (s) => s.replace(/\s+/g, " ").trim();
+  let truncated = false;
+  const blocks = [];
+  const push = (b) => {
+    if (blocks.length >= MAX_BLOCKS) { truncated = true; return; }
+    let text = clean(b.text);
+    if (text === "") return;
+    if (text.length > MAX_TEXT) { text = text.slice(0, MAX_TEXT); truncated = true; }
+    blocks.push({ id: "b" + (blocks.length + 1), kind: b.kind, level: b.level, text, selector: b.selector, rect: b.rect, visible: b.visible, source: b.source });
+  };
+
+  // Rendered text, grouped by the nearest block container and by visibility.
+  const groups = new Map();
+  const order = [];
+  let seq = 0;
+  if (document.body) {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => {
+        const parent = node.parentElement;
+        if (parent === null || parent.closest("script, style, noscript, template, svg, iframe, object, canvas") !== null) return NodeFilter.FILTER_REJECT;
+        return /\S/.test(node.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      },
+    });
+    for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+      const parent = node.parentElement;
+      let container = parent;
+      while (container !== null && !CONTAINER.has(container.tagName)) container = container.parentElement;
+      if (container === null) container = document.body;
+      const isVisible = visible(parent);
+      if (!isVisible && !INCLUDE_HIDDEN) continue;
+      let group = groups.get(container);
+      if (group === undefined) {
+        group = { visible: null, hidden: null };
+        groups.set(container, group);
+      }
+      const slot = isVisible ? "visible" : "hidden";
+      if (group[slot] === null) {
+        group[slot] = { parts: [], anchors: new Set(), plain: false, last: -2 };
+        order.push([container, slot]);
+      }
+      const g = group[slot];
+      // Adjacent text nodes join as written (inline markup does not split words); a <br> or another block in between is a space.
+      const breakBefore = node.previousSibling !== null && node.previousSibling.nodeName === "BR";
+      g.parts.push((breakBefore ? "\n" : g.last === seq - 1 ? "" : " ") + (node.nodeValue || ""));
+      g.last = seq;
+      seq += 1;
+      const anchor = parent.closest("a");
+      if (anchor === null || !container.contains(anchor) && !anchor.contains(container)) g.plain = true;
+      else g.anchors.add(anchor);
+    }
+  }
+  for (const [container, slot] of order) {
+    const g = groups.get(container)[slot];
+    const tag = container.tagName;
+    const heading = /^H[1-6]$/.test(tag);
+    const kind = heading ? "heading" : KIND[tag] !== undefined ? KIND[tag] : !g.plain && g.anchors.size === 1 ? "link" : "text";
+    const isVisible = slot === "visible";
+    const text = g.parts.join("").replace(/^\s+/, "");
+    push({ kind, level: heading ? Number(tag.slice(1)) : null, text, selector: cssPath(container), rect: isVisible ? rectOf(container) : null, visible: isVisible, source: null });
+  }
+
+  // Attributes: alternative text, titles and ARIA labels.
+  const ATTRS = [["alt", "alt", "img[alt], area[alt], input[type=image][alt]"], ["title-attr", "title", "body [title]"], ["aria-label", "aria-label", "[aria-label]"]];
+  for (const [kind, attr, selector] of ATTRS) {
+    for (const el of Array.from(document.querySelectorAll(selector))) {
+      const text = el.getAttribute(attr) || "";
+      if (!/\S/.test(text)) continue;
+      const isVisible = visible(el);
+      if (!isVisible && !INCLUDE_HIDDEN) continue;
+      push({ kind, level: null, text, selector: cssPath(el), rect: isVisible ? rectOf(el) : null, visible: isVisible, source: attr });
+    }
+  }
+
+  // Page metadata: what search engines and social networks show.
+  push({ kind: "meta-title", level: null, text: document.title || "", selector: null, rect: null, visible: false, source: "title" });
+  const description = document.querySelector('meta[name="description" i]');
+  if (description !== null) push({ kind: "meta-description", level: null, text: description.getAttribute("content") || "", selector: null, rect: null, visible: false, source: "description" });
+  for (const meta of Array.from(document.querySelectorAll('meta[property^="og:"]'))) {
+    const property = meta.getAttribute("property") || "";
+    if (!/^og:(title|description|site_name|image:alt)$/.test(property)) continue;
+    push({ kind: "og", level: null, text: meta.getAttribute("content") || "", selector: null, rect: null, visible: false, source: property });
+  }
+  return { lang: document.documentElement.getAttribute("lang"), title: document.title || "", blocks, truncated };
+})()`;
+}

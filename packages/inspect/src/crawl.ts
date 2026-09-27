@@ -13,6 +13,7 @@ import {
   RunRecorder,
   silentLogger,
   TestPlan,
+  TextBlocksFile,
   type EngineErrorInfo,
   type PageVisit,
 } from "@exegezis/core";
@@ -60,6 +61,12 @@ export interface CrawlOptions {
   /** Rate limiting: longest single wait and total waiting before giving up (ms). */
   maxRateLimitWaitMs?: number;
   maxRateLimitTotalMs?: number;
+  /** Run axe-core on each visit (inspections). Default true. */
+  axe?: boolean;
+  /** Keep a Playwright trace of the first run. Default true. */
+  trace?: boolean;
+  /** Search mode: record the page text in blocks (text-blocks.json). */
+  extract?: { includeHidden: boolean };
   onProgress?: (progress: CrawlProgress) => void;
 }
 
@@ -80,6 +87,8 @@ export interface Visit {
   browser: { channel: ConcreteChannel; version: string; system: boolean } | null;
   /** The trace held secrets of the saved access that could not be removed, so it was not kept. */
   traceDropped: boolean;
+  /** Search mode: the page text in blocks. */
+  textBlocks: TextBlocksFile | null;
 }
 
 /** Everything the walk found, handed to the caller while the HTTP probe is still open. */
@@ -348,8 +357,11 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
       headless: options.headed !== true,
       browserChannel: options.browserChannel ?? "auto",
       inspect: true,
+      axe: options.axe ?? true,
+      extractText: options.extract !== undefined,
+      includeHiddenText: options.extract?.includeHidden ?? true,
       userAgent,
-      trace: run === 1,
+      trace: run === 1 && options.trace !== false,
       navigationTimeoutMs: args.pageTimeoutMs,
       blockPageWrites: strict,
       ...(options.storageState === undefined ? {} : { storageState: options.storageState }),
@@ -366,11 +378,12 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
       return null;
     }
   };
-  const [consoleFile, network, inspection, observations] = await Promise.all([
+  const [consoleFile, network, inspection, observations, textBlocks] = await Promise.all([
     read("console.json", ConsoleFile),
     read("network.json", NetworkFile),
     read("inspection.json", PageInspectionFile),
     read("observations.json", ObservationsFile),
+    options.extract === undefined ? Promise.resolve(null) : read("text-blocks.json", TextBlocksFile),
   ]);
   const navigationError = outcome.metadata.error?.phase === "action" ? outcome.metadata.error.message : null;
   const c = classifyVisit({ navigationError, network, inspection, requestedUrl: url, strictReadonly: strict, sessionUsed: args.sessionUsed === true });
@@ -397,7 +410,7 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
   const b = outcome.metadata.environment?.browser;
   const browser = b?.channel === undefined ? null : { channel: b.channel, version: b.version, system: b.system === true };
   const traceDropped = /trace discarded/.test(outcome.metadata.collectors["trace"]?.detail ?? "");
-  return { visit, evidence, browser, traceDropped };
+  return { visit, evidence, browser, traceDropped, textBlocks };
 }
 
 /** Links that log out or act destructively behind a GET: never visited (docs/09-access.md §4). */
