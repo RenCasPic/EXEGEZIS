@@ -74,8 +74,17 @@ describe("the target check before the planner is called", () => {
     server.close();
   });
 
-  it("accepts any HTTP answer and refuses a target that does not answer", async () => {
+  it("accepts any HTTP answer and refuses a target that does not answer, saying why", async () => {
     expect(await probeTarget(url)).toBeNull();
-    expect(await probeTarget("http://127.0.0.1:1/", 2000)).toMatch(/did not respond .*the planner was not called/);
+    // A port with nothing listening (like buggy-shop on :3000 when it is not started).
+    const closed = await new Promise<number>((done) => {
+      const probe = createServer().listen(0, "127.0.0.1", () => {
+        const a = probe.address();
+        probe.close(() => done(typeof a === "object" && a !== null ? a.port : 0));
+      });
+    });
+    expect(await probeTarget(`http://127.0.0.1:${closed}/`, 2000)).toMatch(/did not respond \(connection refused: nothing is listening at that address\).*the planner was not called/);
+    // localhost resolves to ::1 and 127.0.0.1: the real cause is inside an AggregateError with an empty message.
+    expect(await probeTarget(`http://localhost:${closed}/`, 2000)).toMatch(/\(connection refused/);
   });
 });
