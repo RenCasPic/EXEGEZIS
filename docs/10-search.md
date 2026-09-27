@@ -166,4 +166,48 @@ Con AA, temas claro y oscuro, y sin scroll horizontal a 375 px.
 
 ## 8. Resultados
 
-*(Se completa en la fase 3.)*
+Fecha: 2026-09-27. Por decisión de René, las tres fases se implementaron seguidas, sin paradas intermedias.
+
+**Prueba real en https://www.jesushealingministry.net/** (`--max-pages 10 --max-depth 1`):
+
+| | Exacta | Por significado |
+|---|---|---|
+| Consulta | `medicina, médico, enfermedad, tratamiento, curar` | «cualquier mención a la medicina, directa o indirecta» |
+| Cobertura | 10 de 94 páginas encontradas (83 fuera del límite, 1 excluida por robots.txt) | las mismas 10 páginas |
+| Cargas por página | 3 | 1 |
+| Resultados | **2 verificados** (3/3 cargas), 0 intermitentes | **46 sugerencias con cita verificada** en 7 páginas (24 de relevancia alta, 16 media, 6 baja; 5 en texto no visible) |
+| Citas de la IA descartadas | — | 0 de 49 |
+| IA | — | claude-sonnet-5 · 3 llamadas · 36.843 tokens de entrada y 5.024 de salida · **0,12 USD** (estimado antes: hasta 0,32; límite 1,00) · 43 s |
+
+- **Exacta:** «médico» en un testimonio de la portada («…antes de ir al médico con mi hijo…») y «Enfermedad» en el título de un libro de `/books`.
+  - La tercera carga no llegó a la última página: se agotó el límite de tiempo total (10 minutos), porque el sitio nunca deja de hacer peticiones (analítica) y cada carga espera a su límite. El estado es PARCIAL y así lo dice el informe. No afecta a ningún resultado: los dos están en 3 de 3 cargas.
+- **Por significado:** encuentra lo que la exacta no puede, porque está escrito con otras palabras o en inglés («without medication», «the clinic», «asthma», «ear infection», «no need of any medicine», «alergia y la tos», «Physical healing»).
+  - Solo 9 de las 46 citas contienen alguno de los cinco términos exactos.
+  - Todas las citas son literales; cada resultado es una sugerencia para revisar, no un veredicto.
+- **Lo que corrigió esta prueba** (commit `ab31528`): en el primer intento, la IA encontró tanto en el primer lote que su respuesta se cortó al llegar al límite de salida y ese lote se perdió (estado AI_ERROR, 16 resultados).
+  - Ahora una respuesta cortada se divide en dos y se vuelve a pedir, siempre dentro del límite de coste.
+  - Los bloques repetidos en todas las páginas (cabecera y pie; aquí 732) se envían una sola vez.
+  - La repetición se hizo reutilizando las páginas ya leídas (`--reuse`), sin volver a visitar el sitio.
+
+**Criterios de aceptación:**
+- **Fase 1:** el fixture (`/search/*` en inspect-lab) cubre acentos, mayúsculas, plurales (solo con variantes), un acordeón cerrado, `display:none` y `aria-hidden` marcados como no visibles, alt/title/aria-label/meta/og, un carrusel INTERMITENTE y una página de control con 0 resultados.
+  - Un informe manipulado no carga.
+  - La cobertura cuadra.
+  - Inspecciones sin cambios: mismos hallazgos antes y después del refactor; benchmark A 9/9 y B mock 7/7.
+- **Fase 2:** un modelo simulado con una cita inventada y otra deformada: las dos se descartan y se cuentan. La estimación se muestra, y por encima del límite no se llama a la IA (código de salida 8); al aprobarla se reutilizan las páginas.
+- **Fase 3:**
+  - «Solo lo nuevo» funciona en el CLI y en la web.
+  - El CSV lleva BOM, `;` y CRLF, y Excel lo abre con acentos.
+  - El PDF se imprime con Chromium.
+  - Las plantillas deterministas no llaman a la IA (test con un modelo que falla si se le llama).
+
+**Desviaciones:**
+- Modelo por defecto `claude-sonnet-5`, sin *thinking*, para acotar el coste de salida.
+- Lotes de unos 45.000 caracteres y 8.000 tokens de salida por llamada.
+- Los PDF enlazados desde las páginas no se leen (opcional, pendiente).
+- El recorte de captura marca el bloque sobre la captura de página completa; el texto no visible dice «no aparece en la captura».
+
+**Limitaciones:**
+- La búsqueda por significado puede tener falsos negativos.
+- Las variantes (Snowball) no unen palabras derivadas (curar/curación) y pueden unir palabras distintas (casa/caso).
+- En sitios que no dejan de cargar, 3 cargas × 10 páginas se acercan al límite de 10 minutos: se puede subir con `--total-timeout`.
