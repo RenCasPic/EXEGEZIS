@@ -15,7 +15,7 @@ const TONE: Record<Tone, string> = {
   ok: "text-ok bg-ok-bg border-ok/30",
   warn: "text-warn bg-warn-bg border-warn/30",
   q: "text-q bg-q-bg border-q/25",
-  off: "text-off bg-off-bg border-off/25",
+  off: "text-off bg-off-bg border-off-bd",
   bad: "text-bad bg-bad-bg border-bad/30",
   running: "text-q bg-q-bg border-q/25",
   unimplemented: "text-muted border-dashed border-line-strong bg-transparent",
@@ -119,7 +119,7 @@ export function EvidenceMeter({ level }: { level: EvidenceLevel | null }) {
     <span className="inline-flex items-center gap-2" role="img" aria-label={level === null ? t("none") : t("level", { level: text, index: index + 1, total: EVIDENCE_LEVELS.length })}>
       <span className="flex gap-0.5" aria-hidden>
         {EVIDENCE_LEVELS.map((l, i) => (
-          <span key={l} className={cn("h-2 w-3 rounded-[2px]", i <= index ? fill : "border border-line-strong")} />
+          <span key={l} className={cn("h-2 w-3 rounded-[2px]", i <= index ? fill : "bg-empty")} />
         ))}
       </span>
       <span className={cn("text-[12px]", level === null ? "text-faint" : toneText(tone))} aria-hidden>

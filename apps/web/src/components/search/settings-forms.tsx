@@ -6,7 +6,7 @@ import { useActionState } from "react";
 import { saveSearchSettingsAction, saveTemplateAction, type SettingsState } from "@/app/search-actions";
 import { buttonClass } from "@/components/ui/primitives";
 
-const input = "h-9 w-full rounded-md border border-line-strong bg-panel px-2.5 text-[13px] text-fg";
+const input = "h-9 w-full rounded-md border border-line-strong bg-field px-2.5 text-[13px] text-fg";
 
 function Result({ state }: { state: SettingsState }) {
   if (state.error !== null)
@@ -72,7 +72,7 @@ export function TemplateForm() {
       </label>
       <label className="flex flex-col gap-1 text-[12px] text-muted">
         {t("meaning")}
-        <textarea name="meaning" rows={2} className="w-full rounded-md border border-line-strong bg-panel px-2.5 py-2 text-[13px] text-fg" />
+        <textarea name="meaning" rows={2} className="w-full rounded-md border border-line-strong bg-field px-2.5 py-2 text-[13px] text-fg" />
       </label>
       <button type="submit" disabled={pending} className={`${buttonClass("primary")} self-start`}>
         {pending ? <Loader2 className="animate-spin" aria-hidden /> : null} {t("saveTemplate")}

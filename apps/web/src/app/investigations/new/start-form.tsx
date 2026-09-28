@@ -7,7 +7,7 @@ import { startInvestigation, type StartState } from "@/app/actions";
 import { EngineProblem } from "@/components/ui/copy-command";
 import { buttonClass } from "@/components/ui/primitives";
 
-const field = "w-full rounded-md border border-line bg-panel-2 px-3 py-2 text-[13px] text-fg outline-none placeholder:text-faint focus:border-line-strong";
+const field = "w-full rounded-md border border-line-strong bg-field px-3 py-2 text-[13px] text-fg placeholder:text-faint";
 const labelClass = "mb-1.5 flex items-center gap-2 text-[13px] font-medium text-fg";
 
 export function StartForm({

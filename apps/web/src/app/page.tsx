@@ -44,7 +44,7 @@ function Origin({ row }: { row: CaseRow }) {
 
 function Metric({ label, value, secondary, tone }: { label: string; value: string | number; secondary: React.ReactNode; tone?: "bad" | "ok" | undefined }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-line bg-panel px-4 py-3.5">
+    <div className="panel-frame flex flex-col gap-1 rounded-lg bg-panel px-4 py-3.5">
       <div className="text-[13px] font-medium text-muted">{label}</div>
       <div className={cn("font-mono text-[28px] leading-tight font-semibold tracking-tight", tone === "bad" ? "text-bad" : "text-fg")}>{value}</div>
       <div className="text-[12px] text-muted">{secondary}</div>
@@ -142,7 +142,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   return (
     <div className="flex flex-col gap-8">
-      <section aria-labelledby="home-title" className="rounded-xl border border-line bg-panel p-5 sm:p-7">
+      <section aria-labelledby="home-title" className="panel-frame rounded-xl bg-panel p-5 sm:p-7">
         <div className="-mx-5 -mt-5 mb-5 sm:-mx-7 sm:-mt-7">
           <TabLinks
             active={tab}
@@ -309,7 +309,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 { href: "/benchmarks", label: t("shortcuts.benchmarks"), icon: Beaker },
               ] as const
             ).map(({ href, label, icon: Icon }) => (
-              <Link key={href} href={href} className="flex items-center gap-2 rounded-lg border border-line bg-panel px-3 py-2.5 text-[13px] text-fg hover:bg-hover">
+              <Link key={href} href={href} className="panel-frame flex items-center gap-2 rounded-lg bg-panel px-3 py-2.5 text-[13px] text-fg hover:bg-hover">
                 <Icon className="size-4 text-muted" aria-hidden />
                 {label}
                 <ArrowRight className="ml-auto size-3.5 text-faint" aria-hidden />

@@ -35,7 +35,7 @@ export function InvestigationPipeline({ stages }: { stages: StageState[] }) {
   const common = useTranslations("common.stages");
   const detail = useStageDetailText();
   return (
-    <nav aria-label={t("label")} className="overflow-x-auto rounded-lg border border-line bg-panel">
+    <nav aria-label={t("label")} className="panel-frame overflow-x-auto rounded-lg bg-panel">
       <ol className="flex min-w-max">
         {stages.map((stage, i) => (
           <li key={stage.id} className="flex flex-1 items-stretch">

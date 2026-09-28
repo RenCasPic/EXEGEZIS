@@ -64,7 +64,7 @@ export function CommandPalette({ items, open, onOpenChange }: { items: PaletteIt
         role="dialog"
         aria-modal="true"
         aria-label={t("label")}
-        className="w-full max-w-xl overflow-hidden rounded-xl border border-line-strong bg-panel shadow-2xl"
+        className="panel-frame w-full max-w-xl overflow-hidden rounded-xl bg-panel"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-line px-3">

@@ -119,7 +119,7 @@ export function Topbar({ projects, environments, scope, palette, running, counts
             {running.length > 0 && <span className="animate-pulse-dot absolute top-1.5 right-1.5 size-1.5 rounded-full bg-q" />}
           </button>
           {activity && (
-            <div className="absolute right-0 mt-2 w-80 rounded-lg border border-line-strong bg-panel p-1.5 shadow-2xl">
+            <div className="panel-frame absolute right-0 mt-2 w-80 rounded-lg bg-panel p-1.5">
               <div className="px-2.5 py-1.5 text-[11px] font-medium text-faint">{t("runningAndQueued")}</div>
               {running.length === 0 ? (
                 <div className="px-2.5 pb-2.5 text-[13px] text-muted">{t("nothingRunning")}</div>

@@ -80,10 +80,22 @@ describe("design tokens: WCAG AA contrast", () => {
     expect(noScript).toEqual(themes.dark);
   });
 
-  it("uses no purple and keeps blue for actions only", () => {
+  it("uses no purple and keeps the petrol blue for actions only", () => {
     expect(css).not.toMatch(/#6d42d9|#c9b3ff/i);
     for (const tokens of Object.values(themes)) {
-      for (const family of ["ok", "warn", "q", "off", "bad"]) expect(tokens[family]).not.toMatch(/#2563eb|#1d4ed8|#7aa7ff/i);
+      for (const family of ["ok", "warn", "q", "off", "bad"]) expect(tokens[family]).not.toMatch(/#0e7490|#0b5f76|#0b6a83|#0e6682|#5cc8e0/i);
     }
+  });
+
+  it("«Petróleo»: nothing of the former warm ivory or blue brand is left", () => {
+    expect(css).not.toMatch(/#f6f6f3|#e4e2da|#efede6|#d3d0c6|#ecebe6|#f0f0ed|#dddcd6|#2563eb|#1d4ed8|#7aa7ff|#2f6bed|#0b0c0f|#111318/i);
+    for (const tokens of Object.values(themes)) {
+      expect(tokens["accent"]).toBe("#0e7490");
+      for (const name of ["panel-border", "panel-shadow", "field", "empty", "stripe", "off-bd"]) expect(tokens[name], name).toBeDefined();
+    }
+  });
+
+  it("panels have one outline: 2 px of --panel-border and --panel-shadow", () => {
+    expect(css).toMatch(/@utility panel-frame \{\s*border: 2px solid var\(--panel-border\);\s*box-shadow: var\(--panel-shadow\);\s*\}/);
   });
 });

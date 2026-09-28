@@ -21,7 +21,7 @@ export interface TemplateOption {
   hasMeaning: boolean;
 }
 
-const input = "h-9 w-full rounded-md border border-line-strong bg-panel px-2.5 text-[13px] text-fg";
+const input = "h-9 w-full rounded-md border border-line-strong bg-field px-2.5 text-[13px] text-fg";
 const MODES = ["exact", "meaning", "template"] as const;
 type Mode = (typeof MODES)[number];
 

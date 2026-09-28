@@ -20,7 +20,7 @@ const STATE = {
   none: { label: "NO_ACCESS", tone: "q" },
 } as const;
 
-const input = "h-9 w-full rounded-md border border-line-strong bg-panel px-2.5 font-mono text-[13px] text-fg";
+const input = "h-9 w-full rounded-md border border-line-strong bg-field px-2.5 font-mono text-[13px] text-fg";
 
 /**
  * Settings → Accesos (docs/09-access.md §5): metadata of the saved access

@@ -6,26 +6,35 @@
  * - Themes: html[data-theme="light" | "dark"], set before paint by the inline
  *   script in the root layout. Without JavaScript (no attribute) the OS
  *   preference applies.
- * - Blue is for actions only (buttons, links, focus). Never for a state.
+ * - Palette «Petróleo»: cool blue-grey neutrals and a petrol blue (#0E7490)
+ *   that is for actions only (buttons, links, focus). Never for a state.
+ * - Every panel, card, table, modal and menu has the same outline: 2 px of
+ *   --panel-border plus --panel-shadow (the `panel-frame` utility). Dividers
+ *   inside a panel stay 1 px of --line.
  * - Verdict families: ok, warn, q (unknown), off (negative, not an error),
  *   bad (the engine or a plan is wrong). Each one is always shown with an
  *   icon and its text, never by colour alone.
  * - Components use these tokens only; no loose colours.
  */
 :root {
-  --bg: #f6f6f3;
+  --bg: #f2f5f6;
   --panel: #ffffff;
-  --sunken: #f6f6f3;
-  --hover: #efede6;
-  --line: #e4e2da;
-  --line-strong: #d3d0c6;
-  --line-soft: #efede6;
-  --fg: #15171c;
-  --muted: #5b616d;
-  --faint: #636a76;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --accent-text: #1d4ed8;
+  --sunken: #f2f5f6;
+  --field: #ffffff;
+  --hover: #e9eff1;
+  --panel-border: #c7d3d8;
+  --panel-shadow: 0 1px 2px rgba(11, 27, 34, 0.06);
+  --line: #e1e8eb;
+  --line-strong: #b4c3c9;
+  --line-soft: #e9eff1;
+  --empty: #dce4e7;
+  --stripe: #e3eaed;
+  --fg: #0b1b22;
+  --muted: #4d6069;
+  --faint: #56696f;
+  --accent: #0e7490;
+  --accent-hover: #0b5f76;
+  --accent-text: #0e6682;
   --on-accent: #ffffff;
   --ok: #15803d;
   --ok-bg: #edf7f0;
@@ -34,26 +43,32 @@
   --q: #475569;
   --q-bg: #eef1f4;
   --off: #5f6672;
-  --off-bg: #f0f0ed;
+  --off-bg: #eef2f3;
+  --off-bd: #d6dee1;
   --bad: #b91c1c;
   --bad-bg: #fcebea;
   color-scheme: light;
 }
 
 html[data-theme="dark"] {
-  --bg: #0b0c0f;
-  --panel: #111318;
-  --sunken: #0e1015;
-  --hover: #1b1f27;
-  --line: #22262f;
-  --line-strong: #30353f;
-  --line-soft: #1b1f27;
-  --fg: #e7e9ee;
-  --muted: #9097a4;
-  --faint: #858d9c;
-  --accent: #2563eb;
-  --accent-hover: #2f6bed;
-  --accent-text: #7aa7ff;
+  --bg: #081216;
+  --panel: #0f1c22;
+  --sunken: #0b171c;
+  --field: #0b171c;
+  --hover: #15252c;
+  --panel-border: #2a4550;
+  --panel-shadow: none;
+  --line: #1b2d35;
+  --line-strong: #34535e;
+  --line-soft: #15252c;
+  --empty: #22262f;
+  --stripe: #1b2d35;
+  --fg: #e3eef1;
+  --muted: #8fa7b0;
+  --faint: #7f979f;
+  --accent: #0e7490;
+  --accent-hover: #0b6a83;
+  --accent-text: #5cc8e0;
   --on-accent: #ffffff;
   --ok: #3ddc97;
   --ok-bg: color-mix(in srgb, var(--ok) 12%, transparent);
@@ -63,6 +78,7 @@ html[data-theme="dark"] {
   --q-bg: color-mix(in srgb, var(--q) 12%, transparent);
   --off: #8a93a2;
   --off-bg: color-mix(in srgb, var(--off) 10%, transparent);
+  --off-bd: color-mix(in srgb, var(--off) 25%, transparent);
   --bad: #f97366;
   --bad-bg: color-mix(in srgb, var(--bad) 12%, transparent);
   color-scheme: dark;
@@ -71,19 +87,24 @@ html[data-theme="dark"] {
 /* No script (no data-theme): follow the OS. */
 @media (prefers-color-scheme: dark) {
   html:not([data-theme]) {
-    --bg: #0b0c0f;
-    --panel: #111318;
-    --sunken: #0e1015;
-    --hover: #1b1f27;
-    --line: #22262f;
-    --line-strong: #30353f;
-    --line-soft: #1b1f27;
-    --fg: #e7e9ee;
-    --muted: #9097a4;
-    --faint: #858d9c;
-    --accent: #2563eb;
-    --accent-hover: #2f6bed;
-    --accent-text: #7aa7ff;
+    --bg: #081216;
+    --panel: #0f1c22;
+    --sunken: #0b171c;
+    --field: #0b171c;
+    --hover: #15252c;
+    --panel-border: #2a4550;
+    --panel-shadow: none;
+    --line: #1b2d35;
+    --line-strong: #34535e;
+    --line-soft: #15252c;
+    --empty: #22262f;
+    --stripe: #1b2d35;
+    --fg: #e3eef1;
+    --muted: #8fa7b0;
+    --faint: #7f979f;
+    --accent: #0e7490;
+    --accent-hover: #0b6a83;
+    --accent-text: #5cc8e0;
     --on-accent: #ffffff;
     --ok: #3ddc97;
     --ok-bg: color-mix(in srgb, var(--ok) 12%, transparent);
@@ -93,6 +114,7 @@ html[data-theme="dark"] {
     --q-bg: color-mix(in srgb, var(--q) 12%, transparent);
     --off: #8a93a2;
     --off-bg: color-mix(in srgb, var(--off) 10%, transparent);
+    --off-bd: color-mix(in srgb, var(--off) 25%, transparent);
     --bad: #f97366;
     --bad-bg: color-mix(in srgb, var(--bad) 12%, transparent);
     color-scheme: dark;
@@ -104,6 +126,10 @@ html[data-theme="dark"] {
   --color-panel: var(--panel);
   --color-panel-2: var(--sunken);
   --color-sunken: var(--sunken);
+  --color-field: var(--field);
+  --color-panel-border: var(--panel-border);
+  --color-empty: var(--empty);
+  --color-stripe: var(--stripe);
   --color-code: var(--sunken);
   --color-hover: var(--hover);
   --color-line: var(--line);
@@ -124,6 +150,7 @@ html[data-theme="dark"] {
   --color-q-bg: var(--q-bg);
   --color-off: var(--off);
   --color-off-bg: var(--off-bg);
+  --color-off-bd: var(--off-bd);
   --color-bad: var(--bad);
   --color-bad-bg: var(--bad-bg);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
@@ -164,7 +191,13 @@ details > summary::-webkit-details-marker {
 
 /* MOCK / REPLAY: a striped label, so a replayed result never reads as a live one. */
 .bg-stripes {
-  background-image: repeating-linear-gradient(-45deg, var(--line-soft) 0 4px, transparent 4px 8px);
+  background-image: repeating-linear-gradient(-45deg, var(--stripe) 0 4px, transparent 4px 8px);
+}
+
+/* The one outline of panels, cards, tables, modals and menus. */
+@utility panel-frame {
+  border: 2px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
 }
 
 /* A wide table that scrolls sideways says so with a fading edge. */

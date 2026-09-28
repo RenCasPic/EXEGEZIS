@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
 type Params = Promise<{ id: string }>;
 type Search = Promise<Record<string, string | string[] | undefined>>;
 
-const input = "h-8 min-w-0 flex-1 rounded-md border border-line-strong bg-panel px-2.5 text-[13px] text-fg";
+const input = "h-8 min-w-0 flex-1 rounded-md border border-line-strong bg-field px-2.5 text-[13px] text-fg";
 
 export default async function SearchPage({ params, searchParams }: { params: Params; searchParams: Search }) {
   const { id } = await params;
@@ -109,7 +109,7 @@ export default async function SearchPage({ params, searchParams }: { params: Par
       )}
       {entryBlock !== null && <BlockNotice block={entryBlock} origin={report.target.origin} inspectionId={ref.id} relaunchJobId={null} hasWafToken={savedAccess?.kinds.includes("wafToken") === true} />}
 
-      <section aria-label={t("coverage")} className="rounded-lg border border-line bg-panel p-4">
+      <section aria-label={t("coverage")} className="panel-frame rounded-lg bg-panel p-4">
         <p className="text-[15px] font-semibold text-fg">{t("searched", { searched: cov.searched, found: cov.found })}</p>
         <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted">
           <li>{t("budget", { pages: report.options.maxPages, depth: report.options.maxDepth, runs: report.options.runs })}</li>

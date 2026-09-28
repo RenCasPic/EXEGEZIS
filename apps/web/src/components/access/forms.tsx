@@ -7,7 +7,7 @@ import { saveHttpAuthAction, wafTokenAction, type AccessState } from "@/app/acce
 import { CopyCommand } from "@/components/ui/copy-command";
 import { buttonClass } from "@/components/ui/primitives";
 
-const input = "h-9 w-full rounded-md border border-line-strong bg-panel px-2.5 text-[13px] text-fg";
+const input = "h-9 w-full rounded-md border border-line-strong bg-field px-2.5 text-[13px] text-fg";
 
 function Result({ state }: { state: AccessState }) {
   if (state.error !== null)

@@ -36,7 +36,7 @@ export function Panel({
   subtitle?: ReactNode;
 }) {
   return (
-    <section id={id} className={cn("min-w-0 scroll-mt-20 rounded-lg border border-line bg-panel", className)}>
+    <section id={id} className={cn("panel-frame min-w-0 scroll-mt-20 rounded-lg bg-panel", className)}>
       <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2">
         <div className="flex min-w-0 items-center gap-2">
           {icon !== undefined && <span className="text-muted [&>svg]:size-4">{icon}</span>}
@@ -52,7 +52,7 @@ export function Panel({
 
 export function Stat({ label, value, hint, footer }: { label: string; value: ReactNode; hint?: ReactNode; footer?: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-line bg-panel px-4 py-3.5">
+    <div className="panel-frame flex flex-col gap-1 rounded-lg bg-panel px-4 py-3.5">
       <div className="text-xs font-medium text-muted">{label}</div>
       <div className="font-mono text-[26px] leading-tight font-semibold tracking-tight text-fg">{value}</div>
       {hint !== undefined && <div className="text-xs text-faint">{hint}</div>}

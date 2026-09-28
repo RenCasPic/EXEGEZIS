@@ -14,7 +14,7 @@ import { BROWSER_CHANNEL_IDS, INSPECT_CHECKS, INSPECT_DEFAULTS, isLoopbackHost, 
 
 const ACCESS_KINDS = ["session", "httpCredentials", "wafToken"] as const;
 
-const input = "h-9 w-full rounded-md border border-line-strong bg-panel px-2.5 text-[13px] text-fg";
+const input = "h-9 w-full rounded-md border border-line-strong bg-field px-2.5 text-[13px] text-fg";
 
 /**
  * Starts a real `exegezis inspect` job. Before the first inspection of an
