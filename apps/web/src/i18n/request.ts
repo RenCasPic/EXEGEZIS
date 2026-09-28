@@ -7,5 +7,11 @@ import { loadMessages } from "./messages";
 export default getRequestConfig(async () => {
   const [jar, head] = await Promise.all([cookies(), headers()]);
   const locale = resolveLocale(jar.get(LOCALE_COOKIE)?.value, head.get("accept-language"));
-  return { locale, messages: loadMessages(locale), timeZone: "UTC" };
+  return {
+    locale,
+    messages: loadMessages(locale),
+    timeZone: "UTC",
+    // A missing text is visible (and caught by the end-to-end test), never silently a key path.
+    getMessageFallback: ({ namespace, key }) => `⟦${namespace === undefined ? key : `${namespace}.${key}`}⟧`,
+  };
 });

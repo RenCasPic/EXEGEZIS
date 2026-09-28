@@ -11,6 +11,8 @@ const config: NextConfig = {
   turbopack: { root: repoRoot },
   outputFileTracingRoot: repoRoot,
   poweredByHeader: false,
+  // The end-to-end language test runs its own server without touching a running `pnpm web`.
+  ...(process.env["EXEGEZIS_NEXT_DIST"] === undefined ? {} : { distDir: process.env["EXEGEZIS_NEXT_DIST"] }),
   devIndicators: false,
 };
 

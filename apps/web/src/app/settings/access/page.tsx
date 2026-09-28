@@ -43,8 +43,8 @@ export default async function AccessSettingsPage() {
 
       <p className="flex items-start gap-2 rounded-md border border-line bg-sunken px-3 py-2 text-[13px] text-fg">
         <KeyRound className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden />
-        <span>
-          {windows ? t("storageWindows") : t("storageOther")} {t("folder")} <Mono>{displayPath(dir)}</Mono>
+        <span className="min-w-0">
+          {windows ? t("storageWindows") : t("storageOther")} {t("folder")} <Mono className="break-all">{displayPath(dir)}</Mono>
         </span>
       </p>
 
