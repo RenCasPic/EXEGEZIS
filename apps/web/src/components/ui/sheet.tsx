@@ -30,7 +30,7 @@ export function Sheet({ trigger, title, subtitle, children, variant = "secondary
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className="flex h-full w-full max-w-3xl flex-col border-l-2 border-panel-border bg-panel shadow-[var(--panel-shadow)]"
+            className="flex h-full w-full max-w-3xl flex-col border-l-[length:var(--panel-border-width)] border-panel-border bg-panel shadow-[var(--panel-shadow)]"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">

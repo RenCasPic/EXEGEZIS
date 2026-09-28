@@ -104,12 +104,14 @@ describe("design tokens: WCAG AA contrast", () => {
   it("nothing of the former warm ivory or blue brand is left", () => {
     expect(css).not.toMatch(/#f6f6f3|#e4e2da|#efede6|#d3d0c6|#ecebe6|#f0f0ed|#dddcd6|#2563eb|#1d4ed8|#7aa7ff|#2f6bed|#0b0c0f|#111318/i);
     for (const tokens of Object.values(themes)) {
-      for (const name of ["panel-border", "panel-shadow", "field", "empty", "stripe", "off-bd", "heading"]) expect(tokens[name], name).toBeDefined();
+      for (const name of ["panel-border", "panel-border-width", "panel-shadow", "field", "empty", "stripe", "off-bd", "heading"]) expect(tokens[name], name).toBeDefined();
     }
     expect(themes.light["accent"]).toBe("#0e7490");
   });
 
-  it("panels have one outline: 2 px of --panel-border and --panel-shadow", () => {
-    expect(css).toMatch(/@utility panel-frame \{\s*border: 2px solid var\(--panel-border\);\s*box-shadow: var\(--panel-shadow\);\s*\}/);
+  it("panels have one outline: --panel-border-width of --panel-border and --panel-shadow (2 px light, 1.5 px lime dark)", () => {
+    expect(css).toMatch(/@utility panel-frame \{\s*border: var\(--panel-border-width\) solid var\(--panel-border\);\s*box-shadow: var\(--panel-shadow\);\s*\}/);
+    expect([themes.light["panel-border"], themes.light["panel-border-width"]]).toEqual(["#c7d3d8", "2px"]);
+    expect([themes.dark["panel-border"], themes.dark["panel-border-width"]]).toEqual(["#d0db4e", "1.5px"]);
   });
 });

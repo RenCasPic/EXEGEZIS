@@ -10,8 +10,9 @@
  *   (#0E7490). Dark: deep navy with lime text and buttons and white headings.
  *   The action colour (buttons, links, focus) is never used for a state.
  * - --heading is for h1–h3, the top bar and the logo (= --fg in light).
- * - Every panel, card, table, modal and menu has the same outline: 2 px of
- *   --panel-border plus --panel-shadow (the `panel-frame` utility). Dividers
+ * - Every panel, card, table, modal and menu has the same outline:
+ *   --panel-border (--panel-border-width: 2 px light, 1.5 px dark) plus
+ *   --panel-shadow (the `panel-frame` utility). Dividers
  *   inside a panel stay 1 px of --line.
  * - Verdict families: ok, warn, q (unknown), off (negative, not an error),
  *   bad (the engine or a plan is wrong). Each one is always shown with an
@@ -25,6 +26,7 @@
   --field: #ffffff;
   --hover: #e9eff1;
   --panel-border: #c7d3d8;
+  --panel-border-width: 2px;
   --panel-shadow: 0 1px 2px rgba(11, 27, 34, 0.06);
   --line: #e1e8eb;
   --line-strong: #b4c3c9;
@@ -59,7 +61,8 @@ html[data-theme="dark"] {
   --sunken: #01172c;
   --field: #01172c;
   --hover: #0a2a4b;
-  --panel-border: #1e4a78;
+  --panel-border: #d0db4e;
+  --panel-border-width: 1.5px;
   --panel-shadow: none;
   --line: #0f3157;
   --line-strong: #2a5a8c;
@@ -96,7 +99,8 @@ html[data-theme="dark"] {
     --sunken: #01172c;
     --field: #01172c;
     --hover: #0a2a4b;
-    --panel-border: #1e4a78;
+    --panel-border: #d0db4e;
+    --panel-border-width: 1.5px;
     --panel-shadow: none;
     --line: #0f3157;
     --line-strong: #2a5a8c;
@@ -202,7 +206,7 @@ details > summary::-webkit-details-marker {
 
 /* The one outline of panels, cards, tables, modals and menus. */
 @utility panel-frame {
-  border: 2px solid var(--panel-border);
+  border: var(--panel-border-width) solid var(--panel-border);
   box-shadow: var(--panel-shadow);
 }
 
