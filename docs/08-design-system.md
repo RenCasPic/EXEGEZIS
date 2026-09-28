@@ -5,7 +5,7 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 ## Principios
 
 - La UI solo muestra lo que existe en los artefactos. Lo que el motor no hace aún se muestra **NOT IMPLEMENTED**.
-- **El azul petróleo es solo para acciones**: botones, enlaces y foco. Nunca comunica un estado.
+- **El color de acción (azul petróleo en claro, lima en oscuro) es solo para acciones**: botones, enlaces y foco. Nunca comunica un estado.
 - **Cada veredicto lleva color + icono + texto.** El color nunca es la única señal.
 - Los componentes usan solo tokens. Un test (`test/design-system.test.tsx`) rechaza colores hex sueltos y clases de paleta en `src/`.
 
@@ -16,43 +16,44 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 - Sin JavaScript no hay atributo, y un bloque `@media (prefers-color-scheme: dark)` aplica los mismos tokens oscuros. Un test comprueba que los dos bloques oscuros son idénticos.
 - Selector en la barra superior. En escritorio es un control segmentado; en móvil, un botón de icono de 44 px con `aria-label` que rota entre las tres opciones.
 
-## Tokens — esquema «Petróleo»
+## Tokens
 
-### Por qué cambió
+- **Tema claro: «Petróleo».** La paleta anterior (fondo marfil cálido #F6F6F3, bordes #E4E2DA, texto casi negro y azul #2563EB) se parecía demasiado a la de Claude. «Petróleo» le da a EXEGEZIS identidad propia: neutros fríos gris azulado y un azul petróleo (#0E7490) para las acciones.
+- **Tema oscuro: azul marino y lima.** Aprobado por René a partir de una captura de su app de Biblia: fondo azul marino, texto y botones lima, títulos en blanco.
+- Los colores de veredicto (ok, warn, q, off, bad) no cambian en ningún tema.
 
-La paleta anterior (fondo marfil cálido #F6F6F3, bordes #E4E2DA, texto casi negro y azul #2563EB) se parecía demasiado a la de Claude. «Petróleo» le da a EXEGEZIS identidad propia: neutros fríos gris azulado y un azul petróleo (#0E7490) para las acciones. Los colores de veredicto (ok, warn, q, off, bad) no cambian.
-
-| Token | Claro | Oscuro | Uso |
+| Token | Claro («Petróleo») | Oscuro (marino y lima) | Uso |
 |---|---|---|---|
-| bg | #F2F5F6 | #081216 | fondo de página |
-| panel | #FFFFFF | #0F1C22 | paneles, tarjetas, tablas, modales, menús |
-| sunken | #F2F5F6 | #0B171C | código, zonas hundidas |
-| field | #FFFFFF | #0B171C | campos de formulario |
-| panel-border | #C7D3D8 | #2A4550 | contorno de paneles, tarjetas, tablas, modales y menús (2 px) |
+| bg | #F2F5F6 | #011B34 | fondo de página |
+| panel | #FFFFFF | #062443 | paneles, tarjetas, tablas, modales, menús |
+| sunken | #F2F5F6 | #01172C | código, zonas hundidas |
+| field | #FFFFFF | #01172C | campos de formulario |
+| panel-border | #C7D3D8 | #1E4A78 | contorno de paneles, tarjetas, tablas, modales y menús (2 px) |
 | panel-shadow | 0 1px 2px rgba(11,27,34,0.06) | none | sombra de esos mismos contornos |
-| line | #E1E8EB | #1B2D35 | divisiones internas (filas, separadores), 1 px |
-| line-soft | #E9EFF1 | #15252C | separadores suaves |
-| line-strong | #B4C3C9 | #34535E | borde de los campos de formulario y botones secundarios |
-| hover | #E9EFF1 | #15252C | fila o elemento bajo el puntero (*) |
-| fg | #0B1B22 | #E3EEF1 | texto |
-| muted | #4D6069 | #8FA7B0 | texto secundario |
-| faint | #56696F | #7F979F | metadatos (*) |
-| accent | #0E7490 | #0E7490 | fondo de botones |
-| accent-hover | #0B5F76 | #0B6A83 | botón bajo el puntero |
-| accent-text | #0E6682 | #5CC8E0 | enlaces y anillo de foco |
-| on-accent | #FFFFFF | #FFFFFF | texto sobre accent |
-| off-bg / off-bd | #EEF2F3 / #D6DEE1 | off al 10 % / off al 25 % (sin cambios) | pastillas NOT VERIFIED, REFUTED |
-| empty | #DCE4E7 | #22262F | segmentos vacíos del medidor de evidencia |
-| stripe | #E3EAED | #1B2D35 | rayado de la etiqueta REPLAY |
+| line | #E1E8EB | #0F3157 | divisiones internas (filas, separadores), 1 px |
+| line-soft | #E9EFF1 | #0A2A4B | separadores suaves |
+| line-strong | #B4C3C9 | #2A5A8C | borde de los campos de formulario y botones secundarios |
+| hover | #E9EFF1 | #0A2A4B | fila o elemento bajo el puntero (*) |
+| fg | #0B1B22 | #D0DB4E | texto |
+| heading | #0B1B22 (= fg) | #FFFFFF | títulos h1–h3, cabecera y logo |
+| muted | #4D6069 | #93A7C1 | texto secundario |
+| faint | #56696F | #8499B4 | metadatos (*) |
+| accent | #0E7490 | #CDDC39 | fondo de botones |
+| accent-hover | #0B5F76 | #DCE775 | botón bajo el puntero |
+| accent-text | #0E6682 | #FFFFFF | enlaces y anillo de foco |
+| on-accent | #FFFFFF | #011B34 | texto sobre accent |
+| off-bg / off-bd | #EEF2F3 / #D6DEE1 | off al 8 % (**) / off al 25 % | pastillas NOT VERIFIED, REFUTED |
+| empty | #DCE4E7 | #12365D | segmentos vacíos del medidor de evidencia |
+| stripe | #E3EAED | #0C2E52 | rayado de la etiqueta REPLAY |
 | ok | #15803D sobre #EDF7F0 | #3DDC97 sobre ok al 12 % | VERIFIED, VALIDATED |
 | warn | #B45309 sobre #FCF1E3 | #F5B544 sobre warn al 12 % | CANDIDATE, SUFFICIENT, INTERMITTENT, FLAKY |
 | q | #475569 sobre #EEF1F4 | #AAB4C3 sobre q al 12 % | INCONCLUSIVE, INSUFFICIENT, sin ejecutar, en curso |
 | off | #5F6672 | #8A93A2 | NOT VERIFIED, REFUTED |
 | bad | #B91C1C sobre #FCEBEA | #F97366 sobre bad al 12 % | FALSE VALIDATION, INVALID PLAN, errores del motor |
 
-(*) `hover` y `faint` no estaban en la tabla del esquema. Se eligieron dentro de la misma familia fría: `hover` es igual que `line-soft`, y `faint` está un paso por debajo de `muted`. Los dos cumplen AA (ver abajo).
+(*) `hover` y `faint` no estaban en las tablas aprobadas. Se eligieron dentro de la misma familia de cada tema: `hover` es igual que `line-soft`, y `faint` está un paso por debajo de `muted`. Los dos cumplen AA (ver abajo).
 
-Ningún token de la tabla propuesta tuvo que ajustarse: todos los pares de texto cumplen AA con los valores tal cual.
+(**) **Único ajuste por contraste.** En el tema oscuro, el gris de veredicto #8A93A2 sobre su fondo al 10 % compuesto sobre el panel nuevo (#062443) daba 4.40:1, por debajo de AA. Como los colores de veredicto no cambian, se bajó la mezcla del fondo al 8 %: 4.51:1. El texto gris es el mismo. Todos los demás tokens son exactamente los aprobados.
 
 ### Contornos
 
@@ -63,34 +64,41 @@ Ningún token de la tabla propuesta tuvo que ajustarse: todos los pares de texto
 ### Desviaciones anteriores que siguen vigentes
 
 1. **ok-bg claro: #EDF7F0 en lugar de #E7F4EC.** #15803D sobre #E7F4EC da 4.43:1, que no llega a AA en el texto de 10–11 px de las pastillas. Con #EDF7F0 da 4.58:1.
-2. **«En curso» usa la familia `q` con un punto pulsante, no azul.** El azul petróleo queda reservado a las acciones.
+2. **«En curso» usa la familia `q` con un punto pulsante, no el color de acción.** El color de acción queda reservado a las acciones.
 3. **La severidad de una inspección no es una pastilla.** Se muestra como texto con un icono de forma (⇈ ↑ = ↓ i) y sin color de veredicto. Una severidad no es un veredicto, y pintarla de rojo la confundiría con un error del motor.
 
 ## Contraste (WCAG 2.1, texto normal: AA ≥ 4.5:1)
 
-La tabla se calcula con la fórmula de luminancia relativa de WCAG 2.1. `test/contrast.test.ts` lee los valores de `globals.css` y falla si algún par baja de 4.5. También falla si queda algún resto del marfil o del azul anteriores, si el azul petróleo aparece en un color de veredicto o si cambia el contorno de `panel-frame`. Los fondos al 10–12 % se componen sobre `panel`.
+La tabla se calcula con la fórmula de luminancia relativa de WCAG 2.1. `test/contrast.test.ts` lee los valores de `globals.css` y falla si algún par baja de 4.5. También falla si queda algún resto del marfil o del azul anteriores, si un color de acción coincide con un color de veredicto, si cambia la paleta oscura aprobada o si cambia el contorno de `panel-frame`. Los fondos de veredicto al 8–12 % se componen sobre `panel`.
 
 | Par | Claro | Oscuro |
 |---|---|---|
-| fg / bg | 16.05 | 16.03 |
-| fg / panel | 17.59 | 14.69 |
-| muted / panel | 6.58 | 6.88 |
-| muted / bg | 6.00 | 7.51 |
-| muted / hover | 5.66 | 6.24 |
-| faint / panel | 5.76 | 5.65 |
-| faint / bg | 5.26 | 6.16 |
-| accent-text / panel | 6.48 | 8.92 |
-| accent-text / bg | 5.91 | 9.74 |
-| on-accent / accent | 5.36 | 5.36 |
-| on-accent / accent-hover | 7.21 | 6.17 |
-| ok / ok-bg | 4.58 | 7.68 |
-| ok / panel | 5.02 | 9.82 |
-| warn / warn-bg | 4.50 | 7.61 |
-| warn / panel | 5.02 | 9.57 |
-| q / q-bg | 6.68 | 6.64 |
-| off / off-bg | 5.13 | 4.87 |
-| bad / bad-bg | 5.61 | 5.43 |
-| bad / panel | 6.47 | 6.34 |
+| fg / bg | 16.05 | 11.53 |
+| fg / panel | 17.59 | 10.38 |
+| fg / sunken | 16.05 | 12.00 |
+| fg / hover | 15.14 | 9.63 |
+| heading / bg | 16.05 | 17.39 |
+| heading / panel | 17.59 | 15.66 |
+| muted / panel | 6.58 | 6.37 |
+| muted / bg | 6.00 | 7.07 |
+| muted / hover | 5.66 | 5.91 |
+| muted / sunken | 6.00 | 7.36 |
+| faint / panel | 5.76 | 5.37 |
+| faint / bg | 5.26 | 5.96 |
+| accent-text / panel | 6.48 | 15.66 |
+| accent-text / bg | 5.91 | 17.39 |
+| on-accent / accent | 5.36 | 11.50 |
+| on-accent / accent-hover | 7.21 | 13.03 |
+| ok / ok-bg | 4.58 | 6.87 |
+| ok / panel | 5.02 | 8.86 |
+| warn / warn-bg | 4.50 | 6.97 |
+| warn / panel | 5.02 | 8.63 |
+| q / q-bg | 6.68 | 5.99 |
+| q / panel | 7.58 | 7.48 |
+| off / off-bg | 5.13 | 4.51 |
+| off / panel | 5.78 | 5.05 |
+| bad / bad-bg | 5.61 | 4.99 |
+| bad / panel | 6.47 | 5.72 |
 
 Todos los pares cumplen AA.
 
