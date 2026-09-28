@@ -1,33 +1,31 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { reviewMarkAction } from "@/app/search-actions";
 import { cn } from "@/lib/cn";
 
-const MARKS = [
-  { id: "relevant", label: "Relevante" },
-  { id: "not-relevant", label: "No relevante" },
-  { id: "pending", label: "Pendiente" },
-] as const;
+const MARKS = ["relevant", "not-relevant", "pending"] as const;
 
-/** Relevante / No relevante / Pendiente: saved in review.json, the report is never touched. */
+/** Relevant / Not relevant / Pending: saved in review.json, the report is never touched. */
 export function ReviewButtons({ searchId, hitId, mark }: { searchId: string; hitId: string; mark: string }) {
+  const t = useTranslations("searches.review");
   const [current, setCurrent] = useState(mark);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   return (
-    <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Revisión">
+    <div className="flex flex-wrap items-center gap-1" role="group" aria-label={t("label")}>
       {MARKS.map((m) => (
         <button
-          key={m.id}
+          key={m}
           type="button"
           disabled={pending}
-          aria-pressed={current === m.id}
+          aria-pressed={current === m}
           onClick={() =>
             start(async () => {
               const previous = current;
-              setCurrent(m.id);
-              const r = await reviewMarkAction(searchId, hitId, m.id);
+              setCurrent(m);
+              const r = await reviewMarkAction(searchId, hitId, m);
               if (r.error !== null) {
                 setCurrent(previous);
                 setError(r.error);
@@ -36,16 +34,16 @@ export function ReviewButtons({ searchId, hitId, mark }: { searchId: string; hit
           }
           className={cn(
             "rounded-full border px-2.5 py-0.5 text-[12px] transition-colors disabled:opacity-60",
-            current === m.id
-              ? m.id === "relevant"
+            current === m
+              ? m === "relevant"
                 ? "border-ok/40 bg-ok-bg text-ok"
-                : m.id === "not-relevant"
+                : m === "not-relevant"
                   ? "border-line-strong bg-hover text-fg"
                   : "border-accent-text/40 bg-hover text-fg"
               : "border-line text-muted hover:text-fg",
           )}
         >
-          {m.label}
+          {t(m)}
         </button>
       ))}
       {error !== null && (

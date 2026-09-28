@@ -130,7 +130,8 @@
     "hitMissing": "No se encontró el resultado.",
     "searchMissing": "No se encontró la búsqueda.",
     "nameSearch": "Pon un nombre a la búsqueda.",
-    "savedMissing": "No se encontró la búsqueda guardada."
+    "savedMissing": "No se encontró la búsqueda guardada.",
+    "pdfFailed": "No se pudo generar el PDF: {detail}"
   },
   "copy": {
     "copy": "Copiar",

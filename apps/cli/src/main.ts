@@ -7,6 +7,7 @@ import { compileCommand } from "./compile.js";
 import { observeCommand } from "./observe.js";
 import { reproduceCommand } from "./reproduce.js";
 import { runCommand } from "./run.js";
+import { resolveCliLocale, setCliLocale } from "./i18n.js";
 import type { CliIo } from "./shared.js";
 import { validateCommand } from "./validate.js";
 import { verifyCommand } from "./verify.js";
@@ -22,9 +23,12 @@ import { useBrowserChannel } from "./shared.js";
 const require = createRequire(import.meta.url);
 export const VERSION = (require("../package.json") as { version: string }).version;
 
-export async function main(argv: readonly string[], io: CliIo): Promise<number> {
+export async function main(argv: readonly string[], io: CliIo, env: NodeJS.ProcessEnv = process.env): Promise<number> {
+  const lang = resolveCliLocale(argv, env);
+  setCliLocale(lang.locale);
   try {
-    const command = parseCliArgs(argv);
+    if (lang.invalid !== null) throw new UsageError(`--lang must be en or es, got "${lang.invalid}"`);
+    const command = parseCliArgs(lang.argv);
     const exegezisVersion = VERSION;
     if ("browserChannel" in command) useBrowserChannel(command.browserChannel);
     switch (command.kind) {

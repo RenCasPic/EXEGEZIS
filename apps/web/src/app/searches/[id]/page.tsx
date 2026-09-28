@@ -4,6 +4,7 @@ import { Bookmark, Bot, Download, FileCode2, Layers, RotateCw, Search as SearchI
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { approveCostAction, repeatSearchAction, saveSearchAction } from "@/app/search-actions";
 import { BlockNotice } from "@/components/access/block-notice";
@@ -11,15 +12,18 @@ import { HitCard } from "@/components/search/hit-card";
 import { EngineProblem } from "@/components/ui/copy-command";
 import { FilterForm } from "@/components/ui/filter-form";
 import { buttonClass, EmptyState, Mono, PageHeader, Panel } from "@/components/ui/primitives";
+import { EngineText } from "@/components/ui/engine-text";
 import { StatusPill } from "@/components/ui/status";
 import { accessEntry } from "@/lib/access";
 import { filterHits, findSearch, groupHits, loadReview, parseHitFilters, previousRun, visitShots } from "@/lib/evidence/searches";
-import { absoluteTime, duration } from "@/lib/format";
+import { getFormat, getUiLocale } from "@/i18n/server";
 import { PAGE_STATUS_TONE, shortUrl } from "@/lib/inspection-labels";
-import { SEARCH_STATUS_LABEL, SEARCH_STATUS_TEXT, SEARCH_STATUS_TONE, usd } from "@/lib/search-labels";
+import { SEARCH_STATUS_TONE } from "@/lib/search-labels";
 import { artifactUrl } from "@/lib/urls";
 
-export const metadata: Metadata = { title: "Búsqueda" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("searches.detail"))("metaTitle") };
+}
 
 type Params = Promise<{ id: string }>;
 type Search = Promise<Record<string, string | string[] | undefined>>;
@@ -28,21 +32,20 @@ const input = "h-8 min-w-0 flex-1 rounded-md border border-line-strong bg-panel 
 
 export default async function SearchPage({ params, searchParams }: { params: Params; searchParams: Search }) {
   const { id } = await params;
-  const ref = await findSearch(id);
+  const [ref, t, ts, f, locale] = await Promise.all([findSearch(id), getTranslations("searches.detail"), getTranslations("searches"), getFormat(), getUiLocale()]);
   if (ref === null) notFound();
+  const usd = f.usd;
   if (ref.report.status !== "ok") {
     return (
-      <div lang="es" className="flex flex-col gap-6">
-        <PageHeader title="Informe de búsqueda no válido" eyebrow={<StatusPill status="INVALID REPORT" tone="bad" />} description={<Mono>{ref.relDir}</Mono>} />
-        <Panel title="Por qué no se muestra">
+      <div className="flex flex-col gap-6">
+        <PageHeader title={t("invalid")} eyebrow={<StatusPill status="INVALID_REPORT" tone="bad" />} description={<Mono>{ref.relDir}</Mono>} />
+        <Panel title={t("whyHidden")}>
           {ref.report.status === "missing" ? (
-            <p className="text-[13px] text-muted">El archivo search-report.json ha desaparecido.</p>
+            <p className="text-[13px] text-muted">{t("missing")}</p>
           ) : (
             <>
-              <p className="mb-2 text-[13px] text-muted">
-                El informe no cumple su esquema, o sus resultados, veredictos, citas o cobertura no se derivan de lo registrado (por ejemplo, una cita que no está en el texto de la página). No se muestra ni en parte.
-              </p>
-              <ul className="list-disc pl-5 font-mono text-[12px] text-bad">
+              <p className="mb-2 text-[13px] text-muted">{t("invalidBody")}</p>
+              <ul className="list-disc pl-5 font-mono text-[12px] text-bad" translate="no">
                 {ref.report.issues.map((i) => (
                   <li key={i}>{i}</li>
                 ))}
@@ -73,24 +76,25 @@ export default async function SearchPage({ params, searchParams }: { params: Par
   const filtered = filters.verdict !== "all" || filters.mark !== "all" || filters.onlyNew || filters.q !== "";
 
   return (
-    <div lang="es" className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow={<StatusPill status={SEARCH_STATUS_LABEL[report.status]} tone={SEARCH_STATUS_TONE[report.status]} />}
+        eyebrow={<StatusPill status={report.status} tone={SEARCH_STATUS_TONE[report.status]} />}
         title={<span className="break-all font-mono text-[20px]">{report.target.url}</span>}
         description={
           <>
             <span className="block text-fg">
-              {report.query.kind === "exact" ? "Búsqueda exacta" : report.query.kind === "meaning" ? "Búsqueda por significado" : `Plantilla «${report.query.name}» v${report.query.version}`}: <strong>{describeQuery(report)}</strong>
+              {report.query.kind === "exact" ? t("exact") : report.query.kind === "meaning" ? t("meaning") : t("template", { name: report.query.name, version: report.query.version })}:{" "}
+              <strong translate="no">{describeQuery(report, locale)}</strong>
             </span>
-            {SEARCH_STATUS_TEXT[report.status]} {absoluteTime(report.finishedAt)} · {duration(Date.parse(report.finishedAt) - Date.parse(report.startedAt))} · <Mono>{ref.id}</Mono>
-            {report.access.session || report.access.httpCredentials || report.access.wafToken ? " · con sesión" : ""}
+            {ts(`statusText.${report.status}`)} {f.absolute(report.finishedAt)} · {f.duration(Date.parse(report.finishedAt) - Date.parse(report.startedAt))} · <Mono>{ref.id}</Mono>
+            {report.access.session || report.access.httpCredentials || report.access.wafToken ? ` · ${t("withSession")}` : ""}
           </>
         }
         actions={
           <form action={repeatSearchAction}>
             <input type="hidden" name="search" value={ref.id} />
             <button type="submit" className={buttonClass("secondary")}>
-              <RotateCw aria-hidden /> Repetir
+              <RotateCw aria-hidden /> {t("repeat")}
             </button>
           </form>
         }
@@ -98,30 +102,26 @@ export default async function SearchPage({ params, searchParams }: { params: Par
 
       {report.engineError !== null && (
         <EngineProblem
-          message={`Ningún navegador pudo arrancar en este equipo, así que no se visitó ninguna página: no se buscó nada en ${report.target.origin}.`}
+          message={t("noBrowser", { origin: report.target.origin })}
           remedy={report.engineError.remedy}
           detail={[report.engineError.message, ...report.engineError.attempts.map((a) => `${a.engine}: ${a.error}`)]}
         />
       )}
       {entryBlock !== null && <BlockNotice block={entryBlock} origin={report.target.origin} inspectionId={ref.id} relaunchJobId={null} hasWafToken={savedAccess?.kinds.includes("wafToken") === true} />}
 
-      <section aria-label="Cobertura" className="rounded-lg border border-line bg-panel p-4">
-        <p className="text-[15px] font-semibold text-fg">
-          Se revisaron {cov.searched} de {cov.found} página{cov.found === 1 ? "" : "s"} encontrada{cov.found === 1 ? "" : "s"}.
-        </p>
+      <section aria-label={t("coverage")} className="rounded-lg border border-line bg-panel p-4">
+        <p className="text-[15px] font-semibold text-fg">{t("searched", { searched: cov.searched, found: cov.found })}</p>
         <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted">
-          <li>
-            {report.options.maxPages} páginas como máximo, profundidad {report.options.maxDepth}, {report.options.runs} carga{report.options.runs === 1 ? "" : "s"} por página
-          </li>
-          {cov.skippedBudget > 0 && <li className="text-warn">{cov.skippedBudget} fuera del límite de páginas</li>}
-          {cov.skippedRobots > 0 && <li>{cov.skippedRobots} excluidas por robots.txt</li>}
-          {cov.skippedSafety > 0 && <li>{cov.skippedSafety} enlaces omitidos por seguridad (cerrar sesión, borrar…)</li>}
-          {cov.blocked.length > 0 && <li className="text-warn">{cov.blocked.length} bloqueadas ({[...new Set(cov.blocked.map((b) => b.kind))].join(", ")})</li>}
-          {cov.failed > 0 && <li className="text-warn">{cov.failed} no respondieron</li>}
-          {report.options.includeHidden ? <li>incluye texto no visible (marcado)</li> : <li>sin texto no visible</li>}
+          <li>{t("budget", { pages: report.options.maxPages, depth: report.options.maxDepth, runs: report.options.runs })}</li>
+          {cov.skippedBudget > 0 && <li className="text-warn">{t("skippedBudget", { count: cov.skippedBudget })}</li>}
+          {cov.skippedRobots > 0 && <li>{t("skippedRobots", { count: cov.skippedRobots })}</li>}
+          {cov.skippedSafety > 0 && <li>{t("skippedSafety", { count: cov.skippedSafety })}</li>}
+          {cov.blocked.length > 0 && <li className="text-warn">{t("blocked", { count: cov.blocked.length, kinds: [...new Set(cov.blocked.map((b) => b.kind))].join(", ") })}</li>}
+          {cov.failed > 0 && <li className="text-warn">{t("failed", { count: cov.failed })}</li>}
+          {report.options.includeHidden ? <li>{t("includesHidden")}</li> : <li>{t("noHidden")}</li>}
         </ul>
         <details className="mt-2">
-          <summary className="cursor-pointer text-[12px] text-accent-text">Ver las páginas</summary>
+          <summary className="cursor-pointer text-[12px] text-accent-text">{t("seePages")}</summary>
           <ul className="mt-2 flex flex-col gap-1">
             {firstRun.map((p) => (
               <li key={p.url} className="flex min-w-0 items-center gap-2 text-[12px]">
@@ -129,74 +129,68 @@ export default async function SearchPage({ params, searchParams }: { params: Par
                 <span className="min-w-0 truncate font-mono text-muted" title={p.url}>
                   {shortUrl(p.url, report.target.origin)}
                 </span>
-                <span className="shrink-0 text-faint">{report.hits.filter((h) => h.page === p.url).length} resultados</span>
+                <span className="shrink-0 text-faint">{t("pageResults", { count: report.hits.filter((h) => h.page === p.url).length })}</span>
               </li>
             ))}
           </ul>
         </details>
         <p className="mt-3 text-[13px] text-fg">
-          <strong>{s.hits}</strong> resultado{s.hits === 1 ? "" : "s"} en {s.pagesWithHits} página{s.pagesWithHits === 1 ? "" : "s"}: {s.verified} verificado{s.verified === 1 ? "" : "s"}, {s.intermittent} intermitente{s.intermittent === 1 ? "" : "s"}
-          {parts.meaning !== null && `, ${s.suggested} sugerencia${s.suggested === 1 ? "" : "s"} con cita verificada`}
-          {s.hidden > 0 && ` · ${s.hidden} en texto no visible`}
-          {s.byVariant > 0 && ` · ${s.byVariant} por variante`}.
+          {t("summary", { hits: s.hits, pages: s.pagesWithHits, verified: s.verified, intermittent: s.intermittent })}
+          {parts.meaning !== null && t("summarySuggested", { count: s.suggested })}
+          {s.hidden > 0 && t("summaryHidden", { count: s.hidden })}
+          {s.byVariant > 0 && t("summaryVariant", { count: s.byVariant })}.
         </p>
         {report.excluded.map((e) => (
           <p key={e.term} className="mt-1 text-[13px] text-muted">
-            Excluidos por «{e.term}» ({e.scope === "block" ? "solo el bloque" : "página entera"}): {e.hits} resultado{e.hits === 1 ? "" : "s"} en {e.blocks} bloque{e.blocks === 1 ? "" : "s"} de {e.pages} página{e.pages === 1 ? "" : "s"}.
+            {t("excluded", { term: e.term, scope: e.scope, hits: e.hits, blocks: e.blocks, pages: e.pages })}
           </p>
         ))}
-        {parts.exact?.variants === true && <p className="mt-1 text-[12px] text-muted">Con variantes (raíz Snowball): cada resultado por variante dice qué raíz lo unió. Puede unir palabras distintas (casa/caso).</p>}
+        {parts.exact?.variants === true && <p className="mt-1 text-[12px] text-muted">{t("variantsNote")}</p>}
       </section>
 
       {ai !== null && (
-        <Panel title="Parte por significado (IA)" icon={<Bot />}>
+        <Panel title={t("aiPanel")} icon={<Bot />}>
           {report.status === "COST_LIMIT" && ai.calls === 0 ? (
             <div className="flex flex-col gap-3">
-              <p className="text-[14px] text-fg">
-                Costaría hasta <strong>{usd(ai.estimateUsd)}</strong> y el límite es {usd(ai.maxCostUsd)}. No se envió nada a la IA.
-              </p>
+              <p className="text-[14px] text-fg">{t.rich("wouldCost", { estimate: usd(ai.estimateUsd), limit: usd(ai.maxCostUsd), strong: (chunks) => <strong>{chunks}</strong> })}</p>
               <form action={approveCostAction} className="flex flex-wrap items-center gap-2">
                 <input type="hidden" name="search" value={ref.id} />
                 <button type="submit" className={buttonClass("primary")}>
-                  Aprobar {usd(ai.estimateUsd)} y continuar
+                  {t("approve", { estimate: usd(ai.estimateUsd) })}
                 </button>
-                <span className="text-[12px] text-muted">Se reutilizan las páginas ya leídas: el sitio no se vuelve a visitar. El límite por defecto se cambia en Ajustes → Búsquedas.</span>
+                <span className="text-[12px] text-muted">{t("approveHelp")}</span>
               </form>
             </div>
           ) : (
             <ul className="flex flex-col gap-1 text-[13px] text-fg">
+              <li>{t("aiLine", { model: ai.model, calls: ai.calls, input: f.number(ai.inputTokens), output: f.number(ai.outputTokens), seconds: f.number(ai.latencyMs / 1000, 1) })}</li>
+              <li>{t.rich("aiCost", { cost: usd(ai.costUsd), estimate: usd(ai.estimateUsd), limit: usd(ai.maxCostUsd), prompt: ai.promptVersion, strong: (chunks) => <strong>{chunks}</strong> })}</li>
               <li>
-                {ai.model} · {ai.calls} llamada{ai.calls === 1 ? "" : "s"} · {ai.inputTokens.toLocaleString("es-ES")} tokens de entrada, {ai.outputTokens.toLocaleString("es-ES")} de salida · {(ai.latencyMs / 1000).toFixed(1)} s
+                {t("aiPages", { count: ai.pagesSent.length })}
+                {ai.redactions > 0 && t("aiRedactions", { count: ai.redactions })}
               </li>
-              <li>
-                Coste: <strong>{usd(ai.costUsd)}</strong> (estimado antes: hasta {usd(ai.estimateUsd)}; límite {usd(ai.maxCostUsd)}) · prompt {ai.promptVersion}
-              </li>
-              <li>
-                {ai.pagesSent.length} página{ai.pagesSent.length === 1 ? "" : "s"} enviada{ai.pagesSent.length === 1 ? "" : "s"}
-                {ai.redactions > 0 && ` · ${ai.redactions} bloques con datos personales o secretos redactados antes de enviar`}
-              </li>
-              {s.discardedQuotes > 0 && (
-                <li className="text-warn">
-                  {s.discardedQuotes} cita{s.discardedQuotes === 1 ? "" : "s"} de la IA descartada{s.discardedQuotes === 1 ? "" : "s"}: no aparecía{s.discardedQuotes === 1 ? "" : "n"} literalmente en la página. No se muestra{s.discardedQuotes === 1 ? "" : "n"}.
+              {s.discardedQuotes > 0 && <li className="text-warn">{t("discarded", { count: s.discardedQuotes })}</li>}
+              {ai.error !== null && (
+                <li className="text-bad">
+                  <EngineText message={ai.errorMessage} text={ai.error} />
                 </li>
               )}
-              {ai.error !== null && <li className="text-bad">{ai.error}</li>}
-              <li className="text-muted">La búsqueda por significado puede no encontrarlo todo (falsos negativos). Sus resultados son sugerencias con la cita verificada, nunca «verificados».</li>
+              <li className="text-muted">{t("aiCaveat")}</li>
             </ul>
           )}
         </Panel>
       )}
 
       <Panel
-        title={filtered ? `Resultados (${shown.length} de ${report.hits.length})` : `Resultados (${report.hits.length})`}
+        title={filtered ? t("resultsFiltered", { shown: shown.length, total: report.hits.length }) : t("results", { count: report.hits.length })}
         icon={<SearchIcon />}
         bodyClassName="p-0"
         actions={
           <div className="flex flex-wrap items-center gap-1">
             <a href={`/api/searches/${encodeURIComponent(ref.id)}/export?format=csv&sep=%3B`} className={buttonClass("ghost", "sm")}>
-              <Download aria-hidden /> CSV (Excel)
+              <Download aria-hidden /> {t("csvExcel")}
             </a>
-            <a href={`/api/searches/${encodeURIComponent(ref.id)}/export?format=csv&sep=%2C`} className={buttonClass("ghost", "sm")} title="Separado por comas">
+            <a href={`/api/searches/${encodeURIComponent(ref.id)}/export?format=csv&sep=%2C`} className={buttonClass("ghost", "sm")} title={t("csvComma")}>
               CSV ,
             </a>
             <a href={`/api/searches/${encodeURIComponent(ref.id)}/export?format=pdf`} className={buttonClass("ghost", "sm")}>
@@ -209,34 +203,34 @@ export default async function SearchPage({ params, searchParams }: { params: Par
           <div className="flex flex-col gap-2 border-b border-line px-4 py-3">
             <Suspense>
               <FilterForm
-                placeholder="Filtrar por texto, página o término"
+                placeholder={t("filterPlaceholder")}
                 selects={[
                   {
                     name: "tipo",
-                    label: "Tipo",
+                    label: t("type"),
                     options: [
-                      { value: "", label: "Todos" },
-                      { value: "verificados", label: "Verificados" },
-                      { value: "intermitentes", label: "Intermitentes" },
-                      ...(parts.meaning === null ? [] : [{ value: "sugerencias", label: "Sugerencias (IA)" }]),
+                      { value: "", label: t("allMasc") },
+                      { value: "verificados", label: t("verified") },
+                      { value: "intermitentes", label: t("intermittent") },
+                      ...(parts.meaning === null ? [] : [{ value: "sugerencias", label: t("suggestions") }]),
                     ],
                   },
                   {
                     name: "revision",
-                    label: "Revisión",
+                    label: t("review"),
                     options: [
-                      { value: "", label: "Todas" },
-                      { value: "relevante", label: "Relevante" },
-                      { value: "no-relevante", label: "No relevante" },
-                      { value: "pendiente", label: "Pendiente" },
+                      { value: "", label: t("allFem") },
+                      { value: "relevante", label: ts("review.relevant") },
+                      { value: "no-relevante", label: ts("review.not-relevant") },
+                      { value: "pendiente", label: ts("review.pending") },
                     ],
                   },
                   {
                     name: "agrupar",
-                    label: "Agrupar",
+                    label: t("group"),
                     options: [
-                      { value: "", label: "Por página" },
-                      { value: "termino", label: "Por término" },
+                      { value: "", label: t("byPage") },
+                      { value: "termino", label: t("byTerm") },
                     ],
                   },
                   ...(comparison === null
@@ -244,10 +238,10 @@ export default async function SearchPage({ params, searchParams }: { params: Par
                     : [
                         {
                           name: "nuevo",
-                          label: "Novedad",
+                          label: t("novelty"),
                           options: [
-                            { value: "", label: "Todo" },
-                            { value: "1", label: `Solo lo nuevo (${newCount})` },
+                            { value: "", label: t("everything") },
+                            { value: "1", label: t("onlyNew", { count: newCount }) },
                           ],
                         },
                       ]),
@@ -256,27 +250,35 @@ export default async function SearchPage({ params, searchParams }: { params: Par
             </Suspense>
             {comparison !== null && previous !== null && (
               <p className="text-[12px] text-muted">
-                Frente a la ejecución anterior de esta búsqueda guardada (<Link href={`/searches/${previous.ref.id}`} className="text-accent-text hover:underline">{previous.ref.id}</Link>): {newCount} nuevo{newCount === 1 ? "" : "s"}, {comparison.gone.length} ya no aparece{comparison.gone.length === 1 ? "" : "n"}.
+                {t.rich("comparison", {
+                  new: newCount,
+                  gone: comparison.gone.length,
+                  link: () => (
+                    <Link href={`/searches/${previous.ref.id}`} className="text-accent-text hover:underline">
+                      {previous.ref.id}
+                    </Link>
+                  ),
+                })}
               </p>
             )}
           </div>
         )}
 
         {report.hits.length === 0 ? (
-          <EmptyState icon={<SearchIcon />} title={`0 coincidencias en ${cov.searched} página${cov.searched === 1 ? "" : "s"} revisada${cov.searched === 1 ? "" : "s"}`}>
-            {cov.searched === 0
-              ? "No se pudo revisar ninguna página: mira el estado y la cobertura arriba."
-              : `Se buscó en ${cov.searched} de ${cov.found} páginas encontradas${cov.skippedBudget > 0 ? `; ${cov.skippedBudget} quedaron fuera del límite` : ""}. Que no haya coincidencias aquí no significa que no existan en el resto del sitio.`}
+          <EmptyState icon={<SearchIcon />} title={t("noMatches", { count: cov.searched })}>
+            {cov.searched === 0 ? t("noneSearched") : t("noMatchesBody", { searched: cov.searched, found: cov.found, skipped: cov.skippedBudget })}
           </EmptyState>
         ) : shown.length === 0 ? (
-          <p className="px-4 py-6 text-center text-[13px] text-muted">Ningún resultado con estos filtros.</p>
+          <p className="px-4 py-6 text-center text-[13px] text-muted">{t("noneFiltered")}</p>
         ) : (
           <div>
             {groups.map((g) => (
               <section key={g.key} aria-label={g.key} className="border-b border-line last:border-b-0">
                 <h3 className="flex items-center gap-2 bg-sunken px-4 py-2 text-[12px] font-semibold text-fg">
                   <Layers className="size-3.5 text-muted" aria-hidden />
-                  <span className="min-w-0 break-all">{filters.group === "page" ? shortUrl(g.key, report.target.origin) : g.key}</span>
+                  <span className="min-w-0 break-all" translate="no">
+                    {filters.group === "page" ? shortUrl(g.key, report.target.origin) : g.key}
+                  </span>
                   <span className="font-mono text-[11px] font-normal text-faint">{g.hits.length}</span>
                 </h3>
                 {g.hits.map((h) => (
@@ -296,11 +298,11 @@ export default async function SearchPage({ params, searchParams }: { params: Par
         )}
         {filters.onlyNew && comparison !== null && comparison.gone.length > 0 && (
           <div className="border-t border-line px-4 py-3">
-            <h3 className="text-[13px] font-semibold text-fg">Ya no aparecen ({comparison.gone.length})</h3>
+            <h3 className="text-[13px] font-semibold text-fg">{t("gone", { count: comparison.gone.length })}</h3>
             <ul className="mt-1 flex flex-col gap-1">
               {comparison.gone.map((h) => (
                 <li key={h.id} className="text-[12px] text-muted">
-                  <span className="font-mono">{shortUrl(h.page, report.target.origin)}</span> — «{h.quote}»
+                  <span className="font-mono">{shortUrl(h.page, report.target.origin)}</span> — <span translate="no">«{h.quote}»</span>
                 </li>
               ))}
             </ul>
@@ -309,35 +311,41 @@ export default async function SearchPage({ params, searchParams }: { params: Par
       </Panel>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Guardar esta búsqueda" icon={<Bookmark />}>
+        <Panel title={t("save")} icon={<Bookmark />}>
           {report.savedSearchId !== null ? (
             <p className="text-[13px] text-muted">
-              Es una búsqueda guardada: repítela desde <Link href="/searches#guardadas" className="text-accent-text hover:underline">Búsquedas guardadas</Link> y verás qué es nuevo.
+              {t.rich("isSaved", {
+                link: (chunks) => (
+                  <Link href="/searches#guardadas" className="text-accent-text hover:underline">
+                    {chunks}
+                  </Link>
+                ),
+              })}
             </p>
           ) : (
             <form action={saveSearchAction} className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="search" value={ref.id} />
               <label htmlFor="save-name" className="sr-only">
-                Nombre
+                {t("name")}
               </label>
-              <input id="save-name" name="name" required maxLength={200} placeholder="Nombre, p. ej. Salud en la web" className={input} />
+              <input id="save-name" name="name" required maxLength={200} placeholder={t("namePlaceholder")} className={input} />
               <button type="submit" className={buttonClass("secondary")}>
-                Guardar
+                {t("saveButton")}
               </button>
             </form>
           )}
         </Panel>
-        <Panel title="Herramientas" icon={<ShieldCheck />}>
+        <Panel title={t("tools")} icon={<ShieldCheck />}>
           <ul className="flex flex-col gap-1 text-[13px] text-muted">
-            <li>Modo: {report.options.strictReadonly ? "solo lectura estricta" : "solo lectura"} · robots.txt {report.robots.respected ? "respetado" : "ignorado"}</li>
+            <li>{t("mode", { mode: report.options.strictReadonly ? t("strict") : t("readonly"), robots: report.robots.respected ? t("respected") : t("ignored") })}</li>
             {report.tools.browser !== null && (
               <li>
-                Navegador: <Mono>{`${report.tools.browser.channel} ${report.tools.browser.version}`}</Mono>
+                {t("browser")} <Mono>{`${report.tools.browser.channel} ${report.tools.browser.version}`}</Mono>
               </li>
             )}
             {report.tools.stemmer !== null && (
               <li>
-                Variantes: <Mono>{report.tools.stemmer}</Mono>
+                {t("variants")} <Mono>{report.tools.stemmer}</Mono>
               </li>
             )}
             <li>

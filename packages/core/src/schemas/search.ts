@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { EngineErrorInfo } from "../engine.js";
+import { EngineMessage } from "../messages.js";
 import { canonicalJson, sha256 } from "../hash.js";
 import { normalizeSearch, quoteAround, searchKey, textFragmentUrl, verifyQuote } from "../search-text.js";
 import { deriveInspectionStatus, INSPECTABLE, InspectionStatus, PageVisit } from "./inspection.js";
@@ -234,8 +235,10 @@ export const SearchAiUsage = z.strictObject({
   redactions: z.int().nonnegative(),
   /** Blocks repeated on several pages (header, footer…) sent only once, with their first page. */
   repeatedBlocks: z.int().nonnegative().default(0),
-  /** Why the model part did not run or stopped (cost limit, no credentials…). */
+  /** Why the model part did not run or stopped (cost limit, no credentials…). English, for logs and older readers. */
   error: z.string().nullable(),
+  /** The same, as a code and parameters (docs/11-i18n.md). Absent in older reports. */
+  errorMessage: EngineMessage.optional(),
 });
 export type SearchAiUsage = z.infer<typeof SearchAiUsage>;
 

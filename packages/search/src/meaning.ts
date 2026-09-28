@@ -1,4 +1,4 @@
-import { verifyQuote, type MeaningCandidate, type SearchAiUsage, type TextBlock } from "@exegezis/core";
+import { englishOf, msg, verifyQuote, type EngineMessage, type MeaningCandidate, type SearchAiUsage, type TextBlock } from "@exegezis/core";
 import { redactText } from "@exegezis/planner";
 import { z } from "zod";
 import { ceilCents, costUsd, priceOf, roughTokens } from "./cost.js";
@@ -197,7 +197,7 @@ export async function runMeaning(options: {
   const estimate = await estimateMeaningCost(client, batches);
   usage.estimateUsd = estimate.usd;
   if (estimate.usd > options.maxCostUsd) {
-    usage.error = `cost limit: the estimate is ${estimate.usd.toFixed(2)} USD and the limit is ${options.maxCostUsd.toFixed(2)} USD; nothing was sent to the model`;
+    fail(usage, msg("aiCostEstimate", { estimate: estimate.usd.toFixed(2), limit: options.maxCostUsd.toFixed(2) }));
     return { candidates, usage };
   }
 
@@ -208,7 +208,7 @@ export async function runMeaning(options: {
     // The limit holds even if the estimate was low (or a batch had to be split): before each call, what is spent plus this call's worst case.
     const worst = costUsd(client.model, roughTokens(SYSTEM) + roughTokens(batch.user), MAX_OUTPUT_TOKENS);
     if (usage.costUsd + worst > options.maxCostUsd) {
-      usage.error = `cost limit: stopped with ${queue.length + 1} request(s) left (spent ${usage.costUsd.toFixed(4)} USD, limit ${options.maxCostUsd.toFixed(2)} USD)`;
+      fail(usage, msg("aiCostStopped", { left: String(queue.length + 1), spent: usage.costUsd.toFixed(4), limit: options.maxCostUsd.toFixed(2) }));
       break;
     }
     const t0 = Date.now();
@@ -216,7 +216,7 @@ export async function runMeaning(options: {
     try {
       answer = await client.complete(SYSTEM, batch.user, MeaningOutput, MAX_OUTPUT_TOKENS);
     } catch (error) {
-      usage.error = `model error: ${error instanceof Error ? error.message : String(error)}`;
+      fail(usage, msg("aiModelError", { detail: error instanceof Error ? error.message : String(error) }));
       break;
     }
     usage.latencyMs += Date.now() - t0;
@@ -225,7 +225,7 @@ export async function runMeaning(options: {
     usage.outputTokens += answer.outputTokens;
     usage.costUsd = costUsd(client.model, usage.inputTokens, usage.outputTokens);
     if (answer.stopReason === "refusal") {
-      usage.error = `model error: the model declined to answer a request (${batch.pages.length} page(s))`;
+      fail(usage, msg("aiRefused", { pages: String(batch.pages.length) }));
       continue;
     }
     let parsed: z.infer<typeof MeaningOutput>;
@@ -238,7 +238,7 @@ export async function runMeaning(options: {
         queue.unshift(...halves);
         continue;
       }
-      usage.error = `model error: an answer was not valid JSON${answer.stopReason === "max_tokens" ? " (cut at the output limit, and it could not be split further)" : ""}`;
+      fail(usage, msg("aiInvalidJson", { cut: answer.stopReason === "max_tokens" ? "yes" : "no" }));
       continue;
     }
     done += 1;
@@ -297,4 +297,10 @@ export async function suggestTerms(client: SearchModelClient, terms: readonly st
     return true;
   });
   return { suggestions, costUsd: costUsd(client.model, answer.inputTokens, answer.outputTokens), estimateUsd, inputTokens: answer.inputTokens, outputTokens: answer.outputTokens, model: client.model, promptVersion: SUGGEST_PROMPT_VERSION };
+}
+
+/** Records why the meaning part stopped: the English text (logs, status) and its code. */
+function fail(usage: SearchAiUsage, message: EngineMessage): void {
+  usage.error = englishOf(message);
+  usage.errorMessage = message;
 }

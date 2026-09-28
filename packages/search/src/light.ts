@@ -6,6 +6,7 @@
 export { ceilCents, costUsd, DEFAULT_MAX_COST_USD, DEFAULT_SEARCH_MODEL, priceOf, PRICES, PRICES_AS_OF, PRICES_SOURCE, roughEstimateByPages } from "./cost.js";
 export { DETECTOR_LABEL } from "./detectors.js";
 export { describeQuery, KIND_LABEL, placeLabel, renderReportHtml, toCsv, VERDICT_LABEL, VIA_LABEL } from "./export.js";
+export { EXPORT_LOCALES, EXPORT_TEXT, isExportLocale, type ExportLocale, type ExportText } from "./export-text.js";
 export { describeExact, exactQueryFrom, parseTermsInput, type ExactQueryInput } from "./query.js";
 export { compareSearches, markOf, readReview, REVIEW_FILE, REVIEW_LABEL, ReviewFile, ReviewMark, setReviewMark, type Comparison, type Novelty } from "./review.js";
 export {

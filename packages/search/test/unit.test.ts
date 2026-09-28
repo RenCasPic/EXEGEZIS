@@ -252,8 +252,12 @@ describe("templates, settings, saved searches and review", () => {
     const review = await readReview(dir);
     expect(review.marks[hit.id]).toBe("relevant");
     await expect(setReviewMark(dir, report, "H-000000000000", "relevant")).rejects.toThrow(/no hit/);
-    const csv = toCsv(report, review, ";");
+    const csv = toCsv(report, review, ";", "es");
     expect(csv.startsWith("\uFEFFPágina;Tipo;Término;Cita")).toBe(true);
+    const en = toCsv(report, review, ";", "en");
+    expect(en.startsWith("\uFEFFPage;Type;Term;Quote")).toBe(true);
+    expect(en).toContain("Relevant");
+    expect(en).toContain("médico"); // the site's text is never translated
     expect(csv).toContain("Relevante");
     expect(csv).toContain("médico");
     expect(csv.includes("\r\n")).toBe(true);

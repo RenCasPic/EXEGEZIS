@@ -199,6 +199,13 @@ export const ENGINE_MESSAGES_EN = {
   pageTimeBudget: "the total time budget was used up",
   pageMaxPages: "--max-pages {max} reached",
   pageRobots: "disallowed by robots.txt",
+  // Search: the meaning part (AI)
+  aiCostEstimate: "cost limit: the estimate is {estimate} USD and the limit is {limit} USD; nothing was sent to the model",
+  aiCostStopped: "cost limit: stopped with {left} request(s) left (spent {spent} USD, limit {limit} USD)",
+  aiModelError: "model error: {detail}",
+  aiRefused: "model error: the model declined to answer a request ({pages} page(s))",
+  aiInvalidJson: "model error: an answer was not valid JSON{cut, select, yes { (cut at the output limit, and it could not be split further)} other {}}",
+  aiNoModel: "model error: no model configured for the meaning part",
 } as const;
 
 export const ENGINE_MESSAGES_ES: Record<keyof typeof ENGINE_MESSAGES_EN, string> = {
@@ -391,4 +398,11 @@ export const ENGINE_MESSAGES_ES: Record<keyof typeof ENGINE_MESSAGES_EN, string>
   pageTimeBudget: "se agotó el tiempo total",
   pageMaxPages: "se alcanzó --max-pages {max}",
   pageRobots: "robots.txt no lo permite",
+  // Search: the meaning part (AI)
+  aiCostEstimate: "límite de coste: la estimación es {estimate} USD y el límite es {limit} USD; no se envió nada al modelo",
+  aiCostStopped: "límite de coste: se detuvo con {left} petición(es) pendientes (gastado {spent} USD, límite {limit} USD)",
+  aiModelError: "error del modelo: {detail}",
+  aiRefused: "error del modelo: el modelo se negó a responder una petición ({pages} página(s))",
+  aiInvalidJson: "error del modelo: una respuesta no era JSON válido{cut, select, yes { (cortada en el límite de salida, y no se pudo dividir más)} other {}}",
+  aiNoModel: "error del modelo: no hay ningún modelo configurado para la parte por significado",
 };

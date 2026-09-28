@@ -1,6 +1,8 @@
 import { ArrowRight, TerminalSquare } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { AutoRefresh } from "@/components/ui/auto-refresh";
 import { AccessDoneButton, BlockNotice } from "@/components/access/block-notice";
 import { EngineProblem } from "@/components/ui/copy-command";
@@ -8,161 +10,182 @@ import { accessEntry } from "@/lib/access";
 import { BROWSER_REMEDY } from "@/lib/browser-check";
 import { ButtonLink, CodeBlock, Meta, Mono, PageHeader, Panel } from "@/components/ui/primitives";
 import { StatusPill } from "@/components/ui/status";
+import { getFormat } from "@/i18n/server";
 import { inspectionJobState } from "@/lib/inspection-state";
 import { listInspections } from "@/lib/evidence/inspections";
 import { getSummaries } from "@/lib/evidence/investigations";
-import { absoluteTime, duration } from "@/lib/format";
 import { listSearches } from "@/lib/evidence/searches";
-import { EXIT_MEANING, jobLog, jobProgress, readJob, terminalCommand, type AccessJob, type InspectJob, type InspectionProgressFile, type JobStatus, type SearchJob } from "@/lib/jobs";
-import { SEARCH_STATUS_LABEL, SEARCH_STATUS_TONE } from "@/lib/search-labels";
+import { EXIT_CODES, jobLog, jobProgress, readJob, terminalCommand, type AccessJob, type InspectJob, type InspectionProgressFile, type JobStatus, type SearchJob } from "@/lib/jobs";
+import { SEARCH_STATUS_TONE } from "@/lib/search-labels";
 
-export const metadata: Metadata = { title: "Run" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("jobs"))("metaTitle") };
+}
 
-const PHASE: Record<string, string> = {
-  robots: "Leyendo robots.txt",
-  crawl: "Recorriendo el sitio",
-  repeat: "Repitiendo las visitas",
-  specs: "Generando specs",
-  search: "Buscando en el texto",
-  ai: "Consultando a la IA",
-  done: "Terminado",
-};
+const PHASES = ["robots", "crawl", "repeat", "specs", "search", "ai", "done"] as const;
+
+/** "4 (inconclusive …)" in the reader's language. */
+function exitText(t: (key: never) => string, code: number | null): string {
+  if (code === null) return "—";
+  return `${code} (${(EXIT_CODES as readonly number[]).includes(code) ? t(`exit.${code}` as never) : t("exit.unknown" as never)})`;
+}
 
 function Progress({ progress }: { progress: InspectionProgressFile | null }) {
-  if (progress === null) return <p className="text-[13px] text-muted">Esperando el primer informe de progreso del CLI…</p>;
+  const t = useTranslations("jobs");
+  if (progress === null) return <p className="text-[13px] text-muted">{t("progress.waiting")}</p>;
   const planned = Math.max(progress.pagesPlanned, 1);
   const pct = Math.min(100, Math.round((progress.pagesDone / planned) * 100));
+  const phase = (PHASES as readonly string[]).includes(progress.phase) ? t(`phase.${progress.phase as (typeof PHASES)[number]}`) : progress.phase;
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2 text-[13px]">
-        <span className="font-medium text-fg">{PHASE[progress.phase] ?? progress.phase}</span>
-        <span className="font-mono text-xs text-muted">
-          repetición {progress.run}/{progress.runs} · {progress.pagesDone}/{progress.pagesPlanned} páginas
-        </span>
+        <span className="font-medium text-fg">{phase}</span>
+        <span className="font-mono text-xs text-muted">{t("progress.counts", { run: progress.run, runs: progress.runs, done: progress.pagesDone, planned: progress.pagesPlanned })}</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-panel-2" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Páginas de esta repetición">
+      <div className="h-1.5 overflow-hidden rounded-full bg-panel-2" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={t("progress.label")}>
         <div className="h-full bg-q transition-[width]" style={{ width: `${pct}%` }} />
       </div>
-      {progress.current !== null && <div className="truncate font-mono text-[11px] text-faint" title={progress.current}>{progress.current}</div>}
+      {progress.current !== null && (
+        <div className="truncate font-mono text-[11px] text-faint" title={progress.current}>
+          {progress.current}
+        </div>
+      )}
     </div>
   );
 }
 
+function Output({ log, status, maxHeight, subtitle }: { log: string | null; status: JobStatus; maxHeight: string; subtitle: string }) {
+  const t = useTranslations("jobs");
+  return (
+    <Panel title={t("output")} icon={<TerminalSquare />} subtitle={subtitle} bodyClassName="p-0">
+      {log === null || log.trim() === "" ? (
+        <div className="p-4 text-[13px] text-muted">{status === "queued" ? t("queuedNoOutput") : t("noOutput")}</div>
+      ) : (
+        <CodeBlock code={log} lineNumbers={false} className="rounded-none border-0" maxHeight={maxHeight} />
+      )}
+    </Panel>
+  );
+}
+
+function JobError({ error }: { error: string }) {
+  return (
+    <span className="text-bad" translate="no">
+      {error}
+    </span>
+  );
+}
+
 function AccessJobView({ job, status, log }: { job: AccessJob; status: JobStatus; log: string | null }) {
+  const t = useTranslations("jobs");
   const running = status === "running";
   const saved = status === "finished" && job.exitCode === 0;
   const notSaved = status === "finished" && job.exitCode !== 0;
   return (
-    <div lang="es" className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <AutoRefresh active={running || (saved && job.relaunch !== null && job.relaunchedJobId === null)} />
       <PageHeader
-        eyebrow={<StatusPill status={running ? "VENTANA ABIERTA" : saved ? "ACCESO GUARDADO" : status === "lost" ? "LOST" : "NO GUARDADO"} tone={running ? "running" : saved ? "ok" : "bad"} />}
+        eyebrow={<StatusPill status={running ? "WINDOW_OPEN" : saved ? "ACCESS_SAVED" : status === "lost" ? "LOST" : "NOT_SAVED"} tone={running ? "running" : saved ? "ok" : "bad"} />}
         title={<span className="break-all font-mono text-[20px]">{job.url}</span>}
-        description={
-          running
-            ? "Se ha abierto una ventana del navegador en este equipo."
-            : saved
-              ? "El acceso se guardó cifrado en este equipo. Las próximas inspecciones de este sitio lo usarán solas."
-              : notSaved
-                ? "No se guardó nada: el bloqueo seguía presente al terminar, o la ventana se cerró antes de tiempo. El detalle está en la salida."
-                : undefined
-        }
+        description={running ? t("access.opened") : saved ? t("access.saved") : notSaved ? t("access.notSaved") : undefined}
         actions={
           saved && job.relaunchedJobId !== null ? (
             <ButtonLink href={`/jobs/${job.relaunchedJobId}`} variant="primary">
-              Ver la nueva inspección <ArrowRight />
+              {t("access.viewNew")} <ArrowRight />
             </ButtonLink>
           ) : undefined
         }
       />
       {running && (
-        <Panel title="Qué hacer ahora">
+        <Panel title={t("access.whatNow")}>
           <ol className="list-decimal space-y-1.5 pl-5 text-[13px] text-fg">
-            <li>Ve a la ventana del navegador que se acaba de abrir (puede estar detrás de esta).</li>
-            <li>{job.block === "CONSENT_WALL" ? "Elige en el banner de cookies (la opción más privada sirve)." : job.block === "BOT_CHALLENGE" ? "Pasa la verificación." : "Inicia sesión como siempre."} EXEGEZIS no teclea ni lee lo que escribes.</li>
-            <li>Cuando veas la página que querías, vuelve aquí y pulsa «Listo» (o cierra la ventana).</li>
+            <li>{t("access.step1")}</li>
+            <li>
+              {job.block === "CONSENT_WALL" ? t("access.stepConsent") : job.block === "BOT_CHALLENGE" ? t("access.stepChallenge") : t("access.stepLogin")} {t("access.noTyping")}
+            </li>
+            <li>{t("access.step3")}</li>
           </ol>
           <div className="mt-4">
             <AccessDoneButton jobId={job.id} />
           </div>
         </Panel>
       )}
-      <Panel title="Salida del CLI" icon={<TerminalSquare />} subtitle="output.log (sin secretos)" bodyClassName="p-0">
-        {log === null || log.trim() === "" ? <div className="p-4 text-[13px] text-muted">Todavía no hay salida.</div> : <CodeBlock code={log} lineNumbers={false} className="rounded-none border-0" maxHeight="24rem" />}
-      </Panel>
+      <Output log={log} status={status} maxHeight="24rem" subtitle={t("outputNoSecrets")} />
     </div>
   );
 }
 
 async function SearchJobView({ job, status, log }: { job: SearchJob; status: JobStatus; log: string | null }) {
-  const [progress, searches] = await Promise.all([jobProgress(job.id, "searches"), listSearches()]);
+  const [progress, searches, t, f] = await Promise.all([jobProgress(job.id, "searches"), listSearches(), getTranslations("jobs"), getFormat()]);
   const search = searches.find((s) => s.jobId === job.id) ?? null;
   const report = search?.report.status === "ok" ? search.report.value : null;
   const active = status === "running" || status === "queued";
   const elapsed = (job.finishedAt === null ? Date.now() : Date.parse(job.finishedAt)) - Date.parse(job.startedAt);
-  const what = job.saved !== null ? "búsqueda guardada" : job.mode === "meaning" ? `por significado: «${job.meaning ?? ""}»` : job.mode === "template" ? `plantilla ${job.template ?? ""}` : `exacta: ${job.terms ?? ""}`;
+  const what =
+    job.saved !== null
+      ? t("search.saved")
+      : job.mode === "meaning"
+        ? t("search.meaning", { text: job.meaning ?? "" })
+        : job.mode === "template"
+          ? t("search.template", { id: job.template ?? "" })
+          : t("search.exact", { terms: job.terms ?? "" });
   return (
-    <div lang="es" className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <AutoRefresh active={active} />
       <PageHeader
         eyebrow={
           report !== null ? (
-            <StatusPill status={SEARCH_STATUS_LABEL[report.status]} tone={SEARCH_STATUS_TONE[report.status]} />
+            <StatusPill status={report.status} tone={SEARCH_STATUS_TONE[report.status]} />
           ) : (
-            <StatusPill status={status === "queued" ? "EN COLA" : status === "running" ? "BUSCANDO" : status === "lost" ? "PERDIDA" : "SIN INFORME"} tone={active ? "running" : "bad"} />
+            <StatusPill status={status === "queued" ? "QUEUED" : status === "running" ? "SEARCHING" : status === "lost" ? "LOST" : "NO_REPORT"} tone={active ? "running" : "bad"} />
           )
         }
         title={<span className="break-all font-mono text-[20px]">{job.url}</span>}
         description={
           <>
-            <span className="block">Búsqueda {what}</span>
+            <span className="block">{t("search.heading", { what })}</span>
             {status === "queued"
-              ? "Otra inspección o búsqueda está en curso; esta empieza en cuanto termine."
+              ? t("search.queued")
               : status === "running"
-                ? "El CLI está leyendo el sitio. Esta página sigue su progreso."
+                ? t("search.running")
                 : status === "lost"
-                  ? "El proceso ya no existe y no informó de su salida (probablemente se reinició el servidor de la UI)."
+                  ? t("search.lost")
                   : report === null
-                    ? "El CLI terminó sin informe: el detalle está en la salida."
-                    : `${report.summary.hits} resultados · se revisaron ${report.coverage.searched} de ${report.coverage.found} páginas.`}
+                    ? t("search.noReport")
+                    : t("search.summary", { hits: report.summary.hits, searched: report.coverage.searched, found: report.coverage.found })}
           </>
         }
         actions={
           search !== null ? (
             <ButtonLink href={`/searches/${search.id}`} variant="primary">
-              Ver los resultados <ArrowRight />
+              {t("search.viewResults")} <ArrowRight />
             </ButtonLink>
           ) : undefined
         }
       />
-      {job.exitCode === 7 && <EngineProblem message="Ningún navegador pudo arrancar (código de salida 7): no se buscó nada en el sitio." remedy={BROWSER_REMEDY} />}
+      {job.exitCode === 7 && <EngineProblem message={t("search.noBrowser")} remedy={BROWSER_REMEDY} />}
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="flex min-w-0 flex-col gap-6">
           {active && (
-            <Panel title="Progreso" subtitle="progress.json">
+            <Panel title={t("progressTitle")} subtitle="progress.json">
               <Progress progress={progress} />
             </Panel>
           )}
-          <Panel title="Salida del CLI" icon={<TerminalSquare />} subtitle="output.log" bodyClassName="p-0">
-            {log === null || log.trim() === "" ? (
-              <div className="p-4 text-[13px] text-muted">{status === "queued" ? "En cola: aún no hay salida." : "Todavía no hay salida."}</div>
-            ) : (
-              <CodeBlock code={log} lineNumbers={false} className="rounded-none border-0" maxHeight="36rem" />
-            )}
-          </Panel>
+          <Output log={log} status={status} maxHeight="36rem" subtitle="output.log" />
         </div>
-        <Panel title="Búsqueda">
+        <Panel title={t("search.title")}>
           <Meta
             items={[
-              { label: "Job", value: <Mono>{job.id}</Mono> },
-              { label: "Empezó", value: absoluteTime(job.startedAt) },
-              { label: "Duración", value: duration(elapsed) },
-              { label: "Código de salida", value: job.exitCode === null ? "—" : `${job.exitCode} (${EXIT_MEANING[job.exitCode] ?? "desconocido"})` },
-              ...(job.error === null ? [] : [{ label: "Error", value: <span className="text-bad">{job.error}</span> }]),
+              { label: t("job"), value: <Mono>{job.id}</Mono> },
+              { label: t("started"), value: f.absolute(job.startedAt) },
+              { label: t("elapsed"), value: f.duration(elapsed) },
+              { label: t("exitCode"), value: exitText(t as never, job.exitCode) },
+              ...(job.error === null ? [] : [{ label: t("error"), value: <JobError error={job.error} /> }]),
             ]}
           />
-          <div className="mt-4 text-xs text-faint">Lo mismo desde un terminal:</div>
-          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted">{terminalCommand(job)}</pre>
+          <div className="mt-4 text-xs text-faint">{t("search.terminal")}</div>
+          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted" translate="no">
+            {terminalCommand(job)}
+          </pre>
         </Panel>
       </div>
     </div>
@@ -170,7 +193,7 @@ async function SearchJobView({ job, status, log }: { job: SearchJob; status: Job
 }
 
 async function InspectJobView({ job, status, log }: { job: InspectJob; status: JobStatus; log: string | null }) {
-  const [progress, inspections] = await Promise.all([jobProgress(job.id), listInspections()]);
+  const [progress, inspections, t, f] = await Promise.all([jobProgress(job.id), listInspections(), getTranslations("jobs"), getFormat()]);
   const inspection = inspections.find((i) => i.jobId === job.id) ?? null;
   const report = inspection?.report.status === "ok" ? inspection.report.value : null;
   const state = inspectionJobState(status, job.exitCode, report?.status ?? null);
@@ -180,28 +203,28 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
   const elapsed = (job.finishedAt === null ? Date.now() : Date.parse(job.finishedAt)) - Date.parse(job.startedAt);
 
   return (
-    <div lang="es" className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <AutoRefresh active={active} />
       <PageHeader
         eyebrow={<StatusPill status={state.label} tone={state.tone} />}
         title={<span className="break-all font-mono text-[20px]">{job.url}</span>}
         description={
           status === "queued"
-            ? "Otra inspección está en curso; esta empieza en cuanto termine."
+            ? t("inspect.queued")
             : status === "running"
-              ? "El CLI está inspeccionando el sitio. Esta página sigue su progreso."
+              ? t("inspect.running")
               : status === "lost"
-                ? "El proceso ya no existe y no informó de su salida (probablemente se reinició el servidor de la UI). Sus artefactos, si los hay, se conservan."
+                ? t("inspect.lost")
                 : state.label === "BLOCKED"
-                  ? "El sitio bloqueó la inspección (anti-bot, CAPTCHA o login). EXEGEZIS no intenta saltarse ese bloqueo."
+                  ? t("inspect.blocked")
                   : state.label === "ENGINE_ERROR"
-                    ? "El navegador no pudo arrancar en este equipo. El problema está en este equipo, no en el sitio: no se sacó ninguna conclusión sobre él."
+                    ? t("inspect.engineError")
                     : undefined
         }
         actions={
           inspection !== null ? (
             <ButtonLink href={`/inspections/${inspection.id}`} variant="primary">
-              Abrir informe <ArrowRight />
+              {t("inspect.openReport")} <ArrowRight />
             </ButtonLink>
           ) : undefined
         }
@@ -211,46 +234,42 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
       )}
       {state.label === "ENGINE_ERROR" && (
         <EngineProblem
-          message={report?.engineError?.message ?? "Ningún navegador pudo arrancar (código de salida 7)."}
+          message={t("inspect.noBrowser")}
           remedy={report?.engineError?.remedy ?? BROWSER_REMEDY}
-          {...(report?.engineError === undefined || report.engineError === null ? {} : { detail: report.engineError.attempts.map((a) => `${a.engine}: ${a.error}`) })}
+          detail={report?.engineError === undefined || report.engineError === null ? [] : [report.engineError.message, ...report.engineError.attempts.map((a) => `${a.engine}: ${a.error}`)]}
         />
       )}
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="flex min-w-0 flex-col gap-6">
           {active && (
-            <Panel title="Progreso" subtitle="progress.json">
+            <Panel title={t("progressTitle")} subtitle="progress.json">
               <Progress progress={progress} />
             </Panel>
           )}
-          <Panel title="Salida del CLI" icon={<TerminalSquare />} subtitle="output.log" bodyClassName="p-0">
-            {log === null || log.trim() === "" ? (
-              <div className="p-4 text-[13px] text-muted">{status === "queued" ? "En cola: aún no hay salida." : "Todavía no hay salida."}</div>
-            ) : (
-              <CodeBlock code={log} lineNumbers={false} className="rounded-none border-0" maxHeight="36rem" />
-            )}
-          </Panel>
+          <Output log={log} status={status} maxHeight="36rem" subtitle="output.log" />
         </div>
-        <Panel title="Inspección">
+        <Panel title={t("inspect.title")}>
           <Meta
             items={[
-              { label: "Job", value: <Mono>{job.id}</Mono> },
-              { label: "Repeticiones", value: job.runs },
-              { label: "Páginas", value: job.maxPages ?? "20 (por defecto)" },
-              { label: "Profundidad", value: job.maxDepth ?? "2 (por defecto)" },
-              { label: "Checks", value: job.checks?.join(", ") ?? "todos" },
-              { label: "Modo", value: job.strictReadonly ? "solo lectura estricto" : "solo lectura" },
-              { label: "robots.txt", value: job.ignoreRobots ? "ignorado" : "respetado" },
-              { label: "Navegador", value: job.browserChannel === "auto" ? "automático" : job.browserChannel },
-              { label: "Sesión", value: job.storageState === null ? "ninguna" : "storageState (el contenido no se lee)" },
-              { label: "Inicio", value: absoluteTime(job.startedAt) },
-              { label: "Duración", value: duration(elapsed) },
-              { label: "Código de salida", value: job.exitCode === null ? "—" : `${job.exitCode} (${EXIT_MEANING[job.exitCode] ?? "unknown"})` },
-              ...(job.error === null ? [] : [{ label: "Error", value: <span className="text-bad">{job.error}</span> }]),
+              { label: t("job"), value: <Mono>{job.id}</Mono> },
+              { label: t("inspect.runs"), value: job.runs },
+              { label: t("inspect.pages"), value: job.maxPages ?? t("inspect.pagesDefault") },
+              { label: t("inspect.depth"), value: job.maxDepth ?? t("inspect.depthDefault") },
+              { label: t("inspect.checks"), value: job.checks?.join(", ") ?? t("inspect.allChecks") },
+              { label: t("inspect.mode"), value: job.strictReadonly ? t("inspect.strict") : t("inspect.readonly") },
+              { label: t("inspect.robots"), value: job.ignoreRobots ? t("inspect.ignored") : t("inspect.respected") },
+              { label: t("inspect.browser"), value: job.browserChannel === "auto" ? t("inspect.automatic") : job.browserChannel },
+              { label: t("inspect.session"), value: job.storageState === null ? t("inspect.none") : t("inspect.storageState") },
+              { label: t("started"), value: f.absolute(job.startedAt) },
+              { label: t("elapsed"), value: f.duration(elapsed) },
+              { label: t("exitCode"), value: exitText(t as never, job.exitCode) },
+              ...(job.error === null ? [] : [{ label: t("error"), value: <JobError error={job.error} /> }]),
             ]}
           />
-          <div className="mt-4 text-xs text-faint">La misma inspección desde un terminal:</div>
-          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted">{terminalCommand(job)}</pre>
+          <div className="mt-4 text-xs text-faint">{t("inspect.terminal")}</div>
+          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted" translate="no">
+            {terminalCommand(job)}
+          </pre>
         </Panel>
       </div>
     </div>
@@ -267,7 +286,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   if (job.kind === "access") return <AccessJobView job={job} status={status} log={log} />;
   if (job.kind === "search") return <SearchJobView job={job} status={status} log={log} />;
 
-  const summaries = await getSummaries();
+  const [summaries, t, f] = await Promise.all([getSummaries(), getTranslations("jobs"), getFormat()]);
   const investigation = summaries.find((s) => s.ref.jobId === id) ?? null;
   const tone = status === "running" ? "running" : status === "finished" ? (job.exitCode === 0 ? "ok" : "q") : "bad";
   const elapsed = (job.finishedAt === null ? Date.now() : Date.parse(job.finishedAt)) - Date.parse(job.startedAt);
@@ -277,54 +296,37 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
       <AutoRefresh active={status === "running"} />
       <PageHeader
         eyebrow={<StatusPill status={status.toUpperCase()} tone={tone} />}
-        title={job.symptom.split("\n")[0] ?? job.symptom}
-        description={
-          status === "running"
-            ? "The CLI is running. This page follows its output and links the investigation as soon as its artifacts exist."
-            : status === "lost"
-              ? "The process is gone and never reported an exit code (the UI server was probably restarted). Its artifacts, if any, are kept."
-              : undefined
-        }
+        title={<span translate="no">{job.symptom.split("\n")[0] ?? job.symptom}</span>}
+        description={status === "running" ? t("investigation.running") : status === "lost" ? t("investigation.lost") : undefined}
         actions={
           investigation !== null ? (
             <ButtonLink href={`/investigations/${investigation.ref.id}`} variant="primary">
-              Open investigation <ArrowRight />
+              {t("investigation.open")} <ArrowRight />
             </ButtonLink>
           ) : undefined
         }
       />
-      {job.exitCode === 7 && (
-        <div lang="es">
-          <EngineProblem message="Ningún navegador pudo arrancar (código de salida 7): no se sacó ninguna conclusión sobre la aplicación. El detalle está en la salida del CLI." remedy={BROWSER_REMEDY} />
-        </div>
-      )}
+      {job.exitCode === 7 && <EngineProblem message={t("investigation.noBrowser")} remedy={BROWSER_REMEDY} />}
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <Panel title="CLI output" icon={<TerminalSquare />} subtitle="output.log" bodyClassName="p-0">
-          {log === null || log.trim() === "" ? (
-            <div className="p-4 text-[13px] text-muted">No output yet.</div>
-          ) : (
-            <CodeBlock code={log} lineNumbers={false} className="rounded-none border-0" maxHeight="36rem" />
-          )}
-        </Panel>
-        <Panel title="Run">
+        <Output log={log} status={status} maxHeight="36rem" subtitle="output.log" />
+        <Panel title={t("investigation.run")}>
           <Meta
             items={[
-              { label: "Job", value: <Mono>{job.id}</Mono> },
-              { label: "Target", value: <Mono>{job.baseUrl}</Mono> },
-              { label: "Planner", value: job.planner },
-              { label: "Attempts", value: job.runs },
-              { label: "Project", value: job.project ?? "Unassigned" },
-              { label: "Started", value: absoluteTime(job.startedAt) },
-              { label: "Elapsed", value: duration(elapsed) },
-              {
-                label: "Exit code",
-                value: job.exitCode === null ? "—" : `${job.exitCode} (${EXIT_MEANING[job.exitCode] ?? "unknown"})`,
-              },
-              ...(job.error === null ? [] : [{ label: "Error", value: <span className="text-bad">{job.error}</span> }]),
+              { label: t("job"), value: <Mono>{job.id}</Mono> },
+              { label: t("investigation.target"), value: <Mono>{job.baseUrl}</Mono> },
+              { label: t("investigation.planner"), value: job.planner },
+              { label: t("investigation.attempts"), value: job.runs },
+              { label: t("investigation.project"), value: job.project ?? t("investigation.unassigned") },
+              { label: t("started"), value: f.absolute(job.startedAt) },
+              { label: t("elapsed"), value: f.duration(elapsed) },
+              { label: t("exitCode"), value: exitText(t as never, job.exitCode) },
+              ...(job.error === null ? [] : [{ label: t("error"), value: <JobError error={job.error} /> }]),
             ]}
           />
-          <div className="mt-4 text-xs text-faint">Same run from a terminal:</div>
-          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted">{terminalCommand(job)}</pre>
+          <div className="mt-4 text-xs text-faint">{t("investigation.terminal")}</div>
+          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted" translate="no">
+            {terminalCommand(job)}
+          </pre>
         </Panel>
       </div>
     </div>

@@ -27,6 +27,7 @@ import {
   VERDICT_LABEL,
   type SearchModelClient,
 } from "@exegezis/search";
+import { cliLocale } from "./i18n.js";
 import { EXIT, UsageError } from "./args.js";
 import { printEngineError } from "./doctor.js";
 import { remedyFor } from "./inspect.js";
@@ -305,8 +306,8 @@ async function searchExport(c: SearchExportArgs, io: CliIo): Promise<number> {
   const report = await loadSearchReport(dir);
   const review = await readReview(dir);
   const target = c.out === undefined ? join(dir, `export.${c.format}`) : absolute(io, c.out);
-  if (c.format === "csv") await writeFile(target, toCsv(report, review, c.separator), "utf8");
-  else await htmlToPdf(renderReportHtml(report, review), target, c.browserChannel);
+  if (c.format === "csv") await writeFile(target, toCsv(report, review, c.separator, cliLocale()), "utf8");
+  else await htmlToPdf(renderReportHtml(report, review, cliLocale()), target, c.browserChannel);
   printer(io)(displayPath(io, target, false));
   return EXIT.ok;
 }

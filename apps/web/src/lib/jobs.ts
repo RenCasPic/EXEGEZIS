@@ -141,17 +141,8 @@ export type SearchJob = z.infer<typeof SearchJob>;
 export type JobStatus = JobRecord["status"] | "lost";
 
 /** Exit codes of the CLI (apps/cli/src/args.ts). */
-export const EXIT_MEANING: Record<number, string> = {
-  0: "success",
-  1: "expectation not met (NOT VERIFIED, FLAKY, or VERIFIED inspection findings)",
-  2: "usage or configuration error",
-  3: "internal or provider error",
-  4: "inconclusive (INCONCLUSIVE, or inspection BLOCKED / UNREACHABLE / TIMEOUT)",
-  5: "INVALID PLAN",
-  6: "UNSUPPORTED",
-  7: "ENGINE_ERROR: no browser could start on this machine (nothing was concluded about the target)",
-  8: "COST_LIMIT: the model was not called, its estimate was over the limit",
-};
+/** Exit codes the CLI documents (their meaning: jobs.exit.<code> in the catalogs). */
+export const EXIT_CODES = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
 
 export const jobsDir = (): string => join(runsDir(), "web", "jobs");
 const jobDir = (id: string): string => join(jobsDir(), id);

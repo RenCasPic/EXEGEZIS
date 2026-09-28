@@ -3,6 +3,8 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 import {
   deriveSearchCoverage,
+  englishOf,
+  msg,
   deriveSearchHits,
   deriveSearchStatus,
   deriveSearchSummary,
@@ -11,6 +13,7 @@ import {
   SearchReport,
   TextBlocksFile,
   type EngineErrorInfo,
+  type EngineMessage,
   type ExclusionCount,
   type MeaningCandidate,
   type PageVisit,
@@ -214,7 +217,7 @@ async function analyze(options: SearchSiteOptions, walked: Walked, includeHidden
       .map((v) => ({ page: v.page, runPath: v.runPath, lang: v.textBlocks?.lang ?? null, blocks: v.textBlocks?.blocks ?? [] }));
     const model = options.model ?? null;
     if (model === null) {
-      ai = emptyUsage("none", "none", 0, "model error: no model configured for the meaning part");
+      ai = emptyUsage("none", "none", 0, msg("aiNoModel"));
     } else if (pages.length > 0) {
       await walked.report({ phase: "ai", current: null, pagesDone: 0, pagesPlanned: pages.length });
       try {
@@ -228,7 +231,7 @@ async function analyze(options: SearchSiteOptions, walked: Walked, includeHidden
         candidates = r.candidates;
         ai = r.usage;
       } catch (error) {
-        ai = emptyUsage(model.client.provider, model.client.model, model.maxCostUsd, `model error: ${error instanceof Error ? error.message : String(error)}`);
+        ai = emptyUsage(model.client.provider, model.client.model, model.maxCostUsd, msg("aiModelError", { detail: error instanceof Error ? error.message : String(error) }));
       }
     } else {
       ai = emptyUsage(model.client.provider, model.client.model, model.maxCostUsd, null);
@@ -269,8 +272,8 @@ async function analyze(options: SearchSiteOptions, walked: Walked, includeHidden
   return report;
 }
 
-function emptyUsage(provider: string, model: string, maxCostUsd: number, error: string | null): SearchAiUsage {
-  return { provider, model, promptVersion: MEANING_PROMPT_VERSION, estimateUsd: 0, maxCostUsd, inputTokens: 0, outputTokens: 0, costUsd: 0, latencyMs: 0, calls: 0, pagesSent: [], redactions: 0, repeatedBlocks: 0, error };
+function emptyUsage(provider: string, model: string, maxCostUsd: number, message: EngineMessage | null): SearchAiUsage {
+  return { provider, model, promptVersion: MEANING_PROMPT_VERSION, estimateUsd: 0, maxCostUsd, inputTokens: 0, outputTokens: 0, costUsd: 0, latencyMs: 0, calls: 0, pagesSent: [], redactions: 0, repeatedBlocks: 0, error: message === null ? null : englishOf(message), ...(message === null ? {} : { errorMessage: message }) };
 }
 
 export async function loadSearchReport(dir: string): Promise<SearchReport> {
