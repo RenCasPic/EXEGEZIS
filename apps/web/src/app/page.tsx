@@ -153,7 +153,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           />
         </div>
         <div className="text-[12px] font-semibold tracking-wider text-muted">{tab === "search" ? t("eyebrowSearch") : t("eyebrowInspect")}</div>
-        <h1 id="home-title" className="mt-1 text-[26px] font-semibold tracking-tight text-fg sm:text-[30px]">
+        <h1 id="home-title" className="mt-1 text-[26px] font-semibold tracking-tight text-heading sm:text-[30px]">
           {tab === "search" ? t("headingSearch") : t("headingInspect")}
         </h1>
         <p className="mt-1 mb-5 max-w-2xl text-[14px] text-muted">{tab === "search" ? t("introSearch") : t("introInspect")}</p>
@@ -165,7 +165,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       <section aria-labelledby="proof-title" className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="proof-title" className="text-[15px] font-semibold text-fg">
+          <h2 id="proof-title" className="text-[15px] font-semibold text-heading">
             {t("proven.title")}
           </h2>
           <span className="text-[12px] text-muted">{t("proven.note")}</span>

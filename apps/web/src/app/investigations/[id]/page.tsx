@@ -66,7 +66,7 @@ export default async function InvestigationPage({
           {summary.outcomeSource === "benchmark" && <span className="text-xs text-faint">{t("benchmarkRecord")}</span>}
           <SourceTag kind={summary.ref.archived ? "archived" : "real"} />
         </div>
-        <h1 className="text-[22px] font-semibold tracking-tight text-fg" translate="no">
+        <h1 className="text-[22px] font-semibold tracking-tight text-heading" translate="no">
           {summary.title}
         </h1>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px] text-muted">

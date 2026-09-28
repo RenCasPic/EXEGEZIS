@@ -133,9 +133,9 @@ export function SidebarBrand() {
   const t = useTranslations("shell");
   return (
     <Link href="/" className="flex items-center gap-2.5 px-2">
-      <LogoMark className="size-7 shrink-0 text-fg" />
+      <LogoMark className="size-7 shrink-0 text-heading" />
       <div className="leading-tight">
-        <div className="font-mono text-[13px] font-semibold tracking-[0.18em] text-fg">EXEGEZIS</div>
+        <div className="font-mono text-[13px] font-semibold tracking-[0.18em] text-heading">EXEGEZIS</div>
         <div className="text-[11px] text-faint">{t("brandTagline")}</div>
       </div>
     </Link>

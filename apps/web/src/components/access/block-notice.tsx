@@ -36,7 +36,7 @@ export function BlockNotice({
       <div className="flex items-start gap-2">
         <ShieldAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
         <div className="min-w-0">
-          <h2 id="block-title" className="text-[14px] font-semibold">
+          <h2 id="block-title" className="text-[14px] font-semibold text-heading">
             {t(`block.${block.kind}.title`)} <span className="font-mono text-[11px] font-normal text-muted">({block.kind})</span>
           </h2>
           <p className="mt-0.5 text-fg">{t(`block.${block.kind}.explanation`)}</p>

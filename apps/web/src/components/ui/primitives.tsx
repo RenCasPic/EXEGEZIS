@@ -8,7 +8,7 @@ export function PageHeader({ title, description, actions, eyebrow }: { title: Re
     <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
       <div className="min-w-0">
         {eyebrow !== undefined && <div className="mb-2">{eyebrow}</div>}
-        <h1 className="text-[22px] font-semibold tracking-tight text-fg">{title}</h1>
+        <h1 className="text-[22px] font-semibold tracking-tight text-heading">{title}</h1>
         {description !== undefined && <p className="mt-1 max-w-3xl text-sm text-muted">{description}</p>}
       </div>
       {actions !== undefined && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -40,7 +40,7 @@ export function Panel({
       <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2">
         <div className="flex min-w-0 items-center gap-2">
           {icon !== undefined && <span className="text-muted [&>svg]:size-4">{icon}</span>}
-          <h2 className="text-[13px] font-semibold tracking-tight text-fg">{title}</h2>
+          <h2 className="text-[13px] font-semibold tracking-tight text-heading">{title}</h2>
           {subtitle !== undefined && <span className="truncate text-xs text-faint">{subtitle}</span>}
         </div>
         {actions !== undefined && <div className="flex items-center gap-2">{actions}</div>}

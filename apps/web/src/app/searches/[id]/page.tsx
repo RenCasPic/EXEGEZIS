@@ -274,7 +274,7 @@ export default async function SearchPage({ params, searchParams }: { params: Par
           <div>
             {groups.map((g) => (
               <section key={g.key} aria-label={g.key} className="border-b border-line last:border-b-0">
-                <h3 className="flex items-center gap-2 bg-sunken px-4 py-2 text-[12px] font-semibold text-fg">
+                <h3 className="flex items-center gap-2 bg-sunken px-4 py-2 text-[12px] font-semibold text-heading">
                   <Layers className="size-3.5 text-muted" aria-hidden />
                   <span className="min-w-0 break-all" translate="no">
                     {filters.group === "page" ? shortUrl(g.key, report.target.origin) : g.key}
@@ -298,7 +298,7 @@ export default async function SearchPage({ params, searchParams }: { params: Par
         )}
         {filters.onlyNew && comparison !== null && comparison.gone.length > 0 && (
           <div className="border-t border-line px-4 py-3">
-            <h3 className="text-[13px] font-semibold text-fg">{t("gone", { count: comparison.gone.length })}</h3>
+            <h3 className="text-[13px] font-semibold text-heading">{t("gone", { count: comparison.gone.length })}</h3>
             <ul className="mt-1 flex flex-col gap-1">
               {comparison.gone.map((h) => (
                 <li key={h.id} className="text-[12px] text-muted">

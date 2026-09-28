@@ -6,8 +6,10 @@
  * - Themes: html[data-theme="light" | "dark"], set before paint by the inline
  *   script in the root layout. Without JavaScript (no attribute) the OS
  *   preference applies.
- * - Palette «Petróleo»: cool blue-grey neutrals and a petrol blue (#0E7490)
- *   that is for actions only (buttons, links, focus). Never for a state.
+ * - Light: palette «Petróleo», cool blue-grey neutrals and a petrol blue
+ *   (#0E7490). Dark: deep navy with lime text and buttons and white headings.
+ *   The action colour (buttons, links, focus) is never used for a state.
+ * - --heading is for h1–h3, the top bar and the logo (= --fg in light).
  * - Every panel, card, table, modal and menu has the same outline: 2 px of
  *   --panel-border plus --panel-shadow (the `panel-frame` utility). Dividers
  *   inside a panel stay 1 px of --line.
@@ -30,6 +32,7 @@
   --empty: #dce4e7;
   --stripe: #e3eaed;
   --fg: #0b1b22;
+  --heading: #0b1b22;
   --muted: #4d6069;
   --faint: #56696f;
   --accent: #0e7490;
@@ -51,25 +54,26 @@
 }
 
 html[data-theme="dark"] {
-  --bg: #081216;
-  --panel: #0f1c22;
-  --sunken: #0b171c;
-  --field: #0b171c;
-  --hover: #15252c;
-  --panel-border: #2a4550;
+  --bg: #011b34;
+  --panel: #062443;
+  --sunken: #01172c;
+  --field: #01172c;
+  --hover: #0a2a4b;
+  --panel-border: #1e4a78;
   --panel-shadow: none;
-  --line: #1b2d35;
-  --line-strong: #34535e;
-  --line-soft: #15252c;
-  --empty: #22262f;
-  --stripe: #1b2d35;
-  --fg: #e3eef1;
-  --muted: #8fa7b0;
-  --faint: #7f979f;
-  --accent: #0e7490;
-  --accent-hover: #0b6a83;
-  --accent-text: #5cc8e0;
-  --on-accent: #ffffff;
+  --line: #0f3157;
+  --line-strong: #2a5a8c;
+  --line-soft: #0a2a4b;
+  --empty: #12365d;
+  --stripe: #0c2e52;
+  --fg: #d0db4e;
+  --heading: #ffffff;
+  --muted: #93a7c1;
+  --faint: #8499b4;
+  --accent: #cddc39;
+  --accent-hover: #dce775;
+  --accent-text: #ffffff;
+  --on-accent: #011b34;
   --ok: #3ddc97;
   --ok-bg: color-mix(in srgb, var(--ok) 12%, transparent);
   --warn: #f5b544;
@@ -77,7 +81,7 @@ html[data-theme="dark"] {
   --q: #aab4c3;
   --q-bg: color-mix(in srgb, var(--q) 12%, transparent);
   --off: #8a93a2;
-  --off-bg: color-mix(in srgb, var(--off) 10%, transparent);
+  --off-bg: color-mix(in srgb, var(--off) 8%, transparent);
   --off-bd: color-mix(in srgb, var(--off) 25%, transparent);
   --bad: #f97366;
   --bad-bg: color-mix(in srgb, var(--bad) 12%, transparent);
@@ -87,25 +91,26 @@ html[data-theme="dark"] {
 /* No script (no data-theme): follow the OS. */
 @media (prefers-color-scheme: dark) {
   html:not([data-theme]) {
-    --bg: #081216;
-    --panel: #0f1c22;
-    --sunken: #0b171c;
-    --field: #0b171c;
-    --hover: #15252c;
-    --panel-border: #2a4550;
+    --bg: #011b34;
+    --panel: #062443;
+    --sunken: #01172c;
+    --field: #01172c;
+    --hover: #0a2a4b;
+    --panel-border: #1e4a78;
     --panel-shadow: none;
-    --line: #1b2d35;
-    --line-strong: #34535e;
-    --line-soft: #15252c;
-    --empty: #22262f;
-    --stripe: #1b2d35;
-    --fg: #e3eef1;
-    --muted: #8fa7b0;
-    --faint: #7f979f;
-    --accent: #0e7490;
-    --accent-hover: #0b6a83;
-    --accent-text: #5cc8e0;
-    --on-accent: #ffffff;
+    --line: #0f3157;
+    --line-strong: #2a5a8c;
+    --line-soft: #0a2a4b;
+    --empty: #12365d;
+    --stripe: #0c2e52;
+    --fg: #d0db4e;
+    --heading: #ffffff;
+    --muted: #93a7c1;
+    --faint: #8499b4;
+    --accent: #cddc39;
+    --accent-hover: #dce775;
+    --accent-text: #ffffff;
+    --on-accent: #011b34;
     --ok: #3ddc97;
     --ok-bg: color-mix(in srgb, var(--ok) 12%, transparent);
     --warn: #f5b544;
@@ -113,7 +118,7 @@ html[data-theme="dark"] {
     --q: #aab4c3;
     --q-bg: color-mix(in srgb, var(--q) 12%, transparent);
     --off: #8a93a2;
-    --off-bg: color-mix(in srgb, var(--off) 10%, transparent);
+    --off-bg: color-mix(in srgb, var(--off) 8%, transparent);
     --off-bd: color-mix(in srgb, var(--off) 25%, transparent);
     --bad: #f97366;
     --bad-bg: color-mix(in srgb, var(--bad) 12%, transparent);
@@ -136,6 +141,7 @@ html[data-theme="dark"] {
   --color-line-strong: var(--line-strong);
   --color-line-soft: var(--line-soft);
   --color-fg: var(--fg);
+  --color-heading: var(--heading);
   --color-muted: var(--muted);
   --color-faint: var(--faint);
   --color-accent: var(--accent);

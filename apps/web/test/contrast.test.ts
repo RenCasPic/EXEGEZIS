@@ -45,6 +45,11 @@ function rgb(tokens: Record<string, string>, name: string): [number, number, num
 const PAIRS: [string, string][] = [
   ["fg", "bg"],
   ["fg", "panel"],
+  ["fg", "sunken"],
+  ["fg", "hover"],
+  ["heading", "bg"],
+  ["heading", "panel"],
+  ["muted", "sunken"],
   ["muted", "panel"],
   ["muted", "bg"],
   ["muted", "hover"],
@@ -59,7 +64,9 @@ const PAIRS: [string, string][] = [
   ["warn", "warn-bg"],
   ["warn", "panel"],
   ["q", "q-bg"],
+  ["q", "panel"],
   ["off", "off-bg"],
+  ["off", "panel"],
   ["bad", "bad-bg"],
   ["bad", "panel"],
 ];
@@ -80,19 +87,26 @@ describe("design tokens: WCAG AA contrast", () => {
     expect(noScript).toEqual(themes.dark);
   });
 
-  it("uses no purple and keeps the petrol blue for actions only", () => {
+  it("uses no purple and keeps the action colours (petrol, lime) for actions only", () => {
     expect(css).not.toMatch(/#6d42d9|#c9b3ff/i);
     for (const tokens of Object.values(themes)) {
-      for (const family of ["ok", "warn", "q", "off", "bad"]) expect(tokens[family]).not.toMatch(/#0e7490|#0b5f76|#0b6a83|#0e6682|#5cc8e0/i);
+      const actions = [tokens["accent"], tokens["accent-hover"]];
+      for (const family of ["ok", "warn", "q", "off", "bad"]) expect(actions).not.toContain(tokens[family]);
     }
   });
 
-  it("«Petróleo»: nothing of the former warm ivory or blue brand is left", () => {
+  it("dark theme: navy with lime text and buttons and white headings (René's palette)", () => {
+    const d = themes.dark;
+    expect([d["bg"], d["panel"], d["fg"], d["heading"], d["accent"], d["on-accent"]]).toEqual(["#011b34", "#062443", "#d0db4e", "#ffffff", "#cddc39", "#011b34"]);
+    expect(themes.light["heading"]).toBe(themes.light["fg"]);
+  });
+
+  it("nothing of the former warm ivory or blue brand is left", () => {
     expect(css).not.toMatch(/#f6f6f3|#e4e2da|#efede6|#d3d0c6|#ecebe6|#f0f0ed|#dddcd6|#2563eb|#1d4ed8|#7aa7ff|#2f6bed|#0b0c0f|#111318/i);
     for (const tokens of Object.values(themes)) {
-      expect(tokens["accent"]).toBe("#0e7490");
-      for (const name of ["panel-border", "panel-shadow", "field", "empty", "stripe", "off-bd"]) expect(tokens[name], name).toBeDefined();
+      for (const name of ["panel-border", "panel-shadow", "field", "empty", "stripe", "off-bd", "heading"]) expect(tokens[name], name).toBeDefined();
     }
+    expect(themes.light["accent"]).toBe("#0e7490");
   });
 
   it("panels have one outline: 2 px of --panel-border and --panel-shadow", () => {
