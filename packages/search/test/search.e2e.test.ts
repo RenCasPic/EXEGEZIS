@@ -170,7 +170,7 @@ describe("search by meaning (mock model) and templates", () => {
     const { report } = await search({ query: { kind: "meaning", description: "cualquier mención a la medicina" }, model: { client, maxCostUsd: 1 } });
     expect(report.hits.map((h) => [h.verdict, h.matchedText])).toEqual([["SUGGESTED_QUOTE_VERIFIED", "No abandones tu tratamiento médico sin consultarlo"]]);
     expect(report.summary.discardedQuotes).toBe(2);
-    expect(report.ai).toMatchObject({ provider: "mock", model: "claude-sonnet-5", calls: 1, error: null, promptVersion: "search-meaning-v2" });
+    expect(report.ai).toMatchObject({ provider: "mock", model: "claude-sonnet-5", calls: 1, error: null, promptVersion: "search-meaning-v3" });
     expect(report.ai?.estimateUsd).toBeGreaterThan(0);
     expect(report.ai?.pagesSent).toHaveLength(5);
   });
