@@ -19,7 +19,7 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 ## Tokens
 
 - **Tema claro: «Petróleo».** La paleta anterior (fondo marfil cálido #F6F6F3, bordes #E4E2DA, texto casi negro y azul #2563EB) se parecía demasiado a la de Claude. «Petróleo» le da a EXEGEZIS identidad propia: neutros fríos gris azulado y un azul petróleo (#0E7490) para las acciones.
-- **Tema oscuro: azul marino y lima.** Aprobado por René a partir de una captura de su app de Biblia: fondo azul marino, texto y botones lima, títulos en blanco.
+- **Tema oscuro: azul marino y lima.** Aprobado por René a partir de una captura de su app de Biblia: fondo azul marino, texto, botones y contornos de panel lima, títulos en blanco.
 - Los colores de veredicto (ok, warn, q, off, bad) no cambian en ningún tema.
 
 | Token | Claro («Petróleo») | Oscuro (marino y lima) | Uso |
@@ -28,7 +28,8 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 | panel | #FFFFFF | #062443 | paneles, tarjetas, tablas, modales, menús |
 | sunken | #F2F5F6 | #01172C | código, zonas hundidas |
 | field | #FFFFFF | #01172C | campos de formulario |
-| panel-border | #C7D3D8 | #1E4A78 | contorno de paneles, tarjetas, tablas, modales y menús (2 px) |
+| panel-border | #C7D3D8 | #D0DB4E (lima) | contorno de paneles, tarjetas, tablas, modales y menús |
+| panel-border-width | 2px | 1.5px | grosor de ese contorno |
 | panel-shadow | 0 1px 2px rgba(11,27,34,0.06) | none | sombra de esos mismos contornos |
 | line | #E1E8EB | #0F3157 | divisiones internas (filas, separadores), 1 px |
 | line-soft | #E9EFF1 | #0A2A4B | separadores suaves |
@@ -57,7 +58,7 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 
 ### Contornos
 
-- Paneles, tarjetas, estadísticas, tablas (dentro de su panel), modales, la paleta de comandos y los menús desplegables usan la utilidad `panel-frame` de `globals.css`: `border: 2px solid var(--panel-border)` y `box-shadow: var(--panel-shadow)`. Es el único sitio donde se define ese contorno, sin colores sueltos en los componentes. El panel lateral (Sheet) usa el mismo token en su borde izquierdo.
+- Paneles, tarjetas, estadísticas, tablas (dentro de su panel), modales, la paleta de comandos y los menús desplegables usan la utilidad `panel-frame` de `globals.css`: `border: var(--panel-border-width) solid var(--panel-border)` y `box-shadow: var(--panel-shadow)`. Grosor y color son tokens: 2 px gris azulado en claro, 1.5 px lima en oscuro. Es el único sitio donde se define ese contorno, sin colores ni grosores sueltos en los componentes. El panel lateral (Sheet) usa los mismos tokens en su borde izquierdo.
 - Las divisiones dentro de un panel (cabecera, filas de tabla, separadores) siguen siendo de 1 px con `line`, más suaves que el contorno.
 - Los avisos de estado (bloqueo, error del motor, escrituras de la página) conservan su borde del color de su familia: son estados, no paneles.
 
@@ -69,7 +70,7 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 
 ## Contraste (WCAG 2.1, texto normal: AA ≥ 4.5:1)
 
-La tabla se calcula con la fórmula de luminancia relativa de WCAG 2.1. `test/contrast.test.ts` lee los valores de `globals.css` y falla si algún par baja de 4.5. También falla si queda algún resto del marfil o del azul anteriores, si un color de acción coincide con un color de veredicto, si cambia la paleta oscura aprobada o si cambia el contorno de `panel-frame`. Los fondos de veredicto al 8–12 % se componen sobre `panel`.
+La tabla se calcula con la fórmula de luminancia relativa de WCAG 2.1. `test/contrast.test.ts` lee los valores de `globals.css` y falla si algún par baja de 4.5. También falla si queda algún resto del marfil o del azul anteriores, si un color de acción coincide con un color de veredicto, si cambia la paleta oscura aprobada o si cambian el contorno de `panel-frame` y sus tokens de color y grosor. Los fondos de veredicto al 8–12 % se componen sobre `panel`.
 
 | Par | Claro | Oscuro |
 |---|---|---|
