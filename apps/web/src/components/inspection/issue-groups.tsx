@@ -4,7 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { SeverityLabel } from "@/components/inspection/severity";
 import { VerdictPill } from "@/components/ui/status";
 import { shortUrl } from "@/lib/inspection-labels";
-import { groupTitle, type InspectionsT } from "@/lib/issue-labels";
+import { groupTitle } from "@/lib/issue-labels";
 import { artifactUrl } from "@/lib/urls";
 
 /** A sample of text in the page's own colours (data from the report, not design tokens). */
@@ -72,7 +72,7 @@ export function IssueGroupItem({ inspectionId, group, report }: { inspectionId: 
               Aa
             </span>
           )}
-          <span className="min-w-0 flex-1 basis-64 text-[13px] font-medium break-words text-fg">{groupTitle(ti as unknown as InspectionsT, locale, group)}</span>
+          <span className="min-w-0 flex-1 basis-64 text-[13px] font-medium break-words text-fg">{groupTitle(ti, locale, group)}</span>
           <span className="font-mono text-[12px] whitespace-nowrap text-muted">
             {t("counts", { elements: group.elements, pages: group.pages.length })}
             {group.intermittent > 0 && group.verified > 0 ? ` · ${t("intermittentCount", { count: group.intermittent })}` : ""}

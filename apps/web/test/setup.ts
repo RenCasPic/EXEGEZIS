@@ -1,3 +1,4 @@
+import type * as NextIntl from "next-intl";
 import { vi } from "vitest";
 
 /*
@@ -16,7 +17,7 @@ export function setTestLocale(locale: TestLocale): void {
 const current = (): TestLocale => state.__exegezisTestLocale ?? "es";
 
 async function translator(namespace?: string) {
-  const { createTranslator } = await vi.importActual<typeof import("next-intl")>("next-intl");
+  const { createTranslator } = await vi.importActual<typeof NextIntl>("next-intl");
   const { CATALOGS } = await import("../src/i18n/messages");
   const locale = current();
   return createTranslator({ locale, messages: CATALOGS[locale] as never, ...(namespace === undefined ? {} : { namespace: namespace as never }) });
@@ -29,7 +30,7 @@ vi.mock("next-intl/server", async (importOriginal) => ({
 }));
 
 vi.mock("next-intl", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("next-intl")>();
+  const actual = await importOriginal<typeof NextIntl>();
   const { CATALOGS } = await import("../src/i18n/messages");
   return {
     ...actual,

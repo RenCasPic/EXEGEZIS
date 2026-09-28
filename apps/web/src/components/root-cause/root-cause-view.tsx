@@ -1,5 +1,5 @@
 import { Check, ShieldCheck, X } from "lucide-react";
-import { decideRootCause, evaluatePrediction, evidenceMatrix, hypothesisOutcome, specificityOf, type RootCauseReport } from "@exegezis/core";
+import { decideRootCause, evaluatePrediction, evidenceMatrix, hypothesisOutcome, type RootCauseReport } from "@exegezis/core";
 import { useTranslations } from "next-intl";
 import { CodeBlock, Meta, Mono, tableClass } from "@/components/ui/primitives";
 import { EngineText } from "@/components/ui/engine-text";

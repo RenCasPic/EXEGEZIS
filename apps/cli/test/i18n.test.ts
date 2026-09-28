@@ -20,7 +20,8 @@ function argumentsOf(message: string): string[] {
 async function run(argv: string[], env: NodeJS.ProcessEnv = {}): Promise<{ code: number; stdout: string; stderr: string }> {
   let stdout = "";
   let stderr = "";
-  const code = await main(argv, { stdout: { write: (text: string) => (stdout += text) }, stderr: { write: (text: string) => (stderr += text) }, cwd: process.cwd() }, env);
+  const stderrStream = { write: (text: string) => ((stderr += text), true) } as unknown as NodeJS.WriteStream;
+  const code = await main(argv, { stdout: { write: (text: string) => (stdout += text) }, stderr: stderrStream, cwd: process.cwd() }, env);
   return { code, stdout, stderr };
 }
 

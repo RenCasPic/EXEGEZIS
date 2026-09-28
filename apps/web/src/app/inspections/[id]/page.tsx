@@ -19,7 +19,7 @@ import { accessEntry } from "@/lib/access";
 import type { InspectionRef } from "@/lib/evidence/discover";
 import { filterFindings, filterGroups, findInspection, loadFindingEvidence, pageRows, parseFindingFilters, sortFindings, type FindingEvidence } from "@/lib/evidence/inspections";
 import { INSPECTION_STATUS_TONE, isKnownCheck, PAGE_STATUS_TONE, shortUrl } from "@/lib/inspection-labels";
-import { findingTitle, type InspectionsT } from "@/lib/issue-labels";
+import { findingTitle } from "@/lib/issue-labels";
 import { artifactUrl } from "@/lib/urls";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -126,7 +126,7 @@ function FindingItem({ inspectionId, finding, report, evidence }: { inspectionId
   const ti = useTranslations("inspections");
   const t = useTranslations("inspections.detail");
   const locale = useLocale();
-  const title = findingTitle(ti as unknown as InspectionsT, locale, finding.checkId, finding.title);
+  const title = findingTitle(ti, locale, finding.checkId, finding.title);
   return (
     <li className="border-b border-line last:border-b-0">
       <details className="group">
@@ -135,7 +135,7 @@ function FindingItem({ inspectionId, finding, report, evidence }: { inspectionId
           <SeverityLabel severity={finding.severity} />
           <span className="font-mono text-[11px] text-faint">{finding.id}</span>
           <span className="min-w-0 flex-1 basis-60 text-[13px] font-medium break-words text-fg">{title}</span>
-          <span className="text-xs text-muted">{checkName(ti as never, finding.checkId)}</span>
+          <span className="text-xs text-muted">{checkName(ti, finding.checkId)}</span>
           <span className="font-mono text-[11px] text-muted">{shortUrl(finding.page, report.target.origin)}</span>
           <Occurrences finding={finding} runs={report.options.runs} />
         </summary>

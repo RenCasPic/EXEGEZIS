@@ -47,7 +47,7 @@ export function LanguageSwitcher() {
       <button
         type="button"
         onClick={() => choose(other)}
-        aria-label={t("cycle", { current: LOCALE_NAME[locale as Locale] ?? locale, next: LOCALE_NAME[other] })}
+        aria-label={t("cycle", { current: LOCALE_NAME[locale] ?? locale, next: LOCALE_NAME[other] })}
         className="flex size-11 items-center justify-center gap-0.5 rounded-md text-muted hover:bg-hover hover:text-fg md:hidden"
       >
         <Languages className="size-4" aria-hidden />

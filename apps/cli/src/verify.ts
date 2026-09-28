@@ -130,7 +130,7 @@ export function formatReport(report: BugReport): string[] {
   lines.push(t("verify.criteria"));
   for (const criterion of report.criteria) {
     const known = (CRITERIA as readonly string[]).includes(criterion.id);
-    lines.push(`${criterion.met ? "✓" : "✗"} ${known ? t(`verify.criterion.${criterion.id as (typeof CRITERIA)[number]}`) : criterion.description}`);
+    lines.push(`${criterion.met ? "✓" : "✗"} ${known ? t(`verify.criterion.${criterion.id}`) : criterion.description}`);
     lines.push(`    ${engineText(criterion.message, criterion.detail)}`);
   }
   lines.push("");

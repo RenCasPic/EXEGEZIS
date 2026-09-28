@@ -32,7 +32,7 @@ describe("engine messages", () => {
   it("keep the English text of older versions, and read in Spanish with nested messages", () => {
     const repro = classifyReproduction([{ verdict: "passed" }, { verdict: "passed" }]);
     expect(repro.reason).toBe("all 2 attempts met every expectation");
-    const outcome = deriveOutcome({ status: "valid", issues: [], reference: null }, repro, []);
+    const outcome = deriveOutcome({ status: "valid", issues: [], reference: null } as unknown as Parameters<typeof deriveOutcome>[0], repro, []);
     expect(outcome.reason).toBe("the expectation held: all 2 attempts met every expectation");
     expect(formatEngineMessage(outcome.message, "es")).toBe("la expectativa se cumplió: los 2 intentos cumplieron todas las expectativas");
     expect(EngineMessage.parse(outcome.message)).toEqual(outcome.message);

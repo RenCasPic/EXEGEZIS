@@ -178,7 +178,7 @@ async function SearchJobView({ job, status, log }: { job: SearchJob; status: Job
               { label: t("job"), value: <Mono>{job.id}</Mono> },
               { label: t("started"), value: f.absolute(job.startedAt) },
               { label: t("elapsed"), value: f.duration(elapsed) },
-              { label: t("exitCode"), value: exitText(t as never, job.exitCode) },
+              { label: t("exitCode"), value: exitText(t, job.exitCode) },
               ...(job.error === null ? [] : [{ label: t("error"), value: <JobError error={job.error} /> }]),
             ]}
           />
@@ -262,7 +262,7 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
               { label: t("inspect.session"), value: job.storageState === null ? t("inspect.none") : t("inspect.storageState") },
               { label: t("started"), value: f.absolute(job.startedAt) },
               { label: t("elapsed"), value: f.duration(elapsed) },
-              { label: t("exitCode"), value: exitText(t as never, job.exitCode) },
+              { label: t("exitCode"), value: exitText(t, job.exitCode) },
               ...(job.error === null ? [] : [{ label: t("error"), value: <JobError error={job.error} /> }]),
             ]}
           />
@@ -319,7 +319,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
               { label: t("investigation.project"), value: job.project ?? t("investigation.unassigned") },
               { label: t("started"), value: f.absolute(job.startedAt) },
               { label: t("elapsed"), value: f.duration(elapsed) },
-              { label: t("exitCode"), value: exitText(t as never, job.exitCode) },
+              { label: t("exitCode"), value: exitText(t, job.exitCode) },
               ...(job.error === null ? [] : [{ label: t("error"), value: <JobError error={job.error} /> }]),
             ]}
           />

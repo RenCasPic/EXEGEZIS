@@ -24,7 +24,6 @@ import {
   templateQuery,
   toCsv,
   touchSavedSearch,
-  VERDICT_LABEL,
   type SearchModelClient,
 } from "@exegezis/search";
 import { cliLocale, engineText, t } from "./i18n.js";

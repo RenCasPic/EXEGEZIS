@@ -5,7 +5,7 @@ import { translateUi, ui, type UiMessage } from "./ui-message";
 /** A UiMessage in the request's language (server actions). */
 export async function say(m: UiMessage): Promise<string> {
   const t = await getTranslations();
-  return translateUi(t as never, m);
+  return translateUi(t, m);
 }
 
 /** An error thrown while starting a job, in the request's language. */
