@@ -90,15 +90,20 @@ function files(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name)) : e.name.endsWith(".tsx") ? [join(dir, e.name)] : []));
 }
 
+/** Elements that hold code: a command, a path, a header name, a keyboard shortcut. */
+const CODE_ELEMENTS = new Set(["code", "pre", "kbd", "Mono"]);
+
 function hardcoded(file: string): string[] {
   const source = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const found: string[] = [];
   const where = (n: ts.Node) => `${file.slice(SRC.length + 1)}:${source.getLineAndCharacterOfPosition(n.getStart()).line + 1}`;
   const visible = (text: string) => /\p{L}/u.test(text) && !SAME_IN_EVERY_LANGUAGE.test(text.trim());
-  /** Content marked translate="no" (site text, user text, code, URLs) is never translated. */
+  /** Content marked translate="no" (site text, user text, URLs), and code (commands, paths, headers), is never translated. */
   const untranslatable = (n: ts.Node): boolean => {
     for (let p: ts.Node | undefined = n.parent; p !== undefined; p = p.parent) {
-      if (ts.isJsxElement(p) && p.openingElement.attributes.properties.some((a) => ts.isJsxAttribute(a) && a.name.getText() === "translate" && a.initializer !== undefined && a.initializer.getText() === '"no"')) return true;
+      if (!ts.isJsxElement(p)) continue;
+      if (CODE_ELEMENTS.has(p.openingElement.tagName.getText())) return true;
+      if (p.openingElement.attributes.properties.some((a) => ts.isJsxAttribute(a) && a.name.getText() === "translate" && a.initializer !== undefined && a.initializer.getText() === '"no"')) return true;
     }
     return false;
   };

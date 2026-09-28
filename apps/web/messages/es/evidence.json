@@ -1,1 +1,66 @@
-{}
+{
+  "notCaptured": "{name} no se capturó en este intento.",
+  "invalid": "{name} existe pero no cumple su esquema, así que no se muestra:",
+  "event": {
+    "runStarted": "ejecución {run} → {url}",
+    "runFinished": "{status} tras {duration}",
+    "planStarted": "{plan}: {title} ({steps, plural, one {# paso} other {# pasos}})",
+    "planFinished": "{verdict}",
+    "planFinishedAt": "{verdict} en el paso {step}",
+    "actionStarted": "paso {step}: {type}",
+    "actionSucceeded": "{action} en {duration}",
+    "assertionStarted": "paso {step} [{purpose}]",
+    "assertionPassed": "real {value}",
+    "observation": "{id} {title} ({settled, select, yes {estable} other {no estable}})",
+    "accessibility": "{id}: {count, plural, one {# nodo} other {# nodos}}"
+  },
+  "assertions": {
+    "none": "No se evaluó ninguna aserción.",
+    "stepPurpose": "paso {step} · {purpose}",
+    "expected": "esperado",
+    "observed": "observado",
+    "evaluations": "{count, plural, one {# evaluación} other {# evaluaciones}} en {duration} (límite {timeout}) · {time}"
+  },
+  "console": {
+    "none": "No se observaron mensajes de consola ni errores de la página.",
+    "pageError": "error de página"
+  },
+  "network": {
+    "none": "No se registró ningún intercambio de red.",
+    "noResponse": "Sin respuesta",
+    "request": "petición",
+    "response": "respuesta",
+    "truncated": "… (truncado)",
+    "notCaptured": "cuerpo no capturado: {reason}"
+  },
+  "screenshots": {
+    "none": "No se tomó ninguna captura en este intento.",
+    "alt": "Captura {id} de {url}",
+    "reason": "motivo: {reason}"
+  },
+  "dom": {
+    "none": "No se capturó ninguna instantánea del DOM en este intento.",
+    "untrusted": "El contenido capturado de la página no es de confianza: se muestra en un marco aislado con los scripts desactivados.",
+    "source": "Ver el código fuente",
+    "title": "Instantánea del DOM {id}"
+  },
+  "a11y": {
+    "none": "No se capturó ninguna instantánea de accesibilidad.",
+    "nodes": "{count, plural, one {# nodo} other {# nodos}}"
+  },
+  "trace": {
+    "none": "No hay trace en este intento.",
+    "noneReason": "No hay trace en este intento: {reason}",
+    "full": "Trace completo de Playwright del intento ({size}, sha256 <hash></hash>). Ábrelo con el visor de traces de Playwright:",
+    "dir": "'<'carpeta de la investigación'>'",
+    "download": "Descargar trace.zip"
+  },
+  "manifest": {
+    "summary": "Manifiesto {complete, select, yes {completo} other {incompleto}} · {count, plural, one {# artefacto} other {# artefactos}} · cada archivo con su hash calculado al capturarlo.",
+    "type": "Tipo",
+    "file": "Archivo",
+    "size": "Tamaño",
+    "redaction": "Redacción",
+    "missing": "falta {type}: {reason}"
+  }
+}

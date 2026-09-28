@@ -46,7 +46,7 @@ export default async function SearchSettingsPage() {
                   <div className="text-[13px] font-medium text-fg">
                     <span translate="no">{tpl.name}</span>{" "}
                     <span className="font-mono text-[11px] font-normal text-faint">
-                      {tpl.id} v{tpl.version}
+                      {tpl.id} {t("version", { version: tpl.version })}
                     </span>
                   </div>
                   <div className="text-[12px] text-muted">

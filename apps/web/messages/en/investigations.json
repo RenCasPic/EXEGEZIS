@@ -67,7 +67,8 @@
     "viewing": "Viewing",
     "view": "View",
     "notOnDisk": "not on disk",
-    "noReproductionFile": "reproduction.json is not available for this result (archived results keep only the report)."
+    "noReproductionFile": "reproduction.json is not available for this result (archived results keep only the report).",
+    "specSubtitle": "{path} · sha256 {hash}…"
   },
   "criteria": {
     "plan_valid": "A semantically valid plan",

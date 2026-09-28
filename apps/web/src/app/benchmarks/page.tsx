@@ -65,8 +65,12 @@ export default async function BenchmarksPage() {
                   <th className={tableClass.th}>{t("colRun")}</th>
                   <th className={tableClass.th}>{t("colPlans")}</th>
                   <th className={tableClass.th}>{t("colResult")}</th>
-                  <th className={tableClass.th}>TP / FN</th>
-                  <th className={tableClass.th}>FP / TN</th>
+                  <th className={tableClass.th} title={t("tpfnTitle")}>
+                    {t("tpfn")}
+                  </th>
+                  <th className={tableClass.th} title={t("fptnTitle")}>
+                    {t("fptn")}
+                  </th>
                   <th className={tableClass.th}>{t("colInconclusive")}</th>
                   <th className={tableClass.th}>{t("colSource")}</th>
                   <th className={tableClass.th}>{t("colFinished")}</th>
@@ -87,7 +91,7 @@ export default async function BenchmarksPage() {
                         t("humanWritten")
                       ) : (
                         <>
-                          B ·{" "}
+                          {t("benchmarkB")}{" "}
                           {isReplayRun(r) ? <ReplayTag title={t("replayTitle")} /> : (r.planner?.model ?? r.planner?.provider)}{" "}
                           <span className="font-mono text-faint">{r.planner?.promptVersion}</span>
                           <div className="text-[11px] text-faint">{r.planner?.examples === true ? t("withExamples") : t("noExamples")}</div>

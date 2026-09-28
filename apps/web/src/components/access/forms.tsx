@@ -84,7 +84,7 @@ export function WafTokenForm({ url, hasToken }: { url: string; hasToken: boolean
           <CopyCommand command={`(http.request.headers["x-exegezis-token"][0] eq "${state.token.value}")`} label={t("copyExpression")} />
           <ol start={3} className="list-decimal space-y-1 pl-5 text-[12px] text-muted">
             <li>
-              {t.rich("step3", { skip: () => <strong>Skip</strong> })}
+              {t.rich("step3", { skip: () => <strong translate="no">Skip</strong> })}
             </li>
             <li>{t("step4")}</li>
           </ol>

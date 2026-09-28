@@ -1,1 +1,66 @@
-{}
+{
+  "notCaptured": "{name} was not captured for this attempt.",
+  "invalid": "{name} exists but does not match its schema, so it is not shown:",
+  "event": {
+    "runStarted": "run {run} → {url}",
+    "runFinished": "{status} after {duration}",
+    "planStarted": "{plan}: {title} ({steps, plural, one {# step} other {# steps}})",
+    "planFinished": "{verdict}",
+    "planFinishedAt": "{verdict} at step {step}",
+    "actionStarted": "step {step}: {type}",
+    "actionSucceeded": "{action} in {duration}",
+    "assertionStarted": "step {step} [{purpose}]",
+    "assertionPassed": "actual {value}",
+    "observation": "{id} {title} ({settled, select, yes {settled} other {not settled}})",
+    "accessibility": "{id}: {count, plural, one {# node} other {# nodes}}"
+  },
+  "assertions": {
+    "none": "No assertion was evaluated.",
+    "stepPurpose": "step {step} · {purpose}",
+    "expected": "expected",
+    "observed": "observed",
+    "evaluations": "{count, plural, one {# evaluation} other {# evaluations}} in {duration} (timeout {timeout}) · {time}"
+  },
+  "console": {
+    "none": "No console messages and no page errors were observed.",
+    "pageError": "page error"
+  },
+  "network": {
+    "none": "No network exchanges were recorded.",
+    "noResponse": "No response",
+    "request": "request",
+    "response": "response",
+    "truncated": "… (truncated)",
+    "notCaptured": "body not captured: {reason}"
+  },
+  "screenshots": {
+    "none": "No screenshot was taken in this attempt.",
+    "alt": "Screenshot {id} of {url}",
+    "reason": "reason: {reason}"
+  },
+  "dom": {
+    "none": "No DOM snapshot was captured in this attempt.",
+    "untrusted": "Captured page content is untrusted: it is rendered in a sandboxed frame with scripts disabled.",
+    "source": "View source",
+    "title": "DOM snapshot {id}"
+  },
+  "a11y": {
+    "none": "No accessibility snapshot was captured.",
+    "nodes": "{count, plural, one {# node} other {# nodes}}"
+  },
+  "trace": {
+    "none": "No trace in this attempt.",
+    "noneReason": "No trace in this attempt: {reason}",
+    "full": "Full Playwright trace of the attempt ({size}, sha256 <hash></hash>). Open it with the Playwright trace viewer:",
+    "dir": "'<'investigation dir'>'",
+    "download": "Download trace.zip"
+  },
+  "manifest": {
+    "summary": "Manifest {complete, select, yes {complete} other {incomplete}} · {count, plural, one {# artifact} other {# artifacts}} · every file hashed at capture time.",
+    "type": "Type",
+    "file": "File",
+    "size": "Size",
+    "redaction": "Redaction",
+    "missing": "missing {type}: {reason}"
+  }
+}

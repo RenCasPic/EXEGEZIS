@@ -9,24 +9,38 @@ import type {
   Timeline,
   TimelineEvent,
 } from "@exegezis/core";
-import { describeAssertion } from "@exegezis/core";
+import { assertionMessage } from "@exegezis/core";
 import { Download, ExternalLink } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { buttonClass, tableClass } from "@/components/ui/primitives";
+import { EngineText } from "@/components/ui/engine-text";
 import { StatusPill } from "@/components/ui/status";
+import { useFormat } from "@/i18n/client";
+import type { Format } from "@/i18n/format";
 import { cn } from "@/lib/cn";
 import type { Loaded } from "@/lib/evidence/read";
-import { bytes, clockTime, compactJson, duration } from "@/lib/format";
+import { clockTime, compactJson } from "@/lib/format";
 import { artifactUrl } from "@/lib/urls";
+
+/*
+ * The raw evidence of an attempt. What the browser and the page produced
+ * (messages, URLs, headers, bodies, the accessibility tree, event types) is
+ * shown as recorded and marked translate="no"; only the surrounding words are
+ * in the reader's language.
+ */
+
+type EvidenceT = ReturnType<typeof useTranslations<"evidence">>;
 
 /** Renders a loaded artifact, or says exactly why it cannot be shown. */
 export function WithArtifact<T>({ loaded, name, children }: { loaded: Loaded<T>; name: string; children: (value: T) => ReactNode }) {
-  if (loaded.status === "missing") return <p className="p-4 text-[13px] text-muted">{name} was not captured for this attempt.</p>;
+  const t = useTranslations("evidence");
+  if (loaded.status === "missing") return <p className="p-4 text-[13px] text-muted">{t("notCaptured", { name })}</p>;
   if (loaded.status === "invalid")
     return (
       <div className="p-4 text-[13px] text-bad">
-        {name} exists but does not match its schema, so it is not shown:
-        <ul className="mt-1 list-disc pl-5 font-mono text-[12px]">
+        {t("invalid", { name })}
+        <ul className="mt-1 list-disc pl-5 font-mono text-[12px]" translate="no">
           {loaded.issues.map((i) => (
             <li key={i}>{i}</li>
           ))}
@@ -36,32 +50,39 @@ export function WithArtifact<T>({ loaded, name, children }: { loaded: Loaded<T>;
   return <>{children(loaded.value)}</>;
 }
 
-function eventSummary(e: TimelineEvent): string {
+/** One line per event: its own words where it has fixed ones, its recorded data as is. */
+function eventSummary(t: EvidenceT, f: Format, e: TimelineEvent): ReactNode {
   switch (e.type) {
     case "RUN_STARTED":
-      return `run ${e.payload.runId} → ${e.payload.targetUrl}`;
+      return t("event.runStarted", { run: e.payload.runId, url: e.payload.targetUrl });
     case "RUN_FINISHED":
-      return `${e.payload.status} after ${duration(e.payload.durationMs)}`;
+      return t("event.runFinished", { status: e.payload.status, duration: f.duration(e.payload.durationMs) });
     case "ADAPTER_STARTED":
-      return `${e.payload.adapterId} ${Object.entries(e.payload.details).map(([k, v]) => `${k}=${String(v)}`).join(" ")}`;
+      return `${e.payload.adapterId} ${Object.entries(e.payload.details)
+        .map(([k, v]) => `${k}=${String(v)}`)
+        .join(" ")}`;
     case "ADAPTER_STOPPED":
       return e.payload.adapterId;
     case "PLAN_STARTED":
-      return `${e.payload.planId}: ${e.payload.title} (${e.payload.steps} steps)`;
+      return t("event.planStarted", { plan: e.payload.planId, title: e.payload.title, steps: e.payload.steps });
     case "PLAN_FINISHED":
-      return `${e.payload.verdict}${e.payload.stoppedAtStep === undefined ? "" : ` at step ${e.payload.stoppedAtStep}`}`;
+      return e.payload.stoppedAtStep === undefined ? t("event.planFinished", { verdict: e.payload.verdict }) : t("event.planFinishedAt", { verdict: e.payload.verdict, step: e.payload.stoppedAtStep });
     case "ACTION_STARTED":
-      return `step ${e.payload.stepIndex ?? "?"}: ${e.payload.step.type}`;
+      return t("event.actionStarted", { step: e.payload.stepIndex ?? "?", type: e.payload.step.type });
     case "ACTION_SUCCEEDED":
-      return `${e.payload.actionId} in ${duration(e.payload.durationMs)}`;
+      return t("event.actionSucceeded", { action: e.payload.actionId, duration: f.duration(e.payload.durationMs) });
     case "ACTION_FAILED":
       return `${e.payload.actionId}: ${e.payload.error.message}`;
     case "ACTION_REJECTED":
       return `${e.payload.actionId}: ${e.payload.reason}`;
     case "ASSERTION_STARTED":
-      return `step ${e.payload.stepIndex} [${e.payload.purpose}] ${describeAssertion(e.payload.assertion)}`;
+      return (
+        <>
+          {t("event.assertionStarted", { step: e.payload.stepIndex, purpose: e.payload.purpose })} <EngineText message={assertionMessage(e.payload.assertion)} text={null} />
+        </>
+      );
     case "ASSERTION_PASSED":
-      return `actual ${compactJson(e.payload.actual)}`;
+      return t("event.assertionPassed", { value: compactJson(e.payload.actual) });
     case "ASSERTION_FAILED":
       return e.payload.message;
     case "ASSERTION_TIMEOUT":
@@ -85,9 +106,9 @@ function eventSummary(e: TimelineEvent): string {
     case "NETWORK_FAILED":
       return `${e.payload.url}: ${e.payload.errorText}`;
     case "OBSERVATION":
-      return `${e.payload.observationId} ${e.payload.title} (${e.payload.settled ? "settled" : "not settled"})`;
+      return t("event.observation", { id: e.payload.observationId, title: e.payload.title, settled: e.payload.settled ? "yes" : "no" });
     case "ACCESSIBILITY_SNAPSHOT":
-      return `${e.payload.evidenceId}: ${e.payload.nodeCount} nodes`;
+      return t("event.accessibility", { id: e.payload.evidenceId, count: e.payload.nodeCount });
     case "DOM_SNAPSHOT":
     case "SCREENSHOT":
       return `${e.payload.evidenceId}: ${e.payload.path}`;
@@ -107,16 +128,22 @@ function eventTone(type: TimelineEvent["type"]): string {
 }
 
 export function TimelineView({ timeline, highlight }: { timeline: Timeline; highlight: Set<string> }) {
+  const t = useTranslations("evidence");
+  const f = useFormat();
   return (
     <ol className="divide-y divide-line font-mono text-[12px]">
       {timeline.events.map((e) => (
         <li key={e.id} id={e.id} className={cn("grid grid-cols-[88px_64px_68px_1fr] gap-3 px-4 py-1.5 hover:bg-hover/40", highlight.has(e.id) && "bg-hover")}>
           <span className="text-faint">{clockTime(e.timestamp)}</span>
           <span className="text-right text-faint">+{Math.round(e.elapsedMs)}ms</span>
-          <span className="text-faint">{e.source}</span>
+          <span className="text-faint" translate="no">
+            {e.source}
+          </span>
           <span className="min-w-0 break-words">
-            <span className={cn("mr-2", eventTone(e.type))}>{e.type}</span>
-            <span className="text-muted">{eventSummary(e)}</span>
+            <span className={cn("mr-2", eventTone(e.type))} translate="no">
+              {e.type}
+            </span>
+            <span className="text-muted">{eventSummary(t, f, e)}</span>
           </span>
         </li>
       ))}
@@ -127,28 +154,37 @@ export function TimelineView({ timeline, highlight }: { timeline: Timeline; high
 const ASSERT_TONE = { passed: "ok", failed: "bad", timeout: "warn", error: "warn" } as const;
 
 export function AssertionsView({ file }: { file: AssertionsFile }) {
-  if (file.results.length === 0) return <p className="p-4 text-[13px] text-muted">No assertion was evaluated.</p>;
+  const t = useTranslations("evidence.assertions");
+  const f = useFormat();
+  if (file.results.length === 0) return <p className="p-4 text-[13px] text-muted">{t("none")}</p>;
   return (
     <ul className="divide-y divide-line">
       {file.results.map((a) => (
         <li key={a.id} className="grid gap-2 px-4 py-3 md:grid-cols-[120px_1fr]">
           <div className="flex flex-col gap-1.5">
             <StatusPill status={a.status.toUpperCase()} tone={ASSERT_TONE[a.status]} size="xs" />
-            <span className="font-mono text-[11px] text-faint">
-              step {a.stepIndex} · {a.purpose}
-            </span>
+            <span className="font-mono text-[11px] text-faint">{t("stepPurpose", { step: a.stepIndex, purpose: a.purpose })}</span>
           </div>
           <div className="min-w-0">
-            <div className="text-[13px] text-fg">{a.description}</div>
-            <div className="mt-0.5 font-mono text-[12px] text-muted">{describeAssertion(a.assertion)}</div>
+            <div className="text-[13px] text-fg" translate="no">
+              {a.description}
+            </div>
+            <div className="mt-0.5 font-mono text-[12px] text-muted">
+              <EngineText message={assertionMessage(a.assertion)} text={null} />
+            </div>
             <div className="mt-1.5 grid gap-x-4 gap-y-0.5 font-mono text-[12px] sm:grid-cols-[auto_1fr]">
-              <span className="text-faint">expected</span>
-              <span className="break-all text-fg">{compactJson(a.expected)}</span>
-              <span className="text-faint">observed</span>
-              <span className={cn("break-all", a.status === "failed" ? "text-bad" : "text-fg")}>{compactJson(a.actual)}</span>
+              <span className="text-faint">{t("expected")}</span>
+              <span className="break-all text-fg" translate="no">
+                {compactJson(a.expected)}
+              </span>
+              <span className="text-faint">{t("observed")}</span>
+              <span className={cn("break-all", a.status === "failed" ? "text-bad" : "text-fg")} translate="no">
+                {compactJson(a.actual)}
+              </span>
             </div>
             <div className="mt-1 text-xs text-faint">
-              {a.message} · {a.attempts} evaluation(s) in {duration(a.durationMs)} (timeout {duration(a.timeoutMs)}) · {clockTime(a.finishedAt)}
+              <EngineText message={a.detail} text={a.message} /> ·{" "}
+              {t("evaluations", { count: a.attempts, duration: f.duration(a.durationMs), timeout: f.duration(a.timeoutMs), time: clockTime(a.finishedAt) })}
             </div>
           </div>
         </li>
@@ -158,14 +194,15 @@ export function AssertionsView({ file }: { file: AssertionsFile }) {
 }
 
 export function ConsoleView({ file }: { file: ConsoleFile }) {
-  if (file.messages.length === 0 && file.pageErrors.length === 0) return <p className="p-4 text-[13px] text-muted">No console messages and no page errors were observed.</p>;
+  const t = useTranslations("evidence.console");
+  if (file.messages.length === 0 && file.pageErrors.length === 0) return <p className="p-4 text-[13px] text-muted">{t("none")}</p>;
   return (
     <ol className="divide-y divide-line font-mono text-[12px]">
       {file.pageErrors.map((e) => (
         <li key={e.id} className="grid grid-cols-[88px_64px_1fr] gap-3 px-4 py-1.5 text-bad">
           <span className="text-faint">{clockTime(e.timestamp)}</span>
-          <span>page error</span>
-          <span className="break-words">
+          <span>{t("pageError")}</span>
+          <span className="break-words" translate="no">
             {e.name}: {e.message}
           </span>
         </li>
@@ -173,8 +210,10 @@ export function ConsoleView({ file }: { file: ConsoleFile }) {
       {file.messages.map((m) => (
         <li key={m.id} className="grid grid-cols-[88px_64px_1fr] gap-3 px-4 py-1.5">
           <span className="text-faint">{clockTime(m.timestamp)}</span>
-          <span className={m.level === "error" ? "text-bad" : m.level === "warning" ? "text-warn" : "text-muted"}>{m.level}</span>
-          <span className="break-words text-fg">
+          <span className={m.level === "error" ? "text-bad" : m.level === "warning" ? "text-warn" : "text-muted"} translate="no">
+            {m.level}
+          </span>
+          <span className="break-words text-fg" translate="no">
             {m.text}
             {m.location !== undefined && (
               <span className="ml-2 text-faint">
@@ -198,7 +237,9 @@ function pathOf(url: string): string {
 }
 
 export function NetworkView({ file, highlight }: { file: NetworkFile; highlight: Set<string> }) {
-  if (file.exchanges.length === 0) return <p className="p-4 text-[13px] text-muted">No network exchanges were recorded.</p>;
+  const t = useTranslations("evidence.network");
+  const f = useFormat();
+  if (file.exchanges.length === 0) return <p className="p-4 text-[13px] text-muted">{t("none")}</p>;
   return (
     <ul className="divide-y divide-line">
       {file.exchanges.map((x) => {
@@ -214,17 +255,22 @@ export function NetworkView({ file, highlight }: { file: NetworkFile; highlight:
                   {pathOf(x.request.url)}
                 </span>
                 <span className="text-faint">
-                  {x.request.resourceType} · {duration(x.durationMs)}
+                  {x.request.resourceType} · {f.duration(x.durationMs)}
                 </span>
               </summary>
               <div className="grid gap-3 border-t border-line bg-panel-2 px-4 py-3 md:grid-cols-2">
                 {(["request", "response"] as const).map((side) => {
                   const part = side === "request" ? x.request : x.response;
-                  if (part === undefined) return <div key={side} className="text-xs text-bad">{x.failure?.errorText ?? "No response"}</div>;
+                  if (part === undefined)
+                    return (
+                      <div key={side} className="text-xs text-bad" translate="no">
+                        {x.failure?.errorText ?? t("noResponse")}
+                      </div>
+                    );
                   return (
                     <div key={side} className="min-w-0">
-                      <div className="mb-1 text-[11px] text-faint">{side}</div>
-                      <div className="max-h-40 overflow-auto rounded border border-line bg-code p-2 font-mono text-[11px]">
+                      <div className="mb-1 text-[11px] text-faint">{t(side)}</div>
+                      <div className="max-h-40 overflow-auto rounded border border-line bg-code p-2 font-mono text-[11px]" translate="no">
                         {Object.entries(part.headers).map(([k, v]) => (
                           <div key={k} className="break-all">
                             <span className="text-faint">{k}:</span> <span className="text-muted">{v}</span>
@@ -233,12 +279,12 @@ export function NetworkView({ file, highlight }: { file: NetworkFile; highlight:
                       </div>
                       {part.body !== undefined &&
                         (part.body.captured ? (
-                          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded border border-line bg-code p-2 font-mono text-[11px] text-fg">
+                          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded border border-line bg-code p-2 font-mono text-[11px] text-fg" translate="no">
                             {part.body.text}
-                            {part.body.truncated ? "\n… (truncated)" : ""}
+                            {part.body.truncated ? `\n${t("truncated")}` : ""}
                           </pre>
                         ) : (
-                          <div className="mt-2 text-[11px] text-faint">body not captured: {part.body.reason}</div>
+                          <div className="mt-2 text-[11px] text-faint">{t("notCaptured", { reason: part.body.reason })}</div>
                         ))}
                     </div>
                   );
@@ -253,17 +299,18 @@ export function NetworkView({ file, highlight }: { file: NetworkFile; highlight:
 }
 
 export function ScreenshotView({ file, id, runPath }: { file: ObservationsFile; id: string; runPath: string }) {
-  if (file.screenshots.length === 0) return <p className="p-4 text-[13px] text-muted">No screenshot was taken in this attempt.</p>;
+  const t = useTranslations("evidence.screenshots");
+  if (file.screenshots.length === 0) return <p className="p-4 text-[13px] text-muted">{t("none")}</p>;
   return (
     <div className="flex flex-col gap-4 p-4">
       {file.screenshots.map((s) => (
         <figure key={s.id} className="overflow-hidden rounded-md border border-line">
           {/* A local evidence file, served as-is: no image optimisation. */}
-          <img src={artifactUrl(id, `${runPath}/${s.path}`)} alt={`Screenshot ${s.id} of ${s.pageUrl}`} className="w-full bg-white" />
+          <img src={artifactUrl(id, `${runPath}/${s.path}`)} alt={t("alt", { id: s.id, url: s.pageUrl })} className="w-full bg-white" />
           <figcaption className="flex flex-wrap gap-x-3 border-t border-line px-3 py-2 font-mono text-[11px] text-faint">
             <span>{s.id}</span>
             <span>{clockTime(s.timestamp)}</span>
-            <span>reason: {s.reason}</span>
+            <span>{t("reason", { reason: s.reason })}</span>
             <span>{s.pageUrl}</span>
           </figcaption>
         </figure>
@@ -273,21 +320,23 @@ export function ScreenshotView({ file, id, runPath }: { file: ObservationsFile; 
 }
 
 export function DomView({ file, id, runPath }: { file: ObservationsFile; id: string; runPath: string }) {
-  if (file.domSnapshots.length === 0) return <p className="p-4 text-[13px] text-muted">No DOM snapshot was captured in this attempt.</p>;
+  const t = useTranslations("evidence.dom");
+  const f = useFormat();
+  if (file.domSnapshots.length === 0) return <p className="p-4 text-[13px] text-muted">{t("none")}</p>;
   return (
     <div className="flex flex-col gap-4 p-4">
-      <p className="text-xs text-faint">Captured page content is untrusted: it is rendered in a sandboxed frame with scripts disabled.</p>
+      <p className="text-xs text-faint">{t("untrusted")}</p>
       {file.domSnapshots.map((d) => (
         <div key={d.id} className="overflow-hidden rounded-md border border-line">
           <div className="flex items-center justify-between gap-3 border-b border-line px-3 py-2 font-mono text-[11px] text-faint">
             <span>
-              {d.id} · {clockTime(d.timestamp)} · {bytes(d.sizeBytes)}
+              {d.id} · {clockTime(d.timestamp)} · {f.bytes(d.sizeBytes)}
             </span>
             <a href={artifactUrl(id, `${runPath}/${d.path}`, { source: true })} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-accent-text hover:underline">
-              View source <ExternalLink className="size-3" />
+              {t("source")} <ExternalLink className="size-3" />
             </a>
           </div>
-          <iframe title={`DOM snapshot ${d.id}`} sandbox="" src={artifactUrl(id, `${runPath}/${d.path}`)} className="h-[28rem] w-full bg-white" />
+          <iframe title={t("title", { id: d.id })} sandbox="" src={artifactUrl(id, `${runPath}/${d.path}`)} className="h-[28rem] w-full bg-white" />
         </div>
       ))}
     </div>
@@ -302,15 +351,18 @@ function renderTree(nodes: readonly AccessibilityNode[], depth = 0): string[] {
 }
 
 export function AccessibilityView({ file }: { file: AccessibilityFile }) {
-  if (file.snapshots.length === 0) return <p className="p-4 text-[13px] text-muted">No accessibility snapshot was captured.</p>;
+  const t = useTranslations("evidence.a11y");
+  if (file.snapshots.length === 0) return <p className="p-4 text-[13px] text-muted">{t("none")}</p>;
   return (
     <div className="flex flex-col gap-4 p-4">
       {file.snapshots.map((s) => (
         <div key={s.id}>
           <div className="mb-1.5 font-mono text-[11px] text-faint">
-            {s.id} · {clockTime(s.timestamp)} · {s.nodeCount} nodes · {s.pageUrl}
+            {s.id} · {clockTime(s.timestamp)} · {t("nodes", { count: s.nodeCount })} · {s.pageUrl}
           </div>
-          <pre className="max-h-[28rem] overflow-auto rounded-md border border-line bg-code p-3 font-mono text-[12px] leading-5 text-fg">{renderTree(s.tree).join("\n")}</pre>
+          <pre className="max-h-[28rem] overflow-auto rounded-md border border-line bg-code p-3 font-mono text-[12px] leading-5 text-fg" translate="no">
+            {renderTree(s.tree).join("\n")}
+          </pre>
         </div>
       ))}
     </div>
@@ -318,22 +370,23 @@ export function AccessibilityView({ file }: { file: AccessibilityFile }) {
 }
 
 export function TraceView({ manifest, id, runPath }: { manifest: ArtifactManifest; id: string; runPath: string }) {
+  const t = useTranslations("evidence.trace");
+  const f = useFormat();
   const trace = manifest.artifacts.find((a) => a.type === "trace");
   if (trace === undefined) {
     const missing = manifest.missing.find((m) => m.type === "trace");
-    return <p className="p-4 text-[13px] text-muted">No trace in this attempt{missing === undefined ? "." : `: ${missing.reason}`}</p>;
+    return <p className="p-4 text-[13px] text-muted">{missing === undefined ? t("none") : t("noneReason", { reason: missing.reason })}</p>;
   }
   const local = `${runPath}/${trace.path}`;
   return (
     <div className="flex flex-col gap-3 p-4 text-[13px]">
-      <p className="text-muted">
-        Full Playwright trace of the attempt ({bytes(trace.sizeBytes)}, sha256 <span className="font-mono">{trace.sha256.slice(0, 16)}…</span>). Open it with the Playwright trace
-        viewer:
-      </p>
-      <pre className="overflow-x-auto rounded-md border border-line bg-code p-2 font-mono text-[12px] text-fg">npx playwright show-trace {`<investigation dir>/${local}`}</pre>
+      <p className="text-muted">{t.rich("full", { size: f.bytes(trace.sizeBytes), hash: () => <span className="font-mono">{trace.sha256.slice(0, 16)}…</span> })}</p>
+      <pre className="overflow-x-auto rounded-md border border-line bg-code p-2 font-mono text-[12px] text-fg">
+        npx playwright show-trace {`${t("dir")}/${local}`}
+      </pre>
       <div>
         <a href={artifactUrl(id, local)} className={buttonClass("secondary", "sm")}>
-          <Download /> Download trace.zip
+          <Download /> {t("download")}
         </a>
       </div>
     </div>
@@ -343,20 +396,22 @@ export function TraceView({ manifest, id, runPath }: { manifest: ArtifactManifes
 const REDACTION_TONE = { verified: "ok", failed: "bad", not_scannable: "warn" } as const;
 
 export function ManifestView({ manifest, id, runPath }: { manifest: ArtifactManifest; id: string; runPath: string }) {
+  const t = useTranslations("evidence.manifest");
+  const f = useFormat();
   return (
     <div className="flex flex-col gap-3">
-      <div className="px-4 pt-3 text-xs text-muted">
-        Manifest {manifest.complete ? "complete" : <span className="text-warn">incomplete</span>} · {manifest.artifacts.length} artifacts · every file hashed at capture time.
-      </div>
+      <div className={cn("px-4 pt-3 text-xs", manifest.complete ? "text-muted" : "text-warn")}>{t("summary", { complete: manifest.complete ? "yes" : "no", count: manifest.artifacts.length })}</div>
       <div className={tableClass.wrap}>
         <table className={tableClass.table}>
           <thead>
             <tr>
-              <th className={tableClass.th}>Type</th>
-              <th className={tableClass.th}>File</th>
-              <th className={tableClass.th}>Size</th>
-              <th className={tableClass.th}>sha256</th>
-              <th className={tableClass.th}>Redaction</th>
+              <th className={tableClass.th}>{t("type")}</th>
+              <th className={tableClass.th}>{t("file")}</th>
+              <th className={tableClass.th}>{t("size")}</th>
+              <th className={tableClass.th} translate="no">
+                sha256
+              </th>
+              <th className={tableClass.th}>{t("redaction")}</th>
             </tr>
           </thead>
           <tbody>
@@ -368,10 +423,10 @@ export function ManifestView({ manifest, id, runPath }: { manifest: ArtifactMani
                     {a.path}
                   </a>
                 </td>
-                <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{bytes(a.sizeBytes)}</td>
+                <td className={`${tableClass.td} font-mono text-[12px] text-muted`}>{f.bytes(a.sizeBytes)}</td>
                 <td className={`${tableClass.td} font-mono text-[12px] text-faint`}>{a.sha256.slice(0, 12)}…</td>
                 <td className={tableClass.td}>
-                  <StatusPill status={a.redaction.replace("_", " ").toUpperCase()} tone={REDACTION_TONE[a.redaction]} size="xs" />
+                  <StatusPill status={a.redaction.toUpperCase()} tone={REDACTION_TONE[a.redaction]} size="xs" />
                 </td>
               </tr>
             ))}
@@ -381,9 +436,7 @@ export function ManifestView({ manifest, id, runPath }: { manifest: ArtifactMani
       {manifest.missing.length > 0 && (
         <ul className="px-4 pb-3 text-xs text-warn">
           {manifest.missing.map((m) => (
-            <li key={m.type}>
-              missing {m.type}: {m.reason}
-            </li>
+            <li key={m.type}>{t("missing", { type: m.type, reason: m.reason })}</li>
           ))}
         </ul>
       )}

@@ -67,7 +67,8 @@
     "viewing": "Viendo",
     "view": "Ver",
     "notOnDisk": "no está en el disco",
-    "noReproductionFile": "reproduction.json no está disponible para este resultado (los resultados archivados solo guardan el informe)."
+    "noReproductionFile": "reproduction.json no está disponible para este resultado (los resultados archivados solo guardan el informe).",
+    "specSubtitle": "{path} · sha256 {hash}…"
   },
   "criteria": {
     "plan_valid": "Un plan semánticamente válido",

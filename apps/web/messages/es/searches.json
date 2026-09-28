@@ -160,6 +160,7 @@
     "respected": "respetado",
     "ignored": "ignorado",
     "browser": "Navegador:",
-    "variants": "Variantes:"
+    "variants": "Variantes:",
+    "csvCommaShort": "CSV ,"
   }
 }

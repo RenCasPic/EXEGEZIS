@@ -61,7 +61,7 @@ export function BlockNotice({
           {e.cookieNames.length > 0 && <span>
               {t("notice.cookies")} <span translate="no">{e.cookieNames.join(", ")}</span>
             </span>}
-          {block.retryAfterSeconds !== null && <span>Retry-After: {block.retryAfterSeconds} s</span>}
+          {block.retryAfterSeconds !== null && <span>{t.rich("notice.retryAfter", { seconds: block.retryAfterSeconds })}</span>}
           {e.screenshot !== null && inspectionId !== null && (
             <img src={artifactUrl(inspectionId, e.screenshot)} alt={t("notice.screenshotAlt")} className="max-h-64 w-full rounded border border-line bg-white object-contain object-top" loading="lazy" />
           )}

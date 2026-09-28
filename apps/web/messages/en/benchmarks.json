@@ -29,7 +29,12 @@
     "withExamples": "with examples (leave-one-out)",
     "noExamples": "no examples",
     "passed": "{passed}/{total} pass",
-    "broken": "{count, plural, one {# benchmark result file} other {# benchmark result files}} could not be read or failed schema validation:"
+    "broken": "{count, plural, one {# benchmark result file} other {# benchmark result files}} could not be read or failed schema validation:",
+    "tpfn": "TP / FN",
+    "tpfnTitle": "True positives / false negatives",
+    "fptn": "FP / TN",
+    "fptnTitle": "False positives / true negatives",
+    "benchmarkB": "B ·"
   },
   "detail": {
     "metaTitle": "Benchmark run",

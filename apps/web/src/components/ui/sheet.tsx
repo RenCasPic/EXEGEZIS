@@ -1,11 +1,13 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState, type ReactNode } from "react";
 import { buttonClass } from "./primitives";
 
 /** Side panel opened by a button. The content is rendered by the server and passed in. */
 export function Sheet({ trigger, title, subtitle, children, variant = "secondary" }: { trigger: ReactNode; title: string; subtitle?: string; children: ReactNode; variant?: "primary" | "secondary" | "ghost" }) {
+  const t = useTranslations("common");
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) return;
@@ -36,7 +38,7 @@ export function Sheet({ trigger, title, subtitle, children, variant = "secondary
                 <div className="truncate text-[14px] font-semibold text-fg">{title}</div>
                 {subtitle !== undefined && <div className="truncate font-mono text-[11px] text-faint">{subtitle}</div>}
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="rounded-md p-1.5 text-muted hover:bg-hover hover:text-fg" aria-label="Close">
+              <button type="button" onClick={() => setOpen(false)} className="rounded-md p-1.5 text-muted hover:bg-hover hover:text-fg" aria-label={t("close")}>
                 <X className="size-4" />
               </button>
             </header>

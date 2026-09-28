@@ -29,7 +29,12 @@
     "withExamples": "con ejemplos (dejando uno fuera)",
     "noExamples": "sin ejemplos",
     "passed": "{passed}/{total} correctos",
-    "broken": "{count, plural, one {# archivo de resultados del benchmark} other {# archivos de resultados del benchmark}} no se pudieron leer o no superan la validación de su esquema:"
+    "broken": "{count, plural, one {# archivo de resultados del benchmark} other {# archivos de resultados del benchmark}} no se pudieron leer o no superan la validación de su esquema:",
+    "tpfn": "VP / FN",
+    "tpfnTitle": "Verdaderos positivos / falsos negativos",
+    "fptn": "FP / VN",
+    "fptnTitle": "Falsos positivos / verdaderos negativos",
+    "benchmarkB": "B ·"
   },
   "detail": {
     "metaTitle": "Ejecución del benchmark",

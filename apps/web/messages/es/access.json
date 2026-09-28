@@ -122,6 +122,7 @@
     "wafSummary": "Sitio propio: autorizar a EXEGEZIS en el WAF (recomendado)",
     "relaunch": "Volver a inspeccionar",
     "relaunchWait": "Volver a inspeccionar (espera al menos {seconds} s)",
-    "done": "Listo"
+    "done": "Listo",
+    "retryAfter": "Retry-After: {seconds} s"
   }
 }

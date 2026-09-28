@@ -48,7 +48,7 @@ export function ReproductionPanel({
       icon={<Repeat />}
       actions={
         spec !== null && compiled !== null ? (
-          <Sheet trigger={<><Code2 /> {t("openTest")}</>} title={t("compiledTitle")} subtitle={`${spec.path} · sha256 ${compiled.sha256.slice(0, 12)}…`}>
+          <Sheet trigger={<><Code2 /> {t("openTest")}</>} title={t("compiledTitle")} subtitle={t("specSubtitle", { path: spec.path, hash: compiled.sha256.slice(0, 12) })}>
             <div className="flex flex-col gap-4">
               <Meta
                 items={[

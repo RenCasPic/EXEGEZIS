@@ -29,7 +29,8 @@
     "defaultTarget": "Destino por defecto de la IA",
     "targets": "Destinos registrados",
     "named": "Entornos con nombre",
-    "note": "Los entornos se deducen de la URL de destino de cada ejecución; las direcciones de loopback aparecen como Local."
+    "note": "Los entornos se deducen de la URL de destino de cada ejecución; las direcciones de loopback aparecen como Local.",
+    "defaultTargetValue": "{url} (buggy-shop)"
   },
   "repository": {
     "repository": "Repositorio",
@@ -105,6 +106,7 @@
       "templateName": "Pon un nombre a la plantilla.",
       "templateEmpty": "Una plantilla necesita términos, una descripción por significado, o ambos.",
       "templateSaved": "Plantilla «{name}» guardada."
-    }
+    },
+    "version": "v{version}"
   }
 }

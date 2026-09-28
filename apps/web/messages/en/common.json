@@ -156,5 +156,7 @@
   },
   "permission": {
     "text": "Only inspect sites that are yours or that you are allowed to inspect."
-  }
+  },
+  "tabs": "Tabs",
+  "close": "Close"
 }

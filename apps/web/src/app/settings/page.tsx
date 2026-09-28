@@ -71,7 +71,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <Meta
               items={[
                 { label: t("environment.seen"), value: environments.length === 0 ? "—" : environments.join(", ") },
-                { label: t("environment.defaultTarget"), value: <Mono>http://localhost:3000/ (buggy-shop)</Mono> },
+                { label: t("environment.defaultTarget"), value: <Mono>{t("environment.defaultTargetValue", { url: "http://localhost:3000/" })}</Mono> },
                 {
                   label: t("environment.targets"),
                   value: (

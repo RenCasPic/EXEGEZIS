@@ -122,6 +122,7 @@
     "wafSummary": "Own site: authorize EXEGEZIS in the WAF (recommended)",
     "relaunch": "Inspect again",
     "relaunchWait": "Inspect again (wait at least {seconds} s)",
-    "done": "Done"
+    "done": "Done",
+    "retryAfter": "Retry-After: {seconds} s"
   }
 }

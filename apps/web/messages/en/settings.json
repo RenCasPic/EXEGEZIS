@@ -29,7 +29,8 @@
     "defaultTarget": "Default AI target",
     "targets": "Targets on record",
     "named": "Named environments",
-    "note": "Environments are derived from each run's target URL; loopback addresses are reported as Local."
+    "note": "Environments are derived from each run's target URL; loopback addresses are reported as Local.",
+    "defaultTargetValue": "{url} (buggy-shop)"
   },
   "repository": {
     "repository": "Repository",
@@ -105,6 +106,7 @@
       "templateName": "Give the template a name.",
       "templateEmpty": "A template needs terms, a meaning description, or both.",
       "templateSaved": "Template “{name}” saved."
-    }
+    },
+    "version": "v{version}"
   }
 }

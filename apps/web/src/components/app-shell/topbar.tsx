@@ -104,7 +104,7 @@ export function Topbar({ projects, environments, scope, palette, running, counts
         >
           <Search className="size-3.5" />
           <span className="hidden flex-1 text-left sm:inline">{t("search")}</span>
-          <kbd className="hidden rounded border border-line-strong px-1 font-mono text-[10px] sm:inline">⌘ K</kbd>
+          <kbd className="hidden rounded border border-line-strong px-1 font-mono text-[10px] sm:inline" translate="no">⌘ K</kbd>
         </button>
         <LanguageSwitcher />
         <ThemeSwitcher />

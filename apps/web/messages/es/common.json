@@ -156,5 +156,7 @@
   },
   "permission": {
     "text": "Inspecciona solo sitios que sean tuyos o para los que tengas permiso."
-  }
+  },
+  "tabs": "Pestañas",
+  "close": "Cerrar"
 }

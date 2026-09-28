@@ -88,7 +88,8 @@
     "WARNING": "Aviso",
     "ANCHORING": "Anclaje",
     "PLAN_ONLY": "Solo plan",
-    "NO_ASSERTIONS": "Sin aserciones"
+    "NO_ASSERTIONS": "Sin aserciones",
+    "NOT_SCANNABLE": "No analizable"
   },
   "severity": {
     "critical": "Crítica",

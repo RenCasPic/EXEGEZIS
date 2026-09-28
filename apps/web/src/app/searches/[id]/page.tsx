@@ -191,7 +191,7 @@ export default async function SearchPage({ params, searchParams }: { params: Par
               <Download aria-hidden /> {t("csvExcel")}
             </a>
             <a href={`/api/searches/${encodeURIComponent(ref.id)}/export?format=csv&sep=%2C`} className={buttonClass("ghost", "sm")} title={t("csvComma")}>
-              CSV ,
+              {t("csvCommaShort")}
             </a>
             <a href={`/api/searches/${encodeURIComponent(ref.id)}/export?format=pdf`} className={buttonClass("ghost", "sm")}>
               <Download aria-hidden /> PDF

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -117,8 +118,9 @@ export function Mono({ children, className }: { children: ReactNode; className?:
 
 /** Link-based tabs: the active tab lives in the URL, so every view is linkable and server-rendered. */
 export function TabLinks({ tabs, active }: { tabs: { id: string; label: string; href: string; count?: number | null }[]; active: string }) {
+  const t = useTranslations("common");
   return (
-    <nav className="-mb-px flex gap-1 overflow-x-auto border-b border-line px-2" aria-label="Tabs">
+    <nav className="-mb-px flex gap-1 overflow-x-auto border-b border-line px-2" aria-label={t("tabs")}>
       {tabs.map((tab) => (
         <Link
           key={tab.id}
