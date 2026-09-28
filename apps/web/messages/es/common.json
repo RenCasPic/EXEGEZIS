@@ -116,6 +116,20 @@
       "unknown": "error de red desconocido",
       "other": "{detail}"
     },
-    "unexpected": "Error inesperado: {detail}"
+    "unexpected": "Error inesperado: {detail}",
+    "searchUrl": "Escribe una URL que empiece por http:// o https://.",
+    "searchTerms": "Escribe al menos un término (separa varios con comas).",
+    "onlyExclusions": "Solo hay exclusiones (-palabra): añade algo que buscar.",
+    "meaningShort": "Describe qué buscas (por ejemplo: «cualquier mención a la medicina, directa o indirecta»).",
+    "chooseTemplate": "Elige una plantilla.",
+    "suggestedInvalid": "Los términos sugeridos no son válidos.",
+    "meaningNeedsKey": "La búsqueda por significado necesita la clave de la IA: añade EXEGEZIS_ANTHROPIC_API_KEY al archivo .env del repositorio. La búsqueda exacta y las plantillas sin IA funcionan sin ella.",
+    "typeTermFirst": "Escribe primero algún término.",
+    "suggestFailed": "No se pudieron pedir sugerencias.",
+    "suggestUnreadable": "La respuesta de las sugerencias no se pudo leer.",
+    "hitMissing": "No se encontró el resultado.",
+    "searchMissing": "No se encontró la búsqueda.",
+    "nameSearch": "Pon un nombre a la búsqueda.",
+    "savedMissing": "No se encontró la búsqueda guardada."
   }
 }

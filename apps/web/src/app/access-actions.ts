@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { accessEntry, deleteAccess, runCli, setSiteSettings } from "@/lib/access";
 import { isLoopbackHost } from "@/lib/inspect-checks";
+import { say } from "@/lib/action-errors";
+import { ui } from "@/lib/ui-message";
 import { markAccessDone, readJob, startAccessLogin, startInspection, type StartInspectionInput } from "@/lib/jobs";
 
 /*
@@ -49,11 +51,11 @@ export interface AccessState {
 export async function openAccessWindowAction(form: FormData): Promise<void> {
   const url = text(form, "url");
   const origin = originOf(url);
-  if (origin === null) throw new Error("URL no válida.");
+  if (origin === null) throw new Error(await say(ui("access.errors.badUrl")));
   const block = text(form, "block") || null;
   // Passing a bot challenge in person: only on a site that is yours or that you may test.
   if (block === "BOT_CHALLENGE" && !isLoopbackHost(new URL(origin).hostname) && text(form, "permission") !== "on") {
-    throw new Error("Confirma que el sitio es tuyo o que tienes permiso para inspeccionarlo.");
+    throw new Error(await say(ui("access.errors.confirmPermission")));
   }
   const channel = (CHANNELS as readonly string[]).includes(text(form, "browserChannel")) ? (text(form, "browserChannel") as Channel) : "auto";
   const job = await startAccessLogin({ url, browserChannel: channel, block, relaunch: await relaunchOf(text(form, "relaunch")) });
@@ -72,21 +74,21 @@ export async function saveHttpAuthAction(_prev: AccessState, form: FormData): Pr
   const origin = originOf(text(form, "url"));
   const username = text(form, "username").trim();
   const password = text(form, "password");
-  if (origin === null) return { error: "URL no válida." };
-  if (username === "" || password === "") return { error: "Escribe el usuario y la contraseña." };
+  if (origin === null) return { error: await say(ui("access.errors.badUrl")) };
+  if (username === "" || password === "") return { error: await say(ui("access.errors.userPassword")) };
   const result = await runCli(["session", "http-auth", "--url", `${origin}/`, "--stdin"], JSON.stringify({ username, password }));
-  if (result.code !== 0) return { error: `No se guardó: ${result.stderr.trim() || result.stdout.trim()}` };
+  if (result.code !== 0) return { error: await say(ui("access.errors.notSaved", { detail: result.stderr.trim() || result.stdout.trim() })) };
   const relaunch = await relaunchOf(text(form, "relaunch"));
   if (relaunch !== null) redirect(`/jobs/${(await startInspection(relaunch)).id}`);
-  return { error: null, done: `Guardado para ${origin}. Las próximas inspecciones de este sitio se autenticarán como ${username}.` };
+  return { error: null, done: await say(ui("access.errors.savedFor", { origin, username })) };
 }
 
 /** BOT_CHALLENGE option A: a token for the site's own WAF rule. Shown once. */
 export async function wafTokenAction(_prev: AccessState, form: FormData): Promise<AccessState> {
   const origin = originOf(text(form, "url"));
-  if (origin === null) return { error: "URL no válida." };
+  if (origin === null) return { error: await say(ui("access.errors.badUrl")) };
   const result = await runCli(["session", "waf-token", "--url", `${origin}/`, "--json", ...(text(form, "rotate") === "on" ? ["--rotate"] : [])]);
-  if (result.code !== 0) return { error: `No se pudo crear el token: ${result.stderr.trim() || result.stdout.trim()}` };
+  if (result.code !== 0) return { error: await say(ui("access.errors.tokenFailed", { detail: result.stderr.trim() || result.stdout.trim() })) };
   const parsed = JSON.parse(result.stdout) as { origin: string; token: string };
   return { error: null, token: { origin: parsed.origin, value: parsed.token } };
 }
@@ -106,7 +108,7 @@ export async function robotsOwnerAction(form: FormData): Promise<void> {
 /** RATE_LIMITED and similar: run the same inspection again. */
 export async function relaunchInspectionAction(form: FormData): Promise<void> {
   const relaunch = await relaunchOf(text(form, "relaunch"));
-  if (relaunch === null) throw new Error("No se encontró la inspección original.");
+  if (relaunch === null) throw new Error(await say(ui("access.errors.originalMissing")));
   redirect(`/jobs/${(await startInspection(relaunch)).id}`);
 }
 

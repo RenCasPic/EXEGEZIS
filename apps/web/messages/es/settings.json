@@ -1,1 +1,110 @@
-{}
+{
+  "title": "Ajustes",
+  "description": "Vista de solo lectura de la configuración local que EXEGEZIS usa de verdad. Aquí aún no se puede editar nada, salvo Accesos y Búsquedas.",
+  "sectionsLabel": "Secciones de ajustes",
+  "back": "← Ajustes",
+  "section": {
+    "general": "General",
+    "environment": "Entorno",
+    "repository": "Repositorio",
+    "models": "Modelos",
+    "security": "Seguridad",
+    "permissions": "Permisos",
+    "access": "Accesos",
+    "search": "Búsquedas"
+  },
+  "general": {
+    "workspace": "Espacio de trabajo",
+    "workspaceValue": "Espacio local (un solo usuario, este equipo)",
+    "repoRoot": "Raíz del repositorio",
+    "runArtifacts": "Artefactos de ejecución",
+    "archived": "Resultados archivados",
+    "dataSource": "Origen de los datos",
+    "dataSourceValue": "Solo artefactos en disco. Sin base de datos ni datos de demostración.",
+    "uiServer": "Servidor de la interfaz",
+    "uiServerValue": "{address} (solo local)"
+  },
+  "environment": {
+    "seen": "Entornos vistos",
+    "defaultTarget": "Destino por defecto de la IA",
+    "targets": "Destinos registrados",
+    "named": "Entornos con nombre",
+    "note": "Los entornos se deducen de la URL de destino de cada ejecución; las direcciones de loopback aparecen como Local."
+  },
+  "repository": {
+    "repository": "Repositorio",
+    "branch": "Rama",
+    "remote": "Remoto",
+    "github": "Conexión con GitHub",
+    "analysis": "Análisis del código",
+    "note": "Se lee de la carpeta .git local. Ninguna etapa lee ni analiza todavía el código fuente."
+  },
+  "models": {
+    "provider": "Proveedor del planner",
+    "providerValue": "Anthropic (Messages API, salida estructurada)",
+    "defaultModel": "Modelo por defecto",
+    "promptVersion": "Versión del prompt",
+    "credentials": "Credenciales",
+    "calls": "Llamadas por plan",
+    "callsValue": "Exactamente una. Sin reintentos, sin reparaciones, sin bucle de agente.",
+    "role": "Papel",
+    "roleValue": "Escribe un plan de prueba. Nunca decide un veredicto; su confianza nunca es evidencia.",
+    "others": "Otros proveedores",
+    "note": "Solo se comprueba que las credenciales existen. Su valor nunca llega a la interfaz."
+  },
+  "security": {
+    "beforeProvider": "Antes del proveedor",
+    "beforeProviderValue": "Al síntoma y a la estructura de la página se les quitan secretos y datos personales.",
+    "evidence": "Evidencia",
+    "evidenceValue": "Los artefactos se redactan y se les calcula el hash al capturarlos; el manifiesto registra el estado de redacción de cada archivo.",
+    "captured": "Páginas capturadas",
+    "capturedValue": "Solo se muestran en un marco aislado con los scripts desactivados (CSP sandbox).",
+    "artifactAccess": "Acceso a los artefactos",
+    "artifactAccessValue": "Solo archivos dentro de las carpetas de ejecución encontradas, en modo lectura.",
+    "network": "Red",
+    "networkValue": "La interfaz solo escucha en 127.0.0.1.",
+    "selfCheck": "Autocomprobación de la redacción (en vivo, con una muestra falsa)"
+  },
+  "permissions": {
+    "body": "No hay cuentas, roles ni permisos: la interfaz se ejecuta en este equipo para el usuario que la arrancó. La autenticación y el control de acceso no están implementados."
+  },
+  "searchPage": {
+    "metaTitle": "Búsquedas · Ajustes",
+    "title": "Búsquedas",
+    "description": "Límite de coste, modelo y tus plantillas. Se guardan en {dir}, fuera de runs/.",
+    "costModel": "Coste y modelo",
+    "price": "{input} / {output} USD por millón de tokens",
+    "pricesFrom": "Precios de",
+    "officialPage": "la página oficial",
+    "reviewed": ", revisados el {date}.",
+    "templates": "Plantillas ({count})",
+    "fromRepo": "Del repositorio",
+    "yours": "Tuya",
+    "noAi": "sin IA",
+    "meaningOnly": "solo por significado (IA)",
+    "exactPlusMeaning": "exacta + por significado opcional",
+    "deleteTemplate": "Borrar la plantilla {name}",
+    "newTemplate": "Nueva plantilla",
+    "form": {
+      "maxCost": "Límite de coste por búsqueda por significado (USD)",
+      "model": "Modelo",
+      "costHelp": "Antes de llamar a la IA se estima el coste; si supera el límite no se envía nada y se te pide aprobarlo. También vale para «Sugerir términos relacionados».",
+      "save": "Guardar",
+      "name": "Nombre",
+      "namePlaceholder": "p. ej. Horarios y eventos",
+      "description": "Descripción (opcional)",
+      "terms": "Términos exactos (sin IA)",
+      "termsPlaceholder": "horario, misa, \"culto dominical\", -cancelado",
+      "variants": "Con variantes",
+      "meaning": "Descripción por significado (opcional, usa IA)",
+      "saveTemplate": "Guardar plantilla"
+    },
+    "errors": {
+      "limit": "El límite debe ser un número de USD entre 0,01 y 100.",
+      "saved": "Guardado: {usd} por búsqueda por significado, modelo {model}.",
+      "templateName": "Pon un nombre a la plantilla.",
+      "templateEmpty": "Una plantilla necesita términos, una descripción por significado, o ambos.",
+      "templateSaved": "Plantilla «{name}» guardada."
+    }
+  }
+}

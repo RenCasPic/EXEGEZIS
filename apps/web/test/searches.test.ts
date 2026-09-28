@@ -36,7 +36,7 @@ describe("the search form", () => {
     expect(ok).toMatchObject({ ok: true, input: { mode: "exact", excludeScope: "page", maxPages: 10, meaning: null } });
     expect(parseSearchForm(form({ url: "ftp://x" }))).toMatchObject({ ok: false });
     expect(parseSearchForm(form({ terms: " " }))).toMatchObject({ ok: false });
-    expect(parseSearchForm(form({ terms: "-anuncio" }))).toMatchObject({ ok: false, error: expect.stringMatching(/Solo hay exclusiones/) as string });
+    expect(parseSearchForm(form({ terms: "-anuncio" }))).toMatchObject({ ok: false, error: { key: "common.errors.onlyExclusions" } });
     expect(parseSearchForm(form({ maxPages: "0" }))).toMatchObject({ ok: false });
     expect(parseSearchForm(form({ suggested: "not json" }))).toMatchObject({ ok: false });
   });

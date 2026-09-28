@@ -1,1 +1,110 @@
-{}
+{
+  "title": "Settings",
+  "description": "Read-only view of the local configuration EXEGEZIS actually uses. Nothing here is editable yet, except access and searches.",
+  "sectionsLabel": "Settings sections",
+  "back": "← Settings",
+  "section": {
+    "general": "General",
+    "environment": "Environment",
+    "repository": "Repository",
+    "models": "Models",
+    "security": "Security",
+    "permissions": "Permissions",
+    "access": "Access",
+    "search": "Searches"
+  },
+  "general": {
+    "workspace": "Workspace",
+    "workspaceValue": "Local workspace (single user, this machine)",
+    "repoRoot": "Repository root",
+    "runArtifacts": "Run artifacts",
+    "archived": "Archived results",
+    "dataSource": "Data source",
+    "dataSourceValue": "Artifacts on disk only. No database, no demo data.",
+    "uiServer": "UI server",
+    "uiServerValue": "{address} (local only)"
+  },
+  "environment": {
+    "seen": "Environments seen",
+    "defaultTarget": "Default AI target",
+    "targets": "Targets on record",
+    "named": "Named environments",
+    "note": "Environments are derived from each run's target URL; loopback addresses are reported as Local."
+  },
+  "repository": {
+    "repository": "Repository",
+    "branch": "Branch",
+    "remote": "Remote",
+    "github": "GitHub connection",
+    "analysis": "Code analysis",
+    "note": "Read from the local .git directory. No stage reads or analyses source code yet."
+  },
+  "models": {
+    "provider": "Planner provider",
+    "providerValue": "Anthropic (Messages API, structured output)",
+    "defaultModel": "Default model",
+    "promptVersion": "Prompt version",
+    "credentials": "Credentials",
+    "calls": "Calls per plan",
+    "callsValue": "Exactly one. No retries, no repair, no agent loop.",
+    "role": "Role",
+    "roleValue": "Writes a test plan. Never decides a verdict; its confidence is never evidence.",
+    "others": "Other providers",
+    "note": "Credentials are checked for presence only. Their value is never read into the UI."
+  },
+  "security": {
+    "beforeProvider": "Before the provider",
+    "beforeProviderValue": "Symptom and page structure are redacted for secrets and personal data.",
+    "evidence": "Evidence",
+    "evidenceValue": "Run artifacts are redacted and hashed at capture; the manifest records the redaction status of each file.",
+    "captured": "Captured pages",
+    "capturedValue": "Rendered only in a sandboxed frame with scripts disabled (CSP sandbox).",
+    "artifactAccess": "Artifact access",
+    "artifactAccessValue": "Only files inside discovered run directories, read-only.",
+    "network": "Network",
+    "networkValue": "The UI listens on 127.0.0.1 only.",
+    "selfCheck": "Redaction self-check (live, fake sample)"
+  },
+  "permissions": {
+    "body": "There are no accounts, roles or permissions: the UI runs locally for the user who started it. Authentication and access control are not implemented."
+  },
+  "searchPage": {
+    "metaTitle": "Searches · Settings",
+    "title": "Searches",
+    "description": "Cost limit, model and your templates. Saved in {dir}, outside runs/.",
+    "costModel": "Cost and model",
+    "price": "{input} / {output} USD per million tokens",
+    "pricesFrom": "Prices from",
+    "officialPage": "the official page",
+    "reviewed": ", reviewed on {date}.",
+    "templates": "Templates ({count})",
+    "fromRepo": "From the repository",
+    "yours": "Yours",
+    "noAi": "no AI",
+    "meaningOnly": "meaning only (AI)",
+    "exactPlusMeaning": "exact + optional meaning",
+    "deleteTemplate": "Delete the template {name}",
+    "newTemplate": "New template",
+    "form": {
+      "maxCost": "Cost limit per meaning search (USD)",
+      "model": "Model",
+      "costHelp": "The cost is estimated before calling the AI; if it exceeds the limit nothing is sent and you are asked to approve it. It also applies to “Suggest related terms”.",
+      "save": "Save",
+      "name": "Name",
+      "namePlaceholder": "e.g. Schedules and events",
+      "description": "Description (optional)",
+      "terms": "Exact terms (no AI)",
+      "termsPlaceholder": "schedule, mass, \"sunday service\", -cancelled",
+      "variants": "With variants",
+      "meaning": "Meaning description (optional, uses AI)",
+      "saveTemplate": "Save template"
+    },
+    "errors": {
+      "limit": "The limit must be a number of USD between 0.01 and 100.",
+      "saved": "Saved: {usd} per meaning search, model {model}.",
+      "templateName": "Give the template a name.",
+      "templateEmpty": "A template needs terms, a meaning description, or both.",
+      "templateSaved": "Template “{name}” saved."
+    }
+  }
+}

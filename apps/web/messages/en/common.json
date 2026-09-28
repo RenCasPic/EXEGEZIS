@@ -116,6 +116,20 @@
       "unknown": "unknown network error",
       "other": "{detail}"
     },
-    "unexpected": "Unexpected error: {detail}"
+    "unexpected": "Unexpected error: {detail}",
+    "searchUrl": "Type a URL that starts with http:// or https://.",
+    "searchTerms": "Type at least one term (separate several with commas).",
+    "onlyExclusions": "There are only exclusions (-word): add something to search for.",
+    "meaningShort": "Describe what you are looking for (for example: “any mention of medicine, direct or indirect”).",
+    "chooseTemplate": "Choose a template.",
+    "suggestedInvalid": "The suggested terms are not valid.",
+    "meaningNeedsKey": "Meaning search needs the AI key: add EXEGEZIS_ANTHROPIC_API_KEY to the repository's .env file. Exact search and templates without AI work without it.",
+    "typeTermFirst": "Type some term first.",
+    "suggestFailed": "The suggestions could not be requested.",
+    "suggestUnreadable": "The suggestions response could not be read.",
+    "hitMissing": "The result was not found.",
+    "searchMissing": "The search was not found.",
+    "nameSearch": "Give the search a name.",
+    "savedMissing": "The saved search was not found."
   }
 }

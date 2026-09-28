@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { saveSearchSettingsAction, saveTemplateAction, type SettingsState } from "@/app/search-actions";
 import { buttonClass } from "@/components/ui/primitives";
@@ -20,16 +21,17 @@ function Result({ state }: { state: SettingsState }) {
 }
 
 export function SearchSettingsForm({ maxCostUsd, model, models }: { maxCostUsd: number; model: string; models: { id: string; label: string; price: string }[] }) {
+  const t = useTranslations("settings.searchPage.form");
   const [state, action, pending] = useActionState<SettingsState, FormData>(saveSearchSettingsAction, { error: null });
   return (
     <form action={action} className="flex flex-col gap-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-[12px] text-muted">
-          Límite de coste por búsqueda por significado (USD)
+          {t("maxCost")}
           <input name="maxCostUsd" type="number" step="0.01" min="0.01" max="100" defaultValue={maxCostUsd} required className={`${input} font-mono`} />
         </label>
         <label className="flex flex-col gap-1 text-[12px] text-muted">
-          Modelo
+          {t("model")}
           <select name="model" defaultValue={model} className={input}>
             {models.map((m) => (
               <option key={m.id} value={m.id}>
@@ -39,9 +41,9 @@ export function SearchSettingsForm({ maxCostUsd, model, models }: { maxCostUsd: 
           </select>
         </label>
       </div>
-      <p className="text-[12px] text-muted">Antes de llamar a la IA se estima el coste; si supera el límite no se envía nada y se te pide aprobarlo. También vale para «Sugerir términos relacionados».</p>
+      <p className="text-[12px] text-muted">{t("costHelp")}</p>
       <button type="submit" disabled={pending} className={`${buttonClass("primary")} self-start`}>
-        {pending ? <Loader2 className="animate-spin" aria-hidden /> : null} Guardar
+        {pending ? <Loader2 className="animate-spin" aria-hidden /> : null} {t("save")}
       </button>
       <Result state={state} />
     </form>
@@ -49,30 +51,31 @@ export function SearchSettingsForm({ maxCostUsd, model, models }: { maxCostUsd: 
 }
 
 export function TemplateForm() {
+  const t = useTranslations("settings.searchPage.form");
   const [state, action, pending] = useActionState<SettingsState, FormData>(saveTemplateAction, { error: null });
   return (
     <form action={action} className="flex flex-col gap-3">
       <label className="flex flex-col gap-1 text-[12px] text-muted">
-        Nombre
-        <input name="name" required maxLength={120} placeholder="p. ej. Horarios y eventos" className={input} />
+        {t("name")}
+        <input name="name" required maxLength={120} placeholder={t("namePlaceholder")} className={input} />
       </label>
       <label className="flex flex-col gap-1 text-[12px] text-muted">
-        Descripción (opcional)
+        {t("description")}
         <input name="description" maxLength={1000} className={input} />
       </label>
       <label className="flex flex-col gap-1 text-[12px] text-muted">
-        Términos exactos (sin IA)
-        <input name="terms" placeholder='horario, misa, "culto dominical", -cancelado' className={input} />
+        {t("terms")}
+        <input name="terms" placeholder={t("termsPlaceholder")} className={input} />
       </label>
       <label className="flex items-center gap-2 text-[13px] text-fg">
-        <input type="checkbox" name="variants" className="size-4 accent-[var(--accent)]" /> Con variantes
+        <input type="checkbox" name="variants" className="size-4 accent-[var(--accent)]" /> {t("variants")}
       </label>
       <label className="flex flex-col gap-1 text-[12px] text-muted">
-        Descripción por significado (opcional, usa IA)
+        {t("meaning")}
         <textarea name="meaning" rows={2} className="w-full rounded-md border border-line-strong bg-panel px-2.5 py-2 text-[13px] text-fg" />
       </label>
       <button type="submit" disabled={pending} className={`${buttonClass("primary")} self-start`}>
-        {pending ? <Loader2 className="animate-spin" aria-hidden /> : null} Guardar plantilla
+        {pending ? <Loader2 className="animate-spin" aria-hidden /> : null} {t("saveTemplate")}
       </button>
       <Result state={state} />
     </form>
