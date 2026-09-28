@@ -27,7 +27,7 @@ import {
   VERDICT_LABEL,
   type SearchModelClient,
 } from "@exegezis/search";
-import { cliLocale } from "./i18n.js";
+import { cliLocale, engineText, t } from "./i18n.js";
 import { EXIT, UsageError } from "./args.js";
 import { printEngineError } from "./doctor.js";
 import { remedyFor } from "./inspect.js";
@@ -53,7 +53,7 @@ export async function searchCommand(command: SearchCommand, io: CliIo, exegezisV
         return EXIT.ok;
       }
       const out = printer(io);
-      for (const t of templates) out(`${t.id} v${t.version} (${t.origin}${t.meaning === null ? ", no model" : ", exact + optional meaning"}) — ${t.name}`);
+      for (const tpl of templates) out(t("search.template", { id: tpl.id, version: String(tpl.version), origin: tpl.origin, kind: tpl.meaning === null ? "exact" : "both", name: tpl.name }));
       return EXIT.ok;
     }
   }
@@ -77,7 +77,7 @@ interface Definition {
 async function definitionOf(c: SearchRunArgs): Promise<Definition> {
   if (c.saved !== undefined) {
     const s = await savedSearch(c.saved);
-    if (s === null) throw new UsageError(`There is no saved search "${c.saved}".`);
+    if (s === null) throw new UsageError(t("search.noSaved", { id: c.saved }));
     return {
       url: c.url ?? s.url,
       query: s.query,
@@ -94,16 +94,16 @@ async function definitionOf(c: SearchRunArgs): Promise<Definition> {
   let query: SearchQuery;
   if (c.meaning !== undefined) query = MeaningQuery.parse({ kind: "meaning", description: c.meaning });
   else if (c.template !== undefined) {
-    const t = await findTemplate(c.template);
-    if (t === null) throw new UsageError(`There is no template "${c.template}". See: exegezis search templates`);
-    query = templateQuery(t, { withMeaning: c.withMeaning });
+    const tpl = await findTemplate(c.template);
+    if (tpl === null) throw new UsageError(t("search.noTemplate", { id: c.template }));
+    query = templateQuery(tpl, { withMeaning: c.withMeaning });
   } else {
     let suggested: SuggestedTerm[] = [];
     if (c.suggested !== undefined) {
       try {
         suggested = SuggestedTerm.array().parse(JSON.parse(c.suggested));
       } catch {
-        throw new UsageError('--suggested must be JSON: [{"term":"…","from":"…","relation":"…"}]');
+        throw new UsageError(t("search.suggestedJson"));
       }
     }
     try {
@@ -119,7 +119,7 @@ async function definitionOf(c: SearchRunArgs): Promise<Definition> {
     includeHidden: c.includeHidden,
     noSession: c.noSession,
   };
-  if (c.url === undefined) throw new UsageError("Missing required option --url <site>.");
+  if (c.url === undefined) throw new UsageError(t("args.missing", { option: "--url <site>" }));
   let savedSearchId: string | null = null;
   if (c.save !== undefined) {
     const s = await saveSearch({
@@ -176,17 +176,17 @@ async function searchRun(c: SearchRunArgs, io: CliIo, exegezisVersion: string): 
     reuse = { dir: reuseDir, report: await loadSearchReport(reuseDir) };
   }
 
-  out("EXEGEZIS SEARCH");
+  out(t("search.title"));
   out();
-  out(`Target:  ${def.url}`);
-  out(`Query:   ${describeQuery({ query: def.query })}`);
-  if (saved.warning !== null) io.stderr.write(`Warning: ${saved.warning}\n`);
-  if (access !== null) out("Access:  with the saved access of this site (--no-session to search as an anonymous visitor)");
-  else if (def.options.noSession) out("Access:  anonymous visitor (--no-session)");
+  out(t("common.targetLine", { url: def.url }));
+  out(t("search.query", { query: describeQuery({ query: def.query }, cliLocale()) }));
+  if (saved.warning !== null) io.stderr.write(`${t("inspect.warning", { message: saved.warning })}\n`);
+  if (access !== null) out(t("search.accessSaved"));
+  else if (def.options.noSession) out(t("inspect.accessAnonymous"));
   const shown = reuse === undefined ? { maxPages: def.options.maxPages ?? 20, maxDepth: def.options.maxDepth ?? 2, runs } : reuse.report.options;
-  out(`Budget:  ${shown.maxPages} pages, depth ${shown.maxDepth}, ${shown.runs} load${shown.runs === 1 ? "" : "s"} per page${reuse === undefined ? "" : ` · reusing the pages of ${reuse.report.id} (the site is not visited again)`}`);
+  out(t("search.budget", { pages: String(shown.maxPages), depth: String(shown.maxDepth), runs: shown.runs, reuse: reuse === undefined ? "" : t("search.reuse", { id: reuse.report.id }) }));
   const usesModel = def.query.kind === "meaning" || (def.query.kind === "template" && def.query.meaning !== null);
-  if (usesModel) out(`Model:   ${model} · cost limit ${maxCostUsd.toFixed(2)} USD (estimated before any call)`);
+  if (usesModel) out(t("search.model", { model, limit: maxCostUsd.toFixed(2) }));
   out();
 
   let lastLine = "";
@@ -215,9 +215,9 @@ async function searchRun(c: SearchRunArgs, io: CliIo, exegezisVersion: string): 
     onProgress: (p) => {
       const line =
         p.phase === "crawl" || p.phase === "repeat"
-          ? `  load ${p.run}/${p.runs} · ${p.pagesDone}/${p.pagesPlanned} pages${p.current === null ? "" : ` · ${p.current}`}`
+          ? t("search.progressLoad", { run: String(p.run), runs: String(p.runs), done: String(p.pagesDone), planned: String(p.pagesPlanned), current: p.current === null ? "" : ` · ${p.current}` })
           : p.phase === "ai"
-            ? `  model${p.current === null ? "" : ` · ${p.current}`}`
+            ? t("search.progressModel", { current: p.current === null ? "" : ` · ${p.current}` })
             : `  ${p.phase}`;
       if (line !== lastLine) out(line);
       lastLine = line;
@@ -226,7 +226,7 @@ async function searchRun(c: SearchRunArgs, io: CliIo, exegezisVersion: string): 
 
   if (def.savedSearchId !== null) await touchSavedSearch(def.savedSearchId);
   out();
-  out(`Status:  ${report.status}`);
+  out(t("inspect.status", { status: report.status }));
   if (report.status === "ENGINE_ERROR" && report.engineError !== null) {
     out();
     printEngineError(io, report.engineError);
@@ -238,38 +238,70 @@ async function searchRun(c: SearchRunArgs, io: CliIo, exegezisVersion: string): 
   }
   const blocked = report.pages.find((p) => p.depth === 0 && p.run === 1)?.block ?? null;
   if (blocked !== null) {
-    out(`Block:   ${blocked.kind} — ${blocked.detail}`);
+    out(t("inspect.block", { kind: blocked.kind, detail: engineText(blocked.message, blocked.detail) }));
     for (const line of remedyFor(blocked.kind, report.target.origin, blocked.retryAfterSeconds)) out(`         ${line}`);
   }
   const cov = report.coverage;
-  out(`Coverage: searched ${cov.searched} of ${cov.found} pages found${cov.skippedBudget > 0 ? ` · ${cov.skippedBudget} over --max-pages` : ""}${cov.skippedRobots > 0 ? ` · ${cov.skippedRobots} excluded by robots.txt` : ""}${cov.skippedSafety > 0 ? ` · ${cov.skippedSafety} unsafe links not visited` : ""}${cov.blocked.length > 0 ? ` · ${cov.blocked.length} blocked` : ""}${cov.failed > 0 ? ` · ${cov.failed} did not answer` : ""}`);
+  out(
+    t("search.coverage", {
+      searched: cov.searched,
+      found: cov.found,
+      rest: [
+        cov.skippedBudget > 0 ? t("search.overBudget", { count: cov.skippedBudget }) : "",
+        cov.skippedRobots > 0 ? t("search.robots", { count: cov.skippedRobots }) : "",
+        cov.skippedSafety > 0 ? t("search.unsafe", { count: cov.skippedSafety }) : "",
+        cov.blocked.length > 0 ? t("search.blocked", { count: cov.blocked.length }) : "",
+        cov.failed > 0 ? t("search.failed", { count: cov.failed }) : "",
+      ].join(""),
+    }),
+  );
   const s = report.summary;
-  out(`Hits:    ${s.hits} on ${s.pagesWithHits} page${s.pagesWithHits === 1 ? "" : "s"} · VERIFIED ${s.verified} · INTERMITTENT ${s.intermittent} · suggested (quote verified) ${s.suggested}${s.hidden > 0 ? ` · ${s.hidden} not visible` : ""}${s.byVariant > 0 ? ` · ${s.byVariant} through variants` : ""}`);
-  for (const e of report.excluded) out(`Excluded by "${e.term}" (${e.scope}): ${e.hits} hits in ${e.blocks} blocks of ${e.pages} pages`);
+  out(
+    t("search.hits", {
+      hits: s.hits,
+      pages: s.pagesWithHits,
+      verified: s.verified,
+      intermittent: s.intermittent,
+      suggested: s.suggested,
+      rest: `${s.hidden > 0 ? t("search.hidden", { count: s.hidden }) : ""}${s.byVariant > 0 ? t("search.byVariant", { count: s.byVariant }) : ""}`,
+    }),
+  );
+  for (const e of report.excluded) out(t("search.excluded", { term: e.term, scope: t(`search.scope.${e.scope}`), hits: e.hits, blocks: e.blocks, pages: e.pages }));
   if (report.ai !== null) {
     const a = report.ai;
-    out(`Model:   ${a.model} · ${a.calls} call${a.calls === 1 ? "" : "s"} · ${a.inputTokens} in / ${a.outputTokens} out tokens · ${a.costUsd.toFixed(4)} USD (estimate ${a.estimateUsd.toFixed(2)}, limit ${a.maxCostUsd.toFixed(2)}) · ${a.latencyMs} ms`);
-    if (s.discardedQuotes > 0) out(`Discarded: ${s.discardedQuotes} model quote(s) that are not literally in the page`);
-    if (a.error !== null) out(`Model part: ${a.error}`);
-    out("Note:    a search by meaning can miss passages (false negatives); its hits are suggestions with a verified quote.");
+    out(
+      t("search.modelUsage", {
+        model: a.model,
+        calls: a.calls,
+        input: String(a.inputTokens),
+        output: String(a.outputTokens),
+        cost: a.costUsd.toFixed(4),
+        estimate: a.estimateUsd.toFixed(2),
+        limit: a.maxCostUsd.toFixed(2),
+        ms: String(a.latencyMs),
+      }),
+    );
+    if (s.discardedQuotes > 0) out(t("search.discarded", { count: s.discardedQuotes }));
+    if (a.error !== null) out(t("search.modelPart", { error: engineText(a.errorMessage, a.error) }));
+    out(t("search.note"));
   }
   if (def.savedSearchId !== null) {
     const previous = await previousRun(root, def.savedSearchId, id);
     if (previous !== null) {
       const cmp = compareSearches(report, previous);
       const fresh = [...cmp.novelty.values()].filter((n) => n === "new").length;
-      out(`Since ${previous.id}: ${fresh} new · ${cmp.gone.length} no longer found`);
+      out(t("search.since", { id: previous.id, fresh: String(fresh), gone: String(cmp.gone.length) }));
     }
-    out(`Saved search: ${def.savedSearchId}`);
+    out(t("search.savedSearch", { id: def.savedSearchId }));
   }
-  if (report.hits.length === 0) out(`0 matches in ${cov.searched} page${cov.searched === 1 ? "" : "s"} searched.`);
+  if (report.hits.length === 0) out(t("search.noMatches", { count: cov.searched }));
   else {
     out();
-    for (const h of report.hits.slice(0, 10)) out(`  [${VERDICT_LABEL[h.verdict]}${h.visible ? "" : " · no visible"}${h.via === "variant" ? ` · variant of ${h.stem ?? ""}` : ""}] ${h.page} — «${h.quote.slice(0, 120)}» (${placeLabel(h)})`);
-    if (report.hits.length > 10) out(`  … ${report.hits.length - 10} more in the report`);
+    for (const h of report.hits.slice(0, 10)) out(`  [${h.verdict}${h.visible ? "" : t("search.notVisible")}${h.via === "variant" ? t("search.variantOf", { stem: h.stem ?? "" }) : ""}] ${h.page} — «${h.quote.slice(0, 120)}» (${placeLabel(h, cliLocale())})`);
+    if (report.hits.length > 10) out(t("search.more", { count: report.hits.length - 10 }));
   }
   out();
-  out("Report:");
+  out(t("inspect.report"));
   out(displayPath(io, join(dir, SEARCH_REPORT_FILE), false));
 
   if (report.status === "BLOCKED" || report.status === "UNREACHABLE" || report.status === "TIMEOUT" || report.status === "AI_ERROR") return EXIT.inconclusive;
@@ -285,7 +317,7 @@ async function searchSuggest(c: SearchSuggestArgs, io: CliIo): Promise<number> {
   if (c.json) io.stdout.write(`${JSON.stringify(result)}\n`);
   else {
     const out = printer(io);
-    for (const s of result.suggestions) out(`${s.term}  (${s.relation}, from ${s.from})`);
+    for (const s of result.suggestions) out(t("search.suggestion", { term: s.term, relation: s.relation, from: s.from }));
     out(`${result.model} · ${result.costUsd.toFixed(4)} USD`);
   }
   return EXIT.ok;

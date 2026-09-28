@@ -134,12 +134,12 @@ export async function generateForSymptom(
 export function describeGeneration(result: PlanGenerationResult): string {
   switch (result.status) {
     case "generated":
-      return "PASS (schema-valid TestPlan)";
+      return t("aicmd.generated");
     case "declined":
-      return `DECLINED — the planner could not write a plan: ${result.reason}`;
+      return t("aicmd.declined", { reason: result.reason });
     case "invalid_generation":
-      return `INVALID_GENERATION (${result.kind}): ${result.issues.slice(0, 3).join("; ")}`;
+      return t("aicmd.invalid", { kind: result.kind, issues: result.issues.slice(0, 3).join("; ") });
     case "error":
-      return `${result.kind === "configuration" ? "CONFIGURATION ERROR" : "PROVIDER ERROR"}: ${result.message}`;
+      return result.kind === "configuration" ? t("aicmd.configError", { message: result.message }) : t("aicmd.providerError", { message: result.message });
   }
 }

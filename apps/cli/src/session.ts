@@ -7,6 +7,8 @@ import { captureAccess } from "@exegezis/inspect";
 import { z } from "zod";
 import { EXIT, UsageError, type SessionCommand } from "./args.js";
 import { printer, type CliIo } from "./shared.js";
+import { engineText, t } from "./i18n.js";
+import type { BlockInfo } from "@exegezis/core";
 
 /**
  * `exegezis session …` (docs/09-access.md). Every value that is a secret
@@ -40,16 +42,27 @@ export async function loadAccess(url: string, io: CliIo): Promise<{ access: Adap
   } catch (error) {
     if (error instanceof AccessUnreadableError || error instanceof KeystoreUnavailableError) {
       void io;
-      return { access: null, entry, warning: `${error.message} Inspecting as an anonymous visitor.` };
+      return { access: null, entry, warning: t("session.anonymousFallback", { message: error.message }) };
     }
     throw error;
   }
 }
 
+const KINDS = ["session", "httpCredentials", "wafToken"] as const;
+const kindName = (k: string): string => ((KINDS as readonly string[]).includes(k) ? t(`session.kind.${k as (typeof KINDS)[number]}`) : k);
+
+/** Why a login did not save anything, in the current language (the block's own detail through its code). */
+function loginReason(result: { reason: string; block: BlockInfo | null }): string {
+  if (result.block !== null) return t("session.stillBlocked", { kind: result.block.kind, detail: engineText(result.block.message, result.block.detail) });
+  if (result.reason.startsWith("The window was closed")) return t("session.windowClosed");
+  const status = /^the page is still not reachable \((.*)\)$/.exec(result.reason)?.[1];
+  return status === undefined ? result.reason : t("session.stillUnreachable", { status });
+}
+
 function status(entry: AccessEntry, now = Date.now()): string {
-  if (entry.expired) return "expired (a login wall came back): run session login again";
-  if (entry.expiresAt !== null && Date.parse(entry.expiresAt) < now) return `expired on ${entry.expiresAt.slice(0, 10)}`;
-  return entry.expiresAt === null ? "active" : `active until about ${entry.expiresAt.slice(0, 10)}`;
+  if (entry.expired) return t("session.expiredWall");
+  if (entry.expiresAt !== null && Date.parse(entry.expiresAt) < now) return t("session.expiredOn", { date: entry.expiresAt.slice(0, 10) });
+  return entry.expiresAt === null ? t("session.active") : t("session.activeUntil", { date: entry.expiresAt.slice(0, 10) });
 }
 
 const HttpAuthInput = z.strictObject({ username: z.string().min(1), password: z.string().min(1) });
@@ -110,46 +123,52 @@ export async function sessionCommand(cmd: SessionCommand, io: CliIo, exegezisVer
           io.stdout.write(`${JSON.stringify({ dir: store.dir, entries }, null, 2)}\n`);
           return EXIT.ok;
         }
-        out(`Saved access (${store.dir})`);
-        out("Only this user on this computer can open them. On another computer or user, sign in again.");
+        out(t("session.listTitle", { dir: store.dir }));
+        out(t("session.listNote"));
         out();
-        if (entries.length === 0) out("None yet. Save one with: pnpm exegezis session login --url https://your-site/");
+        if (entries.length === 0) out(t("session.listNone"));
         for (const e of entries) {
           out(`  ${e.origin}`);
-          out(`    ${e.kinds.length === 0 ? "no saved access" : e.kinds.join(", ")} · ${e.kinds.includes("session") ? status(e) : "—"} · last used ${e.lastUsedAt?.slice(0, 16).replace("T", " ") ?? "never"}`);
-          if (e.settings.robotsOwner) out("    this site is yours: robots.txt exclusions are inspected too");
-          if (e.settings.unsafeLinkPatterns.length > 0) out(`    never visited: ${e.settings.unsafeLinkPatterns.join(", ")}`);
+          out(`    ${e.kinds.length === 0 ? t("session.noAccess") : e.kinds.map(kindName).join(", ")} · ${e.kinds.includes("session") ? status(e) : "—"} · ${t("session.lastUsed", { when: e.lastUsedAt?.slice(0, 16).replace("T", " ") ?? t("session.never") })}`);
+          if (e.settings.robotsOwner) out(t("session.yours"));
+          if (e.settings.unsafeLinkPatterns.length > 0) out(t("session.neverVisited", { patterns: e.settings.unsafeLinkPatterns.join(", ") }));
         }
         return EXIT.ok;
       }
       case "delete": {
         const removed = await store.delete(cmd.url as string);
-        out(removed ? `Forgot the saved access of ${normalizeOrigin(cmd.url as string)}.` : `Nothing was saved for ${normalizeOrigin(cmd.url as string)}.`);
+        out(removed ? t("session.forgot", { origin: normalizeOrigin(cmd.url as string) }) : t("session.nothingSaved", { origin: normalizeOrigin(cmd.url as string) }));
         return EXIT.ok;
       }
       case "set": {
-        if (cmd.robotsOwner === undefined && cmd.unsafePatterns === undefined) throw new UsageError('Nothing to set: use --robots-owner yes|no or --unsafe-pattern "<text>".');
+        if (cmd.robotsOwner === undefined && cmd.unsafePatterns === undefined) throw new UsageError(t("session.nothingToSet"));
         const entry = await store.entry(cmd.url as string);
         const settings = {
           robotsOwner: cmd.robotsOwner ?? entry?.settings.robotsOwner ?? false,
           unsafeLinkPatterns: cmd.unsafePatterns ?? entry?.settings.unsafeLinkPatterns ?? [],
         };
         await store.touch(cmd.url as string, { settings });
-        out(`${normalizeOrigin(cmd.url as string)}: robots.txt exclusions ${settings.robotsOwner ? "are inspected too (your site)" : "are respected"}${settings.unsafeLinkPatterns.length > 0 ? `; never visited: ${settings.unsafeLinkPatterns.join(", ")}` : ""}.`);
+        out(
+          t("session.robotsSet", {
+            origin: normalizeOrigin(cmd.url as string),
+            owner: settings.robotsOwner ? "yes" : "no",
+            patterns: settings.unsafeLinkPatterns.length > 0 ? t("session.patternsSet", { patterns: settings.unsafeLinkPatterns.join(", ") }) : "",
+          }),
+        );
         return EXIT.ok;
       }
       case "http-auth": {
         let input: z.infer<typeof HttpAuthInput>;
         if (cmd.stdin) {
           const parsed = HttpAuthInput.safeParse(JSON.parse(await readAll(process.stdin)));
-          if (!parsed.success) throw new UsageError('--stdin expects {"username":"…","password":"…"}.');
+          if (!parsed.success) throw new UsageError(t("session.stdinShape"));
           input = parsed.data;
         } else {
-          out(`HTTP authentication for ${normalizeOrigin(cmd.url as string)} (the password is not shown while you type and is saved encrypted).`);
-          input = HttpAuthInput.parse({ username: await ask("Username: ", false), password: await ask("Password: ", true) });
+          out(t("session.httpIntro", { origin: normalizeOrigin(cmd.url as string) }));
+          input = HttpAuthInput.parse({ username: await ask(t("session.username"), false), password: await ask(t("session.password"), true) });
         }
         await store.put(cmd.url as string, { httpCredentials: input });
-        out(`Saved. Inspections of ${normalizeOrigin(cmd.url as string)} will authenticate as ${input.username}.`);
+        out(t("session.httpSaved", { origin: normalizeOrigin(cmd.url as string), username: input.username }));
         return EXIT.ok;
       }
       case "waf-token": {
@@ -161,25 +180,25 @@ export async function sessionCommand(cmd: SessionCommand, io: CliIo, exegezisVer
           io.stdout.write(`${JSON.stringify({ origin, header: "X-Exegezis-Token", token })}\n`);
           return EXIT.ok;
         }
-        out(`WAF token for ${origin} (only for a site that is yours). EXEGEZIS sends it as the header X-Exegezis-Token, only to this site.`);
+        out(t("session.wafIntro", { origin }));
         out();
         out(`  ${token}`);
         out();
         out("Cloudflare: Security → WAF → Custom rules → Create rule");
-        out(`  Expression:  (http.request.headers["x-exegezis-token"][0] eq "${token}")`);
-        out("  Action:      Skip — Bot Fight Mode / Super Bot Fight Mode, Managed Challenge, Rate limiting rules");
-        out("Vercel: Firewall → Custom rules, the same condition on the header, action Bypass.");
-        out("Keep it secret like a password. To replace it: pnpm exegezis session waf-token --url " + origin + " --rotate");
+        out(t("session.wafExpression", { expression: `(http.request.headers["x-exegezis-token"][0] eq "${token}")` }));
+        out(t("session.wafAction"));
+        out(t("session.wafVercel"));
+        out(t("session.wafSecret", { origin }));
         return EXIT.ok;
       }
       case "login": {
         const url = cmd.url as string;
         const origin = normalizeOrigin(url);
         const existing = await store.get(origin).catch(() => null);
-        out(`A browser window will open on ${url}.`);
-        out("1. Sign in, pass the verification, or choose in the cookie banner (the most private option is fine).");
-        out("   EXEGEZIS does not type, read or keep your password: only the final browser state (cookies of this site).");
-        out(`2. When you see the page you wanted, ${cmd.doneFile === undefined ? "come back here and press Enter" : 'press "Listo" in EXEGEZIS'} (or close the window).`);
+        out(t("session.loginOpen", { url }));
+        out(t("session.loginStep1"));
+        out(t("session.loginStep1b"));
+        out(cmd.doneFile === undefined ? t("session.loginStep2Enter") : t("session.loginStep2Done"));
         out();
         const result = await captureAccess({
           url,
@@ -189,19 +208,19 @@ export async function sessionCommand(cmd: SessionCommand, io: CliIo, exegezisVer
           person: () => waitForDone(cmd.doneFile),
         });
         if (!result.ok) {
-          out(`Not saved: ${result.reason}`);
-          out("Nothing was stored. Try again and finish the sign-in or the verification before pressing Enter.");
+          out(t("session.notSaved", { reason: loginReason(result) }));
+          out(t("session.notSavedHelp"));
           return EXIT.expectationFailed;
         }
         const entry = await store.put(origin, { storageState: result.storageState });
-        out(`Saved: ${entry.kinds.join(", ")} for ${origin}${entry.expiresAt === null ? "" : `, valid until about ${entry.expiresAt.slice(0, 10)}`}.`);
-        out("Inspections of this site will use it automatically (--no-session to inspect as an anonymous visitor).");
+        out(t("session.saved", { kinds: entry.kinds.map(kindName).join(", "), origin, until: entry.expiresAt === null ? "" : t("session.until", { date: entry.expiresAt.slice(0, 10) }) }));
+        out(t("session.savedHelp"));
         return EXIT.ok;
       }
     }
   } catch (error) {
     if (error instanceof KeystoreUnavailableError || error instanceof AccessUnreadableError) {
-      io.stderr.write(`${error.message}\n`);
+      io.stderr.write(`${t("session.unreadable", { message: error.message })}\n`);
       return EXIT.engineError;
     }
     throw error;

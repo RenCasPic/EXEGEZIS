@@ -42,6 +42,7 @@ import {
 import { minimalEnv, startApp, type RunningApp } from "./app-server.js";
 import { EXIT, UsageError } from "./args.js";
 import { absolute, createAdapter, displayPath, loadTestPlan, printer, type CliIo } from "./shared.js";
+import { engineText, t } from "./i18n.js";
 
 export const ROOT_CAUSE_REPORT_FILE = "root-cause-report.json";
 export const ROOT_CAUSE_RESULT_FILE = "root-cause-result.json";
@@ -62,12 +63,12 @@ async function readJson<T>(path: string, schema: { safeParse(v: unknown): { succ
   try {
     raw = await readFile(path, "utf8");
   } catch {
-    throw new UsageError(`Cannot read ${what}: ${path}`);
+    throw new UsageError(t("rc.cannotRead", { what, path }));
   }
   const result = schema.safeParse(JSON.parse(raw));
   if (!result.success) {
     const issues = result.error.issues.map((i) => `  - ${i.path.map(String).join(".") || "(root)"}: ${i.message}`).join("\n");
-    throw new UsageError(`Invalid ${what} ${path}:\n${issues}`);
+    throw new UsageError(t("bench.invalid", { what, path, issues }));
   }
   return result.data;
 }
@@ -279,7 +280,7 @@ async function runArm(ctx: ArmContext, label: string, kind: ExperimentArm["label
         createAdapter: () => createAdapter(ctx.options.headed, { coverage: true }),
         command: `exegezis root-cause ${ctx.investigation.bugId} ${label}`,
         exegezisVersion: ctx.options.exegezisVersion,
-        onAttempt: (a) => ctx.log(`    ${label} attempt ${a.attempt}/${ctx.runs}: ${a.verdict}${a.stoppedAtStep === undefined ? "" : ` at step ${a.stoppedAtStep}`}`),
+        onAttempt: (a) => ctx.log(t("rc.attempt", { label, n: String(a.attempt), runs: String(ctx.runs), verdict: a.verdict, step: a.stoppedAtStep === undefined ? "" : t("rc.atStep", { step: String(a.stoppedAtStep) }) })),
       });
     } finally {
       server = await instrumented.finish();
@@ -343,7 +344,7 @@ async function baselineControl(ctx: ArmContext): Promise<ControlArm | null> {
  * only; ground-truth.json is read afterwards, by the evaluator.
  */
 export async function investigateCase(caseDir: string, caseOut: string, options: RootCauseOptions, io: CliIo, log: (line: string) => void) {
-  const investigation = await readJson(join(caseDir, "investigation.json"), RootCauseInvestigation, "root-cause investigation");
+  const investigation = await readJson(join(caseDir, "investigation.json"), RootCauseInvestigation, t("bench.what.investigation"));
   const planPath = resolve(caseDir, investigation.plan);
   const loaded = await loadTestPlan(io, planPath);
   const sourceDir = resolve(caseDir, investigation.app.dir);
@@ -366,16 +367,19 @@ export async function investigateCase(caseDir: string, caseOut: string, options:
     log,
   };
 
-  log(`  baseline (unmodified copy), ${ctx.runs} runs`);
+  log(t("rc.baselineStart", { runs: ctx.runs }));
   const probe = await runArm(ctx, "baseline", "baseline", null, false);
   // The control scenario is derived from the step where the baseline fails.
   const failingStep = probe.attempts.find((a) => a.classification === "reproduced")?.stoppedAtStep;
   ctx.control = failingStep === undefined ? null : controlPlan(loaded.plan, failingStep);
   const baseline: ExperimentArm = ctx.control === null ? probe : { ...probe, control: await baselineControl(ctx) };
   log(
-    `  baseline: ${baseline.counts.reproduced}/${baseline.counts.runs} reproduced${baseline.error === null ? "" : ` — ${baseline.error}`}; control prefix: ${
-      ctx.control === null ? "none" : `${ctx.control.steps.length} steps, ${baseline.control?.passed ?? 0}/${baseline.control?.runs ?? 0} passed`
-    }`,
+    t("rc.baseline", {
+      reproduced: String(baseline.counts.reproduced),
+      runs: String(baseline.counts.runs),
+      error: baseline.error === null ? "" : ` — ${baseline.error}`,
+      control: ctx.control === null ? t("rc.controlNone") : t("rc.controlSteps", { steps: ctx.control.steps.length, passed: String(baseline.control?.passed ?? 0), runs: String(baseline.control?.runs ?? 0) }),
+    }),
   );
 
   const sources = new Map<string, string>();
@@ -410,15 +414,15 @@ export async function investigateCase(caseDir: string, caseOut: string, options:
       startedAt,
       finishedAt: new Date().toISOString(),
     });
-    log(`  ${hypothesis.id}: ${arm.counts.reproduced}/${arm.counts.runs} reproduced → ${result.status}; ${specificity.status}`);
+    log(t("rc.armResult", { id: hypothesis.id, reproduced: String(arm.counts.reproduced), runs: String(arm.counts.runs), status: result.status, specificity: specificity.status }));
   }
 
   // A-B-A: after the interventions, the original code again for every confirmed one.
   for (const experiment of experiments) {
     if (experiment.result.status !== "CONFIRMED") continue;
-    log(`  ${experiment.hypothesisId}: reversal (original code again), ${ctx.runs} runs`);
+    log(t("rc.reversalStart", { id: experiment.hypothesisId, runs: ctx.runs }));
     experiment.reversal = await runArm(ctx, experiment.hypothesisId, "reversal", null, false);
-    log(`  ${experiment.hypothesisId}: reversal ${experiment.reversal.counts.reproduced}/${experiment.reversal.counts.runs} reproduced`);
+    log(t("rc.reversal", { id: experiment.hypothesisId, reproduced: String(experiment.reversal.counts.reproduced), runs: String(experiment.reversal.counts.runs) }));
   }
 
   const outcomes = investigation.hypotheses.map((h) => {
@@ -459,7 +463,7 @@ export async function investigateCase(caseDir: string, caseOut: string, options:
   // Evaluation happens only now, after the report is final.
   let evaluation = null;
   try {
-    const truth = await readJson(join(caseDir, "ground-truth.json"), RootCauseGroundTruth, "ground truth");
+    const truth = await readJson(join(caseDir, "ground-truth.json"), RootCauseGroundTruth, t("bench.what.truth"));
     const truthSources: Record<string, string> = {};
     for (const l of truth.locations) truthSources[l.file] = await source(l.file);
     evaluation = evaluateRootCause(report, truth, truthSources);
@@ -475,17 +479,17 @@ const ratio = (n: number, d: number): number | null => (d === 0 ? null : n / d);
 export async function rootCauseCommand(options: RootCauseOptions, io: CliIo): Promise<number> {
   const out = printer(io);
   const suitePath = options.suite.endsWith(".json") ? absolute(io, options.suite) : absolute(io, join("benchmarks", options.suite, "suite.json"));
-  const suite = await readJson(suitePath, RootCauseSuite, "root-cause suite");
+  const suite = await readJson(suitePath, RootCauseSuite, t("bench.what.rcSuite"));
   const suiteDir = dirname(suitePath);
   const selected = suite.cases.filter((c) => options.caseIds === undefined || options.caseIds.some((id) => c.split("/").pop() === id));
-  if (selected.length === 0) throw new UsageError(`No case matches ${options.caseIds?.join(", ") ?? ""} in suite ${suite.id}.`);
+  if (selected.length === 0) throw new UsageError(t("bench.noCase", { ids: options.caseIds?.join(", ") ?? "", suite: suite.id }));
 
   const resultDir = join(absolute(io, options.output), "root-cause", `${ulid()}-${suite.id}`);
   const startedAt = new Date().toISOString();
-  out("EXEGEZIS ROOT CAUSE");
+  out(t("rc.title"));
   out();
-  out(`Suite: ${suite.id} — ${selected.length} case(s)`);
-  out("Every arm runs on an isolated copy of the application; the source tree is never modified.");
+  out(t("rc.suite", { suite: suite.id, cases: selected.length }));
+  out(t("rc.isolated"));
   out();
 
   const cases: RootCauseSuiteCase[] = [];
@@ -498,8 +502,8 @@ export async function rootCauseCommand(options: RootCauseOptions, io: CliIo): Pr
     const { report, evaluation } = await investigateCase(caseDir, join(resultDir, "cases", id), options, io, (line) => out(line));
     runsPerArm = report.policy.runsPerArm;
     const d = report.decision;
-    out(`  → ${d.status} [${d.evidenceLevel}]${d.candidateHypothesisId === null ? "" : ` (${d.candidateHypothesisId})`}: ${d.reason}`);
-    if (evaluation !== null) out(`  ground truth: ${evaluation.detail}`);
+    out(`  → ${d.status} [${d.evidenceLevel}]${d.candidateHypothesisId === null ? "" : ` (${d.candidateHypothesisId})`}: ${engineText(d.message, d.reason)}`);
+    if (evaluation !== null) out(t("rc.groundTruth", { detail: evaluation.detail }));
     out();
     cases.push({
       id,
@@ -549,18 +553,31 @@ export async function rootCauseCommand(options: RootCauseOptions, io: CliIo): Pr
 
   const s = result.summary;
   const m = result.metrics;
-  const pct = (v: number | null, n: number, d: number) => (v === null ? `n/a (${n}/${d})` : `${Math.round(v * 100)}% (${n}/${d})`);
-  out("Summary:");
+  const pct = (v: number | null, n: number, d: number) => (v === null ? `${t("common.notAvailable")} (${n}/${d})` : `${Math.round(v * 100)}% (${n}/${d})`);
+  out(t("rc.summary"));
   out(
-    `  ${s.cases} cases · ${s.baselineReproduced} reproduced · ${s.validated} validated · ${s.correct} correct · ${s.falseValidations} false validations · ${s.insufficientEvidence} insufficient evidence (${s.candidates} candidates) · ${s.refuted} refuted`,
+    t("rc.counts", {
+      cases: String(s.cases),
+      reproduced: String(s.baselineReproduced),
+      validated: String(s.validated),
+      correct: String(s.correct),
+      falseValidations: String(s.falseValidations),
+      insufficient: String(s.insufficientEvidence),
+      candidates: String(s.candidates),
+      refuted: String(s.refuted),
+    }),
   );
-  out(`  ${s.hypothesesTested} hypotheses tested, ${s.hypothesesRefuted} refuted · ${s.matchesExpected}/${evaluated.length} match the expected conclusion`);
+  out(t("rc.hypotheses", { tested: String(s.hypothesesTested), refuted: String(s.hypothesesRefuted), matches: String(s.matchesExpected), evaluated: String(evaluated.length) }));
   out(
-    `  root cause precision ${pct(m.rootCausePrecision, correct, validated)} · false validation rate ${pct(m.falseValidationRate, falseValidations, evaluated.length)} · honest unknown rate ${pct(m.honestUnknownRate, insufficient, s.cases)}`,
+    t("rc.rates", {
+      precision: pct(m.rootCausePrecision, correct, validated),
+      falseRate: pct(m.falseValidationRate, falseValidations, evaluated.length),
+      unknownRate: pct(m.honestUnknownRate, insufficient, s.cases),
+    }),
   );
-  out("  (a small experimental benchmark: the counts matter more than the rates)");
+  out(t("rc.small"));
   out();
-  out("Result:");
+  out(t("rc.result"));
   out(displayPath(io, join(resultDir, ROOT_CAUSE_RESULT_FILE), false));
   return s.falseValidations > 0 ? EXIT.expectationFailed : EXIT.ok;
 }
