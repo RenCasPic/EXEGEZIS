@@ -3,6 +3,7 @@ import { platform } from "node:os";
 import { candidatesFor, playwrightCliPath, playwrightVersion, probeBrowsers, type BrowserProbe } from "@exegezis/adapter-browser";
 import type { EngineErrorInfo } from "@exegezis/core";
 import { EXIT } from "./args.js";
+import { t } from "./i18n.js";
 import { printer, type CliIo } from "./shared.js";
 
 const NODE_MIN = [22, 18, 0] as const;
@@ -56,7 +57,7 @@ async function installChromium(io: CliIo): Promise<number> {
     child.stdout.on("data", (d: Buffer) => io.stdout.write(d.toString()));
     child.stderr.on("data", (d: Buffer) => io.stderr.write(d.toString()));
     child.on("error", (e) => {
-      io.stderr.write(`Could not start the Playwright installer: ${e.message}\n`);
+      io.stderr.write(`${t("doctor.installerStart", { message: e.message })}\n`);
       resolve(1);
     });
     child.on("exit", (code) => resolve(code ?? 1));
@@ -65,14 +66,14 @@ async function installChromium(io: CliIo): Promise<number> {
 
 function print(io: CliIo, r: DoctorReport): void {
   const out = printer(io);
-  const mark = (ok: boolean) => (ok ? "OK     " : "MISSING");
-  out("EXEGEZIS DOCTOR");
+  const mark = (ok: boolean) => (ok ? t("doctor.ok") : t("doctor.missing"));
+  out(t("doctor.title"));
   out();
-  out(`System:     ${r.platform} · EXEGEZIS ${r.exegezis} · Playwright ${r.playwright}`);
-  out(`Node.js     ${r.node.ok ? "OK     " : "TOO OLD"} ${r.node.version} (required ${r.node.required})`);
-  out(`pnpm        ${r.pnpm.version === null ? "?       not detected (run this as: pnpm exegezis doctor)" : `OK      ${r.pnpm.version}`}`);
+  out(t("doctor.system", { platform: r.platform, version: r.exegezis, playwright: r.playwright }));
+  out(t("doctor.node", { status: r.node.ok ? t("doctor.ok") : t("doctor.tooOld"), version: r.node.version, required: r.node.required }));
+  out(r.pnpm.version === null ? t("doctor.pnpmMissing") : t("doctor.pnpmOk", { version: r.pnpm.version }));
   out();
-  out("Browsers (tried in this order with --browser-channel auto):");
+  out(t("doctor.browsers"));
   for (const b of r.browsers) {
     out(`  ${mark(b.available)} ${b.label.padEnd(24)} ${b.available ? (b.version ?? "") : ""}`);
     if (!b.available && b.error !== null) out(`          ${b.error}`);
@@ -80,27 +81,25 @@ function print(io: CliIo, r: DoctorReport): void {
   out();
   if (r.auto !== null) {
     const used = r.browsers.find((b) => b.channel === r.auto);
-    out(`EXEGEZIS will use: ${used?.label ?? r.auto} ${used?.version ?? ""}`.trimEnd());
+    out(t("doctor.willUse", { browser: `${used?.label ?? r.auto} ${used?.version ?? ""}`.trimEnd() }));
   } else {
-    out("EXEGEZIS cannot start any browser on this machine: inspections and verifications will stop with ENGINE_ERROR (exit code 7).");
+    out(t("doctor.none"));
   }
 
   const fixes: string[] = [];
-  if (!r.node.ok) fixes.push(`Install Node.js ${r.node.required} from https://nodejs.org/ and open a new terminal.`);
+  if (!r.node.ok) fixes.push(t("doctor.installNode", { required: r.node.required }));
   if (!r.browsers.some((b) => b.channel === "chromium" && b.available)) {
     fixes.push(
-      r.auto === null
-        ? "Install Playwright's Chromium (downloads ~150 MB):"
-        : "Optional: install Playwright's Chromium, the reference browser (downloads ~150 MB):",
+      r.auto === null ? t("doctor.installChromium") : t("doctor.installChromiumOptional"),
     );
     fixes.push("    pnpm exegezis doctor --install");
     if (r.auto === null) {
-      fixes.push("  or install Google Chrome (https://www.google.com/chrome/); on Windows, Microsoft Edge normally comes preinstalled.");
+      fixes.push(t("doctor.orChrome"));
     }
   }
   if (fixes.length > 0) {
     out();
-    out("What to do (the same commands work in Windows CMD, PowerShell, macOS and Linux, from the repository folder):");
+    out(t("doctor.whatToDo"));
     for (const f of fixes) out(`  ${f}`);
   }
 }
@@ -108,10 +107,10 @@ function print(io: CliIo, r: DoctorReport): void {
 export async function doctorCommand(options: { install: boolean; json: boolean }, io: CliIo, exegezisVersion: string): Promise<number> {
   if (options.install) {
     const out = printer(io);
-    out("Downloading Playwright's Chromium (you asked for it with --install)...");
+    out(t("doctor.downloading"));
     const code = await installChromium(io);
     if (code !== 0) {
-      io.stderr.write(`The Playwright installer exited with code ${code}.\n`);
+      io.stderr.write(`${t("doctor.installerExit", { code: String(code) })}\n`);
       return EXIT.engineError;
     }
     out();
@@ -125,12 +124,32 @@ export async function doctorCommand(options: { install: boolean; json: boolean }
 /** The ENGINE_ERROR explanation shown by every command (exit code 7). */
 export function printEngineError(io: CliIo, info: EngineErrorInfo): void {
   const w = (line = "") => io.stderr.write(`${line}\n`);
-  w("ENGINE_ERROR: the browser could not start on this machine.");
-  w("The problem is on this computer, not on the site or in the application: nothing was concluded about it.");
+  w(t("engine.title"));
+  w(t("engine.where"));
   w();
-  w(info.message);
+  w(engineMessage(info.message));
   for (const a of info.attempts) w(`  - ${a.engine}: ${a.error}`);
   w();
-  w("How to fix it (the same commands work in Windows CMD, PowerShell, macOS and Linux):");
-  for (const r of info.remedy) w(`  ${r}`);
+  w(t("engine.howTo"));
+  for (const r of info.remedy) w(`  ${remedyLine(r)}`);
+}
+
+/** The adapter writes its message in English; the known one is said again in the current language (the list of browsers as it is). */
+export function engineMessage(message: string): string {
+  const tried = /^No browser could be started on this machine \(tried: (.*)\)\. This is a problem/.exec(message)?.[1];
+  return tried === undefined ? message : t("engine.message", { tried });
+}
+
+const REMEDY: Record<string, Parameters<typeof t>[0]> = {
+  "Install Playwright's Chromium (downloads ~150 MB, only when you run this): pnpm exegezis doctor --install": "engine.remedyInstall",
+  "Check what this machine has: pnpm exegezis doctor": "engine.remedyCheck",
+  "Or use a browser that is already installed: Google Chrome (https://www.google.com/chrome/) or Microsoft Edge (preinstalled on Windows), with --browser-channel auto": "engine.remedyInstalled",
+  "Install Google Chrome (https://www.google.com/chrome/), or run with --browser-channel auto": "engine.remedyChrome",
+  "Install Microsoft Edge (https://www.microsoft.com/edge), or run with --browser-channel auto": "engine.remedyEdge",
+};
+
+/** One of the adapter's fixes in the current language (an unknown line as it is). */
+export function remedyLine(line: string): string {
+  const key = REMEDY[line];
+  return key === undefined ? line : t(key);
 }

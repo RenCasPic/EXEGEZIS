@@ -1,8 +1,9 @@
 import { join } from "node:path";
-import { describeValidation, ulid, type BugReport, type EvidenceRef, type VerificationOutcome } from "@exegezis/core";
+import { ulid, type BugReport, type EvidenceRef, type VerificationOutcome } from "@exegezis/core";
 import { EXIT } from "./args.js";
 import { BUG_REPORT_FILE, verifyPlan } from "./pipeline.js";
-import { absolute, displayPath, loadTestPlan, percent, printer, type CliIo } from "./shared.js";
+import { absolute, displayPath, loadTestPlan, percent, printer, validationLines, type CliIo } from "./shared.js";
+import { engineText, t } from "./i18n.js";
 
 export interface VerifyOptions {
   planFile: string;
@@ -47,19 +48,19 @@ export async function verifyCommand(options: VerifyOptions, io: CliIo): Promise<
   out(plan.id);
   out("─".repeat(44));
   out(plan.title);
-  out(`Target:     ${options.baseUrl ?? plan.target.baseUrl}`);
-  out(`Provenance: ${formatProvenance(plan.provenance)}`);
+  out(t("verify.target", { url: options.baseUrl ?? plan.target.baseUrl }));
+  out(t("verify.provenance", { value: formatProvenance(plan.provenance) }));
   out();
   const result = await verifyPlan(io, loaded, { ...options, dir, progress: true });
   out();
   for (const line of formatReport(result.report)) out(line);
   out();
   if (result.specPath !== undefined) {
-    out("Compiled test:");
+    out(t("verify.compiled"));
     out(displayPath(io, result.specPath, false));
     out();
   }
-  out("Report:");
+  out(t("verify.report"));
   out(displayPath(io, join(dir, BUG_REPORT_FILE), false));
   return exitForOutcome(result.report.outcome);
 }
@@ -69,77 +70,72 @@ export function formatProvenance(provenance: BugReport["provenance"]): string {
   return details.length === 0 ? provenance.source : `${provenance.source} (${details.join(", ")})`;
 }
 
-const EVIDENCE_LABELS: [kind: EvidenceRef["kind"], label: string][] = [
-  ["timeline", "Timeline"],
-  ["screenshot", "Screenshot"],
-  ["accessibility", "Accessibility"],
-  ["console", "Console"],
-  ["network", "Network"],
-  ["trace", "Trace"],
-];
+const EVIDENCE_KINDS = ["timeline", "screenshot", "accessibility", "console", "network", "trace"] as const satisfies readonly EvidenceRef["kind"][];
+const CRITERIA = ["plan_valid", "expectation_defined", "anchored", "reproduced", "evidence_captured", "executable_test"] as const;
 
 export function formatReport(report: BugReport): string[] {
   const lines: string[] = [];
-  lines.push("Validation:");
+  lines.push(t("verify.validation"));
   lines.push(report.validation.status.toUpperCase());
-  for (const line of describeValidation(report.validation)) {
+  for (const line of validationLines(report.validation)) {
     lines.push(`  ${line}`);
   }
   lines.push("");
 
   const executed = report.reproduction.attempts > 0;
   if (executed) {
-    lines.push("Expected:");
+    lines.push(t("verify.expected"));
     if (report.expected === null) {
-      lines.push("(no failed expectation to show)");
+      lines.push(t("verify.noExpected"));
     } else {
       lines.push(report.expected.description);
       lines.push(`  ${JSON.stringify(report.expected.value)}`);
     }
     lines.push("");
-    lines.push("Observed:");
+    lines.push(t("verify.observed"));
     if (report.actual === null) {
-      lines.push("(no failure observed)");
+      lines.push(t("verify.noObserved"));
     } else {
       lines.push(`  ${JSON.stringify(report.actual.value)}`);
-      lines.push(`  ${report.actual.message}`);
+      lines.push(`  ${engineText(report.actual.detail, report.actual.message)}`);
     }
     lines.push("");
     const r = report.reproduction;
-    lines.push("Reproduction:");
-    lines.push(`${r.failures} / ${r.attempts} failed (${percent(r.rate)}) — ${r.status}`);
-    if (r.status !== "REPRODUCED") lines.push(`  ${r.reason}`);
+    lines.push(t("verify.reproduction"));
+    lines.push(t("verify.failedOf", { failures: r.failures, attempts: r.attempts, rate: percent(r.rate), status: r.status }));
+    if (r.status !== "REPRODUCED") lines.push(`  ${engineText(r.message, r.reason)}`);
     lines.push("");
-    lines.push("Evidence:");
+    lines.push(t("verify.evidence"));
     const kinds = new Set(report.evidence.map((e) => e.kind));
-    for (const [kind, label] of EVIDENCE_LABELS) lines.push(`${kinds.has(kind) ? "✓" : "✗"} ${label}`);
+    for (const kind of EVIDENCE_KINDS) lines.push(`${kinds.has(kind) ? "✓" : "✗"} ${t(`verify.evidenceKind.${kind}`)}`);
     lines.push("");
-    lines.push("Verification:");
+    lines.push(t("verify.verification"));
     const test = report.compiledTest;
     lines.push(
       test === null
-        ? "compiled test not run"
+        ? t("verify.notRun")
         : test.status === "failed"
-          ? `FAIL before fix (Playwright failed at step ${test.failedAtStep ?? "?"})`
+          ? t("verify.failBeforeFix", { step: String(test.failedAtStep ?? "?") })
           : test.status === "passed"
-            ? "the compiled test PASSED (it does not demonstrate a failure)"
-            : `the compiled test could not run: ${test.message ?? test.status}`,
+            ? t("verify.passed")
+            : t("verify.couldNotRun", { message: test.message ?? test.status }),
     );
     lines.push("");
   } else {
-    lines.push("Reproduction:");
-    lines.push("not executed");
+    lines.push(t("verify.reproduction"));
+    lines.push(t("verify.notExecuted"));
     lines.push("");
   }
 
-  lines.push("Criteria:");
+  lines.push(t("verify.criteria"));
   for (const criterion of report.criteria) {
-    lines.push(`${criterion.met ? "✓" : "✗"} ${criterion.description}`);
-    lines.push(`    ${criterion.detail}`);
+    const known = (CRITERIA as readonly string[]).includes(criterion.id);
+    lines.push(`${criterion.met ? "✓" : "✗"} ${known ? t(`verify.criterion.${criterion.id as (typeof CRITERIA)[number]}`) : criterion.description}`);
+    lines.push(`    ${engineText(criterion.message, criterion.detail)}`);
   }
   lines.push("");
-  lines.push("Outcome:");
-  lines.push(report.outcome === "VERIFIED" ? "VERIFIED BUG" : report.outcome.replace("_", " "));
-  lines.push(`  ${report.outcomeReason}`);
+  lines.push(t("verify.outcome"));
+  lines.push(report.outcome === "VERIFIED" ? t("verify.verifiedBug") : report.outcome.replace("_", " "));
+  lines.push(`  ${engineText(report.outcomeMessage, report.outcomeReason)}`);
   return lines;
 }

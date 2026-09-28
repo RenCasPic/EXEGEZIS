@@ -81,6 +81,8 @@ export default defineConfig({
           name: "cli",
           root: "apps/cli",
           include: ["test/**/*.test.ts"],
+          // The assertions read the English output; this machine's own language must not change them.
+          env: { EXEGEZIS_LANG: "en" },
           testTimeout: 60_000,
           hookTimeout: 60_000,
         },

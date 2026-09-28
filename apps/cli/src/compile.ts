@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { compileToPlaywright, type CompiledSpec } from "@exegezis/compiler-playwright";
 import { EXIT } from "./args.js";
 import { absolute, createAdapter, displayPath, loadTestPlan, printer, specRuntime, type CliIo, type LoadedPlan } from "./shared.js";
+import { t } from "./i18n.js";
 
 export interface CompileCommandOptions {
   planFile: string;
@@ -36,10 +37,10 @@ export async function compileCommand(options: CompileCommandOptions, io: CliIo):
 
   out("EXEGEZIS");
   out();
-  out(`Compiled ${loaded.plan.id} (${loaded.plan.steps.length} steps) to:`);
+  out(t("compile.done", { id: loaded.plan.id, steps: loaded.plan.steps.length }));
   out(displayPath(io, path, false));
   out();
-  out("Run it with Playwright (EXEGEZIS is not required):");
+  out(t("compile.howToRun"));
   out(`  npx playwright test ${spec.fileName}`);
   return EXIT.ok;
 }

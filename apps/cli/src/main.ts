@@ -2,12 +2,13 @@ import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { isEngineUnavailable, toErrorInfo } from "@exegezis/core";
-import { EXIT, HELP, parseCliArgs, UsageError } from "./args.js";
+import { EXIT, parseCliArgs, UsageError } from "./args.js";
+import { helpText } from "./help.js";
 import { compileCommand } from "./compile.js";
 import { observeCommand } from "./observe.js";
 import { reproduceCommand } from "./reproduce.js";
 import { runCommand } from "./run.js";
-import { resolveCliLocale, setCliLocale } from "./i18n.js";
+import { resolveCliLocale, setCliLocale, t } from "./i18n.js";
 import type { CliIo } from "./shared.js";
 import { validateCommand } from "./validate.js";
 import { verifyCommand } from "./verify.js";
@@ -27,13 +28,13 @@ export async function main(argv: readonly string[], io: CliIo, env: NodeJS.Proce
   const lang = resolveCliLocale(argv, env);
   setCliLocale(lang.locale);
   try {
-    if (lang.invalid !== null) throw new UsageError(`--lang must be en or es, got "${lang.invalid}"`);
+    if (lang.invalid !== null) throw new UsageError(t("args.lang", { value: lang.invalid }));
     const command = parseCliArgs(lang.argv);
     const exegezisVersion = VERSION;
     if ("browserChannel" in command) useBrowserChannel(command.browserChannel);
     switch (command.kind) {
       case "help":
-        io.stdout.write(HELP);
+        io.stdout.write(helpText());
         return EXIT.ok;
       case "version":
         io.stdout.write(`${VERSION}\n`);
@@ -69,7 +70,7 @@ export async function main(argv: readonly string[], io: CliIo, env: NodeJS.Proce
     }
   } catch (error) {
     if (error instanceof UsageError) {
-      io.stderr.write(`Error: ${error.message}\n`);
+      io.stderr.write(`${t("args.error", { message: error.message })}\n`);
       return EXIT.usage;
     }
     if (isEngineUnavailable(error)) {
@@ -78,7 +79,7 @@ export async function main(argv: readonly string[], io: CliIo, env: NodeJS.Proce
       return EXIT.engineError;
     }
     const info = toErrorInfo(error);
-    io.stderr.write(`Internal error: ${info.message}\n${info.stack ?? ""}\n`);
+    io.stderr.write(`${t("args.internal", { message: info.message })}\n${info.stack ?? ""}\n`);
     return EXIT.internal;
   }
 }

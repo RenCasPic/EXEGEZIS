@@ -1,4 +1,5 @@
-export { EXIT, HELP, parseCliArgs, UsageError, type Command } from "./args.js";
+export { EXIT, parseCliArgs, UsageError, type Command } from "./args.js";
+export { helpText } from "./help.js";
 export { main, run, VERSION } from "./main.js";
 export { buildObservePlan, observeCommand } from "./observe.js";
 export { exitForOutcome, formatReport, verifyCommand } from "./verify.js";

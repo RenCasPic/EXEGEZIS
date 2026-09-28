@@ -16,6 +16,7 @@ import {
 import { writeCompiledSpec } from "./compile.js";
 import { reproduceWithProgress } from "./reproduce.js";
 import { createAdapter, printer, runLogger, type CliIo, type LoadedPlan } from "./shared.js";
+import { t } from "./i18n.js";
 
 export const BUG_REPORT_FILE = "bug-report.json";
 
@@ -62,7 +63,7 @@ export async function verifyPlan(io: CliIo, loaded: LoadedPlan, options: Pipelin
   const baseUrl = options.baseUrl ?? plan.target.baseUrl;
   await mkdir(options.dir, { recursive: true });
 
-  if (options.preflight === undefined) out("Preflight: observing the target before running the plan...");
+  if (options.preflight === undefined) out(t("pipeline.preflight"));
   const preflight = options.preflight ?? await runPreflight({
     plan,
     baseUrl,
@@ -78,7 +79,7 @@ export async function verifyPlan(io: CliIo, loaded: LoadedPlan, options: Pipelin
     baseUrl,
   });
   await writeFile(join(options.dir, VALIDATION_FILE), `${JSON.stringify(validation, null, 2)}\n`, "utf8");
-  out(`Semantic validation: ${validation.status.toUpperCase()}${validation.issues.length === 0 ? "" : ` (${validation.issues.length} issue(s))`}`);
+  out(validation.issues.length === 0 ? t("pipeline.validation", { status: validation.status.toUpperCase() }) : t("pipeline.validationIssues", { status: validation.status.toUpperCase(), count: validation.issues.length }));
 
   const executable = validation.status === "valid" || validation.status === "weakly_anchored";
   let reproduction: ReproductionResult | undefined;
@@ -86,7 +87,7 @@ export async function verifyPlan(io: CliIo, loaded: LoadedPlan, options: Pipelin
   let specPath: string | undefined;
 
   if (executable) {
-    out(`Reproducing (${options.runs} runs)...`);
+    out(t("pipeline.reproducing", { runs: options.runs }));
     reproduction = await reproduceWithProgress(io, plan, {
       runs: options.runs,
       ...(options.baseUrl === undefined ? {} : { baseUrl: options.baseUrl }),
@@ -97,7 +98,7 @@ export async function verifyPlan(io: CliIo, loaded: LoadedPlan, options: Pipelin
       command: "verify",
       quiet: !options.progress,
     });
-    out("Compiling to Playwright and running the compiled test with the standard Playwright runner...");
+    out(t("pipeline.compiling"));
     const compiled = await writeCompiledSpec(loaded, options.dir, options.exegezisVersion);
     specPath = compiled.path;
     const execution = await runCompiledSpec({
@@ -110,7 +111,7 @@ export async function verifyPlan(io: CliIo, loaded: LoadedPlan, options: Pipelin
     });
     compiledTest = { ...execution, specPath: compiled.spec.fileName };
   } else {
-    out("The plan is not executed: semantic validation rejected it.");
+    out(t("pipeline.notExecuted"));
   }
 
   const report = buildBugReport({

@@ -5,7 +5,7 @@ import type { SpecRuntime } from "@exegezis/compiler-playwright";
 import {
   describeAssertion,
   describeTarget,
-  describeValidation,
+  assertionMessage,
   validatePlan,
   hashJson,
   JsonlFileSink,
@@ -15,10 +15,12 @@ import {
   StreamSink,
   TestPlan,
   type LogSink,
+  type PlanValidation,
   type RunRecorder,
   type TimelineEvent,
 } from "@exegezis/core";
 import { EXIT, UsageError } from "./args.js";
+import { engineText, t } from "./i18n.js";
 
 export interface CliIo {
   stdout: { write(text: string): unknown };
@@ -53,12 +55,12 @@ export async function loadTestPlan(io: CliIo, file: string): Promise<LoadedPlan>
   try {
     raw = JSON.parse(await readFile(absolute(io, file), "utf8"));
   } catch (error) {
-    throw new UsageError(`Cannot read test plan ${file}: ${error instanceof Error ? error.message : String(error)}`);
+    throw new UsageError(t("common.cannotReadPlan", { file, message: error instanceof Error ? error.message : String(error) }));
   }
   const result = TestPlan.safeParse(raw);
   if (!result.success) {
     const issues = result.error.issues.map((i) => `  - ${i.path.join(".") || "(root)"}: ${i.message}`).join("\n");
-    throw new UsageError(`Invalid test plan ${file}:\n${issues}`);
+    throw new UsageError(t("common.invalidPlan", { file, issues }));
   }
   return { plan: result.data, path: file.replaceAll("\\", "/"), hash: hashJson(redactPlan(result.data)) };
 }
@@ -90,7 +92,7 @@ export function runLogger(io: CliIo, recorder: RunRecorder, verbose: boolean): L
 }
 
 export function percent(rate: number | null): string {
-  return rate === null ? "n/a" : `${Math.round(rate * 100)}%`;
+  return rate === null ? t("common.notAvailable") : `${Math.round(rate * 100)}%`;
 }
 
 /**
@@ -122,15 +124,15 @@ export function renderSteps(events: readonly TimelineEvent[]): string[] {
         lines.push(`        ERROR  ${firstLine(event.payload.error.message)}`);
         break;
       case "ASSERTION_STARTED":
-        lines.push(`STEP ${pad(event.payload.stepIndex)} ${event.payload.purpose === "anchor" ? "ANCHOR" : "EXPECT"} ${event.payload.description || describeAssertion(event.payload.assertion)}`);
+        lines.push(`STEP ${pad(event.payload.stepIndex)} ${event.payload.purpose === "anchor" ? "ANCHOR" : "EXPECT"} ${event.payload.description || engineText(assertionMessage(event.payload.assertion), describeAssertion(event.payload.assertion))}`);
         break;
       case "ASSERTION_PASSED":
         lines.push("        PASS");
         break;
       case "ASSERTION_FAILED":
         lines.push("        FAIL");
-        lines.push(`        expected ${JSON.stringify(event.payload.expected)}`);
-        lines.push(`        actual   ${JSON.stringify(event.payload.actual)}`);
+        lines.push(`        ${t("common.expectedValue", { value: JSON.stringify(event.payload.expected) })}`);
+        lines.push(`        ${t("common.actualValue", { value: JSON.stringify(event.payload.actual) })}`);
         break;
       case "ASSERTION_TIMEOUT":
         lines.push(`        TIMEOUT  ${event.payload.timeoutReason}: ${event.payload.message}`);
@@ -164,7 +166,12 @@ export function rejectUnexecutable(io: CliIo, plan: TestPlan): number | undefine
   const out = printer(io);
   out("EXEGEZIS");
   out();
-  out(`Plan ${plan.id} is ${validation.status === "unsupported" ? "UNSUPPORTED" : "INVALID"} and was not executed:`);
-  for (const line of describeValidation(validation)) out(`  ${line}`);
+  out(t("common.rejected", { id: plan.id, status: validation.status === "unsupported" ? "UNSUPPORTED" : "INVALID" }));
+  for (const line of validationLines(validation)) out(`  ${line}`);
   return validation.status === "unsupported" ? EXIT.unsupported : EXIT.invalidPlan;
+}
+
+/** The issues of a validation, one per line, in the current language (codes and severities as they are). */
+export function validationLines(validation: Pick<PlanValidation, "issues">): string[] {
+  return validation.issues.map((i) => `${i.severity.toUpperCase().padEnd(11)} ${i.code}${i.stepIndex === undefined ? "" : ` ${t("common.stepParen", { step: String(i.stepIndex) })}`}: ${engineText(i.detail, i.message)}`);
 }

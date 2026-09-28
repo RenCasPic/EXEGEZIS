@@ -1,3 +1,7 @@
+import { formatEngineMessage, type EngineMessage } from "@exegezis/core";
+import { IntlMessageFormat } from "intl-messageformat";
+import { CLI_MESSAGES_EN, CLI_MESSAGES_ES, type CliKey } from "./messages-catalog.js";
+
 /*
  * The CLI's language (docs/11-i18n.md): `--lang en|es`, else EXEGEZIS_LANG,
  * else the system's language, else English. Chosen once per invocation,
@@ -63,4 +67,25 @@ export function resolveCliLocale(argv: readonly string[], env: NodeJS.ProcessEnv
     return { locale: localeOf(env["EXEGEZIS_LANG"]) ?? systemLocale(env) ?? "en", argv: rest, invalid: flag };
   }
   return { locale: localeOf(env["EXEGEZIS_LANG"]) ?? systemLocale(env) ?? "en", argv: rest, invalid: null };
+}
+
+const cache = new Map<string, IntlMessageFormat>();
+
+/** A CLI message in the current language (placeholders filled; plurals by ICU). */
+export function t(key: CliKey, params: Record<string, string | number> = {}): string {
+  const locale = cliLocale();
+  const template = (locale === "es" ? CLI_MESSAGES_ES : CLI_MESSAGES_EN)[key];
+  const id = `${locale}\u0000${key}`;
+  let format = cache.get(id);
+  if (format === undefined) {
+    // CLI texts are plain text: <file>, <id>… are placeholders for the reader, not tags.
+    format = new IntlMessageFormat(template, locale, undefined, { ignoreTag: true });
+    cache.set(id, format);
+  }
+  return String(format.format(params));
+}
+
+/** An engine message (a code and its parameters) in the current language; the recorded English text when there is no code. */
+export function engineText(message: EngineMessage | null | undefined, fallback: string): string {
+  return message === null || message === undefined ? fallback : formatEngineMessage(message, cliLocale());
 }

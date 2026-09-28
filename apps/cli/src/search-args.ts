@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
-import { BROWSER_CHANNELS, UsageError, type BrowserChannelArg } from "./args.js";
+import { BROWSER_CHANNELS, parseArgsError, UsageError, type BrowserChannelArg } from "./args.js";
+import { t } from "./i18n.js";
 
 /*
  * `exegezis search …` (docs/10-search.md): its own parser, because it has
@@ -128,30 +129,30 @@ export function parseSearchArgs(argv: readonly string[]): SearchCommand {
       },
     });
   } catch (error) {
-    throw new UsageError(error instanceof Error ? error.message : String(error));
+    throw parseArgsError(error);
   }
   const { values, positionals } = parsed;
   const [first, ...extra] = positionals;
   const action: SearchAction = first === undefined ? "run" : (SEARCH_ACTIONS as readonly string[]).includes(first) ? (first as SearchAction) : "run";
-  if (first !== undefined && action === "run" && first !== "run") throw new UsageError(`Unknown search action "${first}". Use: ${SEARCH_ACTIONS.join(", ")}.`);
-  if (extra.length > 0) throw new UsageError(`Unexpected argument "${extra[0]}".`);
+  if (first !== undefined && action === "run" && first !== "run") throw new UsageError(t("search.args.unknownAction", { action: first, actions: SEARCH_ACTIONS.join(", ") }));
+  if (extra.length > 0) throw new UsageError(t("args.unexpected", { arg: String(extra[0]) }));
   for (const [name, value] of Object.entries(values)) {
     if (value === undefined || value === false || (name === "output" && value === "./runs")) continue;
-    if (!ALLOWED[action].includes(name)) throw new UsageError(`Option --${name} is not valid for "search ${action}".`);
+    if (!ALLOWED[action].includes(name)) throw new UsageError(t("args.notValidFor", { option: name, command: `search ${action}` }));
   }
   const channel = values["browser-channel"] ?? "auto";
-  if (!(BROWSER_CHANNELS as readonly string[]).includes(channel)) throw new UsageError(`--browser-channel must be one of ${BROWSER_CHANNELS.join(", ")}, got "${channel}".`);
+  if (!(BROWSER_CHANNELS as readonly string[]).includes(channel)) throw new UsageError(t("args.oneOf", { option: "--browser-channel", values: BROWSER_CHANNELS.join(", "), value: channel }));
   const browserChannel = channel as BrowserChannelArg;
   const int = (option: string, raw: string | undefined, min: number, max: number): number | undefined => {
     if (raw === undefined) return undefined;
     const n = Number(raw);
-    if (!Number.isInteger(n) || n < min || n > max) throw new UsageError(`--${option} must be an integer between ${min} and ${max}, got "${raw}".`);
+    if (!Number.isInteger(n) || n < min || n > max) throw new UsageError(t("args.intRange", { option, min: String(min), max: String(max), value: raw }));
     return n;
   };
   const usd = (raw: string | undefined): number | undefined => {
     if (raw === undefined) return undefined;
     const n = Number(raw.replace(",", "."));
-    if (!Number.isFinite(n) || n <= 0 || n > 100) throw new UsageError(`--max-cost must be a number of USD between 0 and 100, got "${raw}".`);
+    if (!Number.isFinite(n) || n <= 0 || n > 100) throw new UsageError(t("search.args.maxCost", { value: raw }));
     return n;
   };
   const optional = <K extends string, V>(key: K, value: V | undefined) => (value === undefined ? {} : ({ [key]: value } as Record<K, V>));
@@ -160,27 +161,27 @@ export function parseSearchArgs(argv: readonly string[]): SearchCommand {
     case "templates":
       return { kind: "search", action, json: values.json };
     case "suggest": {
-      if (values.terms === undefined || values.terms.trim() === "") throw new UsageError('Missing required option --terms "a, b".');
+      if (values.terms === undefined || values.terms.trim() === "") throw new UsageError(t("args.missing", { option: '--terms "a, b"' }));
       return { kind: "search", action, terms: values.terms, json: values.json, ...optional("model", values.model), ...optional("maxCostUsd", usd(values["max-cost"])), ...optional("mockResponse", values["mock-response"]) };
     }
     case "export": {
-      if (values.search === undefined || values.search === "") throw new UsageError("Missing required option --search <id or directory>.");
+      if (values.search === undefined || values.search === "") throw new UsageError(t("args.missing", { option: "--search <id|dir>" }));
       const format = values.format ?? "csv";
-      if (format !== "csv" && format !== "pdf") throw new UsageError(`--format must be csv or pdf, got "${format}".`);
+      if (format !== "csv" && format !== "pdf") throw new UsageError(t("search.args.format", { value: format }));
       const sep = values.sep === undefined || values.sep === ";" ? ";" : values.sep === "," ? "," : values.sep === "tab" || values.sep === "\t" ? "\t" : null;
-      if (sep === null) throw new UsageError('--sep must be ";", "," or tab.');
+      if (sep === null) throw new UsageError(t("search.args.sep"));
       return { kind: "search", action, search: values.search, format, separator: sep, output: values.output, browserChannel, ...optional("out", values.out) };
     }
     case "run": {
       const saved = values.saved;
       const modes = [values.terms, values.meaning, values.template, values.regex].filter((v) => v !== undefined).length;
       if (saved === undefined) {
-        if (values.url === undefined || values.url === "") throw new UsageError("Missing required option --url <site>.");
+        if (values.url === undefined || values.url === "") throw new UsageError(t("args.missing", { option: "--url <site>" }));
         if (values.meaning === undefined && values.template === undefined && values.terms === undefined && values.regex === undefined) {
-          throw new UsageError('Say what to search: --terms "a, b", --meaning "<description>" or --template <id>.');
+          throw new UsageError(t("search.args.what"));
         }
-        if (values.meaning !== undefined && (values.terms !== undefined || values.template !== undefined || values.regex !== undefined)) throw new UsageError("--meaning cannot be combined with --terms, --regex or --template.");
-        if (values.template !== undefined && modes > 1) throw new UsageError("--template cannot be combined with --terms, --regex or --meaning.");
+        if (values.meaning !== undefined && (values.terms !== undefined || values.template !== undefined || values.regex !== undefined)) throw new UsageError(t("search.args.meaningAlone"));
+        if (values.template !== undefined && modes > 1) throw new UsageError(t("search.args.templateAlone"));
       }
       let url: string | undefined;
       if (values.url !== undefined) {
@@ -189,11 +190,11 @@ export function parseSearchArgs(argv: readonly string[]): SearchCommand {
           if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("protocol");
           url = u.toString();
         } catch {
-          throw new UsageError(`Invalid --url "${values.url}" (it must be an http or https address).`);
+          throw new UsageError(t("search.args.url", { value: values.url }));
         }
       }
       const scope = values["exclude-scope"] ?? "block";
-      if (scope !== "block" && scope !== "page") throw new UsageError('--exclude-scope must be "block" or "page".');
+      if (scope !== "block" && scope !== "page") throw new UsageError(t("search.args.scope"));
       return {
         kind: "search",
         action: "run",
@@ -229,23 +230,3 @@ export function parseSearchArgs(argv: readonly string[]): SearchCommand {
     }
   }
 }
-
-export const SEARCH_HELP = `
-  search      Search the text of a site (same crawl, limits, robots.txt, saved
-              access and read-only mode as inspect). Output: runs/searches/<id>/.
-                exegezis search --url <site> --terms "a, \\"a phrase\\", -excluded"
-                    [--variants] [--exclude-scope block|page] [--regex <re>]
-                exegezis search --url <site> --meaning "<what you look for>"
-                    [--max-cost <USD>] [--model <id>]
-                exegezis search --url <site> --template <id> [--with-meaning]
-                exegezis search suggest --terms "a, b" [--json]
-                exegezis search export --search <id|dir> --format csv|pdf [--sep ";"|","|tab]
-                exegezis search templates [--json]
-              Common: --max-pages 20 --max-depth 2 --runs 3 (1 by meaning)
-              --no-session --no-hidden --save "<name>" --saved <id> --reuse <dir>.
-              Exact: deterministic, accents and capitals ignored (ñ kept),
-              whole words; VERIFIED in every load, INTERMITTENT otherwise.
-              Meaning: the model proposes quotes; a quote that is not literally
-              in the page is discarded and counted. Never VERIFIED. The cost is
-              estimated first; above the limit (Settings, default 1 USD) the
-              model is not called (exit 8).`;

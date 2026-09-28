@@ -11,6 +11,7 @@ import {
 } from "@exegezis/core";
 import { EXIT, UsageError } from "./args.js";
 import { absolute, createAdapter, displayPath, firstLine, printer, runLogger, type CliIo } from "./shared.js";
+import { t } from "./i18n.js";
 
 export interface ObserveOptions {
   url: string;
@@ -33,12 +34,12 @@ export async function buildObservePlan(url: string, actionsFile: string | undefi
   try {
     raw = JSON.parse(await readFile(absolute(io, actionsFile), "utf8"));
   } catch (error) {
-    throw new UsageError(`Cannot read actions file ${actionsFile}: ${error instanceof Error ? error.message : String(error)}`);
+    throw new UsageError(t("observe.cannotRead", { file: actionsFile, message: error instanceof Error ? error.message : String(error) }));
   }
   const result = Plan.safeParse(raw);
   if (!result.success) {
     const issues = result.error.issues.map((i) => `  - ${i.path.join(".") || "(root)"}: ${i.message}`).join("\n");
-    throw new UsageError(`Invalid actions file ${actionsFile}:\n${issues}`);
+    throw new UsageError(t("observe.invalid", { file: actionsFile, issues }));
   }
   return toTestPlan(
     { ...result.data, steps: [{ type: "navigate", url }, ...result.data.steps, { type: "observe", label: "final" }] },
@@ -55,13 +56,13 @@ export async function observeCommand(options: ObserveOptions, io: CliIo): Promis
 
   out("EXEGEZIS");
   out();
-  out("Target:");
+  out(t("common.target"));
   out(options.url);
   out();
-  out("Run:");
+  out(t("common.run"));
   out(recorder.runId);
   out();
-  out("Collecting evidence...");
+  out(t("observe.collecting"));
   out();
 
   const outcome = await executeRun({
@@ -76,44 +77,34 @@ export async function observeCommand(options: ObserveOptions, io: CliIo): Promis
   for (const line of summarizeCollectors(outcome, recorder.timeline)) out(line);
   out();
   if (outcome.status === "completed") {
-    out("Run completed.");
+    out(t("observe.completed"));
   } else {
     const error = outcome.metadata.error;
-    out(`Run failed during ${error?.phase ?? "unknown phase"}: ${firstLine(error?.message ?? "unknown error")}`);
-    out("Evidence captured up to the failure was kept.");
+    out(t("observe.failed", { phase: error?.phase ?? t("common.unknownPhase"), message: firstLine(error?.message ?? t("common.unknownError")) }));
+    out(t("observe.kept"));
   }
   out();
-  out("Artifacts:");
+  out(t("common.artifacts"));
   out(displayPath(io, recorder.dir));
   return outcome.status === "completed" ? EXIT.ok : EXIT.inconclusive;
 }
 
-const COLLECTOR_LABELS: [key: string, label: string][] = [
-  ["browser", "Browser"],
-  ["console", "Console"],
-  ["network", "Network"],
-  ["accessibility", "Accessibility"],
-  ["screenshots", "Screenshot"],
-  ["trace", "Trace"],
-];
+const COLLECTORS = ["browser", "console", "network", "accessibility", "screenshots", "trace"] as const;
 
 export function summarizeCollectors(outcome: RunOutcome, events: readonly TimelineEvent[]): string[] {
-  const count = (type: TimelineEvent["type"], noun: string): string => {
-    const n = events.filter((e) => e.type === type).length;
-    return `${n} ${noun}${n === 1 ? "" : "s"}`;
-  };
+  const count = (type: TimelineEvent["type"]): number => events.filter((e) => e.type === type).length;
   const details: Record<string, string> = {
     browser: outcome.metadata.environment?.browser === undefined ? "" : `chromium ${outcome.metadata.environment.browser.version}`,
-    console: `${count("CONSOLE_MESSAGE", "message")}, ${count("PAGE_ERROR", "page error")}`,
-    network: `${count("NETWORK_REQUEST", "request")}, ${count("NETWORK_FAILED", "failure")}`,
-    accessibility: count("ACCESSIBILITY_SNAPSHOT", "snapshot"),
-    screenshots: count("SCREENSHOT", "screenshot"),
+    console: t("observe.consoleCount", { messages: count("CONSOLE_MESSAGE"), errors: count("PAGE_ERROR") }),
+    network: t("observe.networkCount", { requests: count("NETWORK_REQUEST"), failures: count("NETWORK_FAILED") }),
+    accessibility: t("observe.snapshots", { count: count("ACCESSIBILITY_SNAPSHOT") }),
+    screenshots: t("observe.screenshots", { count: count("SCREENSHOT") }),
     trace: "trace.zip",
   };
-  return COLLECTOR_LABELS.map(([key, label]) => {
+  return COLLECTORS.map((key) => {
     const status: CollectorStatus | undefined = outcome.metadata.collectors[key];
     const mark = status?.status === "ok" ? "✓" : status?.status === "skipped" ? "-" : "✗";
-    const detail = status?.status === "ok" ? details[key] : (status?.detail ?? "not captured");
-    return `${mark} ${label.padEnd(14)} ${detail ?? ""}`.trimEnd();
+    const detail = status?.status === "ok" ? details[key] : (status?.detail ?? t("observe.notCaptured"));
+    return `${mark} ${t(`observe.collector.${key}`).padEnd(14)} ${detail ?? ""}`.trimEnd();
   });
 }

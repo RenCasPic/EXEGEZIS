@@ -1,8 +1,9 @@
 import { join } from "node:path";
-import { describeValidation, runPreflight, ulid, validatePlan } from "@exegezis/core";
+import { runPreflight, ulid, validatePlan } from "@exegezis/core";
 import { EXIT } from "./args.js";
-import { absolute, createAdapter, displayPath, loadTestPlan, printer, runLogger, type CliIo } from "./shared.js";
+import { absolute, createAdapter, displayPath, loadTestPlan, printer, runLogger, validationLines, type CliIo } from "./shared.js";
 import { formatProvenance } from "./verify.js";
+import { t } from "./i18n.js";
 
 export interface ValidateOptions {
   planFile: string;
@@ -25,9 +26,9 @@ export async function validateCommand(options: ValidateOptions, io: CliIo): Prom
 
   out("EXEGEZIS");
   out();
-  out(`Validating ${plan.id} — ${plan.title}`);
-  out(`Target:     ${baseUrl}`);
-  out(`Provenance: ${formatProvenance(plan.provenance)}`);
+  out(t("validate.title", { id: plan.id, title: plan.title }));
+  out(t("validate.target", { url: baseUrl }));
+  out(t("validate.provenance", { value: formatProvenance(plan.provenance) }));
   out();
   const preflight = await runPreflight({
     plan,
@@ -44,16 +45,16 @@ export async function validateCommand(options: ValidateOptions, io: CliIo): Prom
     baseUrl,
   });
 
-  out(`Preflight: ${preflight.pages.length} page(s) observed`);
+  out(t("validate.preflight", { count: preflight.pages.length }));
   if (validation.reference !== null) {
-    out(`Targets checked against the observed page: ${validation.reference.targetsChecked} (unchecked: ${validation.reference.targetsUnchecked})`);
+    out(t("validate.targets", { checked: validation.reference.targetsChecked, unchecked: validation.reference.targetsUnchecked }));
   }
-  out(`Timeouts: action ${validation.timeouts.actionMs} ms, navigation ${validation.timeouts.navigationMs} ms, assertion ${validation.timeouts.assertionMs} ms, run ${validation.timeouts.runMs} ms`);
+  out(t("validate.timeouts", { action: String(validation.timeouts.actionMs), navigation: String(validation.timeouts.navigationMs), assertion: String(validation.timeouts.assertionMs), run: String(validation.timeouts.runMs) }));
   out();
-  out(`Status: ${validation.status.toUpperCase()}`);
-  for (const line of describeValidation(validation)) out(`  ${line}`);
+  out(t("validate.status", { status: validation.status.toUpperCase() }));
+  for (const line of validationLines(validation)) out(`  ${line}`);
   out();
-  out("Preflight evidence:");
+  out(t("validate.evidence"));
   out(displayPath(io, preflight.runDir));
 
   switch (validation.status) {

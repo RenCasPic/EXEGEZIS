@@ -1,8 +1,19 @@
 import { parseArgs } from "node:util";
-import { parseSearchArgs, SEARCH_HELP, type SearchCommand } from "./search-args.js";
+import { t } from "./i18n.js";
+import { parseSearchArgs, type SearchCommand } from "./search-args.js";
 
 export class UsageError extends Error {
   override readonly name = "UsageError";
+}
+
+/** Node's parseArgs errors (English only) in the current language; unknown ones as Node wrote them. */
+export function parseArgsError(error: unknown): UsageError {
+  const e = error as { code?: string; message?: string };
+  const option = /'(-{1,2}[^' ]+)/.exec(e.message ?? "")?.[1] ?? "";
+  if (e.code === "ERR_PARSE_ARGS_UNKNOWN_OPTION") return new UsageError(t("args.unknownOption", { option }));
+  if (e.code === "ERR_PARSE_ARGS_INVALID_OPTION_VALUE") return new UsageError(t("args.optionValue", { option }));
+  if (e.code === "ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL") return new UsageError(t("args.unexpected", { arg: /'([^']+)'/.exec(e.message ?? "")?.[1] ?? "" }));
+  return new UsageError(error instanceof Error ? error.message : String(error));
 }
 
 export const BROWSER_CHANNELS = ["auto", "chromium", "chrome", "msedge"] as const;
@@ -110,121 +121,6 @@ export const EXIT = {
 
 export const MAX_RUNS = 100;
 
-export const HELP = `EXEGEZIS — Software that explains itself.
-
-Usage:
-  exegezis observe   --url <url> [--actions <plan.json>] [options]
-  exegezis run       --plan <test-plan.json> [--base-url <url>] [options]
-  exegezis reproduce --plan <test-plan.json> [--runs 10] [--base-url <url>] [options]
-  exegezis compile   --plan <test-plan.json> [--output <dir>]
-  exegezis verify    --plan <test-plan.json> [--runs 10] [--base-url <url>] [options]
-  exegezis validate  --plan <test-plan.json> [--base-url <url>] [options]
-  exegezis benchmark --suite <name|suite.json> [--runs N] [--case <id>]... [--base-url <url>]
-                     [--planner anthropic|mock] [--model <id>] [--no-examples] [options]
-  exegezis generate-plan --symptom "<text>" [--base-url <url>] [--planner ...] [--examples <suite>] [options]
-  exegezis ai-verify     --symptom "<text>" [--runs 10] [--base-url <url>] [--planner ...] [--examples <suite>] [options]
-  exegezis root-cause    [--suite buggy-shop-root-cause] [--case <id>]... [--runs 5] [options]
-  exegezis inspect       --url <url> [--runs 3] [--max-pages 20] [--max-depth 2] [--checks a,b]
-                         [--storage-state <file>] [--strict-readonly] [--ignore-robots] [options]
-  exegezis doctor        [--install] [--json]
-  exegezis session login|list|delete|http-auth|waf-token|set --url <site> [options]
-  exegezis search        --url <site> (--terms "a, b" | --meaning "<text>" | --template <id>) [options]
-  exegezis search suggest|export|templates …
-  exegezis --help | --version
-
-Commands:
-  observe     Open <url>, run optional actions and record the evidence.
-  run         Execute a test plan once: actions + assertions + evidence.
-  reproduce   Execute a test plan N times in isolation and classify the result
-              (REPRODUCED, NOT_REPRODUCED, FLAKY, INCONCLUSIVE).
-  compile     Compile a test plan into a standalone Playwright spec.
-  verify      preflight + semantic validation + reproduce + compile + run the
-              compiled spec with Playwright + criteria -> bug report with one
-              outcome: VERIFIED, NOT_VERIFIED, INCONCLUSIVE, FLAKY,
-              INVALID_PLAN or UNSUPPORTED.
-  validate    Semantic validation of a plan against a preflight observation.
-  benchmark   Verify every case of a suite (e.g. benchmarks/buggy-shop) and
-              score each outcome against its known answer. Suites whose plans
-              are generated (e.g. buggy-shop-ai) need --planner.
-  generate-plan  A planner (LLM) turns a symptom into a TestPlan, which is
-              validated but NOT executed.
-  ai-verify   symptom -> planner -> TestPlan -> the same verification as
-              "verify". The planner proposes; only the engine decides.
-  inspect     Open a URL without a symptom, walk it read-only (same origin,
-              GET only, no clicks or forms) and report deterministic findings:
-              JS exceptions, console errors, failed requests, broken internal
-              links, accessibility (axe-core, WCAG 2.1 A/AA), mixed content and
-              basic metadata. A finding is VERIFIED only if it appears in every
-              run (fresh contexts); others are INTERMITTENT. Each VERIFIED finding
-              gets evidence and a standalone Playwright spec. Anti-bot, CAPTCHA
-              and login walls give BLOCKED; nothing tries to get past them.
-  session     Saved access for a site, encrypted on this computer (Windows:
-              %LOCALAPPDATA%\\EXEGEZIS\\access, protected with DPAPI; only this
-              Windows user on this computer can open it). Never in runs/ or logs.
-                login      open a visible window: you sign in, pass the
-                           verification or choose in the cookie banner, then
-                           press Enter (or close the window). Saved only if the
-                           block is gone. EXEGEZIS never types or keeps passwords.
-                list       sites with saved access, their state and expiry
-                delete     forget a site's saved access
-                http-auth  save a username and password for HTTP (Basic/Digest)
-                           authentication; the password is asked without echo
-                waf-token  create the X-Exegezis-Token for your own site's WAF
-                           rule and show the Cloudflare steps (--rotate: new one)
-                set        --robots-owner yes|no ("this site is mine: also
-                           inspect what robots.txt excludes"),
-                           --unsafe-pattern <text> (repeatable)
-              inspect uses a site's saved access automatically (--no-session
-              to inspect as an anonymous visitor); with a session it is
-              strict read-only unless --allow-page-writes.
-${SEARCH_HELP.slice(1)}
-  doctor      Check this machine: Node.js, pnpm and the browsers EXEGEZIS can
-              drive (Playwright's Chromium, Google Chrome, Microsoft Edge), with
-              their versions, and say what is missing and how to install it.
-              Nothing is downloaded unless you pass --install, which downloads
-              Playwright's Chromium (~150 MB).
-  root-cause  For each case: reproduce the bug on an isolated copy of the app
-              (baseline), then apply each hypothesis' code mutation to its own
-              copy and reproduce again. A cause is VALIDATED only if its
-              intervention removed the bug in every run and the competing
-              hypotheses were refuted. The source tree is never modified.
-
-Options:
-  --output <dir>     Where results are written. Default: ./runs
-  --runs <n>         Attempts for reproduce/verify/benchmark (1-${MAX_RUNS}). Default: 10
-                     (benchmark: the suite's default)
-  --suite <s>        Benchmark suite name (benchmarks/<s>/suite.json) or path.
-  --case <id>        Only this benchmark case (repeatable).
-  --symptom <text>   The reported problem, in plain language (AI commands).
-  --planner <p>      anthropic (default; needs ANTHROPIC_API_KEY) or mock.
-  --model <id>       Model for the anthropic planner. Default: claude-opus-5.
-  --mock-response <f>  Mock planner: file with a recorded model answer.
-  --examples <suite> Show that suite's solved cases to the planner (AI commands).
-  --no-examples      Benchmark of generated plans: no examples in the prompt.
-  AI commands target ${DEFAULT_AI_BASE_URL} unless --base-url is given.
-  --base-url <url>   Run the plan against another environment.
-  --headed           Show the browser window.
-  --browser-channel <c>  Which browser to drive: auto (default: Playwright's
-                     Chromium if installed, else Google Chrome, else Microsoft
-                     Edge, which comes with Windows), chromium, chrome or msedge.
-                     The browser actually used is recorded in every run.
-  --verbose          Also stream structured logs to stderr.
-
-Exit codes:
-  0  success (run passed, reproduction conclusive, VERIFIED, plan valid,
-     all benchmark cases passed, observe completed)
-  1  expectation not met (assertion failed, NOT_VERIFIED, FLAKY, weakly
-     anchored plan, benchmark case failed)
-  2  usage error          3  internal error
-  4  inconclusive (execution error, timeout, INCONCLUSIVE)
-  5  invalid plan (not executed)
-  6  unsupported plan (not executed)
-  7  engine error: no browser could be started on this machine. Nothing was
-     concluded about the site or the application. Run "pnpm exegezis doctor"
-     (the same command works in Windows CMD, PowerShell, macOS and Linux).
-  8  search: the model was not called, its estimate was over the cost
-     limit (the exact part, if any, ran)
-`;
 
 const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify", "root-cause", "inspect", "doctor", "session"] as const;
 const PLANNERS: readonly Planner[] = ["anthropic", "mock"];
@@ -279,7 +175,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
       },
     });
   } catch (error) {
-    throw new UsageError(error instanceof Error ? error.message : String(error));
+    throw parseArgsError(error);
   }
 
   const { values, positionals } = parsed;
@@ -289,15 +185,15 @@ export function parseCliArgs(argv: readonly string[]): Command {
   const [command, ...rest] = positionals;
   if (command === undefined) return { kind: "help" };
   if (!(COMMANDS as readonly string[]).includes(command)) {
-    throw new UsageError(`Unknown command "${command}". Run "exegezis --help".`);
+    throw new UsageError(t("args.unknownCommand", { command }));
   }
   // `session` takes its action as a positional: `exegezis session login --url …`.
   const [action, ...extra] = command === "session" ? rest : [undefined, ...rest];
   if (command === "session" && (action === undefined || !(SESSION_ACTIONS as readonly string[]).includes(action))) {
-    throw new UsageError(`"session" needs one of: ${SESSION_ACTIONS.join(", ")}. Example: exegezis session login --url https://your-site/`);
+    throw new UsageError(t("args.sessionAction", { actions: SESSION_ACTIONS.join(", ") }));
   }
-  if (extra.length > 0) throw new UsageError(`Unexpected argument "${extra[0]}".`);
-  if (values.output === "") throw new UsageError("--output must not be empty.");
+  if (extra.length > 0) throw new UsageError(t("args.unexpected", { arg: String(extra[0]) }));
+  if (values.output === "") throw new UsageError(t("args.outputEmpty"));
 
   const allowed: Record<(typeof COMMANDS)[number], string[]> = {
     observe: ["url", "actions", "browser-channel"],
@@ -351,23 +247,23 @@ export function parseCliArgs(argv: readonly string[]): Command {
     const value = values[option];
     if (value === undefined || value === false) continue;
     if (!allowed[command as (typeof COMMANDS)[number]].includes(option)) {
-      throw new UsageError(`Option --${option} is not valid for "${command}".`);
+      throw new UsageError(t("args.notValidFor", { option, command }));
     }
   }
   if ((command === "compile" || command === "doctor") && (values.headed || values.verbose)) {
-    throw new UsageError(`Options --headed and --verbose are not valid for "${command}".`);
+    throw new UsageError(t("args.headedVerbose", { command }));
   }
 
   const channel = values["browser-channel"] ?? "auto";
   if (!(BROWSER_CHANNELS as readonly string[]).includes(channel)) {
-    throw new UsageError(`--browser-channel must be one of ${BROWSER_CHANNELS.join(", ")}, got "${channel}".`);
+    throw new UsageError(t("args.oneOf", { option: "--browser-channel", values: BROWSER_CHANNELS.join(", "), value: channel }));
   }
   const common: Common = { output: values.output, headed: values.headed, verbose: values.verbose, browserChannel: channel as BrowserChannelArg };
   const baseUrl = values["base-url"] === undefined ? {} : { baseUrl: httpUrl("--base-url", values["base-url"]) };
 
   switch (command) {
     case "observe": {
-      if (values.url === undefined || values.url === "") throw new UsageError("Missing required option --url <url>.");
+      if (values.url === undefined || values.url === "") throw new UsageError(t("args.missing", { option: "--url <url>" }));
       return {
         kind: "observe",
         url: httpUrl("--url", values.url),
@@ -381,8 +277,8 @@ export function parseCliArgs(argv: readonly string[]): Command {
       return { kind: "doctor", install: values.install, json: values.json };
     case "session": {
       const act = action as SessionAction;
-      if (act !== "list" && (values.url === undefined || values.url === "")) throw new UsageError(`Missing required option --url <site> for "session ${act}".`);
-      if (values["robots-owner"] !== undefined && !["yes", "no"].includes(values["robots-owner"])) throw new UsageError('--robots-owner must be "yes" or "no".');
+      if (act !== "list" && (values.url === undefined || values.url === "")) throw new UsageError(t("args.missingFor", { option: "--url <site>", command: `session ${act}` }));
+      if (values["robots-owner"] !== undefined && !["yes", "no"].includes(values["robots-owner"])) throw new UsageError(t("args.robotsOwner"));
       return {
         kind: "session",
         action: act,
@@ -404,7 +300,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
     case "validate":
       return { kind: "validate", planFile: requirePlan(values.plan), ...baseUrl, ...common };
     case "benchmark": {
-      if (values.suite === undefined || values.suite === "") throw new UsageError("Missing required option --suite <name|suite.json>.");
+      if (values.suite === undefined || values.suite === "") throw new UsageError(t("args.missing", { option: "--suite <name|suite.json>" }));
       return {
         kind: "benchmark",
         suite: values.suite,
@@ -420,14 +316,14 @@ export function parseCliArgs(argv: readonly string[]): Command {
     case "generate-plan":
     case "ai-verify": {
       const symptom = values.symptom?.trim();
-      if (symptom === undefined || symptom === "") throw new UsageError('Missing required option --symptom "<text>".');
+      if (symptom === undefined || symptom === "") throw new UsageError(t("args.missing", { option: '--symptom "<text>"' }));
       const planner: PlannerArgs = {
         planner: values.planner === undefined ? "anthropic" : parsePlanner(values.planner),
         ...(values.model === undefined ? {} : { model: values.model }),
         ...(values["mock-response"] === undefined ? {} : { mockResponse: values["mock-response"] }),
       };
       if (planner.planner === "mock" && planner.mockResponse === undefined) {
-        throw new UsageError("--planner mock needs --mock-response <file>.");
+        throw new UsageError(t("args.mockNeedsResponse"));
       }
       const shared = {
         symptom,
@@ -439,11 +335,11 @@ export function parseCliArgs(argv: readonly string[]): Command {
       return command === "ai-verify" ? { kind: "ai-verify", runs: parseRuns(values.runs), ...shared } : { kind: "generate-plan", ...shared };
     }
     case "inspect": {
-      if (values.url === undefined || values.url === "") throw new UsageError("Missing required option --url <url>.");
+      if (values.url === undefined || values.url === "") throw new UsageError(t("args.missing", { option: "--url <url>" }));
       const int = (option: string, raw: string | undefined, min: number, max: number): number | undefined => {
         if (raw === undefined) return undefined;
         const n = Number(raw);
-        if (!Number.isInteger(n) || n < min || n > max) throw new UsageError(`--${option} must be an integer between ${min} and ${max}, got "${raw}".`);
+        if (!Number.isInteger(n) || n < min || n > max) throw new UsageError(t("args.intRange", { option, min: String(min), max: String(max), value: raw }));
         return n;
       };
       const optional = <K extends string, V>(key: K, value: V | undefined) => (value === undefined ? {} : ({ [key]: value } as Record<K, V>));
@@ -473,19 +369,19 @@ export function parseCliArgs(argv: readonly string[]): Command {
         ...common,
       };
     default:
-      throw new UsageError(`Unknown command "${command}".`);
+      throw new UsageError(t("args.unknownCommand", { command }));
   }
 }
 
 function parsePlanner(value: string): Planner {
   if (!(PLANNERS as readonly string[]).includes(value)) {
-    throw new UsageError(`--planner must be one of ${PLANNERS.join(", ")}, got "${value}".`);
+    throw new UsageError(t("args.oneOf", { option: "--planner", values: PLANNERS.join(", "), value }));
   }
   return value as Planner;
 }
 
 function requirePlan(plan: string | undefined): string {
-  if (plan === undefined || plan === "") throw new UsageError("Missing required option --plan <test-plan.json>.");
+  if (plan === undefined || plan === "") throw new UsageError(t("args.missing", { option: "--plan <test-plan.json>" }));
   return plan;
 }
 
@@ -493,7 +389,7 @@ function parseRuns(runs: string | undefined): number {
   if (runs === undefined) return 10;
   const value = Number(runs);
   if (!Number.isInteger(value) || value < 1 || value > MAX_RUNS) {
-    throw new UsageError(`--runs must be an integer between 1 and ${MAX_RUNS}, got "${runs}".`);
+    throw new UsageError(t("args.intRange", { option: "runs", min: "1", max: String(MAX_RUNS), value: runs }));
   }
   return value;
 }
@@ -503,10 +399,10 @@ function httpUrl(option: string, raw: string): string {
   try {
     url = new URL(raw);
   } catch {
-    throw new UsageError(`Invalid ${option} "${raw}".`);
+    throw new UsageError(t("args.invalidUrl", { option, value: raw }));
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new UsageError(`${option} must use http or https, got "${url.protocol}".`);
+    throw new UsageError(t("args.httpOnly", { option, protocol: url.protocol }));
   }
   return url.toString();
 }

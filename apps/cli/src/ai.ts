@@ -12,6 +12,7 @@ import {
 } from "@exegezis/planner";
 import { UsageError } from "./args.js";
 import { absolute, createAdapter, runLogger, type CliIo } from "./shared.js";
+import { t } from "./i18n.js";
 
 export const GENERATION_FILE = "generation.json";
 export const GENERATED_PLAN_FILE = "plan.json";
@@ -27,7 +28,7 @@ export interface PlannerOptions {
 export async function createPlanner(io: CliIo, options: PlannerOptions): Promise<PlanGenerator> {
   if (options.planner === "mock") {
     if (options.mockResponse === undefined) {
-      throw new UsageError("--planner mock needs --mock-response <file> with a recorded model answer.");
+      throw new UsageError(t("ai.mockNeedsResponse"));
     }
     const answer = await readRecordedAnswer(absolute(io, options.mockResponse));
     return createPlanGenerator("mock", { mock: () => answer });
@@ -39,7 +40,7 @@ export async function readRecordedAnswer(path: string): Promise<MockResponse> {
   try {
     return { text: await readFile(path, "utf8") };
   } catch (error) {
-    throw new UsageError(`Cannot read recorded answer ${path}: ${error instanceof Error ? error.message : String(error)}`);
+    throw new UsageError(t("ai.cannotReadAnswer", { path, message: error instanceof Error ? error.message : String(error) }));
   }
 }
 
@@ -67,9 +68,9 @@ export async function exampleDirsFromSuite(io: CliIo, suite: string): Promise<st
   try {
     raw = JSON.parse(await readFile(suitePath, "utf8")) as { cases?: unknown };
   } catch (error) {
-    throw new UsageError(`Cannot read example suite ${suitePath}: ${error instanceof Error ? error.message : String(error)}`);
+    throw new UsageError(t("ai.cannotReadSuite", { path: suitePath, message: error instanceof Error ? error.message : String(error) }));
   }
-  if (!Array.isArray(raw.cases)) throw new UsageError(`Example suite ${suitePath} has no cases.`);
+  if (!Array.isArray(raw.cases)) throw new UsageError(t("ai.noCases", { path: suitePath }));
   return raw.cases.map((c) => resolve(dirname(suitePath), String(c)));
 }
 

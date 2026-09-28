@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { reproducePlan, ulid, type ReproductionAttempt, type ReproductionResult, type TestPlan } from "@exegezis/core";
 import { EXIT } from "./args.js";
+import { engineText, t } from "./i18n.js";
 import { absolute, createAdapter, displayPath, loadTestPlan, percent, printer, rejectUnexecutable, runLogger, type CliIo } from "./shared.js";
 
 export interface ReproduceOptions {
@@ -40,9 +41,9 @@ export function formatAttempt(attempt: ReproductionAttempt, total: number): stri
   const verdict = attempt.verdict.toUpperCase().padEnd(13);
   const detail =
     attempt.verdict === "failed"
-      ? `step ${attempt.stoppedAtStep ?? "?"}`
+      ? t("reproduce.step", { step: String(attempt.stoppedAtStep ?? "?") })
       : attempt.verdict === "error" || attempt.verdict === "timeout"
-        ? `step ${attempt.stoppedAtStep ?? "?"}: ${attempt.error ?? ""}`
+        ? t("reproduce.stepDetail", { step: String(attempt.stoppedAtStep ?? "?"), detail: attempt.error ?? "" })
         : "";
   return `  ${n}  ${attempt.runId}  ${verdict} ${detail}`.trimEnd();
 }
@@ -50,15 +51,15 @@ export function formatAttempt(attempt: ReproductionAttempt, total: number): stri
 export function formatReproduction(result: ReproductionResult): string[] {
   const r = result.reproduction;
   return [
-    `Runs:     ${String(r.attempts).padStart(3)}`,
-    `Passed:   ${String(r.passes).padStart(3)}`,
-    `Failed:   ${String(r.failures).padStart(3)}`,
-    `Timeouts: ${String(r.timeouts).padStart(3)}`,
-    `Errors:   ${String(r.errors).padStart(3)}`,
-    `Rate:    ${percent(r.rate).padStart(4)}`,
+    t("reproduce.runs", { n: String(r.attempts).padStart(3) }),
+    t("reproduce.passed", { n: String(r.passes).padStart(3) }),
+    t("reproduce.failed", { n: String(r.failures).padStart(3) }),
+    t("reproduce.timeouts", { n: String(r.timeouts).padStart(3) }),
+    t("reproduce.errors", { n: String(r.errors).padStart(3) }),
+    t("reproduce.rate", { n: percent(r.rate).padStart(4) }),
     "",
-    `Result: ${r.status}`,
-    r.reason,
+    t("reproduce.result", { status: r.status }),
+    engineText(r.message, r.reason),
   ];
 }
 
@@ -72,14 +73,14 @@ export async function reproduceCommand(options: ReproduceOptions, io: CliIo): Pr
 
   out("EXEGEZIS");
   out();
-  out(`Reproduction — ${plan.id}: ${plan.title}`);
-  out(`Target: ${options.baseUrl ?? plan.target.baseUrl}`);
+  out(t("reproduce.title", { id: plan.id, title: plan.title }));
+  out(t("reproduce.target", { url: options.baseUrl ?? plan.target.baseUrl }));
   out();
   const result = await reproduceWithProgress(io, plan, { ...options, dir, command: "reproduce" });
   out();
   for (const line of formatReproduction(result)) out(line);
   out();
-  out("Artifacts:");
+  out(t("common.artifacts"));
   out(displayPath(io, dir));
 
   switch (result.reproduction.status) {

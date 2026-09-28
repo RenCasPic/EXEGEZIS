@@ -1,5 +1,6 @@
 import { executeRun, RunRecorder } from "@exegezis/core";
 import { EXIT } from "./args.js";
+import { t } from "./i18n.js";
 import { absolute, createAdapter, displayPath, firstLine, loadTestPlan, printer, rejectUnexecutable, renderSteps, runLogger, type CliIo } from "./shared.js";
 
 export interface RunOptions {
@@ -21,9 +22,9 @@ export async function runCommand(options: RunOptions, io: CliIo): Promise<number
 
   out("EXEGEZIS");
   out();
-  out(`Plan:    ${plan.id} — ${plan.title}`);
-  out(`Target:  ${options.baseUrl ?? plan.target.baseUrl}`);
-  out(`Run:     ${recorder.runId}`);
+  out(t("run.plan", { id: plan.id, title: plan.title }));
+  out(t("common.targetLine", { url: options.baseUrl ?? plan.target.baseUrl }));
+  out(t("run.run", { id: recorder.runId }));
   out();
   out("PLAN_STARTED");
   out();
@@ -44,31 +45,31 @@ export async function runCommand(options: RunOptions, io: CliIo): Promise<number
   const counts =
     assertions === undefined
       ? ""
-      : ` (${assertions.passed} passed, ${assertions.failed} failed, ${assertions.timedOut} timed out, ${assertions.errored} errors, ${assertions.notRun} not run)`;
+      : t("run.counts", { passed: assertions.passed, failed: assertions.failed, timedOut: assertions.timedOut, errored: assertions.errored, notRun: assertions.notRun });
   switch (outcome.verdict) {
     case "passed":
       out(`PLAN_PASSED${counts}`);
       break;
     case "failed":
-      out(`PLAN_FAILED at step ${outcome.stoppedAtStep ?? "?"}${counts}`);
-      out("An expectation was evaluated and did not hold (expected != actual).");
-      out("That alone does not prove a bug: `exegezis verify` decides that.");
+      out(t("run.failedAt", { step: String(outcome.stoppedAtStep ?? "?"), counts }));
+      out(t("run.failedExplain"));
+      out(t("run.failedNotProof"));
       break;
     case "timeout":
-      out(`PLAN_TIMEOUT at step ${outcome.stoppedAtStep ?? "?"}${counts}`);
-      out("An assertion reached its timeout without a conclusion: this is not evidence of a bug.");
+      out(t("run.timeoutAt", { step: String(outcome.stoppedAtStep ?? "?"), counts }));
+      out(t("run.timeoutExplain"));
       break;
     case "error":
-      out(`PLAN_ERROR at step ${outcome.stoppedAtStep ?? "?"}${counts}`);
-      out(`The plan could not be evaluated: ${firstLine(outcome.metadata.error?.message ?? "unknown error")}`);
-      out("This is not evidence of a bug (wrong selector, unreachable app, timeout...).");
+      out(t("run.errorAt", { step: String(outcome.stoppedAtStep ?? "?"), counts }));
+      out(t("run.errorExplain", { message: firstLine(outcome.metadata.error?.message ?? t("common.unknownError")) }));
+      out(t("run.errorNotProof"));
       break;
     case "no_assertions":
-      out("PLAN_COMPLETED (no assertions: nothing to conclude)");
+      out(t("run.noAssertions"));
       break;
   }
   out();
-  out("Artifacts:");
+  out(t("common.artifacts"));
   out(displayPath(io, recorder.dir));
   return outcome.verdict === "passed" || outcome.verdict === "no_assertions"
     ? EXIT.ok
