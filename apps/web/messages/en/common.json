@@ -147,5 +147,14 @@
     "install": "Install Playwright's Chromium (downloads about 150 MB, only when you run this):",
     "doctor": "Check which browsers this computer has and what is missing:",
     "installed": "Or use a browser that is already installed: Google Chrome (https://www.google.com/chrome/) or Microsoft Edge (comes with Windows), with the browser set to “Automatic” (--browser-channel auto)."
+  },
+  "browserChannel": {
+    "auto": "Automatic (Playwright's Chromium, else Chrome, else Edge)",
+    "chromium": "Playwright's Chromium",
+    "chrome": "System Google Chrome",
+    "msedge": "System Microsoft Edge"
+  },
+  "permission": {
+    "text": "Only inspect sites that are yours or that you are allowed to inspect."
   }
 }

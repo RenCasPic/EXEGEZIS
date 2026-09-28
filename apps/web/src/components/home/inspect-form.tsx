@@ -2,16 +2,17 @@
 
 import { AlertTriangle, ChevronDown, Globe, KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useState } from "react";
 import { accessStatusAction } from "@/app/access-actions";
 import { startInspectionAction, type InspectState } from "@/app/actions";
 import { EngineProblem } from "@/components/ui/copy-command";
 import { buttonClass } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
-import { hostOf, PERMISSION_TEXT, remember, remembered } from "@/lib/site-permission";
-import { BROWSER_CHANNEL_IDS, BROWSER_CHANNEL_LABEL, INSPECT_CHECKS, INSPECT_DEFAULTS, isLoopbackHost, type BrowserChannelId } from "@/lib/inspect-checks";
+import { hostOf, remember, remembered } from "@/lib/site-permission";
+import { BROWSER_CHANNEL_IDS, INSPECT_CHECKS, INSPECT_DEFAULTS, isLoopbackHost, type BrowserChannelId } from "@/lib/inspect-checks";
 
-const ACCESS_KIND: Record<string, string> = { session: "sesión", httpCredentials: "usuario y contraseña HTTP", wafToken: "token del WAF" };
+const ACCESS_KINDS = ["session", "httpCredentials", "wafToken"] as const;
 
 const input = "h-9 w-full rounded-md border border-line-strong bg-panel px-2.5 text-[13px] text-fg";
 
@@ -21,6 +22,8 @@ const input = "h-9 w-full rounded-md border border-line-strong bg-panel px-2.5 t
  * inspect it; the server refuses an external host without that confirmation.
  */
 export function InspectForm() {
+  const t = useTranslations("home.form");
+  const tc = useTranslations("common");
   const [state, action, pending] = useActionState<InspectState, FormData>(startInspectionAction, { error: null });
   const [url, setUrl] = useState("");
   const [maxPages, setMaxPages] = useState("");
@@ -62,17 +65,17 @@ export function InspectForm() {
     };
     // Only the origin matters: the url is read when the host changes.
   }, [host]);
-  const accessKinds = access === null ? [] : access.kinds.map((k) => ACCESS_KIND[k] ?? k);
+  const accessKinds = access === null ? [] : access.kinds.map((k) => ((ACCESS_KINDS as readonly string[]).includes(k) ? t(`inspect.accessKind.${k as (typeof ACCESS_KINDS)[number]}`) : k));
 
   const chips = [
-    `${maxPages === "" ? INSPECT_DEFAULTS.maxPages : maxPages} páginas`,
-    `profundidad ${maxDepth === "" ? INSPECT_DEFAULTS.maxDepth : maxDepth}`,
-    `${runs === "" ? INSPECT_DEFAULTS.runs : runs} repeticiones`,
-    strict ? "solo lectura estricta" : "solo lectura",
-    ...(checks.length > 0 && checks.length < INSPECT_CHECKS.length ? [`${checks.length} comprobaciones`] : []),
-    ...(ignoreRobots ? ["ignora robots.txt"] : []),
-    ...(browserChannel === "auto" ? [] : [`navegador: ${browserChannel}`]),
-    ...(access !== null && accessKinds.length > 0 ? [noSession ? "visitante anónimo" : "con sesión"] : []),
+    t("chipPages", { count: Number(maxPages === "" ? INSPECT_DEFAULTS.maxPages : maxPages) }),
+    t("chipDepth", { depth: maxDepth === "" ? INSPECT_DEFAULTS.maxDepth : maxDepth }),
+    t("inspect.chipRuns", { count: Number(runs === "" ? INSPECT_DEFAULTS.runs : runs) }),
+    strict ? t("inspect.chipStrict") : t("inspect.chipReadonly"),
+    ...(checks.length > 0 && checks.length < INSPECT_CHECKS.length ? [t("inspect.chipChecks", { count: checks.length })] : []),
+    ...(ignoreRobots ? [t("chipIgnoreRobots")] : []),
+    ...(browserChannel === "auto" ? [] : [t("inspect.chipBrowser", { browser: browserChannel })]),
+    ...(access !== null && accessKinds.length > 0 ? [noSession ? t("chipAnonymous") : t("chipSession")] : []),
   ];
 
   return (
@@ -84,7 +87,7 @@ export function InspectForm() {
       className="flex flex-col gap-3"
     >
       <label htmlFor="inspect-url" className="text-[13px] font-medium text-fg">
-        URL del sitio
+        {t("siteUrl")}
       </label>
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative min-w-0 flex-1">
@@ -97,7 +100,7 @@ export function InspectForm() {
             required
             autoComplete="url"
             spellCheck={false}
-            placeholder="https://tu-sitio.com"
+            placeholder={t("urlPlaceholder")}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             aria-describedby="inspect-permission"
@@ -106,11 +109,11 @@ export function InspectForm() {
         </div>
         <button type="submit" disabled={pending || (needsPermission && !confirmed)} className={cn(buttonClass("primary"), "h-14 px-6 text-[15px]")}>
           {pending ? <Loader2 className="animate-spin" aria-hidden /> : null}
-          Inspeccionar
+          {t("inspect.submit")}
         </button>
       </div>
 
-      <ul className="flex flex-wrap gap-1.5" aria-label="Opciones de la inspección">
+      <ul className="flex flex-wrap gap-1.5" aria-label={t("inspect.options")}>
         {chips.map((c) => (
           <li key={c} className="rounded-full border border-line bg-sunken px-2.5 py-0.5 text-[12px] text-muted">
             {c}
@@ -126,17 +129,16 @@ export function InspectForm() {
           {access.expired ? <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden /> : <KeyRound className="mt-0.5 size-3.5 shrink-0" aria-hidden />}
           <span>
             {access.expired ? (
-              <>
-                La sesión guardada para <span className="font-mono">{access.origin}</span> ha caducado. Renuévala en{" "}
-                <Link href="/settings/access" className="text-accent-text underline">
-                  Ajustes → Accesos
-                </Link>{" "}
-                antes de inspeccionar, o marca «Inspeccionar como visitante anónimo» en las opciones avanzadas.
-              </>
+              t.rich("inspect.expired", {
+                origin: () => <span className="font-mono">{access.origin}</span>,
+                link: (chunks) => (
+                  <Link href="/settings/access" className="text-accent-text underline">
+                    {chunks}
+                  </Link>
+                ),
+              })
             ) : (
-              <>
-                Se usará el acceso guardado para <span className="font-mono">{access.origin}</span> ({accessKinds.join(", ")}), en solo lectura estricta.
-              </>
+              t.rich("inspect.willUse", { kinds: accessKinds.join(", "), origin: () => <span className="font-mono">{access.origin}</span> })
             )}
           </span>
         </p>
@@ -146,13 +148,13 @@ export function InspectForm() {
         <label id="inspect-permission" className="flex items-start gap-2 rounded-md border border-warn/30 bg-warn-bg px-3 py-2 text-[13px] text-fg">
           <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="mt-0.5 size-4 accent-[var(--accent)]" />
           <span>
-            {PERMISSION_TEXT} Confirmo que puedo inspeccionar <span className="font-mono">{host}</span>.
+            {tc("permission.text")} {t.rich("inspect.confirm", { host: () => <span className="font-mono">{host}</span> })}
           </span>
         </label>
       ) : (
         <p id="inspect-permission" className="flex items-center gap-1.5 text-[12px] text-muted">
           <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
-          {PERMISSION_TEXT} La inspección es de solo lectura: no envía formularios ni pulsa botones.
+          {tc("permission.text")} {t("inspect.readonlyNote")}
         </p>
       )}
       <input type="hidden" name="permission" value={!external || known || confirmed ? "on" : ""} />
@@ -160,14 +162,14 @@ export function InspectForm() {
       <details className="group rounded-md border border-line">
         <summary className="flex cursor-pointer items-center gap-1.5 px-3 py-2 text-[13px] text-muted hover:text-fg">
           <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" aria-hidden />
-          Opciones avanzadas
+          {t("advanced")}
         </summary>
         <div className="grid gap-4 border-t border-line p-3 sm:grid-cols-3">
           {(
             [
-              ["maxPages", "Páginas", maxPages, setMaxPages, 1, 500, INSPECT_DEFAULTS.maxPages],
-              ["maxDepth", "Profundidad", maxDepth, setMaxDepth, 0, 10, INSPECT_DEFAULTS.maxDepth],
-              ["runs", "Repeticiones", runs, setRuns, 1, 20, INSPECT_DEFAULTS.runs],
+              ["maxPages", t("pages"), maxPages, setMaxPages, 1, 500, INSPECT_DEFAULTS.maxPages],
+              ["maxDepth", t("depth"), maxDepth, setMaxDepth, 0, 10, INSPECT_DEFAULTS.maxDepth],
+              ["runs", t("inspect.runs"), runs, setRuns, 1, 20, INSPECT_DEFAULTS.runs],
             ] as const
           ).map(([name, label, value, set, min, max, def]) => (
             <label key={name} className="flex flex-col gap-1 text-[12px] text-muted">
@@ -176,7 +178,7 @@ export function InspectForm() {
             </label>
           ))}
           <fieldset className="sm:col-span-3">
-            <legend className="mb-1 text-[12px] text-muted">Comprobaciones (ninguna marcada = todas)</legend>
+            <legend className="mb-1 text-[12px] text-muted">{t("inspect.checks")}</legend>
             <div className="grid gap-1 sm:grid-cols-2">
               {INSPECT_CHECKS.map((c) => (
                 <label key={c.id} className="flex items-center gap-2 text-[13px] text-fg">
@@ -188,38 +190,36 @@ export function InspectForm() {
                     onChange={(e) => setChecks((prev) => (e.target.checked ? [...prev, c.id] : prev.filter((x) => x !== c.id)))}
                     className="size-4 accent-[var(--accent)]"
                   />
-                  {c.label}
+                  {t(`inspect.checkLabel.${c.id}`)}
                 </label>
               ))}
             </div>
           </fieldset>
           <label className="flex flex-col gap-1 text-[12px] text-muted sm:col-span-3">
-            storageState (ruta a un archivo de sesión de Playwright en esta máquina; su contenido no se muestra ni se guarda en el informe)
-            <input name="storageState" value={storageState} onChange={(e) => setStorageState(e.target.value)} placeholder="p. ej. ./auth/state.json" className={`${input} font-mono`} />
+            {t("inspect.storageState")}
+            <input name="storageState" value={storageState} onChange={(e) => setStorageState(e.target.value)} placeholder={t("inspect.storagePlaceholder")} className={`${input} font-mono`} />
           </label>
           <label className="flex items-start gap-2 text-[13px] text-fg sm:col-span-3">
             <input type="checkbox" name="strictReadonly" checked={strict} onChange={(e) => setStrict(e.target.checked)} className="mt-0.5 size-4 accent-[var(--accent)]" />
-            <span>
-              Solo lectura estricta: bloquear también las escrituras que haga la propia página. Esas páginas quedan DEGRADED y sus hallazgos se descartan.
-            </span>
+            <span>{t("inspect.strict")}</span>
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-muted sm:col-span-3">
-            Navegador
+            {t("browser")}
             <select name="browserChannel" value={browserChannel} onChange={(e) => setBrowserChannel(e.target.value as BrowserChannelId)} className={input}>
               {BROWSER_CHANNEL_IDS.map((c) => (
                 <option key={c} value={c}>
-                  {BROWSER_CHANNEL_LABEL[c]}
+                  {tc(`browserChannel.${c}`)}
                 </option>
               ))}
             </select>
           </label>
           <label className="flex items-start gap-2 text-[13px] text-fg sm:col-span-3">
             <input type="checkbox" name="ignoreRobots" checked={ignoreRobots} onChange={(e) => setIgnoreRobots(e.target.checked)} className="mt-0.5 size-4 accent-[var(--accent)]" />
-            <span>Ignorar robots.txt (la URL inicial se visita siempre; robots.txt solo limita el descubrimiento).</span>
+            <span>{t("inspect.ignoreRobots")}</span>
           </label>
           <label className="flex items-start gap-2 text-[13px] text-fg sm:col-span-3">
             <input type="checkbox" name="noSession" checked={noSession} onChange={(e) => setNoSession(e.target.checked)} className="mt-0.5 size-4 accent-[var(--accent)]" />
-            <span>Inspeccionar como visitante anónimo: no usar el acceso guardado para este sitio (sesión, usuario HTTP o token del WAF).</span>
+            <span>{t("inspect.anonymous")}</span>
           </label>
         </div>
       </details>

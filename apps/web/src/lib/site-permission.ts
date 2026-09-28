@@ -1,10 +1,10 @@
 /*
- * «Inspecciona solo sitios que sean tuyos o para los que tengas permiso»:
- * confirmed once per external host, remembered in this browser only.
+ * "Only inspect sites that are yours or that you are allowed to inspect"
+ * (common.permission.text): confirmed once per external host, remembered in
+ * this browser only.
  */
 
 const PERMISSION_PREFIX = "exegezis-inspect-permission:";
-export const PERMISSION_TEXT = "Inspecciona solo sitios que sean tuyos o para los que tengas permiso.";
 
 export function hostOf(value: string): string | null {
   try {

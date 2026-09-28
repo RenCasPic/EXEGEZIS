@@ -147,5 +147,14 @@
     "install": "Instala el Chromium de Playwright (descarga unos 150 MB, solo cuando ejecutas esto):",
     "doctor": "Comprueba qué navegadores tiene este equipo y qué falta:",
     "installed": "O usa un navegador que ya esté instalado: Google Chrome (https://www.google.com/chrome/) o Microsoft Edge (viene con Windows), con el navegador en «Automático» (--browser-channel auto)."
+  },
+  "browserChannel": {
+    "auto": "Automático (Chromium de Playwright, si no Chrome, si no Edge)",
+    "chromium": "Chromium de Playwright",
+    "chrome": "Google Chrome del sistema",
+    "msedge": "Microsoft Edge del sistema"
+  },
+  "permission": {
+    "text": "Inspecciona solo sitios que sean tuyos o para los que tengas permiso."
   }
 }

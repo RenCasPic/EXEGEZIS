@@ -1,27 +1,14 @@
 /**
- * The checks `exegezis inspect` knows (packages/inspect/src/checks). The UI
+ * The checks `exegezis inspect` knows (packages/inspect/src/checks; their
+ * names: home.form.inspect.checkLabel.<id>). The UI
  * does not import the inspector (it would pull a browser into the web
  * server); a test keeps this list equal to the real registry.
  */
-export const INSPECT_CHECKS = [
-  { id: "js-exceptions", label: "Excepciones JS" },
-  { id: "console-errors", label: "Errores de consola" },
-  { id: "failed-requests", label: "Peticiones fallidas" },
-  { id: "broken-links", label: "Enlaces rotos" },
-  { id: "a11y", label: "Accesibilidad (axe, WCAG 2.1 AA)" },
-  { id: "mixed-content", label: "Contenido mixto" },
-  { id: "seo-basics", label: "SEO básico (info)" },
-] as const;
+export const INSPECT_CHECKS = [{ id: "js-exceptions" }, { id: "console-errors" }, { id: "failed-requests" }, { id: "broken-links" }, { id: "a11y" }, { id: "mixed-content" }, { id: "seo-basics" }] as const;
 
-/** --browser-channel values (the CLI's). */
+/** --browser-channel values (the CLI's; their names: common.browserChannel.<id>). */
 export const BROWSER_CHANNEL_IDS = ["auto", "chromium", "chrome", "msedge"] as const;
 export type BrowserChannelId = (typeof BROWSER_CHANNEL_IDS)[number];
-export const BROWSER_CHANNEL_LABEL: Record<BrowserChannelId, string> = {
-  auto: "Automático (Chromium de Playwright, si no Chrome, si no Edge)",
-  chromium: "Chromium de Playwright",
-  chrome: "Google Chrome del sistema",
-  msedge: "Microsoft Edge del sistema",
-};
 
 /** Defaults of the CLI, shown as chips on the form. */
 export const INSPECT_DEFAULTS = { maxPages: 20, maxDepth: 2, runs: 3 } as const;
