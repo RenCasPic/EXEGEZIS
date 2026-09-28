@@ -191,7 +191,7 @@ describe("the UI in English and in Spanish", () => {
   it("the choice in the top bar persists across navigation and reload", async () => {
     const context = await contextFor(null, { acceptLanguage: "en-US" });
     const page = await context.newPage();
-    await page.goto(`${base}/`, { waitUntil: "load" });
+    await page.goto(`${base}/`, { waitUntil: "networkidle" });
     expect(await page.evaluate(() => document.documentElement.lang)).toBe("en");
     await page.locator('[role="radiogroup"] [lang="es"]').click();
     await page.waitForFunction(() => document.documentElement.lang === "es", undefined, { timeout: 60_000 });
@@ -224,7 +224,8 @@ describe("the UI in English and in Spanish", () => {
     // The mobile switcher: one button that cycles the language.
     const context = await contextFor("en", { width: 375 });
     const page = await context.newPage();
-    await page.goto(`${base}/`, { waitUntil: "load" });
+    // Clicked only once React has hydrated the page (in development the bundle arrives after "load").
+    await page.goto(`${base}/`, { waitUntil: "networkidle" });
     const toggle = page.locator("[data-language-toggle]");
     await expect(toggle.isVisible()).resolves.toBe(true);
     await toggle.click();
