@@ -1,4 +1,4 @@
-import type { BlockInfo, BlockKind, NetworkFile, PageInspectionFile, PageStatus } from "@exegezis/core";
+import { englishOf, msg, type BlockInfo, type BlockKind, type EngineMessage, type NetworkFile, type PageInspectionFile, type PageStatus } from "@exegezis/core";
 
 export interface VisitFacts {
   /** The navigation's error, when the page could not be loaded at all. */
@@ -16,7 +16,14 @@ export interface Classification {
   httpStatus: number | null;
   finalUrl: string | null;
   reason: string | null;
+  /** The reason as a code and parameters (docs/11-i18n.md). */
+  reasonMessage?: EngineMessage;
   block: BlockInfo | null;
+}
+
+/** A classification whose reason is a message (the English text is derived from it). */
+function classified(status: PageStatus, httpStatus: number | null, finalUrl: string | null, reason: EngineMessage | null, block: BlockInfo | null = null): Classification {
+  return reason === null ? { status, httpStatus, finalUrl, reason: null, block } : { status, httpStatus, finalUrl, reason: englishOf(reason), reasonMessage: reason, block };
 }
 
 const UNREACHABLE = /ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|ERR_ADDRESS|ERR_INTERNET_DISCONNECTED|ERR_CERT|ERR_SSL|ERR_BAD_SSL|ERR_TUNNEL|ERR_PROXY|ERR_EMPTY_RESPONSE|ERR_NETWORK|ERR_TIMED_OUT|NS_ERROR|SSL_ERROR|certificate/i;
@@ -48,36 +55,36 @@ export function classifyVisit(facts: VisitFacts): Classification {
 
   if (facts.navigationError !== null && httpStatus === null) {
     const message = facts.navigationError.split("\n")[0] ?? facts.navigationError;
-    if (TIMEOUT.test(message) && !/ERR_TIMED_OUT/.test(message)) return { status: "TIMEOUT", httpStatus, finalUrl, reason: message, block: null };
+    if (TIMEOUT.test(message) && !/ERR_TIMED_OUT/.test(message)) return classified("TIMEOUT", httpStatus, finalUrl, msg("pageBrowserError", { message }));
     const restricted = networkRestriction(message, facts.requestedUrl);
-    return {
-      status: "UNREACHABLE",
+    return classified(
+      "UNREACHABLE",
       httpStatus,
       finalUrl,
-      reason: UNREACHABLE.test(message) ? message : `navigation failed: ${message}`,
-      block: restricted === null ? null : block("NETWORK_RESTRICTED", restricted, undefined, facts, {}),
-    };
+      UNREACHABLE.test(message) ? msg("pageBrowserError", { message }) : msg("pageNavigationFailed", { message }),
+      restricted === null ? null : block("NETWORK_RESTRICTED", restricted, undefined, facts, {}),
+    );
   }
 
   const kind = detectBlock(facts, document);
   if (kind !== null) {
     const headers = pick(document?.headers ?? {});
-    return { status: "BLOCKED", httpStatus, finalUrl, reason: kind.detail, block: block(kind.kind, kind.detail, document, facts, headers, retryAfter(headers["retry-after"])) };
+    return classified("BLOCKED", httpStatus, finalUrl, kind.message, block(kind.kind, kind.message, document, facts, headers, retryAfter(headers["retry-after"])));
   }
 
   if (facts.navigationError !== null) {
     const message = facts.navigationError.split("\n")[0] ?? facts.navigationError;
-    if (TIMEOUT.test(message)) return { status: "TIMEOUT", httpStatus, finalUrl, reason: message, block: null };
+    if (TIMEOUT.test(message)) return classified("TIMEOUT", httpStatus, finalUrl, msg("pageBrowserError", { message }));
   }
   if (facts.strictReadonly && (facts.inspection?.blockedWrites.length ?? 0) > 0) {
-    return { status: "DEGRADED", httpStatus, finalUrl, reason: `${facts.inspection?.blockedWrites.length ?? 0} write(s) of the page blocked by --strict-readonly`, block: null };
+    return classified("DEGRADED", httpStatus, finalUrl, msg("pageWritesBlocked", { count: facts.inspection?.blockedWrites.length ?? 0 }));
   }
-  if (httpStatus !== null && httpStatus >= 400) return { status: "HTTP_ERROR", httpStatus, finalUrl, reason: `the page answered ${httpStatus}`, block: null };
-  if (httpStatus === null) return { status: "UNREACHABLE", httpStatus, finalUrl, reason: "no response for the page", block: null };
+  if (httpStatus !== null && httpStatus >= 400) return classified("HTTP_ERROR", httpStatus, finalUrl, msg("pageHttpError", { status: String(httpStatus) }));
+  if (httpStatus === null) return classified("UNREACHABLE", httpStatus, finalUrl, msg("pageNoResponse"));
   return { status: "OK", httpStatus, finalUrl, reason: null, block: null };
 }
 
-function detectBlock(facts: VisitFacts, document: Document | undefined): { kind: BlockKind; detail: string } | null {
+function detectBlock(facts: VisitFacts, document: Document | undefined): { kind: BlockKind; message: EngineMessage } | null {
   const status = document?.status ?? null;
   const headers = document?.headers ?? {};
   const signals = facts.inspection?.blockSignals;
@@ -87,33 +94,36 @@ function detectBlock(facts: VisitFacts, document: Document | undefined): { kind:
 
   // 1. HTTP_AUTH
   const auth = headers["www-authenticate"];
-  if (status === 401 && auth !== undefined && /^\s*(basic|digest)\b/i.test(auth)) return { kind: "HTTP_AUTH", detail: `401 asking for ${auth.trim().split(/\s+/)[0]} authentication` };
+  if (status === 401 && auth !== undefined && /^\s*(basic|digest)\b/i.test(auth)) return { kind: "HTTP_AUTH", message: msg("blockHttpAuth", { scheme: auth.trim().split(/\s+/)[0] ?? "" }) };
 
   // 2. BOT_CHALLENGE
-  if (strong.length > 0) return { kind: "BOT_CHALLENGE", detail: `anti-bot challenge: ${strong.join(", ")}` };
-  if (/challenge/i.test(headers["cf-mitigated"] ?? "")) return { kind: "BOT_CHALLENGE", detail: "Cloudflare challenge (cf-mitigated: challenge)" };
+  if (strong.length > 0) return { kind: "BOT_CHALLENGE", message: msg("blockChallenge", { markers: strong.join(", ") }) };
+  if (/challenge/i.test(headers["cf-mitigated"] ?? "")) return { kind: "BOT_CHALLENGE", message: msg("blockCloudflare") };
   if (status !== null && [401, 403, 429, 503].includes(status) && (markers.length > 0 || headers["x-datadome"] !== undefined || (challengeCookies.length > 0 && /cloudflare|akamai/i.test(headers.server ?? "")))) {
-    return { kind: "BOT_CHALLENGE", detail: `${status} with challenge signals: ${[...markers, ...challengeCookies.map((c) => `cookie ${c}`), ...(headers["x-datadome"] === undefined ? [] : ["x-datadome"])].join(", ")}` };
+    return {
+      kind: "BOT_CHALLENGE",
+      message: msg("blockChallengeSignals", { status: String(status), signals: [...markers, ...challengeCookies.map((c) => `cookie ${c}`), ...(headers["x-datadome"] === undefined ? [] : ["x-datadome"])].join(", ") }),
+    };
   }
 
   // 3–4. SESSION_EXPIRED / LOGIN_WALL
   const login = loginWall(facts, document);
-  if (login !== null) return facts.sessionUsed === true ? { kind: "SESSION_EXPIRED", detail: `the saved session no longer works: ${login}` } : { kind: "LOGIN_WALL", detail: login };
+  if (login !== null) return facts.sessionUsed === true ? { kind: "SESSION_EXPIRED", message: msg("blockSessionExpired", { detail: login }) } : { kind: "LOGIN_WALL", message: login };
 
   // 5. CONSENT_WALL
   const consent = signals?.consent ?? null;
   if (consent !== null && ((consent.vendor !== null && consent.coverage >= 0.3) || (consent.coverage >= 0.5 && consent.scrollLocked))) {
-    return { kind: "CONSENT_WALL", detail: `cookie consent dialog${consent.vendor === null ? "" : ` (${consent.vendor})`} covers ${Math.round(consent.coverage * 100)}% of the page${consent.scrollLocked ? " and locks scrolling" : ""}` };
+    return { kind: "CONSENT_WALL", message: msg("blockConsent", { vendor: consent.vendor ?? "none", coverage: Math.round(consent.coverage * 100), locked: consent.scrollLocked ? "yes" : "no" }) };
   }
 
   // 6. RATE_LIMITED
   if (status === 429 || (status === 503 && headers["retry-after"] !== undefined)) {
-    return { kind: "RATE_LIMITED", detail: `${status}${headers["retry-after"] === undefined ? "" : ` · Retry-After: ${headers["retry-after"]}`}` };
+    return { kind: "RATE_LIMITED", message: msg("blockRateLimited", { status: String(status), retry: headers["retry-after"] ?? "none" }) };
   }
 
   // 7. FORBIDDEN
-  if (status === 403) return { kind: "FORBIDDEN", detail: "403 Forbidden without a challenge (IP, country or WAF rule)" };
-  if (status === 451) return { kind: "FORBIDDEN", detail: "451 Unavailable For Legal Reasons" };
+  if (status === 403) return { kind: "FORBIDDEN", message: msg("blockForbidden") };
+  if (status === 451) return { kind: "FORBIDDEN", message: msg("blockLegal") };
   return null;
 }
 
@@ -123,12 +133,12 @@ function detectBlock(facts: VisitFacts, document: Document | undefined): { kind:
  * content), or (3) a 401 without WWW-Authenticate. Inspecting a login URL
  * itself is never a wall; a login box next to visible content is not either.
  */
-function loginWall(facts: VisitFacts, document: Document | undefined): string | null {
+function loginWall(facts: VisitFacts, document: Document | undefined): EngineMessage | null {
   if (isLoginUrl(facts.requestedUrl)) return null;
-  if (document !== undefined && isLoginUrl(document.url) && samePlace(facts.requestedUrl, document.url) === false) return `redirected to the login page ${document.url}`;
+  if (document !== undefined && isLoginUrl(document.url) && samePlace(facts.requestedUrl, document.url) === false) return msg("loginRedirected", { url: document.url });
   const login = facts.inspection?.blockSignals.login;
-  if (login !== undefined && login.visiblePassword && login.wordsOutsideForms < 60 && !login.mainContent) return "the requested content is replaced by a login form";
-  if (document?.status === 401 && document.headers["www-authenticate"] === undefined) return "401 from the application";
+  if (login !== undefined && login.visiblePassword && login.wordsOutsideForms < 60 && !login.mainContent) return msg("loginForm");
+  if (document?.status === 401 && document.headers["www-authenticate"] === undefined) return msg("login401");
   return null;
 }
 
@@ -151,16 +161,16 @@ function samePlace(a: string, b: string): boolean {
   }
 }
 
-function networkRestriction(message: string, requested: string): string | null {
+function networkRestriction(message: string, requested: string): EngineMessage | null {
   let host: string;
   try {
     host = new URL(requested).hostname;
   } catch {
     return null;
   }
-  if (/ERR_PROXY|ERR_TUNNEL/i.test(message)) return `a proxy or tunnel refused the connection (${message.slice(0, 120)})`;
-  if (/ERR_NAME_NOT_RESOLVED/i.test(message) && !/^[\d.:[\]]+$/.test(host)) return `the name ${host} does not resolve from this network (private DNS, VPN or a typo)`;
-  if (PRIVATE_HOST.test(host) && /ERR_CONNECTION|ERR_ADDRESS|ERR_TIMED_OUT/i.test(message)) return `${host} is a private network address: it is only reachable from inside that network (VPN or intranet)`;
+  if (/ERR_PROXY|ERR_TUNNEL/i.test(message)) return msg("netProxy", { message: message.slice(0, 120) });
+  if (/ERR_NAME_NOT_RESOLVED/i.test(message) && !/^[\d.:[\]]+$/.test(host)) return msg("netDns", { host });
+  if (PRIVATE_HOST.test(host) && /ERR_CONNECTION|ERR_ADDRESS|ERR_TIMED_OUT/i.test(message)) return msg("netPrivate", { host });
   return null;
 }
 
@@ -183,10 +193,11 @@ export function retryAfter(value: string | undefined, now = Date.now()): number 
   return Number.isNaN(date) ? null : Math.max(0, Math.round((date - now) / 1000));
 }
 
-function block(kind: BlockKind, detail: string, document: Document | undefined, facts: VisitFacts, headers: Record<string, string>, retry: number | null = null): BlockInfo {
+function block(kind: BlockKind, message: EngineMessage, document: Document | undefined, facts: VisitFacts, headers: Record<string, string>, retry: number | null = null): BlockInfo {
   return {
     kind,
-    detail,
+    detail: englishOf(message),
+    message,
     evidence: {
       finalUrl: document?.url ?? null,
       httpStatus: document?.status ?? null,

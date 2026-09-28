@@ -3,9 +3,11 @@ import { join, relative } from "node:path";
 import { BrowserAdapter, HttpProbe, type AdapterAccess, type BrowserChannel, type ConcreteChannel } from "@exegezis/adapter-browser";
 import {
   ConsoleFile,
+  englishOf,
   executeRun,
   INSPECTABLE,
   isEngineUnavailable,
+  msg,
   NetworkFile,
   normalizePageUrl,
   ObservationsFile,
@@ -15,6 +17,7 @@ import {
   TestPlan,
   TextBlocksFile,
   type EngineErrorInfo,
+  type EngineMessage,
   type PageVisit,
 } from "@exegezis/core";
 import type { PageEvidence } from "./checks/index.js";
@@ -230,11 +233,11 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
         const next = queue.shift() as { url: string; depth: number };
         if (overBudget()) {
           totalTimeoutReached = true;
-          pages.push(skipped(next.url, next.depth, "SKIPPED_BUDGET", "the total time budget was used up"));
+          pages.push(skipped(next.url, next.depth, "SKIPPED_BUDGET", msg("pageTimeBudget")));
           continue;
         }
         if (targets.length >= cfg.maxPages) {
-          pages.push(skipped(next.url, next.depth, "SKIPPED_BUDGET", `--max-pages ${cfg.maxPages} reached`));
+          pages.push(skipped(next.url, next.depth, "SKIPPED_BUDGET", msg("pageMaxPages", { max: String(cfg.maxPages) })));
           continue;
         }
         await report({ current: next.url, pagesPlanned: Math.min(cfg.maxPages, targets.length + queue.length + 1) });
@@ -258,7 +261,7 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
             continue;
           }
           if (!allowed(url)) {
-            pages.push(skipped(url, next.depth + 1, "SKIPPED_ROBOTS", "disallowed by robots.txt"));
+            pages.push(skipped(url, next.depth + 1, "SKIPPED_ROBOTS", msg("pageRobots")));
             continue;
           }
           if (next.depth + 1 <= cfg.maxDepth) queue.push({ url, depth: next.depth + 1 });
@@ -275,7 +278,7 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
         for (const [i, t] of revisit.entries()) {
           if (overBudget()) {
             totalTimeoutReached = true;
-            pages.push(skipped(t.url, t.depth, "SKIPPED_BUDGET", "the total time budget was used up", run));
+            pages.push(skipped(t.url, t.depth, "SKIPPED_BUDGET", msg("pageTimeBudget"), run));
             continue;
           }
           await report({ current: t.url });
@@ -318,8 +321,8 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
   }
 }
 
-export function skipped(url: string, depth: number, status: "SKIPPED_BUDGET" | "SKIPPED_ROBOTS", reason: string, run = 1): PageVisit {
-  return { url, depth, run, status, finalUrl: null, httpStatus: null, settled: null, reason, runPath: null, blockedWrites: 0, block: null };
+export function skipped(url: string, depth: number, status: "SKIPPED_BUDGET" | "SKIPPED_ROBOTS", reason: EngineMessage, run = 1): PageVisit {
+  return { url, depth, run, status, finalUrl: null, httpStatus: null, settled: null, reason: englishOf(reason), reasonMessage: reason, runPath: null, blockedWrites: 0, block: null };
 }
 
 interface VisitArgs {
@@ -399,6 +402,7 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
     httpStatus: c.httpStatus,
     settled: inspection === null ? null : inspection.settled.network && inspection.settled.dom,
     reason: c.reason,
+    ...(c.reasonMessage === undefined ? {} : { reasonMessage: c.reasonMessage }),
     runPath,
     blockedWrites: inspection?.blockedWrites.length ?? 0,
     block,

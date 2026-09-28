@@ -3,6 +3,7 @@ import { Assertion } from "./assertion.js";
 import { EngineErrorInfo } from "../engine.js";
 import { canonicalJson } from "../hash.js";
 import { deriveIssueGroups } from "../issue-groups.js";
+import { EngineMessage } from "../messages.js";
 import { Timestamp } from "./common.js";
 import { EvidenceRef } from "./verification.js";
 
@@ -55,8 +56,10 @@ export const BLOCK_ORDER: readonly BlockKind[] = ["HTTP_AUTH", "BOT_CHALLENGE", 
 
 export const BlockInfo = z.strictObject({
   kind: BlockKind,
-  /** What was seen, in one line (English, for logs; the UI words it in Spanish). */
+  /** What was seen, in one line (English, for logs and older readers). */
   detail: z.string(),
+  /** The same, as a code and parameters (docs/11-i18n.md). Absent in older reports. */
+  message: EngineMessage.optional(),
   evidence: z.strictObject({
     finalUrl: z.string().nullable(),
     httpStatus: z.int().nullable(),
@@ -84,6 +87,8 @@ export const PageVisit = z.strictObject({
   /** Network and DOM settled before the cap. null when not visited. */
   settled: z.boolean().nullable(),
   reason: z.string().nullable(),
+  /** The reason as a code and parameters. Absent in older reports. */
+  reasonMessage: EngineMessage.optional(),
   /** Run directory of the visit, relative to the inspection directory. */
   runPath: z.string().nullable(),
   /** Page writes blocked by --strict-readonly during the visit. */
