@@ -4,6 +4,7 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SuggestedTerm, ulid } from "@exegezis/core";
 import { z } from "zod";
+import { getUiLocale } from "../i18n/server";
 import { readArtifact, readText } from "./evidence/read";
 import { displayPath, repoRoot, runsDir } from "./workspace";
 
@@ -33,6 +34,8 @@ const JobBase = {
   error: z.string().nullable(),
   /** The UI server process that queued it: a queued job outlives no server restart. */
   serverPid: z.int().nullable().default(null),
+  /** The language of the person who started it: the CLI's output and the AI's reasons use it (--lang). Older jobs: English. */
+  lang: z.enum(["en", "es"]).default("en"),
 };
 
 export const AiVerifyJob = z.strictObject({
@@ -203,8 +206,21 @@ export function cliEntry(): string {
   return join(repoRoot(), "apps", "cli", "bin", "exegezis.js");
 }
 
+/** The language of the request that starts a job (English outside a request, e.g. in tests without one). */
+async function jobLanguage(): Promise<"en" | "es"> {
+  try {
+    return await getUiLocale();
+  } catch {
+    return "en";
+  }
+}
+
 /** The CLI arguments of a job: exactly what runs, also shown to reproduce it from a terminal. */
 export function commandFor(job: JobRecord): string[] {
+  return ["--lang", job.lang, ...commandArgs(job)];
+}
+
+function commandArgs(job: JobRecord): string[] {
   const output = jobOutputDir(job.id);
   if (job.kind === "access") {
     return ["session", "login", "--url", job.url, "--done-file", accessDoneFile(job.id), ...(job.browserChannel === "auto" ? [] : ["--browser-channel", job.browserChannel])];
@@ -289,8 +305,9 @@ function spawnJob(job: JobRecord, onExit: () => void): void {
   }
 }
 
-function newJobBase(id: string) {
+function newJobBase(id: string, lang: "en" | "es") {
   return {
+    lang,
     schemaVersion: "exegezis.web-job/v1" as const,
     id,
     pid: null,
@@ -313,7 +330,7 @@ export async function startJob(input: StartJobInput): Promise<JobRecord> {
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const id = ulid();
   await mkdir(jobDir(id), { recursive: true });
-  const job: JobRecord = { ...newJobBase(id), status: "running", kind: "ai-verify", planner: "anthropic", ...input };
+  const job: JobRecord = { ...newJobBase(id, await jobLanguage()), status: "running", kind: "ai-verify", planner: "anthropic", ...input };
   spawnJob(job, () => undefined);
   await writeJob(job);
   return { ...job };
@@ -354,7 +371,7 @@ export async function startInspection(input: StartInspectionInput): Promise<JobR
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const id = ulid();
   await mkdir(jobDir(id), { recursive: true });
-  const job: InspectJob = { ...newJobBase(id), status: "queued", kind: "inspect", ...input };
+  const job: InspectJob = { ...newJobBase(id, await jobLanguage()), status: "queued", kind: "inspect", ...input };
   await writeJob(job);
   inspectionQueue.push(id);
   await runNextInspection();
@@ -367,7 +384,7 @@ export async function startSearch(input: StartSearchInput): Promise<JobRecord> {
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const id = ulid();
   await mkdir(jobDir(id), { recursive: true });
-  const job: SearchJob = SearchJob.parse({ ...newJobBase(id), status: "queued", kind: "search", ...input });
+  const job: SearchJob = SearchJob.parse({ ...newJobBase(id, await jobLanguage()), status: "queued", kind: "search", ...input });
   await writeJob(job);
   inspectionQueue.push(id);
   await runNextInspection();
@@ -399,7 +416,7 @@ export async function startAccessLogin(input: StartAccessInput): Promise<JobReco
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const id = ulid();
   await mkdir(jobDir(id), { recursive: true });
-  const job: AccessJob = { ...newJobBase(id), status: "running", kind: "access", ...input, relaunchedJobId: null };
+  const job: AccessJob = { ...newJobBase(id, await jobLanguage()), status: "running", kind: "access", ...input, relaunchedJobId: null };
   spawnJob(job, () => {
     // Saved (exit 0) and an inspection to repeat: start it with the same options.
     if (job.exitCode === 0 && job.relaunch !== null) {

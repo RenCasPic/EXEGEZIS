@@ -81,7 +81,8 @@ describe("the search form", () => {
       reuse: null,
     });
     const args = commandFor(job);
-    expect(args.slice(0, 5)).toEqual(["search", "--url", "https://a.test/", "--terms", 'medicina, "x; rm -rf"']);
+    // The language of the person who started it goes first (older jobs: English).
+    expect(args.slice(0, 7)).toEqual(["--lang", "en", "search", "--url", "https://a.test/", "--terms", 'medicina, "x; rm -rf"']);
     expect(args).toEqual(expect.arrayContaining(["--variants", "--exclude-scope", "page", "--no-hidden", "--no-session", "--save", "Salud", "--max-pages", "10"]));
   });
 });

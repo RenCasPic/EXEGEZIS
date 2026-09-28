@@ -39,7 +39,7 @@ export interface SearchSiteOptions extends Omit<CrawlOptions, "axe" | "trace" | 
   /** Include text a visitor does not see (marked). Default true. */
   includeHidden?: boolean;
   /** The model for the meaning part, with the cost limit. Without it, a meaning part is reported as not run. */
-  model?: { client: SearchModelClient; maxCostUsd: number } | null;
+  model?: { client: SearchModelClient; maxCostUsd: number; language?: "en" | "es" | null } | null;
   /** "Today", for the past-date detector (tests). */
   now?: Date;
   /** Reuse the pages of an earlier search in `dir` (e.g. after approving its cost): no new visit to the site. */
@@ -226,7 +226,8 @@ async function analyze(options: SearchSiteOptions, walked: Walked, includeHidden
           description: parts.meaning.description,
           pages,
           maxCostUsd: model.maxCostUsd,
-          onBatch: (done, total) => void walked.report({ current: `lote ${done} de ${total}` }),
+          language: model.language ?? null,
+          onBatch: (done, total) => void walked.report({ current: `${done}/${total}` }),
         });
         candidates = r.candidates;
         ai = r.usage;

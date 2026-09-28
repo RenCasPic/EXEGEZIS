@@ -18,6 +18,7 @@ import {
   setReviewMark,
   writeSearchSettings,
 } from "@exegezis/search/light";
+import { getUiLocale } from "@/i18n/server";
 import { runCli } from "@/lib/access";
 import { errorText, say } from "@/lib/action-errors";
 import { ui } from "@/lib/ui-message";
@@ -100,7 +101,7 @@ export async function suggestEstimateAction(terms: string): Promise<{ usd: numbe
     return { error: await say(ui("common.errors.typeTermFirst")) };
   }
   const settings = await readSearchSettings();
-  return { usd: estimateSuggestCost(settings.model, list), model: settings.model, configured: await plannerCredentialsConfigured(), terms: list };
+  return { usd: estimateSuggestCost(settings.model, list, await getUiLocale()), model: settings.model, configured: await plannerCredentialsConfigured(), terms: list };
 }
 
 export interface Suggestion {
@@ -111,7 +112,7 @@ export interface Suggestion {
 
 /** «Sugerir términos relacionados»: the CLI asks the model; only the terms travel, never page text. */
 export async function suggestAction(terms: string): Promise<{ suggestions: Suggestion[]; costUsd: number; model: string } | { error: string }> {
-  const r = await runCli(["search", "suggest", "--terms", terms, "--json"]);
+  const r = await runCli(["--lang", await getUiLocale(), "search", "suggest", "--terms", terms, "--json"]);
   if (r.code !== 0) return { error: (r.stderr.trim() || r.stdout.trim() || (await say(ui("common.errors.suggestFailed")))).replace(/^Error: /, "") };
   try {
     const parsed = JSON.parse(r.stdout) as { suggestions: Suggestion[]; costUsd: number; model: string };

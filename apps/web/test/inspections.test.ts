@@ -160,7 +160,8 @@ describe("inspection jobs", () => {
     const done = await readJob(first.id);
     expect(done).toMatchObject({ status: "finished", job: { exitCode: 1, kind: "inspect" } });
     const argv = JSON.parse(await readFile(join(root, "runs", "web", "jobs", first.id, "out", "argv.json"), "utf8")) as string[];
-    expect(argv.slice(0, 9)).toEqual(["inspect", "--url", "https://example.com/a b?x=1;rm -rf", "--runs", "3", "--max-pages", "1", "--checks", "a11y"]);
+    // Started from a Spanish request (the test locale): the CLI gets --lang es.
+    expect(argv.slice(0, 11)).toEqual(["--lang", "es", "inspect", "--url", "https://example.com/a b?x=1;rm -rf", "--runs", "3", "--max-pages", "1", "--checks", "a11y"]);
     expect(argv).toContain("--strict-readonly");
     expect(argv).not.toContain("--ignore-robots");
     expect(argv).not.toContain("--max-depth");
@@ -192,7 +193,7 @@ describe("inspection jobs", () => {
     };
     const job = JobRecord.parse(legacy);
     expect(job).toMatchObject({ kind: "ai-verify", serverPid: null });
-    expect(commandFor(job).slice(0, 5)).toEqual(["ai-verify", "--symptom", "The cart badge is wrong.", "--base-url", "http://localhost:3000/"]);
+    expect(commandFor(job).slice(0, 7)).toEqual(["--lang", "en", "ai-verify", "--symptom", "The cart badge is wrong.", "--base-url", "http://localhost:3000/"]);
   });
 
   it("names the state the user sees from the job and the report", () => {

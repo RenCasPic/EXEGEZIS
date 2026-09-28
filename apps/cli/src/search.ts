@@ -210,7 +210,7 @@ async function searchRun(c: SearchRunArgs, io: CliIo, exegezisVersion: string): 
     ...(c.pageTimeoutMs === undefined ? {} : { pageTimeoutMs: c.pageTimeoutMs }),
     ...(c.totalTimeoutMs === undefined ? {} : { totalTimeoutMs: c.totalTimeoutMs }),
     ...(c.delayMs === undefined ? {} : { delayMs: c.delayMs }),
-    model: usesModel ? { client: modelClient(model, c.mockResponse, io), maxCostUsd } : null,
+    model: usesModel ? { client: modelClient(model, c.mockResponse, io), maxCostUsd, language: cliLocale() } : null,
     ...(reuse === undefined ? {} : { reuse }),
     onProgress: (p) => {
       const line =
@@ -281,7 +281,7 @@ async function searchSuggest(c: SearchSuggestArgs, io: CliIo): Promise<number> {
   const settings = await readSearchSettings();
   const model = c.model ?? settings.model;
   const terms = exactTerms(c.terms);
-  const result = await suggestTerms(modelClient(model, c.mockResponse, io), terms, c.maxCostUsd ?? settings.maxCostUsd);
+  const result = await suggestTerms(modelClient(model, c.mockResponse, io), terms, c.maxCostUsd ?? settings.maxCostUsd, cliLocale());
   if (c.json) io.stdout.write(`${JSON.stringify(result)}\n`);
   else {
     const out = printer(io);
