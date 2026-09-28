@@ -48,7 +48,7 @@
     "httpHelp": "Se guardan cifrados en este equipo (solo este usuario de Windows puede abrirlos) y solo se envían a este sitio. Nunca aparecen en los informes ni en los registros.",
     "save": "Guardar",
     "saveAndInspect": "Guardar y volver a inspeccionar",
-    "wafHelp": "Solo para un sitio tuyo. EXEGEZIS genera un secreto, lo guarda cifrado y lo envía como cabecera {header} solo a este sitio. Tú creas en el WAF una regla que deja pasar las peticiones con ese secreto.",
+    "wafHelp": "Solo para un sitio tuyo. EXEGEZIS genera un secreto, lo guarda cifrado y lo envía como cabecera <header></header> solo a este sitio. Tú creas en el WAF una regla que deja pasar las peticiones con ese secreto.",
     "rotate": "Ya hay un token: crear uno nuevo (el anterior dejará de valer)",
     "showSteps": "Mostrar los pasos con el token",
     "createToken": "Crear el token del WAF",
@@ -57,7 +57,7 @@
     "step1": "Cloudflare:",
     "step2": "Expresión (cópiala):",
     "copyExpression": "Copiar expresión",
-    "step3": "Acción: {skip}, y marca Bot Fight Mode / Super Bot Fight Mode, Managed Challenge y las reglas de rate limiting. Guarda la regla.",
+    "step3": "Acción: <skip></skip>, y marca Bot Fight Mode / Super Bot Fight Mode, Managed Challenge y las reglas de rate limiting. Guarda la regla.",
     "step4": "Vuelve a inspeccionar el sitio. En Vercel es igual: Firewall → Custom rules, la misma condición sobre la cabecera, acción Bypass."
   },
   "errors": {
@@ -68,5 +68,60 @@
     "savedFor": "Guardado para {origin}. Las próximas inspecciones de este sitio se autenticarán como {username}.",
     "tokenFailed": "No se pudo crear el token: {detail}",
     "originalMissing": "No se encontró la inspección original."
+  },
+  "block": {
+    "HTTP_AUTH": {
+      "title": "El sitio pide usuario y contraseña (autenticación HTTP)",
+      "explanation": "El servidor responde 401 y pide credenciales HTTP (Basic o Digest). Escribe el usuario y la contraseña de ese sitio: se guardan cifrados en este equipo y solo se envían a ese sitio."
+    },
+    "BOT_CHALLENGE": {
+      "title": "El sitio muestra una verificación anti-bot",
+      "explanation": "Hay un desafío anti-bot (Cloudflare, Turnstile, reCAPTCHA, hCaptcha, DataDome…). EXEGEZIS nunca lo resuelve ni lo esquiva. Si el sitio es tuyo, lo recomendado es autorizar a EXEGEZIS en su WAF con un token; si no, puedes pasar tú la verificación en una ventana (solo en un sitio propio o con permiso).",
+      "window": "Pasar la verificación en una ventana"
+    },
+    "SESSION_EXPIRED": {
+      "title": "La sesión guardada ha caducado",
+      "explanation": "Había una sesión guardada, pero el sitio vuelve a pedir el inicio de sesión. Renuévala en una ventana: la inspección se relanza sola con las mismas opciones.",
+      "window": "Renovar la sesión"
+    },
+    "LOGIN_WALL": {
+      "title": "Hace falta iniciar sesión para ver esta página",
+      "explanation": "La página pedida redirige al inicio de sesión o solo muestra un formulario de login. Inicia sesión tú en una ventana: EXEGEZIS guarda solo las cookies de este sitio, nunca tu contraseña.",
+      "window": "Abrir ventana para acceder"
+    },
+    "CONSENT_WALL": {
+      "title": "Un banner de cookies tapa el contenido",
+      "explanation": "Un diálogo de cookies cubre la página y bloquea la navegación. Elige tú en una ventana (la opción más privada sirve); la elección se recuerda. La inspección nunca pulsa el banner.",
+      "window": "Abrir ventana para elegir"
+    },
+    "RATE_LIMITED": {
+      "title": "El sitio pide ir más despacio",
+      "explanation": "El sitio respondió 429 (o 503 con Retry-After). EXEGEZIS esperó lo que pedía y bajó el ritmo, pero se superó el tope de espera."
+    },
+    "FORBIDDEN": {
+      "title": "El sitio rechaza a este equipo",
+      "explanation": "Respuesta 403 sin desafío: el sitio rechaza esta IP, este país o una regla de su WAF. Reintentar no sirve. Si el sitio es tuyo, añade esta IP a la lista blanca o autoriza a EXEGEZIS con un token del WAF."
+    },
+    "NETWORK_RESTRICTED": {
+      "title": "El sitio no es accesible desde esta red",
+      "explanation": "El nombre no resuelve o la dirección es privada: el sitio solo es accesible desde una VPN, una intranet o un DNS privado. Conéctate a esa red y vuelve a intentarlo."
+    }
+  },
+  "notice": {
+    "noConclusion": "No se sacó ninguna conclusión sobre el sitio: un bloqueo nunca genera hallazgos.",
+    "evidence": "Evidencia",
+    "finalUrl": "URL final:",
+    "headers": "Cabeceras:",
+    "markers": "Marcadores:",
+    "cookies": "Cookies (solo nombres):",
+    "screenshotAlt": "Captura de la página bloqueada",
+    "permission": "Este sitio es mío o tengo permiso para inspeccionarlo. Si el desafío vuelve a aparecer, EXEGEZIS se detiene: nunca reintenta contra él.",
+    "openWindow": "Abrir ventana",
+    "windowHelp": "Se abre una ventana visible en este equipo. Tú haces el paso; EXEGEZIS no teclea ni guarda tu contraseña, solo las cookies de este sitio.",
+    "windowRelaunch": "Al terminar, la inspección se relanza sola.",
+    "wafSummary": "Sitio propio: autorizar a EXEGEZIS en el WAF (recomendado)",
+    "relaunch": "Volver a inspeccionar",
+    "relaunchWait": "Volver a inspeccionar (espera al menos {seconds} s)",
+    "done": "Listo"
   }
 }

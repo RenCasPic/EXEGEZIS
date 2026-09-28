@@ -71,7 +71,7 @@
   "searchPage": {
     "metaTitle": "Searches · Settings",
     "title": "Searches",
-    "description": "Cost limit, model and your templates. Saved in {dir}, outside runs/.",
+    "description": "Cost limit, model and your templates. Saved in <dir></dir>, outside runs/.",
     "costModel": "Cost and model",
     "price": "{input} / {output} USD per million tokens",
     "pricesFrom": "Prices from",

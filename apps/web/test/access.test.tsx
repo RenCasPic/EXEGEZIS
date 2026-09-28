@@ -77,8 +77,9 @@ describe("saved access in the web", () => {
   it("Settings → Accesos shows sites, state and the per-user note, without any secret", async () => {
     const html = renderToStaticMarkup(await AccessSettingsPage());
     expect(html).toContain("https://site.test");
-    expect(html).toContain("ACTIVO");
-    expect(html).toContain("CADUCADO");
+    expect(html).toContain(">Activo<");
+    expect(html).toContain(">Caducado<");
+    expect(html).toContain('title="Código técnico: EXPIRED"');
     expect(html).toContain("Renovar sesión");
     expect(leaks(html)).toEqual([]);
     if (process.platform === "win32") expect(html).toContain("solo se abren con este usuario de Windows en este equipo");

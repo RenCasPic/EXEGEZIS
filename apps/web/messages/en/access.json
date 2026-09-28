@@ -48,7 +48,7 @@
     "httpHelp": "Stored encrypted on this computer (only this Windows user can open them) and only sent to this site. They never appear in reports or logs.",
     "save": "Save",
     "saveAndInspect": "Save and inspect again",
-    "wafHelp": "Only for a site of yours. EXEGEZIS generates a secret, stores it encrypted and sends it as the {header} header to this site only. You create a WAF rule that lets requests with that secret through.",
+    "wafHelp": "Only for a site of yours. EXEGEZIS generates a secret, stores it encrypted and sends it as the <header></header> header to this site only. You create a WAF rule that lets requests with that secret through.",
     "rotate": "There is already a token: create a new one (the previous one will stop working)",
     "showSteps": "Show the steps with the token",
     "createToken": "Create the WAF token",
@@ -57,7 +57,7 @@
     "step1": "Cloudflare:",
     "step2": "Expression (copy it):",
     "copyExpression": "Copy expression",
-    "step3": "Action: {skip}, and tick Bot Fight Mode / Super Bot Fight Mode, Managed Challenge and the rate limiting rules. Save the rule.",
+    "step3": "Action: <skip></skip>, and tick Bot Fight Mode / Super Bot Fight Mode, Managed Challenge and the rate limiting rules. Save the rule.",
     "step4": "Inspect the site again. On Vercel it is the same: Firewall → Custom rules, the same condition on the header, action Bypass."
   },
   "errors": {
@@ -68,5 +68,60 @@
     "savedFor": "Saved for {origin}. The next inspections of this site will authenticate as {username}.",
     "tokenFailed": "The token could not be created: {detail}",
     "originalMissing": "The original inspection was not found."
+  },
+  "block": {
+    "HTTP_AUTH": {
+      "title": "The site asks for a username and password (HTTP authentication)",
+      "explanation": "The server answers 401 and asks for HTTP credentials (Basic or Digest). Type that site's username and password: they are stored encrypted on this computer and only sent to that site."
+    },
+    "BOT_CHALLENGE": {
+      "title": "The site shows an anti-bot check",
+      "explanation": "There is an anti-bot challenge (Cloudflare, Turnstile, reCAPTCHA, hCaptcha, DataDome…). EXEGEZIS never solves or bypasses it. If the site is yours, the recommended way is to authorize EXEGEZIS in its WAF with a token; otherwise you can pass the check yourself in a window (only on your own site or with permission).",
+      "window": "Pass the check in a window"
+    },
+    "SESSION_EXPIRED": {
+      "title": "The saved session has expired",
+      "explanation": "There was a saved session, but the site asks to sign in again. Renew it in a window: the inspection is relaunched on its own with the same options.",
+      "window": "Renew the session"
+    },
+    "LOGIN_WALL": {
+      "title": "You need to sign in to see this page",
+      "explanation": "The requested page redirects to the sign-in or only shows a login form. Sign in yourself in a window: EXEGEZIS only keeps this site's cookies, never your password.",
+      "window": "Open a window to sign in"
+    },
+    "CONSENT_WALL": {
+      "title": "A cookie banner covers the content",
+      "explanation": "A cookie dialog covers the page and blocks navigation. Choose yourself in a window (the most private option works); the choice is remembered. The inspection never clicks the banner.",
+      "window": "Open a window to choose"
+    },
+    "RATE_LIMITED": {
+      "title": "The site asks to slow down",
+      "explanation": "The site answered 429 (or 503 with Retry-After). EXEGEZIS waited as asked and slowed down, but the waiting cap was exceeded."
+    },
+    "FORBIDDEN": {
+      "title": "The site rejects this computer",
+      "explanation": "403 response without a challenge: the site rejects this IP, this country or a rule of its WAF. Retrying does not help. If the site is yours, allow-list this IP or authorize EXEGEZIS with a WAF token."
+    },
+    "NETWORK_RESTRICTED": {
+      "title": "The site is not reachable from this network",
+      "explanation": "The name does not resolve or the address is private: the site is only reachable from a VPN, an intranet or a private DNS. Connect to that network and try again."
+    }
+  },
+  "notice": {
+    "noConclusion": "No conclusion was drawn about the site: a block never produces findings.",
+    "evidence": "Evidence",
+    "finalUrl": "Final URL:",
+    "headers": "Headers:",
+    "markers": "Markers:",
+    "cookies": "Cookies (names only):",
+    "screenshotAlt": "Screenshot of the blocked page",
+    "permission": "This site is mine or I am allowed to inspect it. If the challenge appears again, EXEGEZIS stops: it never retries against it.",
+    "openWindow": "Open a window",
+    "windowHelp": "A visible window opens on this computer. You do the step; EXEGEZIS does not type or store your password, only this site's cookies.",
+    "windowRelaunch": "When you finish, the inspection is relaunched on its own.",
+    "wafSummary": "Own site: authorize EXEGEZIS in the WAF (recommended)",
+    "relaunch": "Inspect again",
+    "relaunchWait": "Inspect again (wait at least {seconds} s)",
+    "done": "Done"
   }
 }

@@ -4,6 +4,7 @@ import {
   NetworkFile,
   SEVERITIES,
   type ConsoleMessageEvidence,
+  type EngineMessage,
   type Finding,
   type IssueGroup,
   type InspectionReport,
@@ -111,7 +112,7 @@ export async function loadFindingEvidence(ref: InspectionRef, finding: Finding):
 
 /** One row per visited page URL: run 1's visit, with how many runs reached it. */
 export function pageRows(report: InspectionReport) {
-  const byUrl = new Map<string, { url: string; depth: number; status: string; httpStatus: number | null; reason: string | null; runs: number; findings: number }>();
+  const byUrl = new Map<string, { url: string; depth: number; status: string; httpStatus: number | null; reason: string | null; reasonMessage: EngineMessage | undefined; runs: number; findings: number }>();
   for (const p of report.pages) {
     const row = byUrl.get(p.url);
     if (row === undefined) {
@@ -121,6 +122,7 @@ export function pageRows(report: InspectionReport) {
         status: p.status,
         httpStatus: p.httpStatus,
         reason: p.reason,
+        reasonMessage: p.reasonMessage,
         runs: p.runPath === null ? 0 : 1,
         findings: report.findings.filter((f) => f.page === p.url && f.verdict === "VERIFIED").length,
       });

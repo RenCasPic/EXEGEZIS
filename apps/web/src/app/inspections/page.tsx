@@ -1,43 +1,46 @@
 import { ChevronRight, Globe, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { AutoRefresh } from "@/components/ui/auto-refresh";
 import { ButtonLink, EmptyState, PageHeader, Panel, tableClass } from "@/components/ui/primitives";
 import { groupStats } from "@exegezis/core";
 import { StatusPill } from "@/components/ui/status";
 import { listInspections } from "@/lib/evidence/inspections";
-import { haceTiempo } from "@/lib/format";
+import { getFormat } from "@/i18n/server";
 import { INSPECTION_STATUS_TONE } from "@/lib/inspection-labels";
 import { listJobs } from "@/lib/jobs";
 
-export const metadata: Metadata = { title: "Inspecciones" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("inspections.list"))("title") };
+}
 
 export default async function InspectionsPage() {
-  const [inspections, jobs] = await Promise.all([listInspections(), listJobs()]);
+  const [inspections, jobs, t, f] = await Promise.all([listInspections(), listJobs(), getTranslations("inspections.list"), getFormat()]);
   const pending = jobs.filter((j) => j.job.kind === "inspect" && (j.status === "running" || j.status === "queued"));
 
   return (
-    <div lang="es" className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
       <AutoRefresh active={pending.length > 0} />
       <PageHeader
-        title="Inspecciones"
-        description="Revisiones de solo lectura de un sitio web con comprobaciones deterministas. Un hallazgo es VERIFIED solo si aparece en todas las repeticiones."
+        title={t("title")}
+        description={t("description")}
         actions={
           <ButtonLink href="/" variant="primary">
-            <Plus /> Nueva inspección
+            <Plus /> {t("new")}
           </ButtonLink>
         }
       />
 
       {pending.length > 0 && (
-        <Panel title="En marcha" bodyClassName="p-0">
+        <Panel title={t("running")} bodyClassName="p-0">
           <ul>
             {pending.map(({ job, status }) => (
               <li key={job.id} className="border-b border-line last:border-b-0">
                 <Link href={`/jobs/${job.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-hover/50">
-                  <StatusPill status={status === "queued" ? "EN COLA" : "EN CURSO"} tone={status === "queued" ? "q" : "running"} size="xs" />
+                  <StatusPill status={status === "queued" ? "QUEUED" : "RUNNING"} tone={status === "queued" ? "q" : "running"} size="xs" />
                   <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-fg">{job.kind === "inspect" ? job.url : job.id}</span>
-                  <span className="text-xs text-faint">{haceTiempo(job.startedAt)}</span>
+                  <span className="text-xs text-faint">{f.relative(job.startedAt)}</span>
                 </Link>
               </li>
             ))}
@@ -45,31 +48,31 @@ export default async function InspectionsPage() {
         </Panel>
       )}
 
-      <Panel title={`${inspections.length} ${inspections.length === 1 ? "inspección" : "inspecciones"}`} bodyClassName="p-0">
+      <Panel title={t("count", { count: inspections.length })} bodyClassName="p-0">
         {inspections.length === 0 ? (
           <EmptyState
             icon={<Globe />}
-            title="Aún no hay inspecciones"
+            title={t("none")}
             action={
               <ButtonLink href="/" variant="primary">
-                <Plus /> Inspeccionar un sitio
+                <Plus /> {t("inspect")}
               </ButtonLink>
             }
           >
-            Lanza una desde la página de inicio, o ejecuta <code className="font-mono">pnpm exegezis inspect --url https://…</code> en un terminal.
+            {t.rich("noneBody", { command: () => <code className="font-mono">pnpm exegezis inspect --url https://…</code> })}
           </EmptyState>
         ) : (
           <div className={tableClass.wrap}>
             <table className={tableClass.table}>
               <thead>
                 <tr>
-                  <th className={tableClass.th}>Sitio</th>
-                  <th className={tableClass.th}>Estado</th>
-                  <th className={tableClass.th}>Verificados</th>
-                  <th className={tableClass.th}>Intermitentes</th>
-                  <th className={tableClass.th}>Páginas</th>
-                  <th className={tableClass.th}>Fecha</th>
-                  <th className={tableClass.th} aria-label="Abrir" />
+                  <th className={tableClass.th}>{t("colSite")}</th>
+                  <th className={tableClass.th}>{t("colStatus")}</th>
+                  <th className={tableClass.th}>{t("colVerified")}</th>
+                  <th className={tableClass.th}>{t("colIntermittent")}</th>
+                  <th className={tableClass.th}>{t("colPages")}</th>
+                  <th className={tableClass.th}>{t("colDate")}</th>
+                  <th className={tableClass.th} aria-label={t("colSite")} />
                 </tr>
               </thead>
               <tbody>
@@ -86,17 +89,17 @@ export default async function InspectionsPage() {
                       </td>
                       <td className={tableClass.td}>
                         {r === null ? (
-                          <StatusPill status={i.report.status === "missing" ? "MISSING" : "INVALID REPORT"} tone="bad" size="xs" />
+                          <StatusPill status={i.report.status === "missing" ? "MISSING" : "INVALID_REPORT"} tone="bad" size="xs" />
                         ) : (
                           <StatusPill status={r.status} tone={INSPECTION_STATUS_TONE[r.status]} size="xs" />
                         )}
                       </td>
-                      <td className={`${tableClass.td} whitespace-nowrap font-mono text-[12px]`}>{g === null ? "—" : `${g.problems} problemas · ${g.elements} elementos`}</td>
-                      <td className={`${tableClass.td} whitespace-nowrap font-mono text-[12px]`}>{g === null ? "—" : `${g.intermittentProblems} · ${g.intermittentElements} el.`}</td>
+                      <td className={`${tableClass.td} whitespace-nowrap font-mono text-[12px]`}>{g === null ? "—" : t("problems", { problems: g.problems, elements: g.elements })}</td>
+                      <td className={`${tableClass.td} whitespace-nowrap font-mono text-[12px]`}>{g === null ? "—" : t("intermittent", { problems: g.intermittentProblems, elements: g.intermittentElements })}</td>
                       <td className={`${tableClass.td} font-mono`}>{r?.summary.pagesVisited ?? "—"}</td>
-                      <td className={`${tableClass.td} whitespace-nowrap text-xs text-muted`}>{r === null ? "—" : haceTiempo(r.finishedAt)}</td>
+                      <td className={`${tableClass.td} whitespace-nowrap text-xs text-muted`}>{r === null ? "—" : f.relative(r.finishedAt)}</td>
                       <td className={tableClass.td}>
-                        <Link href={`/inspections/${i.id}`} aria-label={`Abrir la inspección ${i.id}`} className="text-faint hover:text-fg">
+                        <Link href={`/inspections/${i.id}`} aria-label={t("open", { id: i.id })} className="text-faint hover:text-fg">
                           <ChevronRight className="size-4" />
                         </Link>
                       </td>

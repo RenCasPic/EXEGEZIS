@@ -131,5 +131,20 @@
     "searchMissing": "The search was not found.",
     "nameSearch": "Give the search a name.",
     "savedMissing": "The saved search was not found."
+  },
+  "copy": {
+    "copy": "Copy",
+    "copied": "Copied"
+  },
+  "filter": {
+    "search": "Search",
+    "all": "All"
+  },
+  "engineProblem": {
+    "title": "The problem is on this computer, not on the site.",
+    "howTo": "How to fix it (from the repository folder; works the same in Windows CMD, PowerShell, macOS and Linux):",
+    "install": "Install Playwright's Chromium (downloads about 150 MB, only when you run this):",
+    "doctor": "Check which browsers this computer has and what is missing:",
+    "installed": "Or use a browser that is already installed: Google Chrome (https://www.google.com/chrome/) or Microsoft Edge (comes with Windows), with the browser set to “Automatic” (--browser-channel auto)."
   }
 }

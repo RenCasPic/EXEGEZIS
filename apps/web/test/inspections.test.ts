@@ -196,9 +196,9 @@ describe("inspection jobs", () => {
   });
 
   it("names the state the user sees from the job and the report", () => {
-    expect(inspectionJobState("queued", null, null).label).toBe("EN COLA");
+    expect(inspectionJobState("queued", null, null).label).toBe("QUEUED");
     expect(inspectionJobState("finished", 4, "BLOCKED").label).toBe("BLOCKED");
-    expect(inspectionJobState("finished", 1, "COMPLETED").label).toBe("TERMINADA");
+    expect(inspectionJobState("finished", 1, "COMPLETED").label).toBe("FINISHED");
     expect(inspectionJobState("finished", 2, null).label).toBe("ERROR");
     expect(inspectionJobState("lost", null, null).label).toBe("LOST");
   });

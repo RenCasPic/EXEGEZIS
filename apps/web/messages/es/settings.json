@@ -71,7 +71,7 @@
   "searchPage": {
     "metaTitle": "Búsquedas · Ajustes",
     "title": "Búsquedas",
-    "description": "Límite de coste, modelo y tus plantillas. Se guardan en {dir}, fuera de runs/.",
+    "description": "Límite de coste, modelo y tus plantillas. Se guardan en <dir></dir>, fuera de runs/.",
     "costModel": "Coste y modelo",
     "price": "{input} / {output} USD por millón de tokens",
     "pricesFrom": "Precios de",

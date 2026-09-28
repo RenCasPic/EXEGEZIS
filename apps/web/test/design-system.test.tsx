@@ -2,10 +2,14 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { runInNewContext } from "node:vm";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { EvidenceMeter, NotImplemented, ReplayTag, RunHistory, VerdictPill } from "../src/components/ui/status";
 import { resolveTheme, THEME_BOOT_SCRIPT } from "../src/lib/theme";
 import { verdictTone } from "../src/lib/verdicts";
+import { setTestLocale } from "./setup";
+
+beforeAll(() => setTestLocale("en"));
+afterAll(() => setTestLocale("es"));
 
 describe("VerdictPill", () => {
   it("maps every verdict to its family, never an unknown one to success", () => {
@@ -17,9 +21,10 @@ describe("VerdictPill", () => {
     expect(verdictTone("SOMETHING NEW")).toBe("q");
   });
 
-  it("always renders colour, icon and text", () => {
+  it("always renders colour, icon and text (the label translated, the code in the tooltip)", () => {
     const html = renderToStaticMarkup(<VerdictPill verdict="NOT_VERIFIED" />);
-    expect(html).toContain("NOT VERIFIED");
+    expect(html).toContain(">Not verified<");
+    expect(html).toContain('title="Technical code: NOT_VERIFIED"');
     expect(html).toContain("<svg");
     expect(html).toContain("text-off");
   });
@@ -57,6 +62,9 @@ describe("RunHistory", () => {
     expect(html.match(/bg-q/g)).toHaveLength(1);
     expect(html.match(/border-off/g)).toHaveLength(1);
     expect(html).toContain("2 proven, 1 inconclusive, 1 not proven");
+    setTestLocale("es");
+    expect(renderToStaticMarkup(<RunHistory runs={["ok", "ok", "q", "off"]} />)).toContain("2 demostradas, 1 inconclusa, 1 no demostrada");
+    setTestLocale("en");
   });
 });
 

@@ -7,7 +7,7 @@
     "none": "Evidencia: sin medir",
     "level": "Evidencia: {level} ({index} de {total})"
   },
-  "runHistory": "Ejecuciones: {proven} demostradas, {inconclusive} inconclusas, {notProven} no demostradas",
+  "runHistory": "Ejecuciones: {proven, plural, one {# demostrada} other {# demostradas}}, {inconclusive, plural, one {# inconclusa} other {# inconclusas}}, {notProven, plural, one {# no demostrada} other {# no demostradas}}",
   "stages": {
     "symptom": {
       "label": "Síntoma",
@@ -131,5 +131,20 @@
     "searchMissing": "No se encontró la búsqueda.",
     "nameSearch": "Pon un nombre a la búsqueda.",
     "savedMissing": "No se encontró la búsqueda guardada."
+  },
+  "copy": {
+    "copy": "Copiar",
+    "copied": "Copiado"
+  },
+  "filter": {
+    "search": "Buscar",
+    "all": "Todas"
+  },
+  "engineProblem": {
+    "title": "El problema está en este equipo, no en el sitio.",
+    "howTo": "Cómo solucionarlo (desde la carpeta del repositorio; funciona igual en CMD de Windows, PowerShell, macOS y Linux):",
+    "install": "Instala el Chromium de Playwright (descarga unos 150 MB, solo cuando ejecutas esto):",
+    "doctor": "Comprueba qué navegadores tiene este equipo y qué falta:",
+    "installed": "O usa un navegador que ya esté instalado: Google Chrome (https://www.google.com/chrome/) o Microsoft Edge (viene con Windows), con el navegador en «Automático» (--browser-channel auto)."
   }
 }

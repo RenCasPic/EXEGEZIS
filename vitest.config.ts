@@ -72,6 +72,7 @@ export default defineConfig({
           name: "web",
           root: "apps/web",
           include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
+          setupFiles: ["test/setup.ts"],
         },
         resolve: { alias: { "@": fileURLToPath(new URL("./apps/web/src", import.meta.url)) } },
       },

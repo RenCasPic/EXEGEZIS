@@ -2,6 +2,7 @@
 
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useTransition } from "react";
 import { FILTER_DEBOUNCE_MS, filterHref } from "@/lib/filter-query";
 
@@ -12,7 +13,7 @@ import { FILTER_DEBOUNCE_MS, filterHref } from "@/lib/filter-query";
  */
 export function FilterForm({
   selects,
-  textLabel = "Buscar",
+  textLabel,
   placeholder,
   hidden = {},
 }: {
@@ -22,6 +23,7 @@ export function FilterForm({
   /** Other URL parameters the form keeps (e.g. the active status tab). */
   hidden?: Record<string, string>;
 }) {
+  const t = useTranslations("common.filter");
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -73,7 +75,7 @@ export function FilterForm({
         </label>
       ))}
       <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-[11px] text-muted">
-        {textLabel}
+        {textLabel ?? t("search")}
         <span className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-faint" aria-hidden />
           <input type="search" name="q" defaultValue={params.get("q") ?? ""} placeholder={placeholder} onChange={applySoon} onBlur={apply} className="h-8 w-full rounded-md border border-line-strong bg-panel pr-2 pl-7 text-[13px] text-fg" />
