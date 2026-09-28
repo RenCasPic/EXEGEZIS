@@ -75,13 +75,13 @@ function print(io: CliIo, r: DoctorReport): void {
   out();
   out(t("doctor.browsers"));
   for (const b of r.browsers) {
-    out(`  ${mark(b.available)} ${b.label.padEnd(24)} ${b.available ? (b.version ?? "") : ""}`);
+    out(`  ${mark(b.available)} ${t(`doctor.channel.${b.channel}`).padEnd(24)} ${b.available ? (b.version ?? "") : ""}`);
     if (!b.available && b.error !== null) out(`          ${b.error}`);
   }
   out();
   if (r.auto !== null) {
     const used = r.browsers.find((b) => b.channel === r.auto);
-    out(t("doctor.willUse", { browser: `${used?.label ?? r.auto} ${used?.version ?? ""}`.trimEnd() }));
+    out(t("doctor.willUse", { browser: `${t(`doctor.channel.${r.auto}`)} ${used?.version ?? ""}`.trimEnd() }));
   } else {
     out(t("doctor.none"));
   }

@@ -381,6 +381,9 @@ export const CLI_MESSAGES_EN = {
   "rc.rates": "  root cause precision {precision} · false validation rate {falseRate} · honest unknown rate {unknownRate}",
   "rc.small": "  (a small experimental benchmark: the counts matter more than the rates)",
   "rc.result": "Result:",
+  "doctor.channel.chromium": "Chromium (Playwright)",
+  "doctor.channel.chrome": "Google Chrome (system)",
+  "doctor.channel.msedge": "Microsoft Edge (system)",
 } as const;
 
 export type CliKey = keyof typeof CLI_MESSAGES_EN;
@@ -761,4 +764,7 @@ export const CLI_MESSAGES_ES: Record<CliKey, string> = {
   "rc.rates": "  precisión de causa raíz {precision} · tasa de validaciones falsas {falseRate} · tasa de «no se sabe» honesto {unknownRate}",
   "rc.small": "  (un benchmark experimental pequeño: importan más los recuentos que las tasas)",
   "rc.result": "Resultado:",
+  "doctor.channel.chromium": "Chromium (Playwright)",
+  "doctor.channel.chrome": "Google Chrome (sistema)",
+  "doctor.channel.msedge": "Microsoft Edge (sistema)",
 };
