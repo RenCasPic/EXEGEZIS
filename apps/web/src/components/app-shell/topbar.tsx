@@ -30,13 +30,15 @@ interface TopbarProps {
 
 function ScopeSelect({ label, value, options, onChange, disabled }: { label: string; value: string; options: { id: string; label: string }[]; onChange: (v: string) => void; disabled: boolean }) {
   return (
-    <label className="flex h-8 items-center gap-2 rounded-md border border-line bg-panel px-2.5 text-[13px]">
-      <span className="text-faint">{label}</span>
+    <label className="flex h-8 min-w-0 items-center gap-2 overflow-hidden rounded-md border border-line bg-panel px-2.5 text-[13px]">
+      {/* On a phone the caption gives way to the value; the select keeps it as its name. */}
+      <span className="hidden shrink-0 text-faint sm:inline">{label}</span>
       <select
         value={value}
         disabled={disabled}
+        aria-label={label}
         onChange={(e) => onChange(e.target.value)}
-        className="max-w-40 cursor-pointer appearance-none bg-transparent pr-1 font-medium text-fg outline-none"
+        className="w-full min-w-0 max-w-40 cursor-pointer truncate appearance-none bg-transparent pr-1 font-medium text-fg outline-none"
       >
         {options.map((o) => (
           <option key={o.id} value={o.id} className="bg-panel text-fg">
@@ -100,7 +102,8 @@ export function Topbar({ projects, environments, scope, palette, running, counts
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
-          className="flex h-8 items-center gap-2 rounded-md border border-line bg-panel px-2.5 text-[13px] text-faint hover:text-muted sm:w-56"
+          aria-label={t("search")}
+          className="flex h-8 shrink-0 items-center gap-2 rounded-md border border-line bg-panel px-2.5 text-[13px] text-faint hover:text-muted sm:w-56"
         >
           <Search className="size-3.5" />
           <span className="hidden flex-1 text-left sm:inline">{t("search")}</span>
