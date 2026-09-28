@@ -1,5 +1,7 @@
 {
-  "meta": { "description": "Verificación de software: síntomas, reproducciones y evidencia." },
+  "meta": {
+    "description": "Verificación de software: síntomas, reproducciones y evidencia."
+  },
   "brandTagline": "Verificación de software",
   "nav": {
     "label": "Principal",
@@ -24,7 +26,11 @@
     "notImplementedTag": "N/I",
     "notImplementedYet": "Aún no implementado"
   },
-  "footer": { "workspace": "Espacio de trabajo", "localWorkspace": "Espacio local", "localUser": "Usuario local · sin autenticación" },
+  "footer": {
+    "workspace": "Espacio de trabajo",
+    "localWorkspace": "Espacio local",
+    "localUser": "Usuario local · sin autenticación"
+  },
   "topbar": {
     "openNavigation": "Abrir la navegación",
     "closeNavigation": "Cerrar la navegación",
@@ -43,8 +49,17 @@
     "jobInspect": "Inspección: {url}",
     "jobSearch": "Búsqueda: {url}"
   },
-  "theme": { "label": "Tema", "light": "Claro", "dark": "Oscuro", "system": "Sistema", "cycle": "Tema: {current}. Cambiar a {next}" },
-  "language": { "label": "Idioma", "cycle": "Idioma: {current}. Cambiar a {next}" },
+  "theme": {
+    "label": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema",
+    "cycle": "Tema: {current}. Cambiar a {next}"
+  },
+  "language": {
+    "label": "Idioma",
+    "cycle": "Idioma: {current}. Cambiar a {next}"
+  },
   "palette": {
     "label": "Buscar",
     "placeholder": "Busca investigaciones, inspecciones, búsquedas, páginas…",
@@ -63,5 +78,10 @@
     "title": "No encontrado",
     "body": "Nada en el disco coincide con esta dirección. Puede que se hayan borrado los directorios de ejecución o que el identificador no sea correcto.",
     "action": "Todas las investigaciones"
+  },
+  "error": {
+    "title": "Algo ha fallado",
+    "body": "No se pudo mostrar esta página. No se cambió nada en disco. El detalle está abajo y en la salida del servidor.",
+    "retry": "Reintentar"
   }
 }

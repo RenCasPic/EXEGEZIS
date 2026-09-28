@@ -1,5 +1,7 @@
 {
-  "meta": { "description": "Software verification: symptoms, reproductions and evidence." },
+  "meta": {
+    "description": "Software verification: symptoms, reproductions and evidence."
+  },
   "brandTagline": "Software Verification",
   "nav": {
     "label": "Main",
@@ -24,7 +26,11 @@
     "notImplementedTag": "N/I",
     "notImplementedYet": "Not implemented yet"
   },
-  "footer": { "workspace": "Workspace", "localWorkspace": "Local workspace", "localUser": "Local user · no authentication" },
+  "footer": {
+    "workspace": "Workspace",
+    "localWorkspace": "Local workspace",
+    "localUser": "Local user · no authentication"
+  },
   "topbar": {
     "openNavigation": "Open navigation",
     "closeNavigation": "Close navigation",
@@ -43,8 +49,17 @@
     "jobInspect": "Inspection: {url}",
     "jobSearch": "Search: {url}"
   },
-  "theme": { "label": "Theme", "light": "Light", "dark": "Dark", "system": "System", "cycle": "Theme: {current}. Switch to {next}" },
-  "language": { "label": "Language", "cycle": "Language: {current}. Switch to {next}" },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "cycle": "Theme: {current}. Switch to {next}"
+  },
+  "language": {
+    "label": "Language",
+    "cycle": "Language: {current}. Switch to {next}"
+  },
   "palette": {
     "label": "Search",
     "placeholder": "Search investigations, inspections, searches, pages…",
@@ -63,5 +78,10 @@
     "title": "Not found",
     "body": "Nothing on disk matches this address. Run directories may have been deleted, or the id is wrong.",
     "action": "All investigations"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "body": "This page could not be shown. Nothing was changed on disk. The detail is below and in the server output.",
+    "retry": "Try again"
   }
 }
