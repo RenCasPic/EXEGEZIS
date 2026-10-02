@@ -87,7 +87,7 @@ describe("design tokens: WCAG AA contrast", () => {
     expect(noScript).toEqual(themes.dark);
   });
 
-  it("uses no purple and keeps the action colours (petrol, lime) for actions only", () => {
+  it("uses no purple and keeps the action colours (electric blue, lime) for actions only", () => {
     expect(css).not.toMatch(/#6d42d9|#c9b3ff/i);
     for (const tokens of Object.values(themes)) {
       const actions = [tokens["accent"], tokens["accent-hover"]];
@@ -106,12 +106,13 @@ describe("design tokens: WCAG AA contrast", () => {
     for (const tokens of Object.values(themes)) {
       for (const name of ["panel-border", "panel-border-width", "panel-shadow", "field", "empty", "stripe", "off-bd", "heading"]) expect(tokens[name], name).toBeDefined();
     }
-    expect(themes.light["accent"]).toBe("#0e7490");
+    expect(css).not.toMatch(/#0e7490|#0b5f76|#0e6682/i);
+    expect([themes.light["accent"], themes.light["accent-hover"], themes.light["accent-text"], themes.light["on-accent"]]).toEqual(["#0066ff", "#0052cc", "#0052cc", "#ffffff"]);
   });
 
-  it("panels have one outline: --panel-border-width of --panel-border and --panel-shadow (2 px light, 1.5 px lime dark)", () => {
+  it("panels have one outline: --panel-border-width of --panel-border and --panel-shadow (1.5 px: electric blue light, lime dark)", () => {
     expect(css).toMatch(/@utility panel-frame \{\s*border: var\(--panel-border-width\) solid var\(--panel-border\);\s*box-shadow: var\(--panel-shadow\);\s*\}/);
-    expect([themes.light["panel-border"], themes.light["panel-border-width"]]).toEqual(["#c7d3d8", "2px"]);
+    expect([themes.light["panel-border"], themes.light["panel-border-width"]]).toEqual(["#0066ff", "1.5px"]);
     expect([themes.dark["panel-border"], themes.dark["panel-border-width"]]).toEqual(["#d0db4e", "1.5px"]);
   });
 });

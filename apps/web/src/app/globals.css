@@ -6,12 +6,13 @@
  * - Themes: html[data-theme="light" | "dark"], set before paint by the inline
  *   script in the root layout. Without JavaScript (no attribute) the OS
  *   preference applies.
- * - Light: palette «Petróleo», cool blue-grey neutrals and a petrol blue
- *   (#0E7490). Dark: deep navy with lime text and buttons and white headings.
+ * - Light: cool blue-grey neutrals («Petróleo») with an electric blue
+ *   (#0066FF) for actions and panel outlines. Dark: deep navy with lime text,
+ *   buttons and outlines, and white headings.
  *   The action colour (buttons, links, focus) is never used for a state.
  * - --heading is for h1–h3, the top bar and the logo (= --fg in light).
  * - Every panel, card, table, modal and menu has the same outline:
- *   --panel-border (--panel-border-width: 2 px light, 1.5 px dark) plus
+ *   --panel-border (--panel-border-width: 1.5 px in both themes) plus
  *   --panel-shadow (the `panel-frame` utility). Dividers
  *   inside a panel stay 1 px of --line.
  * - Verdict families: ok, warn, q (unknown), off (negative, not an error),
@@ -25,8 +26,8 @@
   --sunken: #f2f5f6;
   --field: #ffffff;
   --hover: #e9eff1;
-  --panel-border: #c7d3d8;
-  --panel-border-width: 2px;
+  --panel-border: #0066ff;
+  --panel-border-width: 1.5px;
   --panel-shadow: 0 1px 2px rgba(11, 27, 34, 0.06);
   --line: #e1e8eb;
   --line-strong: #b4c3c9;
@@ -37,9 +38,9 @@
   --heading: #0b1b22;
   --muted: #4d6069;
   --faint: #56696f;
-  --accent: #0e7490;
-  --accent-hover: #0b5f76;
-  --accent-text: #0e6682;
+  --accent: #0066ff;
+  --accent-hover: #0052cc;
+  --accent-text: #0052cc;
   --on-accent: #ffffff;
   --ok: #15803d;
   --ok-bg: #edf7f0;
