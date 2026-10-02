@@ -59,6 +59,7 @@
   --off: #5f6672;
   --off-bg: #eef2f3;
   --off-bd: #d6dee1;
+  --off-dot: #8596a0;
   --bad: #b91c1c;
   --bad-bg: #fcebea;
   color-scheme: light;
@@ -100,6 +101,7 @@ html[data-theme="dark"],
   --off: #8a93a2;
   --off-bg: color-mix(in srgb, var(--off) 8%, transparent);
   --off-bd: color-mix(in srgb, var(--off) 25%, transparent);
+  --off-dot: #6b7280;
   --bad: #f97366;
   --bad-bg: color-mix(in srgb, var(--bad) 12%, transparent);
   color-scheme: dark;
@@ -142,6 +144,7 @@ html[data-theme="dark"],
     --off: #8a93a2;
     --off-bg: color-mix(in srgb, var(--off) 8%, transparent);
     --off-bd: color-mix(in srgb, var(--off) 25%, transparent);
+    --off-dot: #6b7280;
     --bad: #f97366;
     --bad-bg: color-mix(in srgb, var(--bad) 12%, transparent);
     color-scheme: dark;
@@ -183,6 +186,7 @@ html[data-theme="dark"],
   --color-off: var(--off);
   --color-off-bg: var(--off-bg);
   --color-off-bd: var(--off-bd);
+  --color-off-dot: var(--off-dot);
   --color-bad: var(--bad);
   --color-bad-bg: var(--bad-bg);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;

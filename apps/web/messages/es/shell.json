@@ -54,7 +54,9 @@
     "light": "Claro",
     "dark": "Oscuro",
     "system": "Sistema",
-    "cycle": "Tema: {current}. Cambiar a {next}"
+    "cycle": "Tema: {current}. Cambiar a {next}",
+    "toDark": "Cambiar a tema oscuro",
+    "toLight": "Cambiar a tema claro"
   },
   "language": {
     "label": "Idioma",

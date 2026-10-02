@@ -8,28 +8,37 @@
   "eyebrowSearch": "SEARCH A SITE",
   "headingInspect": "Check any web page.",
   "headingSearch": "Find what you need on a site.",
-  "introInspect": "EXEGEZIS walks the site in clean browsers, repeats every visit and only marks as verified what appears in every repetition, with its evidence and a Playwright spec.",
+  "introInspect": "EXEGEZIS walks it in read-only mode, repeats every check and only reports what reproduces every time, with the evidence and a test to run it again.",
   "introSearch": "Exact words (no AI, checked on every load) or by meaning (the AI proposes and every quote is checked letter by letter on the page). You always see how many pages were searched.",
-  "haveSymptom": "Do you have a specific symptom? Open an investigation",
+  "haveSymptom": "Have a specific symptom?",
   "proven": {
     "title": "What has been proven",
-    "note": "One value per case (its latest real result). Runs with recorded answers (replay) do not count."
+    "note": "One value per case · the latest result of each · no demo data"
   },
   "metrics": {
     "verifiedBugs": "Verified bugs",
-    "verifiedBugsHint": "{reproductions, plural, one {# reproduction} other {# reproductions}} · {attempts, plural, one {# browser run} other {# browser runs}}",
+    "verifiedBugsHint": "{verified} of {seeded, plural, one {# seeded bug} other {# seeded bugs}}. {reproductions, plural, one {# reproduction} other {# reproductions}} in {attempts, plural, one {# run} other {# runs}}.",
     "validatedCauses": "Validated root causes",
-    "validatedCausesHint": "against the alternatives tested, in {cases, plural, one {# case} other {# cases}}",
-    "falseValidations": "{count, plural, one {# false validation} other {# false validations}}",
-    "falseVerified": "False verified in negative cases",
+    "validatedCausesHint": "Against the alternatives tested.",
+    "falseValidations": "{count, plural, one {# false validation} other {# false validations}} ({ids})",
+    "falseVerified": "False VERIFIED",
     "falseVerifiedHint": "out of {count, plural, one {# negative case evaluated} other {# negative cases evaluated}}",
-    "median": "Median time to verify",
+    "median": "Time to verify",
     "medianNone": "no timings: archived results do not keep reproduction.json",
-    "medianHint": "over {count, plural, one {# verified bug} other {# verified bugs}} (all runs)"
+    "medianHint": "Median in minutes, over {count, plural, one {# verified bug} other {# verified bugs}}.",
+    "verifiedBugsShort": "{verified} of {seeded} seeded",
+    "validatedCausesShort": "Validated causes",
+    "validatedCausesShortHint": "in {cases, plural, one {# case} other {# cases}}",
+    "falseValidationsShort": "{count, plural, one {# false} other {# false}} ({ids})",
+    "falseVerifiedNone": "In {count, plural, one {# negative case} other {# negative cases}}: the healthy app never comes out as a bug.",
+    "falseVerifiedSome": "In {count, plural, one {# negative case} other {# negative cases}}: {verified} came out as a bug.",
+    "falseVerifiedShort": "in {count, plural, one {# negative case} other {# negative cases}}",
+    "medianShort": "Time to verify",
+    "medianShortHint": "median, minutes"
   },
   "cases": {
     "title": "Activity per case",
-    "all": "All investigations",
+    "all": "See all",
     "filterLabel": "Filter cases",
     "filters": {
       "all": "All",
@@ -50,19 +59,48 @@
     "replays": "+{count} replay",
     "replaysTitle": "{count, plural, one {# run with recorded planner answers, not counted in the metrics} other {# runs with recorded planner answers, not counted in the metrics}}",
     "ai": "AI",
-    "humanPlan": "Human plan"
+    "humanPlan": "Human plan",
+    "columns": {
+      "case": "Case",
+      "verdict": "Verdict",
+      "evidence": "Cause evidence",
+      "history": "History",
+      "origin": "Plan origin",
+      "last": "Latest"
+    },
+    "note": {
+      "seeded": "seeded bug",
+      "expected": "expected: {expected}",
+      "adhoc": "own investigation"
+    },
+    "replay": "Replay",
+    "aiModel": "AI · {model}",
+    "notReproduced": "Not reproduced",
+    "replayNote": "Replay = a recorded plan, not a new call to the AI. It does not count in the AI metrics.",
+    "meter": {
+      "notApplicable": "Not applicable",
+      "falseValidation": "Validated in error",
+      "validated": "Validated · alternatives tested",
+      "validatedShort": "Cause validated",
+      "REPRODUCED": "Reproduced",
+      "SUFFICIENT": "Sufficient",
+      "CANDIDATE": "Candidate"
+    }
   },
   "recent": {
     "title": "Recent inspections",
-    "all": "All",
-    "none": "You have not inspected any site yet",
-    "noneBody": "Type a URL above. The result will appear here with its verified findings.",
+    "all": "See all",
+    "none": "No inspections yet",
+    "noneBody": "Paste a URL above to start. Each site will show here with its verified findings by severity.",
     "invalid": "invalid report",
-    "line": "{problems, plural, one {# problem} other {# problems}} · {elements, plural, one {# element} other {# elements}} · {when}"
+    "line": "{problems, plural, one {# problem} other {# problems}} · {elements, plural, one {# element} other {# elements}} · {when}",
+    "noneShort": "Paste a URL above to start."
   },
   "capabilities": {
     "title": "What it can prove today",
-    "cases": "{count, plural, one {# case} other {# cases}}"
+    "cases": "{count, plural, one {# case} other {# cases}}",
+    "ready": "Ready",
+    "rootCause": "Candidate / validated"
   },
   "shortcuts": {
     "label": "Shortcuts",
@@ -78,18 +116,18 @@
     "depth": "Depth",
     "browser": "Browser",
     "chipPages": "{count, plural, one {# page} other {# pages}}",
-    "chipDepth": "depth {depth}",
-    "chipIgnoreRobots": "ignores robots.txt",
-    "chipAnonymous": "anonymous visitor",
-    "chipSession": "signed in",
+    "chipDepth": "Depth {depth}",
+    "chipIgnoreRobots": "Ignores robots.txt",
+    "chipAnonymous": "Anonymous visitor",
+    "chipSession": "With a session",
     "inspect": {
       "submit": "Inspect",
       "options": "Inspection options",
       "chipRuns": "{count, plural, one {# run} other {# runs}}",
-      "chipStrict": "strict read-only",
-      "chipReadonly": "read-only",
+      "chipStrict": "Strict read-only",
+      "chipReadonly": "Read-only",
       "chipChecks": "{count, plural, one {# check} other {# checks}}",
-      "chipBrowser": "browser: {browser}",
+      "chipBrowser": "Browser: {browser}",
       "accessKind": {
         "session": "session",
         "httpCredentials": "HTTP username and password",
@@ -166,6 +204,20 @@
       "ignoreRobots": "Ignore robots.txt (the start URL is always visited).",
       "save": "Save as a search (name, optional)",
       "savePlaceholder": "e.g. Health on the website"
-    }
-  }
+    },
+    "advancedShort": "Options",
+    "chipUpTo": "Up to {count, plural, one {# page} other {# pages}}"
+  },
+  "header": {
+    "project": "Project",
+    "allProjects": "All",
+    "unassigned": "Unassigned",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "search": "Search text on a site"
+  },
+  "introInspectShort": "Read-only. It only reports what reproduces every time.",
+  "openInvestigation": "Open an investigation →",
+  "switchToSearch": "Search text on a site →",
+  "switchToInspect": "Inspect a site →"
 }

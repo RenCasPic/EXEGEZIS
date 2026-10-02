@@ -8,28 +8,37 @@
   "eyebrowSearch": "BÚSQUEDA EN UN SITIO",
   "headingInspect": "Revisa cualquier página web.",
   "headingSearch": "Busca lo que necesites en un sitio.",
-  "introInspect": "EXEGEZIS recorre el sitio en navegadores limpios, repite cada visita y solo marca como verificado lo que aparece en todas las repeticiones, con su evidencia y un spec de Playwright.",
+  "introInspect": "EXEGEZIS la recorre en modo solo lectura, repite cada comprobación y solo reporta lo que se reproduce siempre, con la evidencia y un test para volver a ejecutarlo.",
   "introSearch": "Palabras exactas (sin IA, comprobadas en cada carga) o por significado (la IA propone y cada cita se verifica letra por letra en la página). Siempre verás cuántas páginas se revisaron.",
-  "haveSymptom": "¿Tienes un síntoma concreto? Abre una investigación",
+  "haveSymptom": "¿Tienes un síntoma concreto?",
   "proven": {
     "title": "Lo demostrado",
-    "note": "Un valor por caso (su último resultado real). Las ejecuciones con respuestas grabadas (replay) no cuentan."
+    "note": "Valores únicos por caso · el último resultado de cada uno · sin datos de demo"
   },
   "metrics": {
     "verifiedBugs": "Bugs verificados",
-    "verifiedBugsHint": "{reproductions, plural, one {# reproducción} other {# reproducciones}} · {attempts, plural, one {# ejecución en navegador} other {# ejecuciones en navegador}}",
-    "validatedCauses": "Causas validadas",
-    "validatedCausesHint": "frente a las alternativas probadas, en {cases, plural, one {# caso} other {# casos}}",
-    "falseValidations": "{count, plural, one {# validación falsa} other {# validaciones falsas}}",
-    "falseVerified": "Falsos verificados en casos negativos",
+    "verifiedBugsHint": "{verified} de {seeded, plural, one {# bug sembrado} other {# bugs sembrados}}. {reproductions, plural, one {# reproducción} other {# reproducciones}} en {attempts, plural, one {# ejecución} other {# ejecuciones}}.",
+    "validatedCauses": "Causas raíz validadas",
+    "validatedCausesHint": "Frente a las alternativas probadas.",
+    "falseValidations": "{count, plural, one {# falsa validación} other {# falsas validaciones}} ({ids})",
+    "falseVerified": "Falsos VERIFIED",
     "falseVerifiedHint": "de {count, plural, one {# caso negativo evaluado} other {# casos negativos evaluados}}",
-    "median": "Mediana hasta verificar",
+    "median": "Tiempo hasta verificar",
     "medianNone": "sin tiempos: los resultados archivados no guardan reproduction.json",
-    "medianHint": "sobre {count, plural, one {# bug verificado} other {# bugs verificados}} (todas las ejecuciones)"
+    "medianHint": "Mediana en minutos, sobre {count, plural, one {# bug verificado} other {# bugs verificados}}.",
+    "verifiedBugsShort": "{verified} de {seeded} sembrados",
+    "validatedCausesShort": "Causas validadas",
+    "validatedCausesShortHint": "en {cases, plural, one {# caso} other {# casos}}",
+    "falseValidationsShort": "{count, plural, one {# falsa} other {# falsas}} ({ids})",
+    "falseVerifiedNone": "En {count, plural, one {# caso negativo} other {# casos negativos}}: la app sana nunca sale como bug.",
+    "falseVerifiedSome": "En {count, plural, one {# caso negativo} other {# casos negativos}}: {verified, plural, one {# salió} other {# salieron}} como bug.",
+    "falseVerifiedShort": "en {count, plural, one {# caso negativo} other {# casos negativos}}",
+    "medianShort": "Hasta verificar",
+    "medianShortHint": "mediana, minutos"
   },
   "cases": {
     "title": "Actividad por caso",
-    "all": "Todas las investigaciones",
+    "all": "Ver todo",
     "filterLabel": "Filtrar casos",
     "filters": {
       "all": "Todos",
@@ -50,19 +59,48 @@
     "replays": "+{count} replay",
     "replaysTitle": "{count, plural, one {# ejecución con respuestas grabadas del planner, fuera de las métricas} other {# ejecuciones con respuestas grabadas del planner, fuera de las métricas}}",
     "ai": "IA",
-    "humanPlan": "Plan humano"
+    "humanPlan": "Plan humano",
+    "columns": {
+      "case": "Caso",
+      "verdict": "Veredicto",
+      "evidence": "Evidencia de causa",
+      "history": "Historial",
+      "origin": "Origen del plan",
+      "last": "Última"
+    },
+    "note": {
+      "seeded": "bug sembrado",
+      "expected": "esperado: {expected}",
+      "adhoc": "investigación propia"
+    },
+    "replay": "Replay",
+    "aiModel": "IA · {model}",
+    "notReproduced": "No reproducido",
+    "replayNote": "Replay = plan grabado, no una llamada nueva a la IA. No cuenta en las métricas de IA.",
+    "meter": {
+      "notApplicable": "No aplica",
+      "falseValidation": "Validada por error",
+      "validated": "Validada · alternativas probadas",
+      "validatedShort": "Causa validada",
+      "REPRODUCED": "Reproducido",
+      "SUFFICIENT": "Suficiente",
+      "CANDIDATE": "Candidata"
+    }
   },
   "recent": {
     "title": "Inspecciones recientes",
-    "all": "Todas",
-    "none": "Todavía no has inspeccionado ningún sitio",
-    "noneBody": "Escribe una URL arriba. El resultado aparecerá aquí con sus hallazgos verificados.",
+    "all": "Ver todas",
+    "none": "Aún no hay inspecciones",
+    "noneBody": "Pega una URL arriba para empezar. Aquí verás cada sitio con sus hallazgos verificados por gravedad.",
     "invalid": "informe no válido",
-    "line": "{problems, plural, one {# problema} other {# problemas}} · {elements, plural, one {# elemento} other {# elementos}} · {when}"
+    "line": "{problems, plural, one {# problema} other {# problemas}} · {elements, plural, one {# elemento} other {# elementos}} · {when}",
+    "noneShort": "Pega una URL arriba para empezar."
   },
   "capabilities": {
     "title": "Qué puede demostrar hoy",
-    "cases": "{count, plural, one {# caso} other {# casos}}"
+    "cases": "{count, plural, one {# caso} other {# casos}}",
+    "ready": "Listo",
+    "rootCause": "Candidato / validada"
   },
   "shortcuts": {
     "label": "Atajos",
@@ -78,18 +116,18 @@
     "depth": "Profundidad",
     "browser": "Navegador",
     "chipPages": "{count, plural, one {# página} other {# páginas}}",
-    "chipDepth": "profundidad {depth}",
-    "chipIgnoreRobots": "ignora robots.txt",
-    "chipAnonymous": "visitante anónimo",
-    "chipSession": "con sesión",
+    "chipDepth": "Profundidad {depth}",
+    "chipIgnoreRobots": "Ignora robots.txt",
+    "chipAnonymous": "Visitante anónimo",
+    "chipSession": "Con sesión",
     "inspect": {
       "submit": "Inspeccionar",
       "options": "Opciones de la inspección",
       "chipRuns": "{count, plural, one {# repetición} other {# repeticiones}}",
-      "chipStrict": "solo lectura estricta",
-      "chipReadonly": "solo lectura",
+      "chipStrict": "Solo lectura estricta",
+      "chipReadonly": "Solo lectura",
       "chipChecks": "{count, plural, one {# comprobación} other {# comprobaciones}}",
-      "chipBrowser": "navegador: {browser}",
+      "chipBrowser": "Navegador: {browser}",
       "accessKind": {
         "session": "sesión",
         "httpCredentials": "usuario y contraseña HTTP",
@@ -166,6 +204,20 @@
       "ignoreRobots": "Ignorar robots.txt (la URL inicial se visita siempre).",
       "save": "Guardar como búsqueda (nombre, opcional)",
       "savePlaceholder": "p. ej. Salud en la web"
-    }
-  }
+    },
+    "advancedShort": "Opciones",
+    "chipUpTo": "Hasta {count, plural, one {# página} other {# páginas}}"
+  },
+  "header": {
+    "project": "Proyecto",
+    "allProjects": "Todos",
+    "unassigned": "Sin asignar",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "search": "Buscar texto en un sitio"
+  },
+  "introInspectShort": "Solo lectura. Solo reporta lo que se reproduce siempre.",
+  "openInvestigation": "Abrir una investigación →",
+  "switchToSearch": "Buscar texto en un sitio →",
+  "switchToInspect": "Inspeccionar un sitio →"
 }

@@ -54,7 +54,9 @@
     "light": "Light",
     "dark": "Dark",
     "system": "System",
-    "cycle": "Theme: {current}. Switch to {next}"
+    "cycle": "Theme: {current}. Switch to {next}",
+    "toDark": "Switch to the dark theme",
+    "toLight": "Switch to the light theme"
   },
   "language": {
     "label": "Language",

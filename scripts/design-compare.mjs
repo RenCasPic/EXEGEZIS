@@ -9,7 +9,8 @@
 //   <name>.diff.png        actual vs reference HTML: the reference faded, the differences in red;
 //   <name>.png-diff.png    actual vs the committed reference PNG (captured without Geist, so its
 //                          line breaks differ: informative only);
-// and report.md with the share of different pixels.
+// and report.md with the share of different pixels. The references are rendered at their
+// natural height (see unsqueeze).
 //
 // It starts its own `next dev` for each app (build folder .next-shots), unless SITE_URL or
 // WEB_URL point to one that is already running. DESIGN_ONLY=landing,home-app limits the pages. The app home shows the real data in runs/.
@@ -31,9 +32,9 @@ const THRESHOLD = 48;
 const TARGETS = [
   { name: "landing", app: "site", path: "/es/", width: 1440, reference: "landing.html", png: "landing.png" },
   { name: "home-app", app: "web", path: "/", width: 1440, theme: "light", reference: "home-app.html", png: "home-app.png" },
-  { name: "home-app-dark", app: "web", path: "/", width: 1440, theme: "dark", reference: "home-app.html", click: 'button[aria-label="Tema oscuro"]' },
+  { name: "home-app-dark", app: "web", path: "/", width: 1440, theme: "dark", reference: "home-app.html", click: '[aria-label="Tema oscuro"]' },
   { name: "home-app-mobile", app: "web", path: "/", width: 390, theme: "light", reference: "home-app-mobile.html", png: "home-app-mobile.png" },
-  { name: "home-app-mobile-dark", app: "web", path: "/", width: 390, theme: "dark", reference: "home-app-mobile.html", click: 'button[aria-label="Cambiar a tema oscuro"]' },
+  { name: "home-app-mobile-dark", app: "web", path: "/", width: 390, theme: "dark", reference: "home-app-mobile.html", click: '[aria-label="Cambiar a tema oscuro"]' },
 ];
 
 function freePort() {
@@ -87,6 +88,15 @@ async function localFonts(page) {
     const file = files[new URL(route.request().url()).pathname];
     return file ? route.fulfill({ contentType: "font/woff2", body: readFileSync(file) }) : route.abort();
   });
+}
+
+/**
+ * The references give their root a fixed height smaller than their content, so the browser
+ * shrinks the flex items that can shrink (the app home's 64 px header becomes 38 px, as in
+ * home-app.png). Render them at their natural height, as designed.
+ */
+async function unsqueeze(page) {
+  await page.addStyleTag({ content: "#root > * { height: auto !important; min-height: 0 !important; }" });
 }
 
 async function settle(page) {
@@ -182,6 +192,7 @@ try {
     await localFonts(ref);
     await ref.goto(pathToFileURL(join(DESIGN, target.reference)).href, { waitUntil: "load" });
     if (target.click) await ref.click(target.click);
+    await unsqueeze(ref);
     await settle(ref);
     const reference = await ref.screenshot({ fullPage: true });
     writeFileSync(join(OUT, `${target.name}.reference.png`), reference);
