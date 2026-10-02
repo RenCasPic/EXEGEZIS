@@ -78,6 +78,16 @@ export default defineConfig({
       },
       {
         test: {
+          name: "site",
+          root: "apps/site",
+          include: ["test/**/*.test.ts"],
+          // The end-to-end test starts its own `next dev` and a real browser.
+          testTimeout: 300_000,
+          hookTimeout: 300_000,
+        },
+      },
+      {
+        test: {
           name: "cli",
           root: "apps/cli",
           include: ["test/**/*.test.ts"],

@@ -14,5 +14,5 @@
     "vitest.config.ts",
     "eslint.config.js"
   ],
-  "exclude": ["apps/web"]
+  "exclude": ["apps/web", "apps/site"]
 }
