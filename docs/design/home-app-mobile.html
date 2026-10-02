@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EXEGEZIS · Inicio móvil · referencia de diseño</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Geist',ui-sans-serif,system-ui,sans-serif}
+a{color:var(--accent-text);text-decoration:none}a:hover{text-decoration:underline}
+h1,h2,header{color:var(--heading,inherit)}
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+<template id="tpl">
+
+<div style="{{ rootStyle }}">
+
+  <header style="height: 56px; box-sizing: border-box; padding: 0 8px 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line)">
+    <span style="display: flex; align-items: center; gap: 8px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M8 8h8"></path><path d="M8 12h5"></path><path d="M8 16h8"></path></svg>
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 600; font-size: 14px; letter-spacing: 0.14em">EXEGEZIS</span>
+    </span>
+    <span style="display: flex; align-items: center">
+      <button type="button" aria-label="{{ toggleLabel }}" onClick="{{ toggle }}" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--fg); cursor: pointer">
+        <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></sc-if>
+        <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path></svg></sc-if>
+      </button>
+      <button type="button" aria-label="Abrir menú" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--fg); cursor: pointer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path></svg>
+      </button>
+    </span>
+  </header>
+
+  <main style="padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 32px">
+    <section aria-labelledby="m-hero" style="background: var(--panel); border: var(--panel-bw) solid var(--panel-border); box-shadow: var(--panel-shadow); border-radius: 14px; padding: 22px 18px; display: flex; flex-direction: column; gap: 16px">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; color: var(--accent-text)">INSPECCIÓN WEB</span>
+      <h1 id="m-hero" style="margin: 0; font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: -0.02em">Revisa cualquier página web.</h1>
+      <p style="margin: 0; font-size: 15px; line-height: 1.5; color: var(--muted)">Solo lectura. Solo reporta lo que se reproduce siempre.</p>
+      <form style="display: flex; flex-direction: column; gap: 10px">
+        <label for="murl" style="font-size: 13px; font-weight: 500">URL del sitio</label>
+        <div style="height: 52px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 14px; border: 1.5px solid var(--line-strong); border-radius: 12px; background: var(--field)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--muted)"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          <input id="murl" type="url" placeholder="https://tu-sitio.com" style="flex-grow: 1; min-width: 0; border: 0; outline: none; font: inherit; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 15px; color: var(--fg); background: transparent">
+        </div>
+        <button type="submit" style="height: 52px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer">Inspeccionar</button>
+      </form>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--muted)">
+        <span style="padding: 4px 9px; border-radius: 999px; background: var(--sunken); border: 1px solid var(--line)">20 páginas</span>
+        <span style="padding: 4px 9px; border-radius: 999px; background: var(--sunken); border: 1px solid var(--line)">3 repeticiones</span>
+        <span style="padding: 4px 9px; border-radius: 999px; background: var(--sunken); border: 1px solid var(--line)">Solo lectura</span>
+        <button type="button" style="border: 0; background: transparent; font: inherit; font-size: 12px; font-weight: 500; color: var(--accent-text); padding: 4px 4px; cursor: pointer">Opciones</button>
+      </div>
+      <a href="#" style="font-size: 14px; font-weight: 500; border-top: 1px solid var(--line); padding-top: 14px">¿Tienes un síntoma concreto? Abrir una investigación →</a>
+    </section>
+
+    <section aria-labelledby="m-proof" style="display: flex; flex-direction: column; gap: 12px">
+      <h2 id="m-proof" style="margin: 0; font-size: 18px; font-weight: 600">Lo demostrado</h2>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+        <div style="background: var(--panel); border: var(--panel-bw) solid var(--panel-border); box-shadow: var(--panel-shadow); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 13px; color: var(--muted)">Bugs verificados</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 30px; font-weight: 500; line-height: 1">3</span>
+          <span style="font-size: 12px; color: var(--muted)">3 de 3 sembrados</span>
+        </div>
+        <div style="background: var(--panel); border: var(--panel-bw) solid var(--panel-border); box-shadow: var(--panel-shadow); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 13px; color: var(--muted)">Causas validadas</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 30px; font-weight: 500; line-height: 1">3<span style="font-size: 15px; color: var(--muted)"> / 6</span></span>
+          <span style="font-size: 12px; color: var(--bad); font-weight: 500">1 falsa (ADV-002)</span>
+        </div>
+        <div style="background: var(--panel); border: var(--panel-bw) solid var(--panel-border); box-shadow: var(--panel-shadow); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 13px; color: var(--muted)">Falsos VERIFIED</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 30px; font-weight: 500; line-height: 1; color: var(--ok)">0</span>
+          <span style="font-size: 12px; color: var(--muted)">en 10 casos negativos</span>
+        </div>
+        <div style="background: var(--panel); border: var(--panel-bw) solid var(--panel-border); box-shadow: var(--panel-shadow); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 13px; color: var(--muted)">Hasta verificar</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 30px; font-weight: 500; line-height: 1">1:13</span>
+          <span style="font-size: 12px; color: var(--muted)">mediana, minutos</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="m-act" style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between">
+        <h2 id="m-act" style="margin: 0; font-size: 18px; font-weight: 600">Actividad por caso</h2>
+        <a href="#" style="font-size: 13px; font-weight: 500">Ver todo</a>
+      </div>
+      <sc-for list="{{ rows }}" as="row" hint-placeholder-count="6">
+        <article style="background: var(--panel); border: var(--panel-bw) solid var(--panel-border); box-shadow: var(--panel-shadow); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+            <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted)">{{ row.id }}</span>
+            <span style="{{ row.pillStyle }}">{{ row.verdict }}</span>
+          </div>
+          <span style="font-size: 15px; font-weight: 500; line-height: 1.35">{{ row.title }}</span>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <div style="display: flex; gap: 3px" aria-hidden="true">
+              <sc-for list="{{ row.meter }}" as="seg" hint-placeholder-count="5"><span style="{{ seg.style }}"></span></sc-for>
+            </div>
+            <span style="font-size: 12px; color: var(--muted)">{{ row.meterLabel }}</span>
+          </div>
+          <span style="font-size: 12px; color: var(--muted)">{{ row.note }} · {{ row.origin }} · hace {{ row.when }}</span>
+        </article>
+      </sc-for>
+    </section>
+
+    <section aria-labelledby="m-insp" style="border: 1.5px dashed var(--line-strong); border-radius: 12px; padding: 22px 18px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center">
+      <h2 id="m-insp" style="margin: 0; font-size: 15px; font-weight: 600">Aún no hay inspecciones</h2>
+      <span style="font-size: 13px; line-height: 1.5; color: var(--muted)">Pega una URL arriba para empezar.</span>
+    </section>
+  </main>
+</div>
+</template>
+<script>window.__PROPS = {"theme": "light"};</script>
+
+<script>
+class DCLogic { constructor(props){ this.props = props || {}; this.state = {}; } setState(s){ this.state = Object.assign({}, this.state, s); render(); } }
+function look(path, scope){
+  path = path.trim();
+  if (path === 'true') return true; if (path === 'false') return false;
+  if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+  return path.split('.').reduce(function(o,k){ return o == null ? undefined : o[k]; }, scope);
+}
+function interp(str, scope){
+  var whole = str.match(/^\s*\{\{([^}]+)\}\}\s*$/);
+  if (whole) return look(whole[1], scope);
+  return str.replace(/\{\{([^}]+)\}\}/g, function(_, p){ var v = look(p, scope); return v == null ? '' : String(v); });
+}
+function proc(node, scope, out){
+  if (node.nodeType === 3) { out.appendChild(document.createTextNode(interp(node.nodeValue, scope))); return; }
+  if (node.nodeType !== 1) return;
+  var tag = node.tagName.toLowerCase();
+  if (tag === 'sc-for') {
+    var list = interp(node.getAttribute('list'), scope) || [];
+    var as = node.getAttribute('as');
+    list.forEach(function(item, i){ var s = Object.create(scope); s[as] = item; s.$index = i; node.childNodes.forEach(function(c){ proc(c, s, out); }); });
+    return;
+  }
+  if (tag === 'sc-if') { if (interp(node.getAttribute('value'), scope)) node.childNodes.forEach(function(c){ proc(c, scope, out); }); return; }
+  var el = document.createElementNS(node.namespaceURI, node.tagName);
+  for (var i = 0; i < node.attributes.length; i++) {
+    var a = node.attributes[i];
+    if (/^on[A-Z]/.test(a.name) || /^on[a-z]+$/.test(a.name) && a.value.indexOf('{{') >= 0) {
+      var fn = interp(a.value, scope); if (typeof fn === 'function') el.addEventListener(a.name.slice(2).toLowerCase(), fn); continue;
+    }
+    if (a.name.indexOf('hint-') === 0) continue;
+    var v = interp(a.value, scope); if (v === false || v == null) continue;
+    el.setAttribute(a.name, v === true ? '' : v);
+  }
+  var src = tag === 'template' ? node.content : node;
+  src.childNodes.forEach(function(c){ proc(c, scope, el); });
+  out.appendChild(el);
+}
+var comp, tpl;
+function render(){
+  var root = document.getElementById('root'); root.innerHTML = '';
+  var vals = comp.renderVals();
+  tpl.content.childNodes.forEach(function(c){ proc(c, vals, root); });
+}
+document.addEventListener('DOMContentLoaded', function(){
+  tpl = document.getElementById('tpl');
+  comp = new Component(window.__PROPS || {});
+  render();
+});
+</script>
+
+<script>
+class Component extends DCLogic {
+  renderVals() {
+    var TOKENS = {
+      light: {
+        bg: '#F2F5F6', panel: '#FFFFFF', sunken: '#F2F5F6', field: '#FFFFFF',
+        'panel-border': '#0066FF', 'panel-bw': '1.5px', 'panel-shadow': '0 1px 2px rgba(11,27,34,0.06)',
+        line: '#E1E8EB', 'line-strong': '#B4C3C9', fg: '#0B1B22', muted: '#4D6069',
+        accent: '#0066FF', 'accent-text': '#0052CC', 'on-accent': '#FFFFFF',
+        ok: '#15803D', 'ok-bg': '#E7F4EC', 'ok-bd': '#BFE0CB',
+        warn: '#B45309', q: '#475569', 'q-bg': '#EEF1F4', 'q-bd': '#D5DBE3',
+        off: '#5F6672', 'off-bg': '#EEF2F3', 'off-bd': '#D6DEE1',
+        bad: '#B91C1C', 'bad-bg': '#FCEBEA', 'bad-bd': '#F2C6C3', empty: '#DCE4E7'
+      },
+      dark: {
+        bg: '#011B34', panel: '#062443', sunken: '#01172C', field: '#01172C',
+        'panel-border': '#D0DB4E', 'panel-bw': '1.5px', 'panel-shadow': 'none',
+        line: '#0F3157', 'line-strong': '#2A5A8C', fg: '#D0DB4E', heading: '#FFFFFF', muted: '#93A7C1',
+        accent: '#CDDC39', 'accent-text': '#FFFFFF', 'on-accent': '#011B34',
+        ok: '#3DDC97', 'ok-bg': 'rgba(61,220,151,0.12)', 'ok-bd': 'rgba(61,220,151,0.30)',
+        warn: '#F5B544', q: '#AAB4C3', 'q-bg': 'rgba(170,180,195,0.12)', 'q-bd': 'rgba(170,180,195,0.28)',
+        off: '#8A93A2', 'off-bg': 'rgba(138,147,162,0.10)', 'off-bd': 'rgba(138,147,162,0.26)',
+        bad: '#F97366', 'bad-bg': 'rgba(249,115,102,0.12)', 'bad-bd': 'rgba(249,115,102,0.32)', empty: '#12365D'
+      }
+    };
+    var mode = (this.state && this.state.theme) || this.props.theme || 'light';
+    if (mode !== 'dark') mode = 'light';
+    var t = TOKENS[mode];
+    var vars = '';
+    for (var k in t) vars += '--' + k + ': ' + t[k] + '; ';
+    var self = this;
+    function pill(k) {
+      return 'display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--' + k + '); background: var(--' + k + '-bg); border: 1px solid var(--' + k + '-bd)';
+    }
+    function meter(level, k) {
+      var segs = [];
+      for (var i = 1; i <= 5; i++) {
+        segs.push({ style: 'width: 20px; height: 6px; border-radius: 2px; background: ' + (i <= level ? 'var(--' + k + ')' : 'var(--empty)') });
+      }
+      return segs;
+    }
+    function row(o) {
+      return { id: o.id, title: o.title, note: o.note, verdict: o.verdict, pillStyle: pill(o.k), meter: meter(o.level, o.mk || 'ok'), meterLabel: o.ml, origin: o.origin, when: o.when };
+    }
+    return {
+      rootStyle: vars + 'color-scheme: ' + mode + '; width: 390px; height: 2080px; box-sizing: border-box; background: var(--bg); color: var(--fg); font-family: \'Geist\', ui-sans-serif, system-ui, sans-serif; display: flex; flex-direction: column',
+      isDark: mode === 'dark', isLight: mode === 'light',
+      toggleLabel: mode === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro',
+      toggle: function () { self.setState({ theme: mode === 'dark' ? 'light' : 'dark' }); },
+      rows: [
+        row({ id: 'BUG-001', title: 'El contador del carrito no baja al quitar el único producto', note: 'bug sembrado', verdict: 'Verificado', k: 'ok', level: 5, ml: 'Causa validada', origin: 'Replay', when: '5 h' }),
+        row({ id: 'BUG-002', title: 'El descuento del cupón ignora la cantidad', note: 'bug sembrado', verdict: 'Verificado', k: 'ok', level: 5, ml: 'Causa validada', origin: 'Replay', when: '5 h' }),
+        row({ id: 'BUG-003', title: 'Lo comprado reaparece en el carrito', note: 'bug sembrado', verdict: 'Verificado', k: 'ok', level: 3, mk: 'warn', ml: 'Suficiente', origin: 'Replay', when: '5 h' }),
+        row({ id: 'ADV-002', title: 'Compensador limitado a la ventana del fallo', note: 'caso trampa', verdict: 'Falsa validación', k: 'bad', level: 5, mk: 'bad', ml: 'Validada por error', origin: 'Plan humano', when: '5 h' }),
+        row({ id: 'WRONG-PREMISE-001', title: 'Quitar uno de dos productos actualiza el badge', note: 'esperado: premisa falsa', verdict: 'Inconcluso', k: 'q', level: 0, ml: 'No aplica', origin: 'Plan humano', when: '5 h' }),
+        row({ id: 'HEALTHY-001', title: 'El contador sube al añadir un producto', note: 'esperado: app sana', verdict: 'No verificado', k: 'off', level: 0, ml: 'No aplica', origin: 'IA · claude-opus-5', when: '13 h' })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

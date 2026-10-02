@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EXEGEZIS · Landing · referencia de diseño</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:#F2F5F6}
+a{color:#0052CC;text-decoration:none}a:hover{text-decoration:underline}
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+<template id="tpl">
+
+<div style="--bg: #F2F5F6; --panel: #FFFFFF; --border: #0066FF; --line: #E1E8EB; --fg: #0B1B22; --muted: #4D6069; --accent: #0066FF; --link: #0052CC; --navy: #011B34; --navy-panel: #062443; --lime: #D0DB4E; --lime-btn: #CDDC39; --navy-muted: #93A7C1; --ok: #15803D; --ok-bg: #E7F4EC; --warn: #B45309; --warn-bg: #FCF1E3; --q: #475569; --q-bg: #EEF1F4; width: 1440px; height: 5480px; box-sizing: border-box; background: var(--bg); color: var(--fg); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <div style="background: var(--navy); color: #FFFFFF; display: flex; flex-direction: column">
+    <header style="height: 72px; box-sizing: border-box; padding: 0 80px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #0F3157">
+      <div style="display: flex; align-items: center; gap: 48px">
+        <a href="#" style="display: flex; align-items: center; gap: 10px; color: #FFFFFF; text-decoration: none">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D0DB4E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M8 8h8"></path><path d="M8 12h5"></path><path d="M8 16h8"></path></svg>
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 600; font-size: 16px; letter-spacing: 0.16em">EXEGEZIS</span>
+        </a>
+        <nav aria-label="Principal" style="display: flex; gap: 32px; font-size: 15px">
+          <a href="#producto" style="color: #C9D5E3">Producto</a>
+          <a href="#como" style="color: #C9D5E3">Cómo funciona</a>
+          <a href="#precios" style="color: #C9D5E3">Precios</a>
+          <a href="#faq" style="color: #C9D5E3">Preguntas</a>
+        </nav>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px">
+        <a href="#" style="color: #FFFFFF; font-size: 15px; font-weight: 500">Iniciar sesión</a>
+        <a href="#" style="height: 40px; padding: 0 18px; border-radius: 10px; background: var(--lime-btn); color: var(--navy); font-size: 15px; font-weight: 600; display: flex; align-items: center">Empieza gratis</a>
+      </div>
+    </header>
+
+    <section aria-labelledby="hero-t" style="padding: 88px 80px 104px; display: grid; grid-template-columns: minmax(0, 1fr) 560px; gap: 64px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 28px">
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; letter-spacing: 0.14em; color: var(--lime)">VERIFICACIÓN DE SOFTWARE CON PRUEBAS</span>
+        <h1 id="hero-t" style="margin: 0; font-size: 68px; line-height: 1.02; font-weight: 600; letter-spacing: -0.03em">Solo lo que se puede demostrar.</h1>
+        <p style="margin: 0; font-size: 20px; line-height: 1.55; color: #C9D5E3; max-width: 620px">EXEGEZIS revisa tu web como lo haría una persona, repite cada comprobación y te entrega cada problema con su prueba: captura, evidencia y un test que lo reproduce. Sin falsos positivos.</p>
+        <form style="display: flex; gap: 12px; max-width: 640px">
+          <label for="hero-url" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">URL de tu sitio</label>
+          <div style="flex-grow: 1; height: 58px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 0 18px; border: 1.5px solid var(--lime); border-radius: 12px; background: var(--navy-panel)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#93A7C1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            <input id="hero-url" type="url" placeholder="https://tu-sitio.com" style="flex-grow: 1; border: 0; outline: none; background: transparent; color: #FFFFFF; font: inherit; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 16px">
+          </div>
+          <button type="submit" style="height: 58px; padding: 0 26px; border: 0; border-radius: 12px; background: var(--lime-btn); color: var(--navy); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer">Inspeccionar gratis</button>
+        </form>
+        <div style="display: flex; gap: 24px; font-size: 14px; color: var(--navy-muted)">
+          <span>Sin tarjeta</span><span>·</span><span>Solo lectura: no cambia nada de tu web</span><span>·</span><span>Informe en minutos</span>
+        </div>
+      </div>
+
+      <div aria-hidden="true" style="background: #FFFFFF; color: var(--fg); border: 1.5px solid var(--lime); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 60px rgba(0,0,0,0.35)">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: var(--muted)">https://tu-sitio.com · 42 de 42 páginas</span>
+          <span style="font-size: 12px; font-weight: 600; color: var(--ok); background: var(--ok-bg); padding: 3px 10px; border-radius: 99px">Completada</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <div style="border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 12px; color: var(--muted)">Frontend</span>
+            <span style="font-size: 22px; font-weight: 600">4 problemas</span>
+          </div>
+          <div style="border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 12px; color: var(--muted)">Backend</span>
+            <span style="font-size: 22px; font-weight: 600">1 problema</span>
+          </div>
+        </div>
+        <sc-for list="{{ preview }}" as="p" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--line)">
+            <span style="{{ p.pill }}">{{ p.verdict }}</span>
+            <span style="flex-grow: 1; font-size: 14px; font-weight: 500">{{ p.title }}</span>
+            <span style="font-size: 12px; color: var(--muted)">{{ p.where }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </div>
+
+  <section aria-label="Garantías" style="padding: 28px 80px; background: #FFFFFF; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px">
+    <sc-for list="{{ guarantees }}" as="g" hint-placeholder-count="4">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="width: 32px; height: 32px; border-radius: 99px; background: #E6F0FF; color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+        </span>
+        <span style="font-size: 15px; font-weight: 500">{{ g.text }}</span>
+      </div>
+    </sc-for>
+  </section>
+
+  <section id="producto" aria-labelledby="prod-t" style="padding: 112px 80px 0; display: flex; flex-direction: column; gap: 48px">
+    <div style="display: flex; flex-direction: column; gap: 14px; max-width: 760px">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; letter-spacing: 0.14em; color: var(--link)">QUÉ HACE</span>
+      <h2 id="prod-t" style="margin: 0; font-size: 44px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">Cuatro herramientas. Una sola regla: probarlo todo.</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+      <sc-for list="{{ features }}" as="f" hint-placeholder-count="4">
+        <article style="background: var(--panel); border: 1.5px solid var(--border); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(11,27,34,0.06)">
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: var(--link)">{{ f.n }}</span>
+          <h3 style="margin: 0; font-size: 26px; font-weight: 600">{{ f.title }}</h3>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55; color: var(--muted)">{{ f.desc }}</p>
+          <ul style="margin: 4px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px">
+            <sc-for list="{{ f.points }}" as="pt" hint-placeholder-count="3">
+              <li style="display: flex; gap: 10px; font-size: 15px">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066FF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><path d="M20 6 9 17l-5-5"></path></svg>
+                {{ pt }}
+              </li>
+            </sc-for>
+          </ul>
+        </article>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="como" aria-labelledby="como-t" style="padding: 112px 80px 0; display: flex; flex-direction: column; gap: 48px">
+    <div style="display: flex; flex-direction: column; gap: 14px; max-width: 760px">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; letter-spacing: 0.14em; color: var(--link)">CÓMO FUNCIONA</span>
+      <h2 id="como-t" style="margin: 0; font-size: 44px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">La IA propone. EXEGEZIS lo demuestra.</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 14px; padding-top: 24px; border-top: 3px solid var(--accent)">
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 40px; font-weight: 500; color: var(--accent)">{{ s.n }}</span>
+          <h3 style="margin: 0; font-size: 22px; font-weight: 600">{{ s.title }}</h3>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55; color: var(--muted)">{{ s.desc }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section aria-labelledby="dif-t" style="padding: 112px 80px 0; display: flex; flex-direction: column; gap: 40px">
+    <div style="display: flex; flex-direction: column; gap: 14px; max-width: 760px">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; letter-spacing: 0.14em; color: var(--link)">LA DIFERENCIA</span>
+      <h2 id="dif-t" style="margin: 0; font-size: 44px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">Otras herramientas te dan avisos. EXEGEZIS te da hechos.</h2>
+    </div>
+    <div style="background: var(--panel); border: 1.5px solid var(--border); border-radius: 16px; overflow: hidden">
+      <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 18px 32px; background: #F7F9FB; border-bottom: 1px solid var(--line); font-size: 14px; font-weight: 600; color: var(--muted)">
+        <span>Aspecto</span><span>Herramientas habituales</span><span style="color: var(--link)">EXEGEZIS</span>
+      </div>
+      <sc-for list="{{ compare }}" as="c" hint-placeholder-count="5">
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 18px 32px; border-bottom: 1px solid var(--line); font-size: 16px; align-items: center">
+          <span style="font-weight: 500">{{ c.a }}</span>
+          <span style="color: var(--muted)">{{ c.b }}</span>
+          <span style="font-weight: 500">{{ c.c }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section aria-labelledby="plat-t" style="padding: 112px 80px 0; display: flex; flex-direction: column; gap: 40px">
+    <div style="display: flex; flex-direction: column; gap: 14px; max-width: 760px">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; letter-spacing: 0.14em; color: var(--link)">PLATAFORMAS</span>
+      <h2 id="plat-t" style="margin: 0; font-size: 44px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">Empieza por la web. Sigue con todo lo demás.</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px">
+      <sc-for list="{{ platforms }}" as="pl" hint-placeholder-count="5">
+        <div style="{{ pl.card }}">
+          <span style="font-size: 18px; font-weight: 600">{{ pl.name }}</span>
+          <span style="font-size: 14px; line-height: 1.45; color: var(--muted)">{{ pl.desc }}</span>
+          <span style="{{ pl.badge }}">{{ pl.status }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="precios" aria-labelledby="pre-t" style="padding: 112px 80px 0; display: flex; flex-direction: column; gap: 40px">
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
+      <div style="display: flex; flex-direction: column; gap: 14px; max-width: 760px">
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; letter-spacing: 0.14em; color: var(--link)">PRECIOS</span>
+        <h2 id="pre-t" style="margin: 0; font-size: 44px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">Empieza gratis. Paga cuando lo necesites.</h2>
+      </div>
+      <div role="group" aria-label="Periodo de facturación" style="display: flex; padding: 4px; gap: 4px; background: #FFFFFF; border: 1.5px solid var(--border); border-radius: 12px">
+        <sc-for list="{{ periods }}" as="pd" hint-placeholder-count="2">
+          <button type="button" aria-pressed="{{ pd.pressed }}" onClick="{{ pd.pick }}" style="{{ pd.style }}">{{ pd.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+      <sc-for list="{{ plans }}" as="pn" hint-placeholder-count="4">
+        <article style="{{ pn.card }}">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <h3 style="margin: 0; font-size: 22px; font-weight: 600">{{ pn.name }}</h3>
+            <sc-if value="{{ pn.popular }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size: 12px; font-weight: 600; color: #FFFFFF; background: var(--accent); padding: 4px 10px; border-radius: 99px">Más elegido</span>
+            </sc-if>
+          </div>
+          <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted); min-height: 42px">{{ pn.who }}</p>
+          <div style="display: flex; align-items: baseline; gap: 6px">
+            <span style="font-size: 44px; font-weight: 600; letter-spacing: -0.02em">{{ pn.price }}</span>
+            <span style="font-size: 14px; color: var(--muted)">{{ pn.unit }}</span>
+          </div>
+          <span style="font-size: 13px; color: var(--muted); min-height: 18px">{{ pn.note }}</span>
+          <a href="#" style="{{ pn.cta }}">{{ pn.ctaText }}</a>
+          <ul style="margin: 6px 0 0; padding: 18px 0 0; border-top: 1px solid var(--line); list-style: none; display: flex; flex-direction: column; gap: 10px">
+            <sc-for list="{{ pn.items }}" as="it" hint-placeholder-count="6">
+              <li style="display: flex; gap: 10px; font-size: 14px; line-height: 1.4">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0066FF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px"><path d="M20 6 9 17l-5-5"></path></svg>
+                {{ it }}
+              </li>
+            </sc-for>
+          </ul>
+        </article>
+      </sc-for>
+    </div>
+    <p style="margin: 0; font-size: 14px; color: var(--muted)">Precios en USD, impuestos aparte. La búsqueda por significado incluye un saldo mensual de IA; si lo superas, la app te avisa antes de gastar más.</p>
+  </section>
+
+  <section id="faq" aria-labelledby="faq-t" style="padding: 112px 80px 0; display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 64px">
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; letter-spacing: 0.14em; color: var(--link)">PREGUNTAS</span>
+      <h2 id="faq-t" style="margin: 0; font-size: 44px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">Lo que suelen preguntarnos.</h2>
+    </div>
+    <div style="display: flex; flex-direction: column">
+      <sc-for list="{{ faq }}" as="q" hint-placeholder-count="6">
+        <div style="padding: 22px 0; border-bottom: 1px solid #C9D3DA; display: flex; flex-direction: column; gap: 8px">
+          <h3 style="margin: 0; font-size: 18px; font-weight: 600">{{ q.q }}</h3>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55; color: var(--muted)">{{ q.a }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section aria-labelledby="cta-t" style="margin: 112px 80px 0; background: var(--navy); color: #FFFFFF; border: 1.5px solid var(--lime); border-radius: 20px; padding: 64px; display: flex; align-items: center; justify-content: space-between; gap: 48px">
+    <div style="display: flex; flex-direction: column; gap: 14px; max-width: 720px">
+      <h2 id="cta-t" style="margin: 0; font-size: 40px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">¿Qué está fallando en tu web y aún no lo sabes?</h2>
+      <p style="margin: 0; font-size: 18px; line-height: 1.5; color: #C9D5E3">Pega tu URL y descúbrelo en minutos. Solo verás lo que podemos demostrar.</p>
+    </div>
+    <a href="#" style="height: 58px; padding: 0 30px; border-radius: 12px; background: var(--lime-btn); color: var(--navy); font-size: 17px; font-weight: 700; display: flex; align-items: center; flex-shrink: 0">Inspeccionar gratis</a>
+  </section>
+
+  <footer style="margin-top: 96px; padding: 48px 80px; border-top: 1px solid var(--line); background: #FFFFFF; display: grid; grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr)); gap: 40px; font-size: 14px">
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 600; font-size: 15px; letter-spacing: 0.16em">EXEGEZIS</span>
+      <span style="color: var(--muted); line-height: 1.5">Verificación de software con pruebas. Solo lo que se puede demostrar.</span>
+      <span style="color: var(--muted)">© 2026 EXEGEZIS</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-weight: 600">Producto</span>
+      <a href="#">Inspecciones</a><a href="#">Búsquedas</a><a href="#">Verificación de bugs</a><a href="#">Precios</a>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-weight: 600">Recursos</span>
+      <a href="#">Documentación</a><a href="#">Cómo verificamos</a><a href="#">Novedades</a>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-weight: 600">Legal</span>
+      <a href="#">Privacidad</a><a href="#">Términos</a><a href="#">Uso responsable</a>
+    </div>
+  </footer>
+</div>
+</template>
+<script>window.__PROPS = {};</script>
+
+<script>
+class DCLogic { constructor(props){ this.props = props || {}; this.state = {}; } setState(s){ this.state = Object.assign({}, this.state, s); render(); } }
+function look(path, scope){
+  path = path.trim();
+  if (path === 'true') return true; if (path === 'false') return false;
+  if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+  return path.split('.').reduce(function(o,k){ return o == null ? undefined : o[k]; }, scope);
+}
+function interp(str, scope){
+  var whole = str.match(/^\s*\{\{([^}]+)\}\}\s*$/);
+  if (whole) return look(whole[1], scope);
+  return str.replace(/\{\{([^}]+)\}\}/g, function(_, p){ var v = look(p, scope); return v == null ? '' : String(v); });
+}
+function proc(node, scope, out){
+  if (node.nodeType === 3) { out.appendChild(document.createTextNode(interp(node.nodeValue, scope))); return; }
+  if (node.nodeType !== 1) return;
+  var tag = node.tagName.toLowerCase();
+  if (tag === 'sc-for') {
+    var list = interp(node.getAttribute('list'), scope) || [];
+    var as = node.getAttribute('as');
+    list.forEach(function(item, i){ var s = Object.create(scope); s[as] = item; s.$index = i; node.childNodes.forEach(function(c){ proc(c, s, out); }); });
+    return;
+  }
+  if (tag === 'sc-if') { if (interp(node.getAttribute('value'), scope)) node.childNodes.forEach(function(c){ proc(c, scope, out); }); return; }
+  var el = document.createElementNS(node.namespaceURI, node.tagName);
+  for (var i = 0; i < node.attributes.length; i++) {
+    var a = node.attributes[i];
+    if (/^on[A-Z]/.test(a.name) || /^on[a-z]+$/.test(a.name) && a.value.indexOf('{{') >= 0) {
+      var fn = interp(a.value, scope); if (typeof fn === 'function') el.addEventListener(a.name.slice(2).toLowerCase(), fn); continue;
+    }
+    if (a.name.indexOf('hint-') === 0) continue;
+    var v = interp(a.value, scope); if (v === false || v == null) continue;
+    el.setAttribute(a.name, v === true ? '' : v);
+  }
+  var src = tag === 'template' ? node.content : node;
+  src.childNodes.forEach(function(c){ proc(c, scope, el); });
+  out.appendChild(el);
+}
+var comp, tpl;
+function render(){
+  var root = document.getElementById('root'); root.innerHTML = '';
+  var vals = comp.renderVals();
+  tpl.content.childNodes.forEach(function(c){ proc(c, vals, root); });
+}
+document.addEventListener('DOMContentLoaded', function(){
+  tpl = document.getElementById('tpl');
+  comp = new Component(window.__PROPS || {});
+  render();
+});
+</script>
+
+<script>
+class Component extends DCLogic {
+  renderVals() {
+    var self = this;
+    var yearly = !!(this.state && this.state.yearly);
+    function pill(k) {
+      var m = { ok: ['#15803D', '#E7F4EC'], warn: ['#B45309', '#FCF1E3'], q: ['#475569', '#EEF1F4'] }[k];
+      return 'font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; white-space: nowrap; color: ' + m[0] + '; background: ' + m[1];
+    }
+    var preview = [
+      { verdict: 'Verificado', pill: pill('ok'), title: 'Texto gris con poco contraste', where: 'Pie · todas' },
+      { verdict: 'Verificado', pill: pill('ok'), title: 'Enlace roto a /contacto', where: '3 páginas' },
+      { verdict: 'Verificado', pill: pill('ok'), title: 'Error de JavaScript al cargar', where: '/tienda' },
+      { verdict: 'Intermitente', pill: pill('warn'), title: 'Imagen del carrusel no carga', where: 'Inicio' }
+    ];
+    var guarantees = [
+      { text: 'Cada hallazgo, verificado 3 de 3 veces' },
+      { text: 'Captura, evidencia y test incluidos' },
+      { text: 'Citas comprobadas palabra por palabra' },
+      { text: 'Nunca modifica tu web' }
+    ];
+    var features = [
+      { n: '01', title: 'Inspecciona', desc: 'Recorre tu web y encuentra lo que falla, agrupado en frontend y backend y ordenado por lo que más conviene arreglar.', points: ['Errores, enlaces rotos y peticiones fallidas', 'Contraste y accesibilidad (WCAG)', 'Seguridad y configuración del servidor'] },
+      { n: '02', title: 'Busca contenido', desc: 'Encuentra cualquier información en todas las páginas, aunque esté dicha con otras palabras o en otro idioma.', points: ['Búsqueda exacta, gratis', 'Búsqueda por significado con citas verificadas', 'Plantillas y búsquedas guardadas con «solo lo nuevo»'] },
+      { n: '03', title: 'Verifica bugs', desc: 'Describe un fallo con tus palabras. EXEGEZIS lo reproduce varias veces y te dice si es real, con la prueba.', points: ['Plan de prueba escrito por IA', 'Veredicto decidido por el motor, no por la IA', 'Test reproducible para que no vuelva'] },
+      { n: '04', title: 'Entra en zonas privadas', desc: 'Revisa también las páginas que piden iniciar sesión, sin compartir tu contraseña.', points: ['Inicias sesión tú, una sola vez', 'Sesión guardada cifrada en tu equipo', 'Nunca evade protecciones anti-bot'] }
+    ];
+    var steps = [
+      { n: '1', title: 'Pega la dirección', desc: 'Tu web, tu tienda o la de un cliente con su permiso. Elige cuántas páginas revisar.' },
+      { n: '2', title: 'EXEGEZIS recorre y repite', desc: 'Navega como una persona, en solo lectura, y repite cada comprobación para descartar lo que solo pasa a veces.' },
+      { n: '3', title: 'Recibe solo lo demostrado', desc: 'Cada problema con su captura, su evidencia y un test reproducible. Lo dudoso se muestra aparte, nunca como hecho.' }
+    ];
+    var compare = [
+      { a: 'Qué te entregan', b: 'Avisos y sospechas', c: 'Hechos verificados con prueba' },
+      { a: 'Falsos positivos', b: 'Frecuentes', c: 'Descartados: 3 de 3 o no cuenta' },
+      { a: 'Evidencia', b: 'Una línea de texto', c: 'Captura, red, consola y test' },
+      { a: 'Uso de la IA', b: 'La IA opina y decide', c: 'La IA propone; el motor verifica' },
+      { a: 'Cuando no sabe', b: 'Lo adivina', c: 'Lo dice: «no se puede afirmar»' }
+    ];
+    function plat(name, desc, ready) {
+      return {
+        name: name, desc: desc, status: ready ? 'Disponible' : 'Próximamente',
+        card: 'background: #FFFFFF; border: 1.5px ' + (ready ? 'solid #0066FF' : 'dashed #B4C3C9') + '; border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 10px',
+        badge: 'align-self: flex-start; margin-top: auto; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 99px; ' + (ready ? 'color: #FFFFFF; background: #0066FF' : 'color: #475569; background: #EEF1F4')
+      };
+    }
+    var platforms = [
+      plat('Webs', 'Sitios, tiendas y aplicaciones web.', true),
+      plat('APIs', 'Respuestas, errores, lentitud y seguridad.', false),
+      plat('Apps móviles', 'Android e iOS, en emuladores.', false),
+      plat('Plugins y extensiones', 'Chrome, WordPress, VS Code, Shopify…', false),
+      plat('Escritorio', 'Windows, macOS y Electron.', false)
+    ];
+    var periods = [
+      { id: false, label: 'Mensual' },
+      { id: true, label: 'Anual · 2 meses gratis' }
+    ].map(function (p) {
+      var on = p.id === yearly;
+      return {
+        label: p.label, pressed: on ? 'true' : 'false',
+        pick: function () { self.setState({ yearly: p.id }); },
+        style: 'height: 38px; padding: 0 16px; border: 0; border-radius: 9px; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; ' + (on ? 'background: #0066FF; color: #FFFFFF' : 'background: transparent; color: #4D6069')
+      };
+    });
+    function plan(o) {
+      var price = o.month === null ? 'A medida' : (o.month === 0 ? '0 $' : (yearly ? Math.round(o.month * 10 / 12) : o.month) + ' $');
+      var unit = o.month === null || o.month === 0 ? '' : '/ mes';
+      var note = o.month === null ? 'Contrato anual' : (o.month === 0 ? 'Para siempre' : (yearly ? 'Facturado ' + (o.month * 10) + ' $ al año' : 'Facturado mensualmente'));
+      var featured = !!o.popular;
+      return {
+        name: o.name, who: o.who, price: price, unit: unit, note: note, items: o.items, popular: featured, ctaText: o.cta,
+        card: 'background: #FFFFFF; border: ' + (featured ? '2.5px' : '1.5px') + ' solid #0066FF; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px; ' + (featured ? 'box-shadow: 0 18px 40px rgba(0,102,255,0.18)' : 'box-shadow: 0 1px 2px rgba(11,27,34,0.06)'),
+        cta: 'height: 46px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; text-decoration: none; ' + (featured ? 'background: #0066FF; color: #FFFFFF' : 'background: #FFFFFF; color: #0052CC; border: 1.5px solid #0066FF')
+      };
+    }
+    var plans = [
+      plan({ name: 'Gratis', who: 'Para probar EXEGEZIS en tu propia web.', month: 0, cta: 'Empieza gratis', items: ['1 sitio', 'Hasta 20 páginas por inspección', '5 inspecciones al mes', 'Búsqueda exacta', 'Informe con evidencia'] }),
+      plan({ name: 'Pro', who: 'Para profesionales y pequeñas empresas.', month: 29, popular: true, cta: 'Probar Pro 14 días', items: ['5 sitios', 'Hasta 500 páginas por inspección', 'Vigilancia diaria con alertas', 'Búsqueda por significado (saldo de IA incluido)', 'Zonas privadas con sesión', 'Exportar a PDF y Excel'] }),
+      plan({ name: 'Equipo', who: 'Para agencias y equipos de desarrollo.', month: 99, cta: 'Probar Equipo 14 días', items: ['25 sitios y 5 usuarios', 'Todo lo de Pro', 'Informes con tu marca', 'Integraciones: GitHub, Slack, Jira', 'API y verificación en cada cambio', 'Plantillas compartidas'] }),
+      plan({ name: 'Empresa', who: 'Para organizaciones con requisitos de cumplimiento.', month: null, cta: 'Hablar con ventas', items: ['Sitios y usuarios a medida', 'Inicio de sesión único (SSO)', 'Informes de cumplimiento de accesibilidad', 'Instalación en tus servidores', 'Soporte prioritario y acuerdo de servicio'] })
+    ];
+    var faq = [
+      { q: '¿EXEGEZIS cambia algo de mi web?', a: 'No. Solo navega y lee, como un visitante. No envía formularios ni pulsa botones que cambien datos. Lo que tu propia web hace sola al cargar se registra y se te muestra.' },
+      { q: '¿Qué significa «sin falsos positivos»?', a: 'Un problema solo se marca como verificado si aparece en todas las repeticiones y queda registrada su evidencia. Lo que aparece solo a veces se muestra aparte como intermitente, nunca como hecho.' },
+      { q: '¿Puedo revisar webs que no son mías?', a: 'Solo si tienes permiso. Antes de inspeccionar un dominio por primera vez te pedimos que lo confirmes, y respetamos robots.txt salvo que nos digas que el sitio es tuyo.' },
+      { q: '¿Qué hace la IA y qué no?', a: 'La IA propone: planes de prueba, citas posibles, términos relacionados. Nunca decide un veredicto. Todo lo que propone se comprueba con el motor; una cita inventada se descarta.' },
+      { q: '¿Qué pasa con mis contraseñas?', a: 'Nunca las vemos. Inicias sesión tú en una ventana del navegador y solo guardamos la sesión, cifrada. Puedes borrarla cuando quieras.' },
+      { q: '¿Funciona con apps móviles o plugins?', a: 'Hoy, con webs. APIs, apps móviles, plugins y aplicaciones de escritorio están en camino, con la misma regla: solo lo que se puede demostrar.' }
+    ];
+    return { preview: preview, guarantees: guarantees, features: features, steps: steps, compare: compare, platforms: platforms, periods: periods, plans: plans, faq: faq };
+  }
+}
+</script>
+</body>
+</html>

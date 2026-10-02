@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EXEGEZIS · Paleta y medidor · referencia de diseño</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:#F6F6F3;color:#15171C}
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+<template id="tpl">
+
+<div style="width: 1200px; height: 1280px; box-sizing: border-box; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif">
+  <sc-for list="{{ themes }}" as="t" hint-placeholder-count="2">
+    <div style="{{ t.root }}">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.12em; font-weight: 500; {{ t.accentText }}">{{ t.eyebrow }}</span>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.01em">Veredictos</h1>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; {{ t.mutedText }}">El color solo marca veredictos. Siempre va con icono y texto.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <sc-for list="{{ t.verdicts }}" as="v" hint-placeholder-count="7">
+          <div style="{{ t.card }}">
+            <span style="{{ v.pill }}">{{ v.label }}</span>
+            <span style="flex-grow: 1; font-size: 13px; line-height: 1.4; {{ t.mutedText }}">{{ v.meaning }}</span>
+            <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; {{ t.mutedText }}">{{ v.hex }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 600">Medidor de evidencia</h2>
+        <sc-for list="{{ t.levels }}" as="l" hint-placeholder-count="5">
+          <div style="display: flex; align-items: center; gap: 16px">
+            <div style="display: flex; gap: 4px" aria-hidden="true">
+              <sc-for list="{{ l.segs }}" as="s" hint-placeholder-count="5"><span style="{{ s.style }}"></span></sc-for>
+            </div>
+            <span style="font-size: 14px; font-weight: 500; width: 110px">{{ l.name }}</span>
+            <span style="font-size: 13px; {{ t.mutedText }}">{{ l.desc }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 600">Base</h2>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+          <sc-for list="{{ t.base }}" as="b" hint-placeholder-count="6">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="{{ b.sw }}"></span>
+              <span style="font-size: 12px; font-weight: 500">{{ b.name }}</span>
+              <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; {{ t.mutedText }}">{{ b.hex }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</template>
+<script>window.__PROPS = {};</script>
+
+<script>
+class DCLogic { constructor(props){ this.props = props || {}; this.state = {}; } setState(s){ this.state = Object.assign({}, this.state, s); render(); } }
+function look(path, scope){
+  path = path.trim();
+  if (path === 'true') return true; if (path === 'false') return false;
+  if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+  return path.split('.').reduce(function(o,k){ return o == null ? undefined : o[k]; }, scope);
+}
+function interp(str, scope){
+  var whole = str.match(/^\s*\{\{([^}]+)\}\}\s*$/);
+  if (whole) return look(whole[1], scope);
+  return str.replace(/\{\{([^}]+)\}\}/g, function(_, p){ var v = look(p, scope); return v == null ? '' : String(v); });
+}
+function proc(node, scope, out){
+  if (node.nodeType === 3) { out.appendChild(document.createTextNode(interp(node.nodeValue, scope))); return; }
+  if (node.nodeType !== 1) return;
+  var tag = node.tagName.toLowerCase();
+  if (tag === 'sc-for') {
+    var list = interp(node.getAttribute('list'), scope) || [];
+    var as = node.getAttribute('as');
+    list.forEach(function(item, i){ var s = Object.create(scope); s[as] = item; s.$index = i; node.childNodes.forEach(function(c){ proc(c, s, out); }); });
+    return;
+  }
+  if (tag === 'sc-if') { if (interp(node.getAttribute('value'), scope)) node.childNodes.forEach(function(c){ proc(c, scope, out); }); return; }
+  var el = document.createElementNS(node.namespaceURI, node.tagName);
+  for (var i = 0; i < node.attributes.length; i++) {
+    var a = node.attributes[i];
+    if (/^on[A-Z]/.test(a.name) || /^on[a-z]+$/.test(a.name) && a.value.indexOf('{{') >= 0) {
+      var fn = interp(a.value, scope); if (typeof fn === 'function') el.addEventListener(a.name.slice(2).toLowerCase(), fn); continue;
+    }
+    if (a.name.indexOf('hint-') === 0) continue;
+    var v = interp(a.value, scope); if (v === false || v == null) continue;
+    el.setAttribute(a.name, v === true ? '' : v);
+  }
+  var src = tag === 'template' ? node.content : node;
+  src.childNodes.forEach(function(c){ proc(c, scope, el); });
+  out.appendChild(el);
+}
+var comp, tpl;
+function render(){
+  var root = document.getElementById('root'); root.innerHTML = '';
+  var vals = comp.renderVals();
+  tpl.content.childNodes.forEach(function(c){ proc(c, vals, root); });
+}
+document.addEventListener('DOMContentLoaded', function(){
+  tpl = document.getElementById('tpl');
+  comp = new Component(window.__PROPS || {});
+  render();
+});
+</script>
+
+<script>
+class Component extends DCLogic {
+  renderVals() {
+    function build(dark) {
+      var P = dark ? {
+        bg: '#0B0C0F', panel: '#111318', line: '#22262F', fg: '#E7E9EE', muted: '#9097A4', accent: '#2563EB', link: '#7AA7FF',
+        ok: ['#3DDC97', 'rgba(61,220,151,0.12)'], warn: ['#F5B544', 'rgba(245,181,68,0.12)'], q: ['#AAB4C3', 'rgba(170,180,195,0.12)'],
+        off: ['#8A93A2', 'rgba(138,147,162,0.10)'], bad: ['#F97366', 'rgba(249,115,102,0.12)'], empty: '#22262F'
+      } : {
+        bg: '#F6F6F3', panel: '#FFFFFF', line: '#E4E2DA', fg: '#15171C', muted: '#5B616D', accent: '#2563EB', link: '#1D4ED8',
+        ok: ['#15803D', '#E7F4EC'], warn: ['#B45309', '#FCF1E3'], q: ['#475569', '#EEF1F4'],
+        off: ['#5F6672', '#F0F0ED'], bad: ['#B91C1C', '#FCEBEA'], empty: '#E4E2DA'
+      };
+      function pill(c) {
+        return 'min-width: 150px; box-sizing: border-box; display: inline-flex; justify-content: center; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: ' + c[0] + '; background: ' + c[1] + '; border: 1px solid ' + c[0] + '33';
+      }
+      var verdicts = [
+        { label: 'Verificado · Validada', meaning: 'Demostrado con evidencia en todas las repeticiones.', hex: P.ok[0], pill: pill(P.ok) },
+        { label: 'Candidato · Suficiente', meaning: 'Hay indicios fuertes, falta una prueba requerida.', hex: P.warn[0], pill: pill(P.warn) },
+        { label: 'Intermitente', meaning: 'Aparece solo a veces: se reporta aparte.', hex: P.warn[0], pill: pill(P.warn) },
+        { label: 'Inconcluso', meaning: 'Con lo medido no se puede afirmar ni negar.', hex: P.q[0], pill: pill(P.q) },
+        { label: 'No verificado · Refutada', meaning: 'Se probó y no se reproduce, o la hipótesis cayó.', hex: P.off[0], pill: pill(P.off) },
+        { label: 'Falsa validación', meaning: 'El sistema se equivocó. Siempre visible.', hex: P.bad[0], pill: pill(P.bad) },
+        { label: 'No implementado', meaning: 'La etapa no existe todavía. Contorno discontinuo.', hex: '—', pill: 'min-width: 150px; box-sizing: border-box; display: inline-flex; justify-content: center; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; color: ' + P.muted + '; border: 1.5px dashed ' + P.muted }
+      ];
+      function segs(n, color) {
+        var out = [];
+        for (var i = 1; i <= 5; i++) out.push({ style: 'width: 26px; height: 8px; border-radius: 2px; background: ' + (i <= n ? color : P.empty) });
+        return out;
+      }
+      var levels = [
+        { name: 'Sin evidencia', desc: 'La línea base no reproduce el bug.', segs: segs(0, P.q[0]) },
+        { name: 'Reproducido', desc: 'Ninguna intervención lo quita.', segs: segs(2, P.q[0]) },
+        { name: 'Suficiente', desc: 'Varias intervenciones lo quitan.', segs: segs(3, P.warn[0]) },
+        { name: 'Candidato', desc: 'Una sola, pero no es quirúrgica.', segs: segs(4, P.warn[0]) },
+        { name: 'Validada', desc: 'Toda la evidencia requerida.', segs: segs(5, P.ok[0]) }
+      ];
+      function sw(c) { return 'height: 44px; border-radius: 8px; background: ' + c + '; border: 1px solid ' + P.line; }
+      var base = [
+        { name: 'Fondo', hex: P.bg, sw: sw(P.bg) },
+        { name: 'Superficie', hex: P.panel, sw: sw(P.panel) },
+        { name: 'Línea', hex: P.line, sw: sw(P.line) },
+        { name: 'Texto', hex: P.fg, sw: sw(P.fg) },
+        { name: 'Texto secundario', hex: P.muted, sw: sw(P.muted) },
+        { name: 'Botón (marca)', hex: P.accent, sw: sw(P.accent) },
+        { name: 'Enlaces y foco', hex: P.link, sw: sw(P.link) }
+      ];
+      return {
+        eyebrow: dark ? 'TEMA OSCURO' : 'TEMA CLARO',
+        root: 'box-sizing: border-box; padding: 48px; display: flex; flex-direction: column; gap: 32px; background: ' + P.bg + '; color: ' + P.fg,
+        card: 'display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-radius: 10px; background: ' + P.panel + '; border: 1px solid ' + P.line,
+        mutedText: 'color: ' + P.muted,
+        accentText: 'color: ' + P.link,
+        verdicts: verdicts, levels: levels, base: base
+      };
+    }
+    return { themes: [build(false), build(true)] };
+  }
+}
+</script>
+</body>
+</html>
