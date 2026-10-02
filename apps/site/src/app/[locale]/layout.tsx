@@ -45,7 +45,7 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   if (!isLocale(locale)) notFound();
   setRequestLocale(locale);
   return (
-    <html lang={locale} className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang={locale} data-theme="light" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="font-sans">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>

@@ -1,10 +1,10 @@
 "use client";
 
-import { AlertTriangle, Globe, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useId, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { inspectUrl, LOCAL_APP_URL } from "@content/links";
-import { buttonClass } from "./ui";
+import { GlobeIcon, LIME_BUTTON } from "./ui";
 
 /** An address the person typed, as an http(s) URL (https:// is added when there is no scheme). */
 export function normalizeSiteUrl(raw: string): string | null {
@@ -24,21 +24,27 @@ export function normalizeSiteUrl(raw: string): string | null {
 /** Does the local app answer? A no-cors request resolves when something listens, and fails when nothing does. */
 async function localAppIsUp(): Promise<boolean> {
   try {
-    await fetch(`${LOCAL_APP_URL}/`, { mode: "no-cors", cache: "no-store", signal: AbortSignal.timeout(3000) });
+    await fetch(`${LOCAL_APP_URL}/`, {
+      mode: "no-cors",
+      cache: "no-store",
+      signal: AbortSignal.timeout(3000),
+    });
     return true;
   } catch {
     return false;
   }
 }
 
+/** The hero field's id: the closing call's «Inspect for free» brings the visitor back to it. */
+export const HERO_URL_ID = "hero-url";
+
 /**
  * «Inspect for free». Until the cloud version exists it opens the local app
  * (apps/web) with the address already in the Inspect tab; if the app is not
  * running, it says how to start it.
  */
-export function InspectForm({ size = "lg" }: { size?: "lg" | "md" }) {
+export function InspectForm() {
   const t = useTranslations("inspect");
-  const id = useId();
   const [value, setValue] = useState("");
   const [state, setState] = useState<"idle" | "checking" | "invalid" | "down">("idle");
 
@@ -55,15 +61,15 @@ export function InspectForm({ size = "lg" }: { size?: "lg" | "md" }) {
   };
 
   return (
-    <form onSubmit={(e) => void submit(e)} noValidate className="flex w-full flex-col gap-3">
-      <label htmlFor={`${id}-url`} className="sr-only">
+    <form onSubmit={(e) => void submit(e)} noValidate className="flex w-full max-w-[640px] flex-col gap-3">
+      <label htmlFor={HERO_URL_ID} className="sr-only">
         {t("label")}
       </label>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="relative min-w-0 flex-1">
-          <Globe className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted" aria-hidden />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex h-[58px] min-w-0 shrink-0 items-center sm:flex-1 gap-3 rounded-xl border-[1.5px] border-panel-border bg-panel px-[18px]">
+          <GlobeIcon className="size-5 text-muted" />
           <input
-            id={`${id}-url`}
+            id={HERO_URL_ID}
             type="url"
             inputMode="url"
             autoComplete="url"
@@ -76,29 +82,33 @@ export function InspectForm({ size = "lg" }: { size?: "lg" | "md" }) {
             }}
             placeholder={t("placeholder")}
             aria-invalid={state === "invalid"}
-            aria-describedby={state === "invalid" ? `${id}-error` : undefined}
-            className={`${size === "lg" ? "h-12" : "h-11"} w-full rounded-md border border-line-strong bg-field pr-3 pl-11 text-[15px] text-heading placeholder:text-muted`}
+            aria-describedby={state === "invalid" ? `${HERO_URL_ID}-error` : undefined}
+            className="min-w-0 flex-1 bg-transparent font-mono text-[16px] text-heading placeholder:text-muted"
           />
         </div>
-        <button type="submit" disabled={state === "checking"} className={`${buttonClass("primary", size)} disabled:opacity-70`}>
+        <button type="submit" disabled={state === "checking"} className={`${LIME_BUTTON} h-[58px] gap-2 rounded-xl px-[26px] text-[16px] font-bold disabled:opacity-70`}>
           {state === "checking" && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {state === "checking" ? t("checking") : t("submit")}
         </button>
       </div>
       {state === "invalid" && (
-        <p id={`${id}-error`} role="alert" className="text-[14px] text-heading">
+        <p id={`${HERO_URL_ID}-error`} role="alert" className="text-[14px] text-heading">
           {t("invalid")}
         </p>
       )}
       {state === "down" && (
-        <div role="alert" className="panel-frame flex gap-3 rounded-lg bg-panel p-4 text-left text-[14px] text-heading">
+        <div role="alert" className="panel-frame flex gap-3 rounded-xl bg-panel p-4 text-left text-[14px] text-heading">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" aria-hidden />
           <div className="flex flex-col gap-1">
             <p className="font-semibold">{t("downTitle")}</p>
             <p className="text-muted">{t("downBody")}</p>
             <ul className="list-disc pl-5 text-muted">
               <li>{t("downCmd")}</li>
-              <li>{t.rich("downNpm", { code: (chunks) => <code className="font-mono text-heading">{chunks}</code> })}</li>
+              <li>
+                {t.rich("downNpm", {
+                  code: (chunks) => <code className="font-mono text-heading">{chunks}</code>,
+                })}
+              </li>
             </ul>
             <p className="text-muted">{t.rich("downWhere", { url: LOCAL_APP_URL })}</p>
           </div>

@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
  * The public site in a real browser: both languages without mixed words,
  * <html lang>, the language of `/`, the switcher, the Monthly / Annual prices,
  * «Coming soon» on what does not exist, 375 px without sideways scroll, the
- * keyboard (skip link, visible focus, FAQ) and «Inspect for free» with the
+ * keyboard (skip link, visible focus), the open FAQ and «Inspect for free» with the
  * local app running and stopped (a stand-in server plays the local app).
  *
  * It starts its own `next dev` on a free port with its own build folder.
@@ -179,7 +179,7 @@ describe("the public site", () => {
     }
   });
 
-  it("works with the keyboard: skip link first, a visible focus on everything, the FAQ opens with Enter", async () => {
+  it("works with the keyboard: skip link first, a visible focus on everything; every FAQ answer is shown", async () => {
     const ctx = await context();
     const page = await ctx.newPage();
     await page.goto(`${base}/en/`, { waitUntil: "networkidle" });
@@ -200,10 +200,9 @@ describe("the public site", () => {
       if (!focus.outline || !focus.visible) invisible.push(focus.what);
     }
     expect(invisible).toEqual([]);
-    const question = page.locator("#faq summary").first();
-    await question.focus();
-    await page.keyboard.press("Enter");
-    await expect(page.locator("#faq details").first().getAttribute("open")).resolves.toBe("");
+    // The FAQ (as in the design) shows every answer: nothing to open.
+    await expect(page.locator("#faq dt").count()).resolves.toBe(6);
+    await expect(page.locator("#faq dd").first().isVisible()).resolves.toBe(true);
     await ctx.close();
   });
 

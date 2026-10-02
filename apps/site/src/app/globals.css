@@ -21,6 +21,8 @@ html {
 }
 
 body {
+  /* The design (docs/design/landing.html) uses the browser's normal line height unless it sets one. */
+  line-height: normal;
   background: var(--bg);
   color: var(--fg);
   -webkit-font-smoothing: antialiased;

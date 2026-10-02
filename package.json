@@ -21,7 +21,8 @@
     "build:web": "pnpm build && pnpm --filter @exegezis/web build",
     "dev": "pnpm web",
     "site": "pnpm --filter @exegezis/site dev",
-    "build:site": "pnpm --filter @exegezis/site build"
+    "build:site": "pnpm --filter @exegezis/site build",
+    "design:compare": "node scripts/design-compare.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

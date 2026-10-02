@@ -25,14 +25,16 @@
     "eyebrow": "VERIFICACIÓN DE SOFTWARE CON PRUEBAS",
     "title": "Solo lo que se puede demostrar.",
     "text": "EXEGEZIS revisa tu web como lo haría una persona, repite cada comprobación y te entrega cada problema con su prueba: captura, evidencia y un test que lo reproduce. Sin falsos positivos.",
-    "notes": "Sin tarjeta · Solo lectura: no cambia nada de tu web · Informe en minutos"
+    "noCard": "Sin tarjeta",
+    "readOnly": "Solo lectura: no cambia nada de tu web",
+    "minutes": "Informe en minutos"
   },
   "inspect": {
-    "label": "Dirección de tu web",
-    "placeholder": "https://tu-web.com",
+    "label": "URL de tu sitio",
+    "placeholder": "https://tu-sitio.com",
     "submit": "Inspeccionar gratis",
     "checking": "Abriendo EXEGEZIS…",
-    "invalid": "Escribe una dirección web, por ejemplo https://tu-web.com.",
+    "invalid": "Escribe una dirección web, por ejemplo https://tu-sitio.com.",
     "downTitle": "EXEGEZIS no está en marcha en este equipo",
     "downBody": "Por ahora EXEGEZIS funciona en tu equipo. Arráncalo y vuelve a intentarlo:",
     "downCmd": "doble clic en EXEGEZIS.cmd, en la carpeta de EXEGEZIS,",
@@ -40,19 +42,30 @@
     "downWhere": "Se abre en {url}."
   },
   "preview": {
-    "site": "tienda.example.com",
+    "site": "https://tu-sitio.com",
     "pages": "42 de 42 páginas",
+    "done": "Completada",
     "frontend": "Frontend",
     "backend": "Backend",
     "problems": "{count, plural, one {# problema} other {# problemas}}",
     "verified": "Verificado",
     "intermittent": "Intermitente",
-    "row1": "Enlace roto a /contacto",
-    "row2": "Texto con poco contraste en el pie",
-    "row3": "Error de JavaScript en /pago",
-    "row4": "La petición a /api/stock falla a veces",
-    "runs": "3 de 3",
-    "runsSome": "1 de 3"
+    "row1": {
+      "title": "Texto gris con poco contraste",
+      "where": "Pie · todas"
+    },
+    "row2": {
+      "title": "Enlace roto a /contacto",
+      "where": "3 páginas"
+    },
+    "row3": {
+      "title": "Error de JavaScript al cargar",
+      "where": "/tienda"
+    },
+    "row4": {
+      "title": "Imagen del carrusel no carga",
+      "where": "Inicio"
+    }
   },
   "guarantees": {
     "label": "Garantías",
@@ -66,24 +79,28 @@
     "title": "Cuatro herramientas. Una sola regla: probarlo todo.",
     "inspect": {
       "title": "Inspecciona",
+      "text": "Recorre tu web y encuentra lo que falla, agrupado en frontend y backend y ordenado por lo que más conviene arreglar.",
       "p1": "Errores, enlaces rotos y peticiones fallidas",
       "p2": "Contraste y accesibilidad (WCAG)",
       "p3": "Seguridad y configuración del servidor"
     },
     "search": {
       "title": "Busca contenido",
-      "p1": "Búsqueda exacta gratis",
-      "p2": "Por significado, con citas verificadas",
+      "text": "Encuentra cualquier información en todas las páginas, aunque esté dicha con otras palabras o en otro idioma.",
+      "p1": "Búsqueda exacta, gratis",
+      "p2": "Búsqueda por significado con citas verificadas",
       "p3": "Plantillas y búsquedas guardadas con «solo lo nuevo»"
     },
     "verify": {
       "title": "Verifica bugs",
+      "text": "Describe un fallo con tus palabras. EXEGEZIS lo reproduce varias veces y te dice si es real, con la prueba.",
       "p1": "Plan de prueba escrito por IA",
       "p2": "Veredicto decidido por el motor, no por la IA",
       "p3": "Test reproducible para que no vuelva"
     },
     "private": {
       "title": "Entra en zonas privadas",
+      "text": "Revisa también las páginas que piden iniciar sesión, sin compartir tu contraseña.",
       "p1": "Inicias sesión tú, una sola vez",
       "p2": "Sesión guardada cifrada en tu equipo",
       "p3": "Nunca evade protecciones anti-bot"
@@ -94,15 +111,15 @@
     "title": "La IA propone. EXEGEZIS lo demuestra.",
     "step1": {
       "title": "Pega la dirección",
-      "text": "Escribe la URL de tu web. EXEGEZIS solo la lee, como un visitante: no envía formularios ni pulsa botones que cambien datos."
+      "text": "Tu web, tu tienda o la de un cliente con su permiso. Elige cuántas páginas revisar."
     },
     "step2": {
       "title": "EXEGEZIS recorre y repite",
-      "text": "Recorre tus páginas en navegadores limpios y repite cada comprobación. Cada hallazgo guarda su captura, red, consola y un test."
+      "text": "Navega como una persona, en solo lectura, y repite cada comprobación para descartar lo que solo pasa a veces."
     },
     "step3": {
       "title": "Recibe solo lo demostrado",
-      "text": "Solo ves como hecho lo que apareció todas las veces. Lo dudoso se muestra aparte, nunca como hecho."
+      "text": "Cada problema con su captura, su evidencia y un test reproducible. Lo dudoso se muestra aparte, nunca como hecho."
     }
   },
   "diff": {
@@ -145,15 +162,15 @@
     "soon": "Próximamente",
     "web": {
       "name": "Webs",
-      "detail": "Cualquier sitio público, o una zona privada con tu sesión"
+      "detail": "Sitios, tiendas y aplicaciones web."
     },
     "apis": {
       "name": "APIs",
-      "detail": "Endpoints REST y GraphQL"
+      "detail": "Respuestas, errores, lentitud y seguridad."
     },
     "mobile": {
       "name": "Apps móviles",
-      "detail": "Android e iOS"
+      "detail": "Android e iOS, en emuladores."
     },
     "plugins": {
       "name": "Plugins y extensiones",
@@ -161,45 +178,45 @@
     },
     "desktop": {
       "name": "Escritorio",
-      "detail": "Windows, macOS, Electron"
+      "detail": "Windows, macOS y Electron."
     }
   },
   "pricing": {
     "eyebrow": "PRECIOS",
     "title": "Empieza gratis. Paga cuando lo necesites.",
-    "billing": "Facturación",
+    "billing": "Periodo de facturación",
     "monthly": "Mensual",
     "annual": "Anual · 2 meses gratis",
     "price": "{amount} $",
-    "perMonth": "/mes",
-    "forever": "para siempre",
+    "perMonth": "/ mes",
+    "forever": "Para siempre",
+    "billedMonthly": "Facturado mensualmente",
     "billedAnnually": "Facturado {amount} $ al año",
     "custom": "A medida",
-    "annualContract": "contrato anual",
+    "annualContract": "Contrato anual",
     "mostChosen": "Más elegido",
     "soon": "Próximamente",
     "paymentsSoon": "Pagos: próximamente",
-    "cloudNotice": "Hoy EXEGEZIS funciona en tu equipo, gratis. La versión en la nube, las cuentas y los pagos llegan pronto; hasta entonces los planes muestran lo que incluirá cada uno.",
     "note": "Precios en USD, impuestos aparte. La búsqueda por significado incluye un saldo mensual de IA; si lo superas, la app te avisa antes de gastar más.",
     "plans": {
       "free": {
         "name": "Gratis",
-        "tagline": "Para probarlo en tu web",
+        "tagline": "Para probar EXEGEZIS en tu propia web.",
         "cta": "Empieza gratis"
       },
       "pro": {
         "name": "Pro",
-        "tagline": "Para quien cuida varias webs",
+        "tagline": "Para profesionales y pequeñas empresas.",
         "cta": "Probar Pro 14 días"
       },
       "team": {
         "name": "Equipo",
-        "tagline": "Para agencias y equipos",
+        "tagline": "Para agencias y equipos de desarrollo.",
         "cta": "Probar Equipo 14 días"
       },
       "enterprise": {
         "name": "Empresa",
-        "tagline": "Para grandes organizaciones",
+        "tagline": "Para organizaciones con requisitos de cumplimiento.",
         "cta": "Hablar con ventas"
       }
     },
@@ -216,42 +233,42 @@
       "sitesAndUsers": "{sites} sitios y {users} usuarios",
       "everythingInPro": "Todo lo de Pro",
       "brandedReports": "Informes con tu marca",
-      "integrations": "Integraciones con GitHub, Slack y Jira",
+      "integrations": "Integraciones: GitHub, Slack, Jira",
       "apiAndChecks": "API y verificación en cada cambio",
       "sharedTemplates": "Plantillas compartidas",
       "customSitesAndUsers": "Sitios y usuarios a medida",
-      "sso": "SSO",
+      "sso": "Inicio de sesión único (SSO)",
       "complianceReports": "Informes de cumplimiento de accesibilidad",
       "selfHosted": "Instalación en tus servidores",
-      "prioritySupport": "Soporte prioritario"
+      "prioritySupport": "Soporte prioritario y acuerdo de servicio"
     }
   },
   "faq": {
     "eyebrow": "PREGUNTAS",
-    "title": "Preguntas frecuentes",
+    "title": "Lo que suelen preguntarnos.",
     "q1": {
       "q": "¿EXEGEZIS cambia algo de mi web?",
       "a": "No. Solo navega y lee, como un visitante. No envía formularios ni pulsa botones que cambien datos. Lo que tu propia web hace sola al cargar se registra y se te muestra."
     },
     "q2": {
       "q": "¿Qué significa «sin falsos positivos»?",
-      "a": "Un problema solo se marca como verificado si aparece en todas las repeticiones y queda registrada su evidencia. Lo que aparece solo a veces se muestra aparte como intermitente."
+      "a": "Un problema solo se marca como verificado si aparece en todas las repeticiones y queda registrada su evidencia. Lo que aparece solo a veces se muestra aparte como intermitente, nunca como hecho."
     },
     "q3": {
       "q": "¿Puedo revisar webs que no son mías?",
-      "a": "Solo con permiso. Se pide confirmación la primera vez y se respeta robots.txt salvo que indiques que el sitio es tuyo."
+      "a": "Solo si tienes permiso. Antes de inspeccionar un dominio por primera vez te pedimos que lo confirmes, y respetamos robots.txt salvo que nos digas que el sitio es tuyo."
     },
     "q4": {
       "q": "¿Qué hace la IA y qué no?",
-      "a": "Propone planes de prueba, citas y términos relacionados. Nunca decide un veredicto: el motor lo comprueba todo y una cita inventada se descarta."
+      "a": "La IA propone: planes de prueba, citas posibles, términos relacionados. Nunca decide un veredicto. Todo lo que propone se comprueba con el motor; una cita inventada se descarta."
     },
     "q5": {
       "q": "¿Qué pasa con mis contraseñas?",
-      "a": "Nunca las vemos. Inicias sesión tú y solo se guarda la sesión, cifrada. Puedes borrarla cuando quieras."
+      "a": "Nunca las vemos. Inicias sesión tú en una ventana del navegador y solo guardamos la sesión, cifrada. Puedes borrarla cuando quieras."
     },
     "q6": {
       "q": "¿Funciona con apps móviles o plugins?",
-      "a": "Hoy, con webs. APIs, apps móviles, plugins y escritorio están en camino, con la misma regla."
+      "a": "Hoy, con webs. APIs, apps móviles, plugins y aplicaciones de escritorio están en camino, con la misma regla: solo lo que se puede demostrar."
     }
   },
   "cta": {
@@ -259,7 +276,7 @@
     "text": "Pega tu URL y descúbrelo en minutos. Solo verás lo que podemos demostrar."
   },
   "footer": {
-    "tagline": "Software que se explica a sí mismo. Solo lo que se puede demostrar.",
+    "tagline": "Verificación de software con pruebas. Solo lo que se puede demostrar.",
     "product": "Producto",
     "inspections": "Inspecciones",
     "searches": "Búsquedas",

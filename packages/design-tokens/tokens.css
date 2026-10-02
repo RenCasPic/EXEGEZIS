@@ -5,7 +5,10 @@
  * - Themes: html[data-theme="light" | "dark"], set before paint by the inline
  *   script in the root layout. Without JavaScript (no attribute) the OS
  *   preference applies. `.theme-dark` applies the dark palette to one part of
- *   a light page (the site's navy header, hero and closing call).
+ *   a light page (the site's navy header, hero and closing call), and
+ *   `.theme-light` the light one inside it (the hero's report preview).
+ * - --text-soft (body text on navy), --accent-soft (tinted icon discs),
+ *   --table-head and --rule (FAQ dividers): values of docs/design/.
  * - Light: cool blue-grey neutrals («Petróleo») with an electric blue
  *   (#0066FF) for actions and panel outlines. Dark: deep navy with lime text,
  *   buttons and outlines, and white headings.
@@ -20,7 +23,8 @@
  *   icon and its text, never by colour alone.
  * - Components use these tokens only; no loose colours.
  */
-:root {
+:root,
+.theme-light {
   --bg: #f2f5f6;
   --panel: #ffffff;
   --sunken: #f2f5f6;
@@ -42,6 +46,10 @@
   --accent-hover: #0052cc;
   --accent-text: #0052cc;
   --on-accent: #ffffff;
+  --text-soft: #4d6069;
+  --accent-soft: #e6f0ff;
+  --table-head: #f7f9fb;
+  --rule: #c9d3da;
   --ok: #15803d;
   --ok-bg: #edf7f0;
   --warn: #b45309;
@@ -79,6 +87,10 @@ html[data-theme="dark"],
   --accent-hover: #dce775;
   --accent-text: #ffffff;
   --on-accent: #011b34;
+  --text-soft: #c9d5e3;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --table-head: #01172c;
+  --rule: #2a5a8c;
   --ok: #3ddc97;
   --ok-bg: color-mix(in srgb, var(--ok) 12%, transparent);
   --warn: #f5b544;
@@ -117,6 +129,10 @@ html[data-theme="dark"],
     --accent-hover: #dce775;
     --accent-text: #ffffff;
     --on-accent: #011b34;
+    --text-soft: #c9d5e3;
+    --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+    --table-head: #01172c;
+    --rule: #2a5a8c;
     --ok: #3ddc97;
     --ok-bg: color-mix(in srgb, var(--ok) 12%, transparent);
     --warn: #f5b544;
@@ -154,6 +170,10 @@ html[data-theme="dark"],
   --color-accent-hover: var(--accent-hover);
   --color-accent-text: var(--accent-text);
   --color-on-accent: var(--on-accent);
+  --color-text-soft: var(--text-soft);
+  --color-accent-soft: var(--accent-soft);
+  --color-table-head: var(--table-head);
+  --color-rule: var(--rule);
   --color-ok: var(--ok);
   --color-ok-bg: var(--ok-bg);
   --color-warn: var(--warn);

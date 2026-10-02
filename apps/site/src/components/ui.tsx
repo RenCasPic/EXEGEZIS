@@ -1,28 +1,52 @@
 import type { ReactNode } from "react";
 
-/** The EXEGEZIS mark (the same shape as the local app's). */
-export function LogoMark({ className }: { className?: string }) {
+/*
+ * Shared pieces of the landing (docs/design/landing.html). Sizes are the
+ * design's, in px; colours come from the tokens (packages/design-tokens).
+ */
+
+/** The EXEGEZIS mark of the design: a page with three lines. Lime on navy. */
+export function LogoMark({ className = "size-6" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <rect x="0.75" y="0.75" width="22.5" height="22.5" rx="6" fill="none" stroke="currentColor" strokeOpacity="0.35" strokeWidth="1.5" />
-      <rect x="6" y="6.5" width="12" height="1.8" rx="0.9" fill="currentColor" />
-      <rect x="6" y="11.1" width="7.5" height="1.8" rx="0.9" fill="var(--accent)" />
-      <circle cx="16.6" cy="12" r="1.35" fill="var(--accent)" />
-      <rect x="6" y="15.7" width="12" height="1.8" rx="0.9" fill="currentColor" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path d="M8 8h8" />
+      <path d="M8 12h5" />
+      <path d="M8 16h8" />
     </svg>
   );
 }
 
-/** Section label in Geist Mono, uppercase (as written in the catalogs): link blue on the light body, lime on navy. */
-export function Eyebrow({ children, onNavy = false }: { children: ReactNode; onNavy?: boolean }) {
-  return <p className={`font-mono text-[12px] font-semibold tracking-[0.14em] ${onNavy ? "text-fg" : "text-accent-text"}`}>{children}</p>;
+/** The check of lists and guarantees. */
+export function CheckIcon({ className = "size-[18px]" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${className}`} aria-hidden>
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
 }
 
+export function GlobeIcon({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${className}`} aria-hidden>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+/** Section label in Geist Mono: link blue on the light body, lime on navy. */
+export function Eyebrow({ children, onNavy = false }: { children: ReactNode; onNavy?: boolean }) {
+  return <p className={`font-mono text-[13px] tracking-[0.14em] ${onNavy ? "text-fg" : "text-accent-text"}`}>{children}</p>;
+}
+
+/** Label + h2 of a section (gap 14, max 760 px wide, 44 px title). */
 export function SectionHeading({ id, eyebrow, title }: { id: string; eyebrow: ReactNode; title: ReactNode }) {
   return (
-    <div className="mb-8 flex max-w-3xl flex-col gap-2 sm:mb-10">
+    <div className="flex max-w-[760px] flex-col gap-[14px]">
       <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 id={id} className="text-[26px] leading-tight font-semibold tracking-tight text-heading sm:text-[34px]">
+      <h2 id={id} className="text-[32px] leading-[1.1] font-semibold tracking-[-0.02em] text-heading md:text-[44px]">
         {title}
       </h2>
     </div>
@@ -31,26 +55,22 @@ export function SectionHeading({ id, eyebrow, title }: { id: string; eyebrow: Re
 
 /** «Coming soon»: what EXEGEZIS does not do yet. Never shown as available. */
 export function SoonBadge({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-flex shrink-0 items-center rounded-full border border-dashed border-line-strong px-2 py-0.5 text-[11px] font-medium whitespace-nowrap text-muted">
-      {children}
-    </span>
-  );
+  return <span className="inline-flex shrink-0 items-center rounded-full bg-q-bg px-2 py-px text-[11px] font-semibold whitespace-nowrap text-q">{children}</span>;
 }
 
-const BUTTON = {
-  primary: "bg-accent text-on-accent hover:bg-accent-hover",
-  outline: "border border-current text-accent-text hover:bg-hover",
-} as const;
+/** The lime button of the navy bands (Start for free, Inspect for free). */
+export const LIME_BUTTON = "inline-flex items-center justify-center whitespace-nowrap bg-accent text-on-accent hover:bg-accent-hover hover:no-underline";
 
-export function buttonClass(variant: keyof typeof BUTTON = "primary", size: "md" | "lg" = "md"): string {
-  return [
-    "inline-flex items-center justify-center gap-2 rounded-md font-semibold whitespace-nowrap transition-colors",
-    size === "lg" ? "h-12 px-5 text-[15px]" : "h-10 px-4 text-[14px]",
-    BUTTON[variant],
-  ].join(" ");
-}
-
+/** The design's 1440 px frame: 80 px gutters at full width, 20 px on a phone. */
 export function Container({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`mx-auto w-full max-w-6xl px-4 sm:px-6 ${className}`}>{children}</div>;
+  return <div className={`mx-auto w-full max-w-[1440px] px-5 sm:px-10 xl:px-20 ${className}`}>{children}</div>;
+}
+
+/** A section of the light body: 112 px above (72 on a phone), heading, then its content. */
+export function Section({ id, labelledBy, gap = 40, children }: { id?: string; labelledBy: string; gap?: 40 | 48; children: ReactNode }) {
+  return (
+    <section id={id} aria-labelledby={labelledBy} className="pt-[72px] md:pt-[112px]">
+      <Container className={`flex flex-col ${gap === 48 ? "gap-10 md:gap-12" : "gap-8 md:gap-10"}`}>{children}</Container>
+    </section>
+  );
 }

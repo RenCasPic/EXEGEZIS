@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
-import { Container, LogoMark } from "./ui";
+import { Container } from "./ui";
 
-/** Footer. Pages that do not exist yet are plain text marked «coming soon», not empty links. */
+/** Footer on white. Pages that do not exist yet are plain text marked «coming soon», not empty links. */
 export function SiteFooter() {
   const t = useTranslations("footer");
   const product = [
@@ -16,44 +16,33 @@ export function SiteFooter() {
     legal: ["privacy", "terms", "responsible"],
   } as const;
   return (
-    <footer className="border-t border-line bg-panel py-12">
-      <Container className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+    <footer className="mt-16 border-t border-line bg-panel py-12 text-[14px] md:mt-24">
+      <Container className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,minmax(0,1fr))]">
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2 text-heading">
-            <LogoMark className="size-7" />
-            <span className="font-mono text-[14px] font-semibold tracking-[0.18em]">EXEGEZIS</span>
-          </div>
-          <p className="max-w-xs text-[14px] text-muted">{t("tagline")}</p>
+          <span className="font-mono text-[15px] font-semibold tracking-[0.16em] text-heading">EXEGEZIS</span>
+          <p className="leading-[1.5] text-muted">{t("tagline")}</p>
+          <p className="text-muted">{t("copyright")}</p>
         </div>
-        <nav aria-labelledby="footer-product">
-          <h2 id="footer-product" className="mb-3 text-[13px] font-semibold text-heading">
+        <nav aria-labelledby="footer-product" className="flex flex-col gap-2.5">
+          <h2 id="footer-product" className="font-semibold text-heading">
             {t("product")}
           </h2>
-          <ul className="flex flex-col gap-2 text-[14px]">
-            {product.map(([key, href]) => (
-              <li key={key}>
-                <a href={href} className="text-accent-text hover:underline">
-                  {t(key)}
-                </a>
-              </li>
-            ))}
-          </ul>
+          {product.map(([key, href]) => (
+            <a key={key} href={href} className="text-heading hover:underline">
+              {t(key)}
+            </a>
+          ))}
         </nav>
         {(["resources", "legal"] as const).map((group) => (
-          <div key={group}>
-            <h2 className="mb-3 text-[13px] font-semibold text-heading">{t(group)}</h2>
-            <ul className="flex flex-col gap-2 text-[14px] text-muted">
-              {pending[group].map((key) => (
-                <li key={key}>
-                  {t(key)} <span className="text-[12px]">{t("soon")}</span>
-                </li>
-              ))}
-            </ul>
+          <div key={group} className="flex flex-col gap-2.5">
+            <h2 className="font-semibold text-heading">{t(group)}</h2>
+            {pending[group].map((key) => (
+              <p key={key} className="text-heading">
+                {t(key)} <span className="text-[12px] text-muted">{t("soon")}</span>
+              </p>
+            ))}
           </div>
         ))}
-      </Container>
-      <Container className="mt-10 border-t border-line pt-6">
-        <p className="font-mono text-[12px] text-muted">{t("copyright")}</p>
       </Container>
     </footer>
   );

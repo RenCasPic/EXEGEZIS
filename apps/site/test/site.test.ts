@@ -103,7 +103,7 @@ describe("site colours: WCAG AA (4.5:1 for text)", () => {
     const a = Number(mix[2]) / 100;
     return fg.map((c, i) => Math.round(c * a + (bg[i] as number) * (1 - a))) as [number, number, number];
   };
-  const light = block(":root");
+  const light = block(":root,\n.theme-light");
   const navy = block('html[data-theme="dark"],\n.theme-dark');
 
   it("the brief's colours are the tokens", () => {
@@ -117,6 +117,7 @@ describe("site colours: WCAG AA (4.5:1 for text)", () => {
       [navy, "heading", "bg"],
       [navy, "fg", "bg"],
       [navy, "muted", "bg"],
+      [navy, "text-soft", "bg"],
       [navy, "on-accent", "accent"],
       [navy, "on-accent", "accent-hover"],
       [navy, "heading", "panel"],
@@ -138,6 +139,9 @@ describe("site colours: WCAG AA (4.5:1 for text)", () => {
       [light, "on-accent", "accent"],
       [light, "on-accent", "accent-hover"],
       [light, "ok", "ok-bg"],
+      [light, "warn", "warn-bg"],
+      [light, "q", "q-bg"],
+      [light, "muted", "table-head"],
     ];
     const failing = pairs.map(([t, a, b]) => ({ pair: `${t === navy ? "navy" : "light"} ${a}/${b}`, r: ratio(rgb(t, a), rgb(t, b)) })).filter((p) => p.r < 4.5);
     expect(failing).toEqual([]);

@@ -73,7 +73,7 @@ const PAIRS: [string, string][] = [
 ];
 
 describe("design tokens: WCAG AA contrast", () => {
-  const themes = { light: block(":root"), dark: block('html[data-theme="dark"],\n.theme-dark') };
+  const themes = { light: block(":root,\n.theme-light"), dark: block('html[data-theme="dark"],\n.theme-dark') };
 
   for (const [theme, tokens] of Object.entries(themes)) {
     it(`${theme}: every text pair reaches 4.5:1`, () => {
