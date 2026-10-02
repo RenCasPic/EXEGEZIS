@@ -1,7 +1,7 @@
 {
   "name": "exegezis",
   "private": true,
-  "description": "EXEGEZIS \u2014 Software that explains itself.",
+  "description": "EXEGEZIS — Software that explains itself.",
   "type": "module",
   "packageManager": "pnpm@10.34.5",
   "engines": {
@@ -18,7 +18,8 @@
     "clean": "tsc -b --clean",
     "benchmark": "exegezis benchmark --suite buggy-shop",
     "web": "pnpm build && pnpm --filter @exegezis/web dev",
-    "build:web": "pnpm build && pnpm --filter @exegezis/web build"
+    "build:web": "pnpm build && pnpm --filter @exegezis/web build",
+    "dev": "pnpm web"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

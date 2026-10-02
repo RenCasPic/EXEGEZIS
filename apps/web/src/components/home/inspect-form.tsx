@@ -21,11 +21,11 @@ const input = "h-9 w-full rounded-md border border-line-strong bg-field px-2.5 t
  * external (non-loopback) host the user confirms, in one line, that they may
  * inspect it; the server refuses an external host without that confirmation.
  */
-export function InspectForm() {
+export function InspectForm({ initialUrl = "" }: { initialUrl?: string }) {
   const t = useTranslations("home.form");
   const tc = useTranslations("common");
   const [state, action, pending] = useActionState<InspectState, FormData>(startInspectionAction, { error: null });
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(initialUrl);
   const [maxPages, setMaxPages] = useState("");
   const [maxDepth, setMaxDepth] = useState("");
   const [runs, setRuns] = useState("");

@@ -107,6 +107,18 @@ function CaseItem({ row, when }: { row: CaseRow; when: string }) {
   );
 }
 
+/** `/?url=https://…` (from the public site's «Inspect for free»): the address, if it is an http(s) one. */
+function initialUrl(value: string | string[] | undefined): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === undefined) return "";
+  try {
+    const u = new URL(raw.trim());
+    return u.protocol === "http:" || u.protocol === "https:" ? u.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [all, rootCauses, inspections, scope, params, t, common, f] = await Promise.all([
     getSummaries(),
@@ -157,7 +169,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           {tab === "search" ? t("headingSearch") : t("headingInspect")}
         </h1>
         <p className="mt-1 mb-5 max-w-2xl text-[14px] text-muted">{tab === "search" ? t("introSearch") : t("introInspect")}</p>
-        {tab === "search" ? <SearchForm templates={templates} /> : <InspectForm />}
+        {tab === "search" ? <SearchForm templates={templates} /> : <InspectForm initialUrl={initialUrl(params.url)} />}
         <Link href="/investigations/new" className="mt-4 inline-flex items-center gap-1 text-[13px] text-accent-text hover:underline">
           {t("haveSymptom")} <ArrowRight className="size-3.5" aria-hidden />
         </Link>
