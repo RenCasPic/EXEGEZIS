@@ -2,12 +2,14 @@
 
 La web pública de EXEGEZIS: qué es el producto, cómo funciona y los precios. Es la página que verá cualquiera antes de usarlo.
 
+El diseño de referencia es `docs/design/landing.html`. A 1440 px, la web reproduce su orden, sus textos, medidas, colores, bordes y sombras. `pnpm design:compare` lo comprueba; las diferencias que quedan, y por qué, están en `docs/design/README.md`. En el móvil (375–390 px), las secciones se apilan con el mismo estilo.
+
 ## Arquitectura
 
 - **App separada:** `apps/site` (Next.js, App Router). Es independiente de la app local (`apps/web`, 127.0.0.1:4100), para poder publicarla sin ella.
 - **Sitio estático:** `next build` la exporta a `apps/site/out/` (`output: "export"`). Se puede subir tal cual a cualquier alojamiento estático.
 - **Tokens de diseño compartidos:** `packages/design-tokens/tokens.css`, el mismo archivo que usa la app local. No hay colores copiados.
-  - Cabecera, portada y llamada final usan `.theme-dark` (azul marino `#011B34`, texto blanco, acento lima).
+  - Cabecera, portada y llamada final usan `.theme-dark`: azul marino `#011B34`, texto blanco, botones y bordes lima. La vista previa del informe, dentro de la portada, usa `.theme-light`.
   - El cuerpo usa el tema claro: fondo `#F2F5F6`, paneles blancos con contorno de 1.5 px `#0066FF`, enlaces `#0052CC` y botones `#0066FF`.
 - **Idiomas:** next-intl, como la app local, pero con el idioma en la URL (`/en/`, `/es/`) para que cada página sea estática.
   - Catálogos: `apps/site/messages/{en,es}.json`.
@@ -50,11 +52,19 @@ La web pública de EXEGEZIS: qué es el producto, cómo funciona y los precios. 
   - Mensual y Anual, también con las flechas del teclado;
   - «Próximamente» donde corresponde;
   - que no haya scroll horizontal a 375 px y que el menú funcione en el móvil;
-  - teclado: el enlace «Saltar al contenido» va primero, todo lo enfocable tiene foco visible y las preguntas se abren con Enter;
+  - teclado: el enlace «Saltar al contenido» va primero y todo lo enfocable tiene foco visible;
+  - las preguntas frecuentes se muestran abiertas, como en el diseño;
   - «Inspeccionar gratis» con la app local en marcha y parada.
 - Capturas: `node apps/site/scripts/screenshots.mjs` genera `docs/screenshots/site/landing-{en,es}-{1440,375}.png` y las imágenes de Open Graph (`apps/site/public/og-{en,es}.png`).
 
 ## Comandos (CMD de Windows, desde la carpeta del repositorio)
+
+```bat
+pnpm design:compare
+```
+
+Compara la web y la página de inicio de la app con `docs/design/`, y deja las capturas y las diferencias en `docs\design\diff\`.
+
 
 ```bat
 pnpm site

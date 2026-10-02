@@ -15,6 +15,8 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 - Un script inline en `<head>` aplica el tema antes de pintar, sin parpadeo. Si el almacenamiento no está disponible, sigue `prefers-color-scheme`.
 - Sin JavaScript no hay atributo, y un bloque `@media (prefers-color-scheme: dark)` aplica los mismos tokens oscuros. Un test comprueba que los dos bloques oscuros son idénticos.
 - Selector en la barra superior. En escritorio es un control segmentado; en móvil, un botón de icono de 44 px con `aria-label` que rota entre las tres opciones.
+- En la página de inicio, la cabecera es la de `docs/design/home-app.html`, con el control Claro / Oscuro / Sistema. Por debajo de 1280 px es un botón que cambia entre claro y oscuro, como en `home-app-mobile.html`.
+- `.theme-dark` y `.theme-light` aplican una paleta a una parte de la página. La web pública los usa para sus bandas azul marino y para la tarjeta blanca dentro de ellas.
 
 ## Tokens
 
@@ -47,6 +49,11 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 | off-bg / off-bd | #EEF2F3 / #D6DEE1 | off al 8 % (**) / off al 25 % | pastillas NOT VERIFIED, REFUTED |
 | empty | #DCE4E7 | #12365D | segmentos vacíos del medidor de evidencia |
 | stripe | #E3EAED | #0C2E52 | rayado de la etiqueta REPLAY |
+| off-dot | #8596A0 | #6B7280 | anillo de una ejecución no reproducida (historial del inicio) |
+| text-soft | #4D6069 (= muted) | #C9D5E3 | texto de párrafo sobre el azul marino (web pública) |
+| accent-soft | #E6F0FF | accent al 14 % | discos de los iconos de garantías (web pública) |
+| table-head | #F7F9FB | #01172C | cabecera de tabla (web pública) |
+| rule | #C9D3DA | #2A5A8C | separadores de las preguntas frecuentes (web pública) |
 | ok | #15803D sobre #EDF7F0 | #3DDC97 sobre ok al 12 % | VERIFIED, VALIDATED |
 | warn | #B45309 sobre #FCF1E3 | #F5B544 sobre warn al 12 % | CANDIDATE, SUFFICIENT, INTERMITTENT, FLAKY |
 | q | #475569 sobre #EEF1F4 | #AAB4C3 sobre q al 12 % | INCONCLUSIVE, INSUFFICIENT, sin ejecutar, en curso |
@@ -118,6 +125,10 @@ Todos los pares cumplen AA.
 - **EvidenceMeter.** 5 segmentos, NONE → REPRODUCED → SUFFICIENT → CANDIDATE → VALIDATED (el `EvidenceLevel` de core), con el nombre del nivel. Sin medición, muestra «—».
 - **RunHistory.** Un punto por ejecución: ok relleno, q relleno, off solo contorno. Tiene un `aria-label` con el recuento.
 - **SeverityLabel.** Icono de forma y texto, sin color de veredicto.
+
+## Referencias de diseño
+
+`docs/design/` contiene las referencias de la web pública y de la página de inicio. `pnpm design:compare` las compara con la implementación. `docs/design/README.md` explica qué diferencias quedan y por qué.
 
 ## Capturas
 
