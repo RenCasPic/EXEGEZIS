@@ -198,7 +198,8 @@ describe("the UI in English and in Spanish", () => {
     await page.locator('a[href="/inspections"]').first().click();
     await page.waitForURL(`${base}/inspections`);
     await page.waitForFunction(() => document.querySelector("h1")?.textContent?.includes("Inspecciones") === true, undefined, { timeout: 60_000 });
-    await page.reload({ waitUntil: "load" });
+    // Clicked below only once React has hydrated the page (in development the bundle arrives after "load").
+    await page.reload({ waitUntil: "networkidle" });
     expect(await page.evaluate(() => document.documentElement.lang)).toBe("es");
     expect(await page.locator("h1").first().textContent()).toContain("Inspecciones");
     await page.locator('[role="radiogroup"] [lang="en"]').click();
@@ -226,7 +227,9 @@ describe("the UI in English and in Spanish", () => {
     const page = await context.newPage();
     // Clicked only once React has hydrated the page (in development the bundle arrives after "load").
     await page.goto(`${base}/`, { waitUntil: "networkidle" });
-    const toggle = page.locator("[data-language-toggle]");
+    // On the home (docs/design/home-app-mobile.html) the language is in the menu.
+    await page.locator('[aria-controls="home-menu"]').click();
+    const toggle = page.locator("#home-menu [data-language-toggle]");
     await expect(toggle.isVisible()).resolves.toBe(true);
     await toggle.click();
     await page.waitForFunction(() => document.documentElement.lang === "es", undefined, { timeout: 60_000 });
