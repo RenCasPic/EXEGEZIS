@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b && tsc -p tsconfig.tests.json && pnpm --filter buggy-shop typecheck && pnpm --filter inspect-lab typecheck && pnpm --filter @exegezis/web typecheck",
+    "typecheck": "tsc -b && tsc -p tsconfig.tests.json && pnpm --filter buggy-shop typecheck && pnpm --filter inspect-lab typecheck && pnpm --filter @exegezis/web typecheck && pnpm --filter @exegezis/site typecheck",
     "lint": "eslint .",
     "test": "tsc -b && vitest run && pnpm --filter buggy-shop test && pnpm --filter buggy-shop test:known-bugs",
     "test:exegezis": "tsc -b && vitest run",
@@ -19,7 +19,9 @@
     "benchmark": "exegezis benchmark --suite buggy-shop",
     "web": "pnpm build && pnpm --filter @exegezis/web dev",
     "build:web": "pnpm build && pnpm --filter @exegezis/web build",
-    "dev": "pnpm web"
+    "dev": "pnpm web",
+    "site": "pnpm --filter @exegezis/site dev",
+    "build:site": "pnpm --filter @exegezis/site build"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

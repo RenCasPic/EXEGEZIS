@@ -1,0 +1,64 @@
+import { Menu } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { LINKS } from "@content/links";
+import type { Locale } from "@/i18n/locales";
+import { LanguageSwitcher } from "./language-switcher";
+import { buttonClass, Container, LogoMark } from "./ui";
+
+const SECTIONS = [
+  ["product", "#product"],
+  ["how", "#how"],
+  ["pricing", "#pricing"],
+  ["faq", "#faq"],
+] as const;
+
+/** Navy header: logo · Product · How it works · Pricing · FAQ · Sign in · Start for free. On a phone the sections go into a menu. */
+export function SiteHeader({ locale }: { locale: Locale }) {
+  const t = useTranslations("nav");
+  return (
+    <header className="theme-dark sticky top-0 z-30 border-b border-line">
+      <a href="#content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-on-accent">
+        {t("skip")}
+      </a>
+      <Container className="flex h-16 items-center gap-3">
+        <a href={`/${locale}/`} aria-label={t("home")} className="flex shrink-0 items-center gap-2 rounded-md text-heading">
+          <LogoMark className="size-7" />
+          <span className="font-mono text-[14px] font-semibold tracking-[0.18em]">EXEGEZIS</span>
+        </a>
+        <nav aria-label={t("main")} className="ml-6 hidden items-center gap-1 lg:flex">
+          {SECTIONS.map(([key, href]) => (
+            <a key={key} href={href} className="rounded-md px-3 py-2 text-[14px] text-heading hover:text-fg">
+              {t(key)}
+            </a>
+          ))}
+        </nav>
+        <div className="flex-1" />
+        <LanguageSwitcher locale={locale} />
+        <a href={LINKS.signIn} className="hidden rounded-md px-3 py-2 text-[14px] text-heading hover:text-fg md:inline-block">
+          {t("signIn")}
+        </a>
+        <a href={LINKS.start} className={`${buttonClass("primary")} max-sm:hidden`}>
+          {t("start")}
+        </a>
+        <details className="relative lg:hidden">
+          <summary aria-label={t("menu")} className="grid size-10 cursor-pointer place-items-center rounded-md text-heading hover:bg-hover">
+            <Menu className="size-5" aria-hidden />
+          </summary>
+          <nav aria-label={t("main")} className="panel-frame absolute right-0 mt-2 flex w-60 flex-col gap-1 rounded-lg bg-panel p-2">
+            {SECTIONS.map(([key, href]) => (
+              <a key={key} href={href} className="rounded-md px-3 py-2 text-[15px] text-heading hover:bg-hover">
+                {t(key)}
+              </a>
+            ))}
+            <a href={LINKS.signIn} className="rounded-md px-3 py-2 text-[15px] text-heading hover:bg-hover">
+              {t("signIn")}
+            </a>
+            <a href={LINKS.start} className={`${buttonClass("primary")} mt-1`}>
+              {t("start")}
+            </a>
+          </nav>
+        </details>
+      </Container>
+    </header>
+  );
+}

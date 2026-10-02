@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* The same tokens, themes and panel outline as the local app (packages/design-tokens). */
+@import "@exegezis/design-tokens/tokens.css";
+
+/*
+ * The public site: a light body (bg #F2F5F6, white panels with the 1.5 px
+ * electric-blue outline, links #0052CC, buttons #0066FF) and navy bands
+ * (`.theme-dark`: header, hero and the closing call) with white text and a
+ * lime accent. No loose colours: everything comes from the tokens.
+ */
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.theme-dark {
+  background: var(--bg);
+  color: var(--heading);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
