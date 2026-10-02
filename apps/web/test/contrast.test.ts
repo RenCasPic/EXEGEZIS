@@ -3,11 +3,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * WCAG 2.1 contrast of the design tokens, read from globals.css itself so the
+ * WCAG 2.1 contrast of the design tokens, read from packages/design-tokens/tokens.css itself so the
  * table in docs/08-design-system.md cannot drift from the code. Every pair
  * used for normal-size text must reach 4.5:1 (AA).
  */
-const css = readFileSync(join(__dirname, "../src/app/globals.css"), "utf8");
+// The tokens live in packages/design-tokens (shared by the local app and the public site).
+const css = readFileSync(join(__dirname, "../../../packages/design-tokens/tokens.css"), "utf8");
 
 function block(selector: string): Record<string, string> {
   const start = css.indexOf(`${selector} {`);
@@ -72,7 +73,7 @@ const PAIRS: [string, string][] = [
 ];
 
 describe("design tokens: WCAG AA contrast", () => {
-  const themes = { light: block(":root"), dark: block('html[data-theme="dark"]') };
+  const themes = { light: block(":root"), dark: block('html[data-theme="dark"],\n.theme-dark') };
 
   for (const [theme, tokens] of Object.entries(themes)) {
     it(`${theme}: every text pair reaches 4.5:1`, () => {

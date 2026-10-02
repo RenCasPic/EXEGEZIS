@@ -77,6 +77,9 @@ importers:
       '@exegezis/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@exegezis/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
       '@exegezis/planner':
         specifier: workspace:*
         version: link:../../packages/planner
@@ -203,6 +206,8 @@ importers:
       '@formatjs/icu-messageformat-parser':
         specifier: 3.5.20
         version: 3.5.20
+
+  packages/design-tokens: {}
 
   packages/inspect:
     dependencies:

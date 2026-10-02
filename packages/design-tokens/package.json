@@ -1,0 +1,12 @@
+{
+  "name": "@exegezis/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EXEGEZIS design tokens (docs/08-design-system.md): one CSS file shared by the local app and the public site.",
+  "exports": {
+    "./tokens.css": "./tokens.css"
+  },
+  "files": [
+    "tokens.css"
+  ]
+}

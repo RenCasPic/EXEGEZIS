@@ -13,6 +13,7 @@
   "dependencies": {
     "@exegezis/access": "workspace:*",
     "@exegezis/core": "workspace:*",
+    "@exegezis/design-tokens": "workspace:*",
     "@exegezis/planner": "workspace:*",
     "@exegezis/search": "workspace:*",
     "clsx": "^2.1.1",
