@@ -5,7 +5,7 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 ## Principios
 
 - La UI solo muestra lo que existe en los artefactos. Lo que el motor no hace aún se muestra **NOT IMPLEMENTED**.
-- **El color de acción (azul petróleo en claro, lima en oscuro) es solo para acciones**: botones, enlaces y foco. Nunca comunica un estado.
+- **El color de acción (azul eléctrico en claro, lima en oscuro) es solo para acciones y para el contorno de los paneles**: botones, enlaces, foco y bordes de panel. Nunca comunica un estado.
 - **Cada veredicto lleva color + icono + texto.** El color nunca es la única señal.
 - Los componentes usan solo tokens. Un test (`test/design-system.test.tsx`) rechaza colores hex sueltos y clases de paleta en `src/`.
 
@@ -19,17 +19,18 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 ## Tokens
 
 - **Tema claro: «Petróleo».** La paleta anterior (fondo marfil cálido #F6F6F3, bordes #E4E2DA, texto casi negro y azul #2563EB) se parecía demasiado a la de Claude. «Petróleo» le da a EXEGEZIS identidad propia: neutros fríos gris azulado y un azul petróleo (#0E7490) para las acciones.
+- **Tema claro, acción en azul eléctrico.** René aprobó después cambiar el azul petróleo (#0E7490 / #0B5F76 / #0E6682) por un azul eléctrico (#0066FF, y #0052CC para hover y enlaces), también en el contorno de los paneles (1.5 px, igual que en oscuro). El resto de los tokens claros de «Petróleo» no cambia. Blanco sobre #0066FF da 4.83:1 y #0052CC da 6.82:1 sobre blanco y 6.23:1 sobre el fondo: no hizo falta ajustar nada.
 - **Tema oscuro: azul marino y lima.** Aprobado por René a partir de una captura de su app de Biblia: fondo azul marino, texto, botones y contornos de panel lima, títulos en blanco.
 - Los colores de veredicto (ok, warn, q, off, bad) no cambian en ningún tema.
 
-| Token | Claro («Petróleo») | Oscuro (marino y lima) | Uso |
+| Token | Claro (neutros «Petróleo», acción azul eléctrico) | Oscuro (marino y lima) | Uso |
 |---|---|---|---|
 | bg | #F2F5F6 | #011B34 | fondo de página |
 | panel | #FFFFFF | #062443 | paneles, tarjetas, tablas, modales, menús |
 | sunken | #F2F5F6 | #01172C | código, zonas hundidas |
 | field | #FFFFFF | #01172C | campos de formulario |
-| panel-border | #C7D3D8 | #D0DB4E (lima) | contorno de paneles, tarjetas, tablas, modales y menús |
-| panel-border-width | 2px | 1.5px | grosor de ese contorno |
+| panel-border | #0066FF (azul eléctrico) | #D0DB4E (lima) | contorno de paneles, tarjetas, tablas, modales y menús |
+| panel-border-width | 1.5px | 1.5px | grosor de ese contorno |
 | panel-shadow | 0 1px 2px rgba(11,27,34,0.06) | none | sombra de esos mismos contornos |
 | line | #E1E8EB | #0F3157 | divisiones internas (filas, separadores), 1 px |
 | line-soft | #E9EFF1 | #0A2A4B | separadores suaves |
@@ -39,9 +40,9 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 | heading | #0B1B22 (= fg) | #FFFFFF | títulos h1–h3, cabecera y logo |
 | muted | #4D6069 | #93A7C1 | texto secundario |
 | faint | #56696F | #8499B4 | metadatos (*) |
-| accent | #0E7490 | #CDDC39 | fondo de botones |
-| accent-hover | #0B5F76 | #DCE775 | botón bajo el puntero |
-| accent-text | #0E6682 | #FFFFFF | enlaces y anillo de foco |
+| accent | #0066FF | #CDDC39 | fondo de botones |
+| accent-hover | #0052CC | #DCE775 | botón bajo el puntero |
+| accent-text | #0052CC | #FFFFFF | enlaces y anillo de foco |
 | on-accent | #FFFFFF | #011B34 | texto sobre accent |
 | off-bg / off-bd | #EEF2F3 / #D6DEE1 | off al 8 % (**) / off al 25 % | pastillas NOT VERIFIED, REFUTED |
 | empty | #DCE4E7 | #12365D | segmentos vacíos del medidor de evidencia |
@@ -58,7 +59,7 @@ Estado: implementado en `apps/web` (tokens en `src/app/globals.css`, componentes
 
 ### Contornos
 
-- Paneles, tarjetas, estadísticas, tablas (dentro de su panel), modales, la paleta de comandos y los menús desplegables usan la utilidad `panel-frame` de `globals.css`: `border: var(--panel-border-width) solid var(--panel-border)` y `box-shadow: var(--panel-shadow)`. Grosor y color son tokens: 2 px gris azulado en claro, 1.5 px lima en oscuro. Es el único sitio donde se define ese contorno, sin colores ni grosores sueltos en los componentes. El panel lateral (Sheet) usa los mismos tokens en su borde izquierdo.
+- Paneles, tarjetas, estadísticas, tablas (dentro de su panel), modales, la paleta de comandos y los menús desplegables usan la utilidad `panel-frame` de `globals.css`: `border: var(--panel-border-width) solid var(--panel-border)` y `box-shadow: var(--panel-shadow)`. Grosor y color son tokens: 1.5 px en los dos temas, azul eléctrico en claro y lima en oscuro. Es el único sitio donde se define ese contorno, sin colores ni grosores sueltos en los componentes. El panel lateral (Sheet) usa los mismos tokens en su borde izquierdo.
 - Las divisiones dentro de un panel (cabecera, filas de tabla, separadores) siguen siendo de 1 px con `line`, más suaves que el contorno.
 - Los avisos de estado (bloqueo, error del motor, escrituras de la página) conservan su borde del color de su familia: son estados, no paneles.
 
@@ -86,10 +87,10 @@ La tabla se calcula con la fórmula de luminancia relativa de WCAG 2.1. `test/co
 | muted / sunken | 6.00 | 7.36 |
 | faint / panel | 5.76 | 5.37 |
 | faint / bg | 5.26 | 5.96 |
-| accent-text / panel | 6.48 | 15.66 |
-| accent-text / bg | 5.91 | 17.39 |
-| on-accent / accent | 5.36 | 11.50 |
-| on-accent / accent-hover | 7.21 | 13.03 |
+| accent-text / panel | 6.82 | 15.66 |
+| accent-text / bg | 6.23 | 17.39 |
+| on-accent / accent | 4.83 | 11.50 |
+| on-accent / accent-hover | 6.82 | 13.03 |
 | ok / ok-bg | 4.58 | 6.87 |
 | ok / panel | 5.02 | 8.86 |
 | warn / warn-bg | 4.50 | 6.97 |
