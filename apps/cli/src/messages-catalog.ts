@@ -384,6 +384,17 @@ export const CLI_MESSAGES_EN = {
   "doctor.channel.chromium": "Chromium (Playwright)",
   "doctor.channel.chrome": "Google Chrome (system)",
   "doctor.channel.msedge": "Microsoft Edge (system)",
+  "account.action": "account takes one action: claim-local.",
+  "account.needsCloud": "account claim-local works in cloud mode: set EXEGEZIS_MODE=cloud and DATABASE_URL (see .env.example).",
+  "account.noAccounts": "There is no account yet. Create yours in the app (/signup), then run this again.",
+  "account.noSuchEmail": "No account has the email {email}.",
+  "account.claimFor": "Account: {email} ({id})",
+  "account.from": "From: {runs} · accesses {access} · search {search}",
+  "account.to": "To: {dir}",
+  "account.found": "Found: {runs, plural, one {# run} other {# runs}} and {access, plural, one {# saved access} other {# saved accesses}}.",
+  "account.dryRun": "--dry-run: nothing was copied or recorded.",
+  "account.done": "Done: {runs, plural, one {# run recorded} other {# runs recorded}} as the account's and {access, plural, one {# access re-encrypted} other {# accesses re-encrypted}}. The originals are still here, for local mode.",
+  "account.unreadable": "These saved accesses could not be opened on this computer and were not copied: {origins}",
 } as const;
 
 export type CliKey = keyof typeof CLI_MESSAGES_EN;
@@ -767,4 +778,15 @@ export const CLI_MESSAGES_ES: Record<CliKey, string> = {
   "doctor.channel.chromium": "Chromium (Playwright)",
   "doctor.channel.chrome": "Google Chrome (sistema)",
   "doctor.channel.msedge": "Microsoft Edge (sistema)",
+  "account.action": "account lleva una acción: claim-local.",
+  "account.needsCloud": "account claim-local funciona en modo nube: pon EXEGEZIS_MODE=cloud y DATABASE_URL (ver .env.example).",
+  "account.noAccounts": "Aún no hay ninguna cuenta. Crea la tuya en la app (/signup) y vuelve a ejecutar esto.",
+  "account.noSuchEmail": "Ninguna cuenta tiene el email {email}.",
+  "account.claimFor": "Cuenta: {email} ({id})",
+  "account.from": "Desde: {runs} · accesos {access} · búsqueda {search}",
+  "account.to": "A: {dir}",
+  "account.found": "Encontrado: {runs, plural, one {# ejecución} other {# ejecuciones}} y {access, plural, one {# acceso guardado} other {# accesos guardados}}.",
+  "account.dryRun": "--dry-run: no se ha copiado ni registrado nada.",
+  "account.done": "Hecho: {runs, plural, one {# ejecución registrada} other {# ejecuciones registradas}} como de la cuenta y {access, plural, one {# acceso cifrado de nuevo} other {# accesos cifrados de nuevo}}. Los originales siguen aquí, para el modo local.",
+  "account.unreadable": "Estos accesos guardados no se han podido abrir en este equipo y no se han copiado: {origins}",
 };

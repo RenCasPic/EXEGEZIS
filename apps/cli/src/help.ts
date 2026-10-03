@@ -27,6 +27,23 @@ const SEARCH_HELP_EN = `
               model is not called (exit 8). The model writes its reasons in the
               language of --lang; quotes stay as they are on the page.`;
 
+const ACCOUNT_HELP_EN = `
+  account     Cloud mode (EXEGEZIS_MODE=cloud, DATABASE_URL in .env).
+                exegezis account claim-local [--email <email>] [--dry-run]
+              Gives this machine's runs/, saved accesses and search settings
+              to an account (the first one created, or --email): copies them
+              to its folder, re-encrypts the accesses with the cloud key and
+              records the runs as its own. The originals stay for local mode.`;
+
+const ACCOUNT_HELP_ES = `
+  account     Modo nube (EXEGEZIS_MODE=cloud, DATABASE_URL en .env).
+                exegezis account claim-local [--email <email>] [--dry-run]
+              Da a una cuenta (la primera creada, o --email) lo que este
+              equipo ya tiene: runs/, los accesos guardados y los ajustes de
+              búsqueda. Los copia a su carpeta, vuelve a cifrar los accesos con
+              la clave de la nube y registra las ejecuciones como suyas. Los
+              originales se quedan para el modo local.`;
+
 const SEARCH_HELP_ES = `
   search      Busca en el texto de un sitio (mismo recorrido, límites, robots.txt,
               acceso guardado y modo de solo lectura que inspect). Resultado:
@@ -119,6 +136,7 @@ Commands:
               to inspect as an anonymous visitor); with a session it is
               strict read-only unless --allow-page-writes.
 ${SEARCH_HELP_EN.slice(1)}
+${ACCOUNT_HELP_EN.slice(1)}
   doctor      Check this machine: Node.js, pnpm and the browsers EXEGEZIS can
               drive (Playwright's Chromium, Google Chrome, Microsoft Edge), with
               their versions, and say what is missing and how to install it.
@@ -242,6 +260,7 @@ Comandos:
               (--no-session para inspeccionar como visitante anónimo); con
               sesión es solo lectura estricta salvo con --allow-page-writes.
 ${SEARCH_HELP_ES.slice(1)}
+${ACCOUNT_HELP_ES.slice(1)}
   doctor      Comprueba este equipo: Node.js, pnpm y los navegadores que EXEGEZIS
               puede usar (Chromium de Playwright, Google Chrome, Microsoft Edge),
               con sus versiones, y dice qué falta y cómo instalarlo. No se

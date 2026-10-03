@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 import { t } from "./i18n.js";
+import { parseAccountArgs, type AccountCommand } from "./account.js";
 import { parseSearchArgs, type SearchCommand } from "./search-args.js";
 
 export class UsageError extends Error {
@@ -51,7 +52,8 @@ export type Command =
   | ({ kind: "inspect" } & InspectArgs & Common)
   | { kind: "doctor"; install: boolean; json: boolean }
   | SessionCommand
-  | SearchCommand;
+  | SearchCommand
+  | AccountCommand;
 
 export const SESSION_ACTIONS = ["login", "list", "delete", "http-auth", "waf-token", "set"] as const;
 export type SessionAction = (typeof SESSION_ACTIONS)[number];
@@ -128,6 +130,8 @@ const PLANNERS: readonly Planner[] = ["anthropic", "mock"];
 export function parseCliArgs(argv: readonly string[]): Command {
   // `search` has its own sub-actions and options (search-args.ts).
   if (argv[0] === "search") return parseSearchArgs(argv.slice(1));
+  // `account` (cloud mode): its own sub-actions (account.ts).
+  if (argv[0] === "account") return parseAccountArgs(argv.slice(1));
   let parsed;
   try {
     parsed = parseArgs({

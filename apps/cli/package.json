@@ -20,14 +20,15 @@
     "dist"
   ],
   "dependencies": {
-    "@exegezis/adapter-browser": "workspace:*",
-    "@exegezis/core": "workspace:*",
-    "@exegezis/compiler-playwright": "workspace:*",
-    "@exegezis/planner": "workspace:*",
-    "@exegezis/inspect": "workspace:*",
     "@exegezis/access": "workspace:*",
-    "zod": "^4.6.5",
+    "@exegezis/accounts": "workspace:*",
+    "@exegezis/adapter-browser": "workspace:*",
+    "@exegezis/compiler-playwright": "workspace:*",
+    "@exegezis/core": "workspace:*",
+    "@exegezis/inspect": "workspace:*",
+    "@exegezis/planner": "workspace:*",
     "@exegezis/search": "workspace:*",
-    "intl-messageformat": "11.2.15"
+    "intl-messageformat": "11.2.15",
+    "zod": "^4.6.5"
   }
 }

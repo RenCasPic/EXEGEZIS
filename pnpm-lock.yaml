@@ -50,6 +50,9 @@ importers:
       '@exegezis/access':
         specifier: workspace:*
         version: link:../../packages/access
+      '@exegezis/accounts':
+        specifier: workspace:*
+        version: link:../../packages/accounts
       '@exegezis/adapter-browser':
         specifier: workspace:*
         version: link:../../packages/adapter-browser

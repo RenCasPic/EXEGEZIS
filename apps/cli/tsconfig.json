@@ -29,6 +29,9 @@
     },
     {
       "path": "../../packages/search"
+    },
+    {
+      "path": "../../packages/accounts"
     }
   ]
 }

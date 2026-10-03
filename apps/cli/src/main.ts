@@ -17,6 +17,7 @@ import { aiVerifyCommand, generatePlanCommand } from "./ai-commands.js";
 import { inspectCommand } from "./inspect.js";
 import { doctorCommand, printEngineError } from "./doctor.js";
 import { rootCauseCommand } from "./root-cause.js";
+import { accountCommand } from "./account.js";
 import { searchCommand } from "./search.js";
 import { sessionCommand } from "./session.js";
 import { useBrowserChannel } from "./shared.js";
@@ -67,6 +68,8 @@ export async function main(argv: readonly string[], io: CliIo, env: NodeJS.Proce
         return await sessionCommand(command, io, VERSION);
       case "search":
         return await searchCommand(command, io, VERSION);
+      case "account":
+        return await accountCommand(command, io, env);
     }
   } catch (error) {
     if (error instanceof UsageError) {

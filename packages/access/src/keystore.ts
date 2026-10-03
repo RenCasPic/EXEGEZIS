@@ -178,9 +178,15 @@ export class ServerKeyProtector implements KeyProtector {
   }
 }
 
+/** The server key when EXEGEZIS_ACCESS_KEY is set (cloud servers), otherwise the operating system's protection. */
 export function systemProtector(): KeyProtector {
   const serverKey = process.env["EXEGEZIS_ACCESS_KEY"];
   if (serverKey !== undefined && serverKey !== "") return new ServerKeyProtector(serverKey);
+  return osProtector();
+}
+
+/** The operating system's protection, whatever the environment says (to read the local store when moving it to the cloud). */
+export function osProtector(): KeyProtector {
   switch (platform()) {
     case "win32":
       return new DpapiProtector();
