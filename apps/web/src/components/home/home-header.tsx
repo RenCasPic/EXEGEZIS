@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { setScope } from "@/app/actions";
 import { LanguageSwitcher } from "@/components/app-shell/language-switcher";
+import { UserMenu, type AccountSummary } from "@/components/app-shell/user-menu";
 import { cn } from "@/lib/cn";
 import { applyTheme, readThemePreference, THEME_PREFERENCES, writeThemePreference, type ThemePreference } from "@/lib/theme";
 
@@ -48,7 +49,7 @@ function useTheme() {
  * language · project. Below 1280 px the sections go into a menu and the theme
  * is one button, as in home-app-mobile.html.
  */
-export function HomeHeader({ projects, project }: { projects: { id: string; label: string }[]; project: string | null }) {
+export function HomeHeader({ projects, project, account = null }: { projects: { id: string; label: string }[]; project: string | null; account?: AccountSummary | null }) {
   const t = useTranslations("home.header");
   const nav = useTranslations("shell.nav");
   const theme = useTranslations("shell.theme");
@@ -133,8 +134,10 @@ export function HomeHeader({ projects, project }: { projects: { id: string; labe
             })}
           </div>
           {projectSelect}
+          {account !== null && <UserMenu account={account} />}
         </div>
         <div className="flex items-center xl:hidden">
+          {account !== null && <UserMenu account={account} />}
           <button type="button" onClick={() => choose(nextTheme)} aria-label={theme(nextTheme === "dark" ? "toDark" : "toLight")} className="grid size-11 place-items-center text-fg">
             {resolvedDark ? <Sun className="size-5" strokeWidth={1.8} aria-hidden /> : <Moon className="size-5" strokeWidth={1.8} aria-hidden />}
           </button>

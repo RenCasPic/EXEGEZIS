@@ -1,0 +1,102 @@
+{
+  "plans": {
+    "free": "Free",
+    "pro": "Pro",
+    "team": "Team",
+    "enterprise": "Enterprise"
+  },
+  "errors": {
+    "localMode": "Accounts are only used in cloud mode.",
+    "origin": "This request did not come from EXEGEZIS. Reload the page and try again.",
+    "credentials": "Wrong email or password.",
+    "email": "Type a valid email address.",
+    "terms": "To create the account, accept the terms and the privacy policy.",
+    "tooMany": "Too many attempts. Try again in {minutes, plural, one {# minute} other {# minutes}}.",
+    "unexpected": "It could not be done. Try again in a moment.",
+    "mismatch": "The two passwords are different.",
+    "samePassword": "The new password must be different from the current one.",
+    "wrongPassword": "The current password is not correct.",
+    "password": {
+      "short": "The password needs at least 10 characters.",
+      "long": "The password is too long (at most 72 bytes).",
+      "email": "The password cannot contain your email.",
+      "repeated": "The password cannot be one or two characters repeated.",
+      "leaked": "That password has appeared in known data leaks. Choose another one."
+    }
+  },
+  "form": {
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "newPassword": "New password",
+    "currentPassword": "Current password",
+    "confirmPassword": "Repeat the new password",
+    "passwordRules": "At least 10 characters. A phrase you can remember works well.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "forgot": "Forgot your password?",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "continue": "Continue",
+    "sendLink": "Send the link",
+    "savePassword": "Save the new password",
+    "continueWith": "Continue with {provider}",
+    "or": "or",
+    "acceptTerms": "I accept the <terms>terms of use</terms> and the <privacy>privacy policy</privacy>."
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Welcome back to EXEGEZIS.",
+    "noAccount": "No account yet?",
+    "createOne": "Create one for free",
+    "notice": {
+      "signedOut": "You have signed out.",
+      "signedOutEverywhere": "You have signed out on every device.",
+      "deleted": "Your account and all its data have been deleted."
+    },
+    "error": {
+      "link": "That link is not valid or has expired. Ask for a new one.",
+      "oauth": "Signing in with that provider did not work. Try again or use your email.",
+      "origin": "This request did not come from EXEGEZIS. Try again."
+    }
+  },
+  "signup": {
+    "title": "Create your account",
+    "subtitle": "Free plan: no card. You will confirm your email before entering.",
+    "haveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "paidPlan": "{plan} is coming soon: payments do not exist yet. Your account starts on Free and we add you to the {plan} waiting list."
+  },
+  "verify": {
+    "title": "Check your email",
+    "body": "We have sent a link to <email></email>. Open it to activate your account.",
+    "bodyNoEmail": "We have sent you a link. Open it to activate your account.",
+    "spam": "It can take a minute. If it does not arrive, look in the spam folder.",
+    "resend": "Send it again",
+    "resent": "Sent. Check your email again.",
+    "backToLogin": "Back to sign in"
+  },
+  "forgot": {
+    "title": "Recover your password",
+    "subtitle": "Type your email and we will send you a link to choose a new one.",
+    "sent": "If <email></email> has an account, a link to choose a new password is on its way.",
+    "backToLogin": "Back to sign in"
+  },
+  "reset": {
+    "title": "Choose a new password",
+    "subtitle": "For <email></email>."
+  },
+  "welcome": {
+    "title": "Welcome, {name}",
+    "titlePlain": "Welcome",
+    "subtitle": "One step before entering: accept the terms and the privacy policy."
+  },
+  "menu": {
+    "open": "Account menu of {name}",
+    "plan": "Plan: {plan}",
+    "account": "My account",
+    "plans": "See plans",
+    "help": "Help",
+    "signOut": "Sign out"
+  }
+}

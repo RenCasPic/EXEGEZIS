@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { groupStats } from "@exegezis/core";
 import { listTemplates } from "@exegezis/search/light";
 import { HomeHeader } from "@/components/home/home-header";
+import { accountSummary } from "@/lib/account";
 import { InspectForm } from "@/components/home/inspect-form";
 import { SearchForm, type TemplateOption } from "@/components/home/search-form";
 import { StatusPill } from "@/components/ui/status";
@@ -253,6 +254,8 @@ function initialUrl(value: string | string[] | undefined): string {
 const PANEL = "panel-frame rounded-xl bg-panel";
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  // Cloud mode: a signed-in user who accepted the legal texts (else /login or /welcome).
+  const account = await accountSummary();
   const [all, rootCauses, inspections, scope, projects, params, t, common, status, f] = await Promise.all([
     getSummaries(),
     getRootCauses(),
@@ -285,7 +288,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   return (
     <div className="flex min-h-screen flex-col bg-bg [line-height:normal]">
-      <HomeHeader projects={projectOptions} project={scope.project} />
+      <HomeHeader projects={projectOptions} project={scope.project} account={account} />
       <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-8 px-4 pt-5 pb-8 xl:gap-14 xl:p-12">
         <section aria-labelledby="home-title" className={cn(PANEL, "flex flex-col gap-4 rounded-[14px] px-[18px] py-[22px] xl:gap-6 xl:rounded-2xl xl:px-12 xl:pt-11 xl:pb-9")}>
           <div className="flex flex-col gap-4 xl:gap-2.5">

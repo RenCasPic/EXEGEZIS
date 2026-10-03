@@ -1,0 +1,102 @@
+{
+  "plans": {
+    "free": "Gratis",
+    "pro": "Pro",
+    "team": "Equipo",
+    "enterprise": "Empresa"
+  },
+  "errors": {
+    "localMode": "Las cuentas solo se usan en modo nube.",
+    "origin": "Esta petición no viene de EXEGEZIS. Recarga la página y vuelve a intentarlo.",
+    "credentials": "Email o contraseña incorrectos.",
+    "email": "Escribe un email válido.",
+    "terms": "Para crear la cuenta, acepta los términos y la política de privacidad.",
+    "tooMany": "Demasiados intentos. Vuelve a intentarlo en {minutes, plural, one {# minuto} other {# minutos}}.",
+    "unexpected": "No se ha podido hacer. Vuelve a intentarlo en un momento.",
+    "mismatch": "Las dos contraseñas no coinciden.",
+    "samePassword": "La contraseña nueva tiene que ser distinta de la actual.",
+    "wrongPassword": "La contraseña actual no es correcta.",
+    "password": {
+      "short": "La contraseña necesita al menos 10 caracteres.",
+      "long": "La contraseña es demasiado larga (como mucho 72 bytes).",
+      "email": "La contraseña no puede contener tu email.",
+      "repeated": "La contraseña no puede ser uno o dos caracteres repetidos.",
+      "leaked": "Esa contraseña aparece en filtraciones conocidas. Elige otra."
+    }
+  },
+  "form": {
+    "email": "Email",
+    "password": "Contraseña",
+    "name": "Nombre",
+    "newPassword": "Contraseña nueva",
+    "currentPassword": "Contraseña actual",
+    "confirmPassword": "Repite la contraseña nueva",
+    "passwordRules": "Al menos 10 caracteres. Una frase que recuerdes funciona bien.",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "forgot": "¿Has olvidado tu contraseña?",
+    "signIn": "Iniciar sesión",
+    "createAccount": "Crear cuenta",
+    "continue": "Continuar",
+    "sendLink": "Enviar el enlace",
+    "savePassword": "Guardar la contraseña nueva",
+    "continueWith": "Continuar con {provider}",
+    "or": "o",
+    "acceptTerms": "Acepto los <terms>términos de uso</terms> y la <privacy>política de privacidad</privacy>."
+  },
+  "login": {
+    "title": "Iniciar sesión",
+    "subtitle": "Bienvenido de nuevo a EXEGEZIS.",
+    "noAccount": "¿Aún no tienes cuenta?",
+    "createOne": "Crea una gratis",
+    "notice": {
+      "signedOut": "Has cerrado la sesión.",
+      "signedOutEverywhere": "Has cerrado la sesión en todos los dispositivos.",
+      "deleted": "Tu cuenta y todos sus datos se han borrado."
+    },
+    "error": {
+      "link": "Ese enlace no es válido o ha caducado. Pide uno nuevo.",
+      "oauth": "No se ha podido entrar con ese proveedor. Vuelve a intentarlo o usa tu email.",
+      "origin": "Esta petición no viene de EXEGEZIS. Vuelve a intentarlo."
+    }
+  },
+  "signup": {
+    "title": "Crea tu cuenta",
+    "subtitle": "Plan Gratis, sin tarjeta. Confirmarás tu email antes de entrar.",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "signIn": "Inicia sesión",
+    "paidPlan": "{plan} llega pronto: aún no hay pagos. Tu cuenta empieza en Gratis y te apuntamos a la lista de espera de {plan}."
+  },
+  "verify": {
+    "title": "Revisa tu email",
+    "body": "Hemos enviado un enlace a <email></email>. Ábrelo para activar tu cuenta.",
+    "bodyNoEmail": "Te hemos enviado un enlace. Ábrelo para activar tu cuenta.",
+    "spam": "Puede tardar un minuto. Si no llega, mira en la carpeta de spam.",
+    "resend": "Enviarlo de nuevo",
+    "resent": "Enviado. Vuelve a mirar tu email.",
+    "backToLogin": "Volver a iniciar sesión"
+  },
+  "forgot": {
+    "title": "Recupera tu contraseña",
+    "subtitle": "Escribe tu email y te enviaremos un enlace para elegir una nueva.",
+    "sent": "Si <email></email> tiene una cuenta, le llega un enlace para elegir una contraseña nueva.",
+    "backToLogin": "Volver a iniciar sesión"
+  },
+  "reset": {
+    "title": "Elige una contraseña nueva",
+    "subtitle": "Para <email></email>."
+  },
+  "welcome": {
+    "title": "Te damos la bienvenida, {name}",
+    "titlePlain": "Te damos la bienvenida",
+    "subtitle": "Un paso antes de entrar: acepta los términos y la política de privacidad."
+  },
+  "menu": {
+    "open": "Menú de la cuenta de {name}",
+    "plan": "Plan: {plan}",
+    "account": "Mi cuenta",
+    "plans": "Ver planes",
+    "help": "Ayuda",
+    "signOut": "Cerrar sesión"
+  }
+}

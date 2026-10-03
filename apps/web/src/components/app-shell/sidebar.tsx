@@ -20,6 +20,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { AccountSummary } from "./user-menu";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
@@ -142,8 +143,18 @@ export function SidebarBrand() {
   );
 }
 
-export function SidebarFooter({ workspace, repository, user }: { workspace: string; repository: string; user: string }) {
+export function SidebarFooter({ workspace, repository, user, account = null }: { workspace: string; repository: string; user: string; account?: AccountSummary | null }) {
   const t = useTranslations("shell.footer");
+  if (account !== null)
+    return (
+      <div className="flex flex-col gap-3 border-t border-line pt-3">
+        <div className="min-w-0 px-2 leading-tight">
+          <div className="truncate text-[13px] text-fg">{account.name || account.email}</div>
+          <div className="truncate text-[11px] text-faint">{account.email}</div>
+          <div className="mt-1 text-[11px] text-faint">{account.plan}</div>
+        </div>
+      </div>
+    );
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-3">
       <div className="px-2">
