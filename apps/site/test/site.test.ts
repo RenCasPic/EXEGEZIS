@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { IntlMessageFormat } from "intl-messageformat";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { annualMonthly, annualTotal, PLANS } from "../content/pricing";
 import en from "../messages/en.json";
 import es from "../messages/es.json";
@@ -28,9 +28,10 @@ function argumentsOf(message: string): string[] {
   return [...names].sort();
 }
 
+const EN = flatten(en);
+const ES = flatten(es);
+
 describe("site catalogs", () => {
-  const EN = flatten(en);
-  const ES = flatten(es);
 
   it("have the same keys, no empty text and the same placeholders in English and Spanish", () => {
     expect([...ES.keys()].sort()).toEqual([...EN.keys()].sort());
@@ -145,5 +146,40 @@ describe("site colours: WCAG AA (4.5:1 for text)", () => {
     ];
     const failing = pairs.map(([t, a, b]) => ({ pair: `${t === navy ? "navy" : "light"} ${a}/${b}`, r: ratio(rgb(t, a), rgb(t, b)) })).filter((p) => p.r < 4.5);
     expect(failing).toEqual([]);
+  });
+});
+
+describe("cloud mode links (NEXT_PUBLIC_EXEGEZIS_MODE=cloud)", () => {
+  it("«Sign in» → /login, «Start» and «Try…» → /signup with the plan, «Inspect for free» → /signup and then the address", async () => {
+    const saved = { mode: process.env["NEXT_PUBLIC_EXEGEZIS_MODE"], app: process.env["NEXT_PUBLIC_EXEGEZIS_APP_URL"] };
+    process.env["NEXT_PUBLIC_EXEGEZIS_MODE"] = "cloud";
+    process.env["NEXT_PUBLIC_EXEGEZIS_APP_URL"] = "https://app.exegezis.test/";
+    vi.resetModules();
+    const { linksFor, inspectUrl } = await import("../content/links");
+    const es = linksFor("es");
+    expect(es.signIn).toBe("https://app.exegezis.test/login?lang=es");
+    expect(es.start).toBe("https://app.exegezis.test/signup?plan=free&lang=es");
+    expect(es.tryPro).toBe("https://app.exegezis.test/signup?plan=pro&lang=es");
+    expect(es.startTeam).toBe("https://app.exegezis.test/signup?plan=team&lang=es");
+    const inspect = new URL(inspectUrl("https://tu-sitio.com/", "en"));
+    expect(inspect.pathname).toBe("/signup");
+    expect(inspect.searchParams.get("next")).toBe("/?url=https%3A%2F%2Ftu-sitio.com%2F");
+    process.env["NEXT_PUBLIC_EXEGEZIS_MODE"] = saved.mode ?? "";
+    process.env["NEXT_PUBLIC_EXEGEZIS_APP_URL"] = saved.app ?? "";
+    vi.resetModules();
+  });
+});
+
+describe("legal pages (drafts)", () => {
+  it("privacy and terms exist in both languages with the same sections, and their versions are the ones sign-up records", async () => {
+    const { LEGAL, LEGAL_VERSION } = await import("../content/legal");
+    const accounts = await import("../../../packages/accounts/src/legal");
+    expect(LEGAL_VERSION).toEqual({ privacy: accounts.PRIVACY_VERSION, terms: accounts.TERMS_VERSION });
+    for (const doc of ["privacy", "terms"] as const) {
+      expect(LEGAL[doc].es.sections.length).toBe(LEGAL[doc].en.sections.length);
+      expect(JSON.stringify(LEGAL[doc].es)).toContain("{email}");
+    }
+    expect(EN.get("legal.draft")).toBe("Draft pending legal review");
+    expect(ES.get("legal.draft")).toBe("Borrador pendiente de revisión legal");
   });
 });

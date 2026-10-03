@@ -1,8 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
-import { LINKS } from "@content/links";
+import { linksFor } from "@content/links";
 import { annualMonthly, annualTotal, PLANS, type Plan } from "@content/pricing";
 import { CheckIcon, Section, SectionHeading, SoonBadge } from "./ui";
 
@@ -15,6 +15,7 @@ function SoonIcon() {
 
 function PlanCard({ plan, billing }: { plan: Plan; billing: Billing }) {
   const t = useTranslations("pricing");
+  const locale = useLocale() === "es" ? "es" : "en";
   const monthly = plan.monthly;
   const shown = monthly === null ? null : billing === "annual" && monthly > 0 ? annualMonthly(monthly) : monthly;
   const note = monthly === null ? t("annualContract") : monthly === 0 ? t("forever") : billing === "annual" ? t("billedAnnually", { amount: String(annualTotal(monthly)) }) : t("billedMonthly");
@@ -38,7 +39,7 @@ function PlanCard({ plan, billing }: { plan: Plan; billing: Billing }) {
       </p>
       <p className="min-h-[18px] text-[13px] text-muted">{note}</p>
       <a
-        href={LINKS[plan.cta]}
+        href={linksFor(locale)[plan.cta]}
         className={`flex items-center justify-center rounded-[10px] text-[15px] font-semibold hover:no-underline ${
           plan.highlighted ? "h-[46px] bg-accent text-on-accent hover:bg-accent-hover" : "h-[49px] border-[1.5px] border-panel-border bg-panel text-accent-text hover:bg-hover"
         }`}

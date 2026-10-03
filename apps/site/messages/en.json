@@ -14,7 +14,9 @@
     "pricing": "Pricing",
     "faq": "FAQ",
     "signIn": "Sign in",
-    "start": "Start for free"
+    "start": "Start for free",
+    "goToApp": "Go to the app",
+    "account": "Your account ({name})"
   },
   "language": {
     "label": "Language",
@@ -291,7 +293,17 @@
     "terms": "Terms",
     "responsible": "Responsible use",
     "soon": "(coming soon)",
+    "privacyPage": "Privacy policy",
+    "termsPage": "Terms of use",
     "copyright": "© 2026 EXEGEZIS"
+  },
+  "legal": {
+    "draft": "Draft pending legal review",
+    "draftBody": "This text is a draft. It has not been reviewed by a lawyer yet and may change before EXEGEZIS opens to the public.",
+    "version": "Version {version}",
+    "contact": "Privacy contact: {email}",
+    "back": "← Back to the home page",
+    "other": "Read also"
   },
   "root": {
     "title": "EXEGEZIS",

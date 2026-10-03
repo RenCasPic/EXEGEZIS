@@ -1,9 +1,9 @@
 "use client";
 
 import { AlertTriangle, Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
-import { inspectUrl, LOCAL_APP_URL } from "@content/links";
+import { CLOUD, inspectUrl, LOCAL_APP_URL } from "@content/links";
 import { GlobeIcon, LIME_BUTTON } from "./ui";
 
 /** An address the person typed, as an http(s) URL (https:// is added when there is no scheme). */
@@ -45,6 +45,7 @@ export const HERO_URL_ID = "hero-url";
  */
 export function InspectForm() {
   const t = useTranslations("inspect");
+  const locale = useLocale() === "es" ? "es" : "en";
   const [value, setValue] = useState("");
   const [state, setState] = useState<"idle" | "checking" | "invalid" | "down">("idle");
 
@@ -56,7 +57,8 @@ export function InspectForm() {
       return;
     }
     setState("checking");
-    if (await localAppIsUp()) window.location.assign(inspectUrl(site));
+    // Cloud mode: the app is always there (sign-up first, then the address in the Inspect tab).
+    if (CLOUD || (await localAppIsUp())) window.location.assign(inspectUrl(site, locale));
     else setState("down");
   };
 

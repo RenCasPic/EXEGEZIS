@@ -1,9 +1,9 @@
 import { Menu } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { LINKS } from "@content/links";
 import type { Locale } from "@/i18n/locales";
+import { HeaderActions } from "./header-actions";
 import { LanguageSwitcher } from "./language-switcher";
-import { Container, LIME_BUTTON, LogoMark } from "./ui";
+import { Container, LogoMark } from "./ui";
 
 const SECTIONS = [
   ["product", "#product"],
@@ -39,12 +39,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         </div>
         <div className="flex items-center gap-4">
           <LanguageSwitcher locale={locale} />
-          <a href={LINKS.signIn} className="hidden text-[15px] font-medium text-heading hover:underline md:inline">
-            {t("signIn")}
-          </a>
-          <a href={LINKS.start} className={`${LIME_BUTTON} h-10 rounded-[10px] px-[18px] text-[15px] font-semibold max-sm:hidden`}>
-            {t("start")}
-          </a>
+          <HeaderActions locale={locale} />
           <details className="relative lg:hidden">
             <summary aria-label={t("menu")} className="grid size-10 cursor-pointer place-items-center rounded-md text-heading hover:bg-hover">
               <Menu className="size-5" aria-hidden />
@@ -55,12 +50,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                   {t(key)}
                 </a>
               ))}
-              <a href={LINKS.signIn} className="rounded-md px-3 py-2 text-[15px] text-heading hover:bg-hover">
-                {t("signIn")}
-              </a>
-              <a href={LINKS.start} className={`${LIME_BUTTON} mt-1 h-10 rounded-[10px] px-[18px] text-[15px] font-semibold`}>
-                {t("start")}
-              </a>
+              <HeaderActions locale={locale} menu />
             </nav>
           </details>
         </div>
