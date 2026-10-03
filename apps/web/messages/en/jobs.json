@@ -24,7 +24,7 @@
   "progress": {
     "waiting": "Waiting for the CLI's first progress report…",
     "counts": "run {run}/{runs} · {done}/{planned} pages",
-    "label": "Pages of this run"
+    "label": "Progress of the inspection"
   },
   "output": "CLI output",
   "outputNoSecrets": "output.log (no secrets)",

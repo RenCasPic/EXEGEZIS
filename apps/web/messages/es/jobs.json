@@ -24,7 +24,7 @@
   "progress": {
     "waiting": "Esperando el primer informe de progreso del CLI…",
     "counts": "repetición {run}/{runs} · {done}/{planned} páginas",
-    "label": "Páginas de esta repetición"
+    "label": "Avance de la inspección"
   },
   "output": "Salida del CLI",
   "outputNoSecrets": "output.log (sin secretos)",

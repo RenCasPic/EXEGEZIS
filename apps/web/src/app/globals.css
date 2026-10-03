@@ -61,8 +61,26 @@ details > summary::-webkit-details-marker {
 .animate-pulse-dot {
   animation: pulse-dot 1.4s ease-in-out infinite;
 }
+/* A bar with no figure yet (the job's progress): a segment that goes back and forth. */
+@keyframes progress-slide {
+  0% {
+    left: -33%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+.animate-progress-slide {
+  animation: progress-slide 1.4s ease-in-out infinite;
+}
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse-dot {
+    animation: none;
+  }
+  .animate-progress-slide {
+    left: 0;
+    width: 100%;
+    opacity: 0.35;
     animation: none;
   }
 }

@@ -15,6 +15,7 @@ import { inspectionJobState } from "@/lib/inspection-state";
 import { listInspections } from "@/lib/evidence/inspections";
 import { getSummaries } from "@/lib/evidence/investigations";
 import { listSearches } from "@/lib/evidence/searches";
+import { jobPercent } from "@/lib/progress";
 import { EXIT_CODES, jobLog, jobProgress, readJob, type AccessJob, type InspectJob, type InspectionProgressFile, type JobStatus, type SearchJob } from "@/lib/jobs";
 import { SEARCH_STATUS_TONE } from "@/lib/search-labels";
 
@@ -33,17 +34,30 @@ function exitText(t: (key: never) => string, code: number | null): string {
 function Progress({ progress }: { progress: InspectionProgressFile | null }) {
   const t = useTranslations("jobs");
   if (progress === null) return <p className="text-[13px] text-muted">{t("progress.waiting")}</p>;
-  const planned = Math.max(progress.pagesPlanned, 1);
-  const pct = Math.min(100, Math.round((progress.pagesDone / planned) * 100));
+  const pct = jobPercent(progress);
   const phase = (PHASES as readonly string[]).includes(progress.phase) ? t(`phase.${progress.phase as (typeof PHASES)[number]}`) : progress.phase;
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2 text-[13px]">
-        <span className="font-medium text-fg">{phase}</span>
+        <span className="font-medium text-fg">
+          {phase}
+          {pct !== null && <span className="ml-2 font-mono text-xs text-muted">{pct} %</span>}
+        </span>
         <span className="font-mono text-xs text-muted">{t("progress.counts", { run: progress.run, runs: progress.runs, done: progress.pagesDone, planned: progress.pagesPlanned })}</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-panel-2" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={t("progress.label")}>
-        <div className="h-full bg-q transition-[width]" style={{ width: `${pct}%` }} />
+      <div
+        className="relative h-2 overflow-hidden rounded-full bg-line"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        {...(pct === null ? {} : { "aria-valuenow": pct })}
+        aria-label={t("progress.label")}
+      >
+        {pct === null ? (
+          <div className="animate-progress-slide absolute inset-y-0 w-1/3 rounded-full bg-accent" />
+        ) : (
+          <div className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out" style={{ width: `${Math.max(pct, 2)}%` }} />
+        )}
       </div>
       {progress.current !== null && (
         <div className="truncate font-mono text-[11px] text-faint" title={progress.current}>
