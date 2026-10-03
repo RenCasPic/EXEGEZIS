@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AuthCard, OAuthButtons, SignUpForm } from "@/components/auth/forms";
-import { cloud } from "@/lib/cloud";
+import { cloud, cloudOnly } from "@/lib/cloud";
 import { siteLinks } from "@/lib/links";
 import { param } from "@/lib/params";
 
@@ -16,6 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * bought yet: the account starts on Free and joins that plan's waiting list.
  */
 export default async function SignUpPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  cloudOnly();
   const params = await searchParams;
   const [t, plans, locale] = await Promise.all([getTranslations("account.signup"), getTranslations("account.plans"), getLocale()]);
   const next = safeNext(param(params, "next"));

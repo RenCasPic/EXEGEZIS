@@ -1,0 +1,304 @@
+{
+  "meta": {
+    "title": "EXEGEZIS — Only what can be proven",
+    "description": "EXEGEZIS checks your website like a person would, repeats every check and gives you each problem with its proof: a screenshot, evidence and a test that reproduces it. No false positives.",
+    "ogAlt": "EXEGEZIS: software verification with proof"
+  },
+  "nav": {
+    "skip": "Skip to content",
+    "home": "EXEGEZIS, home",
+    "main": "Main",
+    "menu": "Menu",
+    "product": "Product",
+    "how": "How it works",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "signIn": "Sign in",
+    "start": "Start for free",
+    "goToApp": "Go to the app",
+    "openApp": "Open the app",
+    "account": "Your account ({name})"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "es": "Español"
+  },
+  "hero": {
+    "eyebrow": "SOFTWARE VERIFICATION WITH PROOF",
+    "title": "Only what can be proven.",
+    "text": "EXEGEZIS checks your website like a person would, repeats every check and gives you each problem with its proof: a screenshot, evidence and a test that reproduces it. No false positives.",
+    "noCard": "No card",
+    "readOnly": "Read-only: it changes nothing on your site",
+    "minutes": "Report in minutes"
+  },
+  "inspect": {
+    "label": "Your site's URL",
+    "placeholder": "https://your-site.com",
+    "submit": "Inspect for free",
+    "checking": "Opening EXEGEZIS…",
+    "invalid": "Type a web address, for example https://your-site.com."
+  },
+  "preview": {
+    "site": "https://your-site.com",
+    "pages": "42 of 42 pages",
+    "done": "Completed",
+    "frontend": "Frontend",
+    "backend": "Backend",
+    "problems": "{count, plural, one {# problem} other {# problems}}",
+    "verified": "Verified",
+    "intermittent": "Intermittent",
+    "row1": {
+      "title": "Grey text with too little contrast",
+      "where": "Footer · all"
+    },
+    "row2": {
+      "title": "Broken link to /contact",
+      "where": "3 pages"
+    },
+    "row3": {
+      "title": "JavaScript error on load",
+      "where": "/shop"
+    },
+    "row4": {
+      "title": "Carousel image does not load",
+      "where": "Home"
+    }
+  },
+  "guarantees": {
+    "label": "Guarantees",
+    "verified": "Every finding, verified 3 out of 3 times",
+    "proof": "Screenshot, evidence and test included",
+    "quotes": "Quotes checked word for word",
+    "readonly": "Never changes your website"
+  },
+  "features": {
+    "eyebrow": "WHAT IT DOES",
+    "title": "Four tools. One rule: prove everything.",
+    "inspect": {
+      "title": "Inspects",
+      "text": "Walks your website and finds what fails, grouped into frontend and backend and ordered by what is most worth fixing.",
+      "p1": "Errors, broken links and failed requests",
+      "p2": "Contrast and accessibility (WCAG)",
+      "p3": "Security and server configuration"
+    },
+    "search": {
+      "title": "Searches content",
+      "text": "Finds any information on every page, even when it is said in other words or in another language.",
+      "p1": "Exact search, free",
+      "p2": "Search by meaning with verified quotes",
+      "p3": "Templates and saved searches with “only what’s new”"
+    },
+    "verify": {
+      "title": "Verifies bugs",
+      "text": "Describe a failure in your own words. EXEGEZIS reproduces it several times and tells you whether it is real, with the proof.",
+      "p1": "A test plan written by AI",
+      "p2": "The verdict is decided by the engine, not by the AI",
+      "p3": "A reproducible test so it doesn’t come back"
+    },
+    "private": {
+      "title": "Goes into private areas",
+      "text": "Also checks the pages that ask you to sign in, without sharing your password.",
+      "p1": "You sign in yourself, just once",
+      "p2": "Session saved encrypted on your computer",
+      "p3": "Never evades anti-bot protections"
+    }
+  },
+  "how": {
+    "eyebrow": "HOW IT WORKS",
+    "title": "AI proposes. EXEGEZIS proves it.",
+    "step1": {
+      "title": "Paste the address",
+      "text": "Your website, your shop or a client’s, with their permission. Choose how many pages to check."
+    },
+    "step2": {
+      "title": "EXEGEZIS walks and repeats",
+      "text": "It browses like a person, read-only, and repeats every check to rule out what only happens sometimes."
+    },
+    "step3": {
+      "title": "Get only what’s proven",
+      "text": "Every problem with its screenshot, its evidence and a reproducible test. Anything doubtful is shown apart, never as a fact."
+    }
+  },
+  "diff": {
+    "eyebrow": "THE DIFFERENCE",
+    "title": "Other tools give you warnings. EXEGEZIS gives you facts.",
+    "caption": "How EXEGEZIS compares with the usual tools",
+    "aspect": "Aspect",
+    "usual": "Usual tools",
+    "exegezis": "EXEGEZIS",
+    "r1": {
+      "a": "What you get",
+      "u": "Warnings and suspicions",
+      "e": "Verified facts with proof"
+    },
+    "r2": {
+      "a": "False positives",
+      "u": "Frequent",
+      "e": "Ruled out: 3 out of 3 or it doesn’t count"
+    },
+    "r3": {
+      "a": "Evidence",
+      "u": "One line of text",
+      "e": "Screenshot, network, console and test"
+    },
+    "r4": {
+      "a": "Use of AI",
+      "u": "The AI gives opinions and decides",
+      "e": "The AI proposes; the engine verifies"
+    },
+    "r5": {
+      "a": "When it doesn’t know",
+      "u": "It guesses",
+      "e": "It says so: “cannot be stated”"
+    }
+  },
+  "platforms": {
+    "eyebrow": "PLATFORMS",
+    "title": "Start with the web. Then everything else.",
+    "available": "Available",
+    "soon": "Coming soon",
+    "web": {
+      "name": "Websites",
+      "detail": "Sites, shops and web applications."
+    },
+    "apis": {
+      "name": "APIs",
+      "detail": "Responses, errors, slowness and security."
+    },
+    "mobile": {
+      "name": "Mobile apps",
+      "detail": "Android and iOS, on emulators."
+    },
+    "plugins": {
+      "name": "Plugins and extensions",
+      "detail": "Chrome, WordPress, VS Code, Shopify…"
+    },
+    "desktop": {
+      "name": "Desktop",
+      "detail": "Windows, macOS and Electron."
+    }
+  },
+  "pricing": {
+    "eyebrow": "PRICING",
+    "title": "Start for free. Pay when you need to.",
+    "billing": "Billing period",
+    "monthly": "Monthly",
+    "annual": "Annual · 2 months free",
+    "price": "${amount}",
+    "perMonth": "/ month",
+    "forever": "Forever",
+    "billedMonthly": "Billed monthly",
+    "billedAnnually": "Billed ${amount} a year",
+    "custom": "Custom",
+    "annualContract": "Annual contract",
+    "mostChosen": "Most chosen",
+    "soon": "Coming soon",
+    "paymentsSoon": "Payments: coming soon",
+    "note": "Prices in USD, taxes not included. Search by meaning includes a monthly AI balance; if you go over it, the app warns you before spending more.",
+    "plans": {
+      "free": {
+        "name": "Free",
+        "tagline": "To try EXEGEZIS on your own website.",
+        "cta": "Start for free"
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "For professionals and small businesses.",
+        "cta": "Try Pro for 14 days"
+      },
+      "team": {
+        "name": "Team",
+        "tagline": "For agencies and development teams.",
+        "cta": "Try Team for 14 days"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "tagline": "For organizations with compliance requirements.",
+        "cta": "Talk to sales"
+      }
+    },
+    "features": {
+      "sites": "{count, plural, one {# site} other {# sites}}",
+      "pages": "Up to {count} pages per inspection",
+      "inspectionsPerMonth": "{count} inspections a month",
+      "exactSearch": "Exact search",
+      "evidenceReport": "Report with evidence",
+      "dailyMonitoring": "Daily monitoring with alerts",
+      "meaningSearch": "Search by meaning (AI balance included)",
+      "privateAreas": "Private areas with a session",
+      "exports": "Export to PDF and Excel",
+      "sitesAndUsers": "{sites} sites and {users} users",
+      "everythingInPro": "Everything in Pro",
+      "brandedReports": "Reports with your brand",
+      "integrations": "Integrations: GitHub, Slack, Jira",
+      "apiAndChecks": "API and verification on every change",
+      "sharedTemplates": "Shared templates",
+      "customSitesAndUsers": "Sites and users to measure",
+      "sso": "Single sign-on (SSO)",
+      "complianceReports": "Accessibility compliance reports",
+      "selfHosted": "Installation on your servers",
+      "prioritySupport": "Priority support and service agreement"
+    }
+  },
+  "faq": {
+    "eyebrow": "QUESTIONS",
+    "title": "What people usually ask us.",
+    "q1": {
+      "q": "Does EXEGEZIS change anything on my website?",
+      "a": "No. It only browses and reads, like a visitor. It doesn’t submit forms or press buttons that change data. What your own website does by itself when it loads is recorded and shown to you."
+    },
+    "q2": {
+      "q": "What does “no false positives” mean?",
+      "a": "A problem is only marked as verified if it appears in every repetition and its evidence is recorded. What appears only sometimes is shown apart as intermittent, never as a fact."
+    },
+    "q3": {
+      "q": "Can I check websites that aren’t mine?",
+      "a": "Only if you have permission. Before inspecting a domain for the first time we ask you to confirm it, and we respect robots.txt unless you tell us the site is yours."
+    },
+    "q4": {
+      "q": "What does the AI do, and what doesn’t it do?",
+      "a": "The AI proposes: test plans, possible quotes, related terms. It never decides a verdict. Everything it proposes is checked by the engine; an invented quote is discarded."
+    },
+    "q5": {
+      "q": "What about my passwords?",
+      "a": "We never see them. You sign in yourself in a browser window and we only keep the session, encrypted. You can delete it whenever you want."
+    },
+    "q6": {
+      "q": "Does it work with mobile apps or plugins?",
+      "a": "Today, with websites. APIs, mobile apps, plugins and desktop applications are on the way, with the same rule: only what can be proven."
+    }
+  },
+  "cta": {
+    "title": "What’s failing on your website that you don’t know about yet?",
+    "text": "Paste your URL and find out in minutes. You’ll only see what we can prove."
+  },
+  "footer": {
+    "tagline": "Software verification with proof. Only what can be proven.",
+    "product": "Product",
+    "inspections": "Inspections",
+    "searches": "Searches",
+    "bugs": "Bug verification",
+    "pricing": "Pricing",
+    "resources": "Resources",
+    "docs": "Documentation",
+    "howWeVerify": "How we verify",
+    "news": "What’s new",
+    "legal": "Legal",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "responsible": "Responsible use",
+    "soon": "(coming soon)",
+    "privacyPage": "Privacy policy",
+    "termsPage": "Terms of use",
+    "copyright": "© 2026 EXEGEZIS"
+  },
+  "legal": {
+    "draft": "Draft pending legal review",
+    "draftBody": "This text is a draft. It has not been reviewed by a lawyer yet and may change before EXEGEZIS opens to the public.",
+    "version": "Version {version}",
+    "contact": "Privacy contact: {email}",
+    "back": "← Back to the home page",
+    "other": "Read also"
+  }
+}

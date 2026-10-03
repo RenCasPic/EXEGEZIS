@@ -1,4 +1,4 @@
-// Compares the landing (apps/site) and the app home (apps/web) with the design references in
+// Compares the landing (/producto) and the app home (/) of apps/web with the design references in
 // docs/design/ and writes the captures and the differences to docs/design/diff/.
 //
 //   pnpm design:compare                       (from the repository folder)
@@ -12,8 +12,8 @@
 // and report.md with the share of different pixels. The references are rendered at their
 // natural height (see unsqueeze).
 //
-// It starts its own `next dev` for each app (build folder .next-shots), unless SITE_URL or
-// WEB_URL point to one that is already running. DESIGN_ONLY=landing,home-app limits the pages. The app home shows the real data in runs/.
+// It starts its own `next dev` of apps/web in local mode (build folder .next-shots), unless
+// WEB_URL points to one that is already running. DESIGN_ONLY=landing,home-app limits the pages. The app home shows the real data in runs/.
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -24,13 +24,13 @@ import { chromium } from "@playwright/test";
 const REPO = join(import.meta.dirname, "..");
 const DESIGN = join(REPO, "docs", "design");
 const OUT = join(DESIGN, "diff");
-const FONTS = join(REPO, "apps", "site", "node_modules", "geist", "dist", "fonts");
+const FONTS = join(REPO, "apps", "web", "node_modules", "geist", "dist", "fonts");
 
 /** A channel difference above this counts (antialiasing stays below it on flat colours). */
 const THRESHOLD = 48;
 
 const TARGETS = [
-  { name: "landing", app: "site", path: "/es/", width: 1440, reference: "landing.html", png: "landing.png" },
+  { name: "landing", app: "web", path: "/producto", width: 1440, reference: "landing.html", png: "landing.png" },
   { name: "home-app", app: "web", path: "/", width: 1440, theme: "light", reference: "home-app.html", png: "home-app.png" },
   { name: "home-app-dark", app: "web", path: "/", width: 1440, theme: "dark", reference: "home-app.html", click: '[aria-label="Tema oscuro"]' },
   { name: "home-app-mobile", app: "web", path: "/", width: 390, theme: "light", reference: "home-app-mobile.html", png: "home-app-mobile.png" },
@@ -49,7 +49,7 @@ function freePort() {
 
 const servers = [];
 async function startApp(app) {
-  const given = app === "site" ? process.env.SITE_URL : process.env.WEB_URL;
+  const given = process.env.WEB_URL;
   if (given) return given.replace(/\/+$/, "");
   const dir = join(REPO, "apps", app);
   const port = await freePort();
@@ -63,7 +63,7 @@ async function startApp(app) {
   servers.push(server);
   for (let i = 0; ; i++) {
     try {
-      if ((await fetch(`${base}${app === "site" ? "/es/" : "/"}`)).status < 500) break;
+      if ((await fetch(`${base}/api/health`)).status < 500) break;
     } catch {}
     if (i > 480) throw new Error(`apps/${app} did not start`);
     await new Promise((r) => setTimeout(r, 500));

@@ -207,7 +207,6 @@ beforeAll(async () => {
       SUPABASE_ANON_KEY: anonKey,
       DATABASE_URL: databaseUrl,
       EXEGEZIS_APP_URL: base,
-      EXEGEZIS_SITE_URL: "http://127.0.0.1:4200",
       EXEGEZIS_DATA_DIR: dataDir,
       EXEGEZIS_OAUTH_PROVIDERS: REAL ? "" : "github",
       EXEGEZIS_ACCESS_KEY: randomBytes(32).toString("base64"),

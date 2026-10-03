@@ -86,21 +86,14 @@ export default defineConfig({
           root: "apps/web",
           include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
           setupFiles: ["test/setup.ts"],
-          // The two end-to-end files each start a `next dev` of apps/web, and Next runs one per project at a time.
+          // The end-to-end files each start a `next dev` of apps/web (the app and its public pages), one at a time.
+          testTimeout: 300_000,
+          hookTimeout: 600_000,
           fileParallelism: false,
         },
         resolve: { alias: { "@": fileURLToPath(new URL("./apps/web/src", import.meta.url)) } },
       },
-      {
-        test: {
-          name: "site",
-          root: "apps/site",
-          include: ["test/**/*.test.ts"],
-          // The end-to-end test starts its own `next dev` and a real browser.
-          testTimeout: 300_000,
-          hookTimeout: 300_000,
-        },
-      },
+
       {
         test: {
           name: "cli",

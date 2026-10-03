@@ -2,7 +2,7 @@ import { safeNext } from "@exegezis/accounts";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { AuthCard, WelcomeForm } from "@/components/auth/forms";
-import { requireUser } from "@/lib/cloud";
+import { cloudOnly, requireUser } from "@/lib/cloud";
 import { siteLinks } from "@/lib/links";
 import { param } from "@/lib/params";
 
@@ -12,6 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** A sign-up with Google or GitHub skipped the form: accept the terms and the privacy policy before entering. */
 export default async function WelcomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  cloudOnly();
   const [user, params, t, locale] = await Promise.all([requireUser(), searchParams, getTranslations("account.welcome"), getLocale()]);
   const links = siteLinks(locale === "es" ? "es" : "en");
   return (

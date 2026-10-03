@@ -1,22 +1,16 @@
-import { cloud, isCloud } from "./cloud";
+import { SITE_PATHS } from "@/site/paths";
 
 /*
- * Links from the app to the landing (apps/site): plans, help and the legal
- * pages. The landing's address is EXEGEZIS_SITE_URL (cloud mode) or the local
- * one (http://127.0.0.1:4200).
+ * Links from the app to its public pages (same domain): plans, help and the
+ * legal texts, in the reader's language.
  */
-
-export function siteUrl(): string {
-  if (isCloud()) return cloud().siteUrl;
-  return (process.env["EXEGEZIS_SITE_URL"] ?? "").trim().replace(/\/+$/, "") || "http://127.0.0.1:4200";
-}
-
 export function siteLinks(locale: "en" | "es") {
-  const base = `${siteUrl()}/${locale}`;
+  const landing = SITE_PATHS.landing[locale];
   return {
-    plans: `${base}/#pricing`,
-    help: `${base}/#faq`,
-    terms: `${base}/${locale === "es" ? "terminos" : "terms"}/`,
-    privacy: `${base}/${locale === "es" ? "privacidad" : "privacy"}/`,
+    landing,
+    plans: `${landing}#pricing`,
+    help: `${landing}#faq`,
+    terms: SITE_PATHS.terms[locale],
+    privacy: SITE_PATHS.privacy[locale],
   };
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { AuthCard, ResetForm } from "@/components/auth/forms";
-import { requireUser } from "@/lib/cloud";
+import { cloudOnly, requireUser } from "@/lib/cloud";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("account.reset"))("title") };
@@ -9,6 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** Reached from the recovery email (its link signs the person in): choose a new password. */
 export default async function ResetPasswordPage() {
+  cloudOnly();
   const user = await requireUser();
   const t = await getTranslations("account.reset");
   return (

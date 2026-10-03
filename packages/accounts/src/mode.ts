@@ -24,14 +24,10 @@ export interface CloudConfig {
   supabaseAnonKey: string;
   /** Postgres connection (DATABASE_URL): the app impersonates each user so Row Level Security applies. */
   databaseUrl: string;
-  /** Where the app is published (EXEGEZIS_APP_URL): links in emails and OAuth redirects. */
+  /** Where the app is published (EXEGEZIS_APP_URL): links in emails and OAuth redirects. The public pages, sign-in and the app share it (one domain). */
   appUrl: string;
-  /** Where the landing is published (EXEGEZIS_SITE_URL): «See plans», help, legal pages. */
-  siteUrl: string;
   /** OAuth providers with keys configured in Supabase (EXEGEZIS_OAUTH_PROVIDERS=google,github). */
   oauthProviders: ("google" | "github")[];
-  /** Cookie domain to share the session between subdomains (EXEGEZIS_COOKIE_DOMAIN=.exegezis.com); empty: this host only. */
-  cookieDomain: string | null;
   /** Folder with one sub-folder per user for heavy artifacts (EXEGEZIS_DATA_DIR). */
   dataDir: string | null;
 }
@@ -56,7 +52,6 @@ export function cloudConfig(env: NodeJS.ProcessEnv = process.env): { ok: true; c
     .split(",")
     .map((p) => p.trim().toLowerCase())
     .filter((p): p is (typeof PROVIDERS)[number] => (PROVIDERS as readonly string[]).includes(p));
-  const domain = (env["EXEGEZIS_COOKIE_DOMAIN"] ?? "").trim();
   const dataDir = (env["EXEGEZIS_DATA_DIR"] ?? "").trim();
   return {
     ok: true,
@@ -65,9 +60,7 @@ export function cloudConfig(env: NodeJS.ProcessEnv = process.env): { ok: true; c
       supabaseAnonKey,
       databaseUrl,
       appUrl,
-      siteUrl: (env["EXEGEZIS_SITE_URL"] ?? "").trim().replace(/\/+$/, "") || "http://127.0.0.1:4200",
       oauthProviders: [...new Set(providers)],
-      cookieDomain: domain === "" ? null : domain,
       dataDir: dataDir === "" ? null : dataDir,
     },
   };

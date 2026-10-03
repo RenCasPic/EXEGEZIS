@@ -1,0 +1,304 @@
+{
+  "meta": {
+    "title": "EXEGEZIS — Solo lo que se puede demostrar",
+    "description": "EXEGEZIS revisa tu web como lo haría una persona, repite cada comprobación y te entrega cada problema con su prueba: captura, evidencia y un test que lo reproduce. Sin falsos positivos.",
+    "ogAlt": "EXEGEZIS: verificación de software con pruebas"
+  },
+  "nav": {
+    "skip": "Saltar al contenido",
+    "home": "EXEGEZIS, inicio",
+    "main": "Principal",
+    "menu": "Menú",
+    "product": "Producto",
+    "how": "Cómo funciona",
+    "pricing": "Precios",
+    "faq": "Preguntas",
+    "signIn": "Iniciar sesión",
+    "start": "Empieza gratis",
+    "goToApp": "Ir a la app",
+    "openApp": "Abrir la app",
+    "account": "Tu cuenta ({name})"
+  },
+  "language": {
+    "label": "Idioma",
+    "en": "English",
+    "es": "Español"
+  },
+  "hero": {
+    "eyebrow": "VERIFICACIÓN DE SOFTWARE CON PRUEBAS",
+    "title": "Solo lo que se puede demostrar.",
+    "text": "EXEGEZIS revisa tu web como lo haría una persona, repite cada comprobación y te entrega cada problema con su prueba: captura, evidencia y un test que lo reproduce. Sin falsos positivos.",
+    "noCard": "Sin tarjeta",
+    "readOnly": "Solo lectura: no cambia nada de tu web",
+    "minutes": "Informe en minutos"
+  },
+  "inspect": {
+    "label": "URL de tu sitio",
+    "placeholder": "https://tu-sitio.com",
+    "submit": "Inspeccionar gratis",
+    "checking": "Abriendo EXEGEZIS…",
+    "invalid": "Escribe una dirección web, por ejemplo https://tu-sitio.com."
+  },
+  "preview": {
+    "site": "https://tu-sitio.com",
+    "pages": "42 de 42 páginas",
+    "done": "Completada",
+    "frontend": "Frontend",
+    "backend": "Backend",
+    "problems": "{count, plural, one {# problema} other {# problemas}}",
+    "verified": "Verificado",
+    "intermittent": "Intermitente",
+    "row1": {
+      "title": "Texto gris con poco contraste",
+      "where": "Pie · todas"
+    },
+    "row2": {
+      "title": "Enlace roto a /contacto",
+      "where": "3 páginas"
+    },
+    "row3": {
+      "title": "Error de JavaScript al cargar",
+      "where": "/tienda"
+    },
+    "row4": {
+      "title": "Imagen del carrusel no carga",
+      "where": "Inicio"
+    }
+  },
+  "guarantees": {
+    "label": "Garantías",
+    "verified": "Cada hallazgo, verificado 3 de 3 veces",
+    "proof": "Captura, evidencia y test incluidos",
+    "quotes": "Citas comprobadas palabra por palabra",
+    "readonly": "Nunca modifica tu web"
+  },
+  "features": {
+    "eyebrow": "QUÉ HACE",
+    "title": "Cuatro herramientas. Una sola regla: probarlo todo.",
+    "inspect": {
+      "title": "Inspecciona",
+      "text": "Recorre tu web y encuentra lo que falla, agrupado en frontend y backend y ordenado por lo que más conviene arreglar.",
+      "p1": "Errores, enlaces rotos y peticiones fallidas",
+      "p2": "Contraste y accesibilidad (WCAG)",
+      "p3": "Seguridad y configuración del servidor"
+    },
+    "search": {
+      "title": "Busca contenido",
+      "text": "Encuentra cualquier información en todas las páginas, aunque esté dicha con otras palabras o en otro idioma.",
+      "p1": "Búsqueda exacta, gratis",
+      "p2": "Búsqueda por significado con citas verificadas",
+      "p3": "Plantillas y búsquedas guardadas con «solo lo nuevo»"
+    },
+    "verify": {
+      "title": "Verifica bugs",
+      "text": "Describe un fallo con tus palabras. EXEGEZIS lo reproduce varias veces y te dice si es real, con la prueba.",
+      "p1": "Plan de prueba escrito por IA",
+      "p2": "Veredicto decidido por el motor, no por la IA",
+      "p3": "Test reproducible para que no vuelva"
+    },
+    "private": {
+      "title": "Entra en zonas privadas",
+      "text": "Revisa también las páginas que piden iniciar sesión, sin compartir tu contraseña.",
+      "p1": "Inicias sesión tú, una sola vez",
+      "p2": "Sesión guardada cifrada en tu equipo",
+      "p3": "Nunca evade protecciones anti-bot"
+    }
+  },
+  "how": {
+    "eyebrow": "CÓMO FUNCIONA",
+    "title": "La IA propone. EXEGEZIS lo demuestra.",
+    "step1": {
+      "title": "Pega la dirección",
+      "text": "Tu web, tu tienda o la de un cliente con su permiso. Elige cuántas páginas revisar."
+    },
+    "step2": {
+      "title": "EXEGEZIS recorre y repite",
+      "text": "Navega como una persona, en solo lectura, y repite cada comprobación para descartar lo que solo pasa a veces."
+    },
+    "step3": {
+      "title": "Recibe solo lo demostrado",
+      "text": "Cada problema con su captura, su evidencia y un test reproducible. Lo dudoso se muestra aparte, nunca como hecho."
+    }
+  },
+  "diff": {
+    "eyebrow": "LA DIFERENCIA",
+    "title": "Otras herramientas te dan avisos. EXEGEZIS te da hechos.",
+    "caption": "Cómo se compara EXEGEZIS con las herramientas habituales",
+    "aspect": "Aspecto",
+    "usual": "Herramientas habituales",
+    "exegezis": "EXEGEZIS",
+    "r1": {
+      "a": "Qué te entregan",
+      "u": "Avisos y sospechas",
+      "e": "Hechos verificados con prueba"
+    },
+    "r2": {
+      "a": "Falsos positivos",
+      "u": "Frecuentes",
+      "e": "Descartados: 3 de 3 o no cuenta"
+    },
+    "r3": {
+      "a": "Evidencia",
+      "u": "Una línea de texto",
+      "e": "Captura, red, consola y test"
+    },
+    "r4": {
+      "a": "Uso de la IA",
+      "u": "La IA opina y decide",
+      "e": "La IA propone; el motor verifica"
+    },
+    "r5": {
+      "a": "Cuando no sabe",
+      "u": "Lo adivina",
+      "e": "Lo dice: «no se puede afirmar»"
+    }
+  },
+  "platforms": {
+    "eyebrow": "PLATAFORMAS",
+    "title": "Empieza por la web. Sigue con todo lo demás.",
+    "available": "Disponible",
+    "soon": "Próximamente",
+    "web": {
+      "name": "Webs",
+      "detail": "Sitios, tiendas y aplicaciones web."
+    },
+    "apis": {
+      "name": "APIs",
+      "detail": "Respuestas, errores, lentitud y seguridad."
+    },
+    "mobile": {
+      "name": "Apps móviles",
+      "detail": "Android e iOS, en emuladores."
+    },
+    "plugins": {
+      "name": "Plugins y extensiones",
+      "detail": "Chrome, WordPress, VS Code, Shopify…"
+    },
+    "desktop": {
+      "name": "Escritorio",
+      "detail": "Windows, macOS y Electron."
+    }
+  },
+  "pricing": {
+    "eyebrow": "PRECIOS",
+    "title": "Empieza gratis. Paga cuando lo necesites.",
+    "billing": "Periodo de facturación",
+    "monthly": "Mensual",
+    "annual": "Anual · 2 meses gratis",
+    "price": "{amount} $",
+    "perMonth": "/ mes",
+    "forever": "Para siempre",
+    "billedMonthly": "Facturado mensualmente",
+    "billedAnnually": "Facturado {amount} $ al año",
+    "custom": "A medida",
+    "annualContract": "Contrato anual",
+    "mostChosen": "Más elegido",
+    "soon": "Próximamente",
+    "paymentsSoon": "Pagos: próximamente",
+    "note": "Precios en USD, impuestos aparte. La búsqueda por significado incluye un saldo mensual de IA; si lo superas, la app te avisa antes de gastar más.",
+    "plans": {
+      "free": {
+        "name": "Gratis",
+        "tagline": "Para probar EXEGEZIS en tu propia web.",
+        "cta": "Empieza gratis"
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "Para profesionales y pequeñas empresas.",
+        "cta": "Probar Pro 14 días"
+      },
+      "team": {
+        "name": "Equipo",
+        "tagline": "Para agencias y equipos de desarrollo.",
+        "cta": "Probar Equipo 14 días"
+      },
+      "enterprise": {
+        "name": "Empresa",
+        "tagline": "Para organizaciones con requisitos de cumplimiento.",
+        "cta": "Hablar con ventas"
+      }
+    },
+    "features": {
+      "sites": "{count, plural, one {# sitio} other {# sitios}}",
+      "pages": "Hasta {count} páginas por inspección",
+      "inspectionsPerMonth": "{count} inspecciones al mes",
+      "exactSearch": "Búsqueda exacta",
+      "evidenceReport": "Informe con evidencia",
+      "dailyMonitoring": "Vigilancia diaria con alertas",
+      "meaningSearch": "Búsqueda por significado (saldo de IA incluido)",
+      "privateAreas": "Zonas privadas con sesión",
+      "exports": "Exportar a PDF y Excel",
+      "sitesAndUsers": "{sites} sitios y {users} usuarios",
+      "everythingInPro": "Todo lo de Pro",
+      "brandedReports": "Informes con tu marca",
+      "integrations": "Integraciones: GitHub, Slack, Jira",
+      "apiAndChecks": "API y verificación en cada cambio",
+      "sharedTemplates": "Plantillas compartidas",
+      "customSitesAndUsers": "Sitios y usuarios a medida",
+      "sso": "Inicio de sesión único (SSO)",
+      "complianceReports": "Informes de cumplimiento de accesibilidad",
+      "selfHosted": "Instalación en tus servidores",
+      "prioritySupport": "Soporte prioritario y acuerdo de servicio"
+    }
+  },
+  "faq": {
+    "eyebrow": "PREGUNTAS",
+    "title": "Lo que suelen preguntarnos.",
+    "q1": {
+      "q": "¿EXEGEZIS cambia algo de mi web?",
+      "a": "No. Solo navega y lee, como un visitante. No envía formularios ni pulsa botones que cambien datos. Lo que tu propia web hace sola al cargar se registra y se te muestra."
+    },
+    "q2": {
+      "q": "¿Qué significa «sin falsos positivos»?",
+      "a": "Un problema solo se marca como verificado si aparece en todas las repeticiones y queda registrada su evidencia. Lo que aparece solo a veces se muestra aparte como intermitente, nunca como hecho."
+    },
+    "q3": {
+      "q": "¿Puedo revisar webs que no son mías?",
+      "a": "Solo si tienes permiso. Antes de inspeccionar un dominio por primera vez te pedimos que lo confirmes, y respetamos robots.txt salvo que nos digas que el sitio es tuyo."
+    },
+    "q4": {
+      "q": "¿Qué hace la IA y qué no?",
+      "a": "La IA propone: planes de prueba, citas posibles, términos relacionados. Nunca decide un veredicto. Todo lo que propone se comprueba con el motor; una cita inventada se descarta."
+    },
+    "q5": {
+      "q": "¿Qué pasa con mis contraseñas?",
+      "a": "Nunca las vemos. Inicias sesión tú en una ventana del navegador y solo guardamos la sesión, cifrada. Puedes borrarla cuando quieras."
+    },
+    "q6": {
+      "q": "¿Funciona con apps móviles o plugins?",
+      "a": "Hoy, con webs. APIs, apps móviles, plugins y aplicaciones de escritorio están en camino, con la misma regla: solo lo que se puede demostrar."
+    }
+  },
+  "cta": {
+    "title": "¿Qué está fallando en tu web y aún no lo sabes?",
+    "text": "Pega tu URL y descúbrelo en minutos. Solo verás lo que podemos demostrar."
+  },
+  "footer": {
+    "tagline": "Verificación de software con pruebas. Solo lo que se puede demostrar.",
+    "product": "Producto",
+    "inspections": "Inspecciones",
+    "searches": "Búsquedas",
+    "bugs": "Verificación de bugs",
+    "pricing": "Precios",
+    "resources": "Recursos",
+    "docs": "Documentación",
+    "howWeVerify": "Cómo verificamos",
+    "news": "Novedades",
+    "legal": "Legal",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "responsible": "Uso responsable",
+    "soon": "(próximamente)",
+    "privacyPage": "Política de privacidad",
+    "termsPage": "Términos de uso",
+    "copyright": "© 2026 EXEGEZIS"
+  },
+  "legal": {
+    "draft": "Borrador pendiente de revisión legal",
+    "draftBody": "Este texto es un borrador. Aún no lo ha revisado un abogado y puede cambiar antes de que EXEGEZIS abra al público.",
+    "version": "Versión {version}",
+    "contact": "Contacto de privacidad: {email}",
+    "back": "← Volver al inicio",
+    "other": "Lee también"
+  }
+}

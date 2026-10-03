@@ -2,7 +2,7 @@ import { cloudConfig, connect, currentMode, safeNext, type CloudConfig, type Sql
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 /*
@@ -15,10 +15,15 @@ export function isCloud(): boolean {
   return currentMode() === "cloud";
 }
 
+/** Pages that only exist in cloud mode (sign-in, sign-up…): 404 in local mode. */
+export function cloudOnly(): void {
+  if (!isCloud()) notFound();
+}
+
 /** The cloud settings; a clear error listing what is missing otherwise. */
 export function cloud(): CloudConfig {
   const c = cloudConfig();
-  if (!c.ok) throw new Error(`EXEGEZIS_MODE=cloud needs ${c.missing.join(", ")} (see .env.example and docs/13-accounts.md).`);
+  if (!c.ok) throw new Error(`EXEGEZIS_MODE=cloud needs ${c.missing.join(", ")} (see .env.cloud.example and docs/13-accounts.md).`);
   return c.config;
 }
 
@@ -32,8 +37,8 @@ export function db(): Sql {
 
 /**
  * The session cookies: httpOnly (only the server reads them: there is no
- * Supabase client in the browser), SameSite=Lax, Secure on https, and shared
- * with subdomains only when EXEGEZIS_COOKIE_DOMAIN is set.
+ * Supabase client in the browser), SameSite=Lax, Secure on https, for the
+ * app's own host (the public pages are on the same domain: nothing is shared).
  */
 export function sessionCookieOptions(options: CookieOptions = {}): CookieOptions {
   const c = cloud();
@@ -43,7 +48,6 @@ export function sessionCookieOptions(options: CookieOptions = {}): CookieOptions
     httpOnly: true,
     sameSite: "lax",
     secure: c.appUrl.startsWith("https://"),
-    ...(c.cookieDomain === null ? {} : { domain: c.cookieDomain }),
   };
 }
 

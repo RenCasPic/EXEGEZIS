@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AuthCard, ForgotForm } from "@/components/auth/forms";
+import { cloudOnly } from "@/lib/cloud";
 import { param } from "@/lib/params";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -10,6 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** Password recovery: the same answer whether or not the email has an account. */
 export default async function ForgotPasswordPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  cloudOnly();
   const params = await searchParams;
   const t = await getTranslations("account.forgot");
   const sent = param(params, "sent") === "1";
