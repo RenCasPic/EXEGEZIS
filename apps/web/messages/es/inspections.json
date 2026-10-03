@@ -209,7 +209,6 @@
     "button": "Eliminar",
     "label": "Eliminar la inspección {id}",
     "confirm": "¿Eliminar esta inspección? No se puede deshacer.",
-    "confirmShort": "¿Eliminar?",
     "yes": "Sí, eliminar",
     "no": "Cancelar",
     "running": "Todavía está en curso: espera a que termine.",

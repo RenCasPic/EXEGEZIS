@@ -76,6 +76,10 @@ const BUTTON = {
   primary: "bg-accent text-on-accent hover:bg-accent-hover border border-transparent",
   secondary: "bg-panel-2 text-fg border border-line-strong hover:bg-hover",
   ghost: "text-muted hover:text-fg hover:bg-hover border border-transparent",
+  /** Something that deletes: red, so it is never taken for an ordinary button. */
+  danger: "bg-bad-bg text-bad border border-bad/40 hover:border-bad",
+  /** The confirmation of a deletion. */
+  dangerSolid: "bg-bad text-bg border border-transparent hover:opacity-90",
 } as const;
 
 export function buttonClass(variant: keyof typeof BUTTON = "secondary", size: "sm" | "md" = "md"): string {

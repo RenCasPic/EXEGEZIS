@@ -217,7 +217,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
           title={t("invalid")}
           eyebrow={<StatusPill status="INVALID_REPORT" tone="bad" />}
           description={<Mono>{inspection.relDir}</Mono>}
-          actions={<DeleteInspection id={inspection.id} from="detail" />}
+          actions={<DeleteInspection id={inspection.id} site={inspection.relDir} from="detail" />}
         />
         <Panel title={t("whyHidden")}>
           {inspection.report.status === "missing" ? (
@@ -278,7 +278,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
             <Mono>{inspection.id}</Mono>
           </>
         }
-        actions={<DeleteInspection id={inspection.id} from="detail" />}
+        actions={<DeleteInspection id={inspection.id} site={report.target.url} from="detail" />}
       />
 
       {report.engineError !== null && (

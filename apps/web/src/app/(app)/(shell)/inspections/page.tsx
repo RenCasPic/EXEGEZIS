@@ -101,7 +101,7 @@ export default async function InspectionsPage() {
                       <td className={`${tableClass.td} whitespace-nowrap text-xs text-muted`}>{r === null ? "—" : f.relative(r.finishedAt)}</td>
                       <td className={tableClass.td}>
                         <div className="flex items-center justify-end gap-1">
-                          <DeleteInspection id={i.id} from="list" />
+                          <DeleteInspection id={i.id} site={r?.target.url ?? i.relDir} from="list" />
                           <Link href={`/inspections/${i.id}`} aria-label={t("open", { id: i.id })} className="text-faint hover:text-fg">
                             <ChevronRight className="size-4" />
                           </Link>

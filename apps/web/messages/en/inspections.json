@@ -209,7 +209,6 @@
     "button": "Delete",
     "label": "Delete the inspection {id}",
     "confirm": "Delete this inspection? It cannot be undone.",
-    "confirmShort": "Delete?",
     "yes": "Yes, delete",
     "no": "Cancel",
     "running": "It is still running: wait for it to finish.",
