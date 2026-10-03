@@ -17,6 +17,9 @@
       "path": "packages/inspect"
     },
     {
+      "path": "packages/accounts"
+    },
+    {
       "path": "packages/access"
     },
     {

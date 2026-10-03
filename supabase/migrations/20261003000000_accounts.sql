@@ -1,0 +1,174 @@
+-- EXEGEZIS accounts (cloud mode). docs/13-accounts.md explains the model.
+--
+-- Every table has Row Level Security. A signed-in user (role `authenticated`)
+-- reads and writes only rows whose user_id is auth.uid(). The app connects as
+-- the database owner and impersonates the user inside each transaction
+-- (set local role authenticated + request.jwt.claims), so these policies
+-- apply to everything it does on a user's behalf. Passwords are never here:
+-- Supabase Auth keeps them (auth.users).
+
+-- Profiles: one per user, created by the trigger below.
+create table public.profiles (
+  id uuid primary key references auth.users (id) on delete cascade,
+  display_name text not null default '' check (char_length(display_name) <= 120),
+  locale text not null default 'en' check (locale in ('en', 'es')),
+  theme text not null default 'system' check (theme in ('light', 'dark', 'system')),
+  -- Changed only by the operator (there are no payments yet): users cannot update it.
+  plan text not null default 'free' check (plan in ('free', 'pro', 'team', 'enterprise')),
+  terms_version text,
+  privacy_version text,
+  terms_accepted_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Legal acceptances, one row per document and version (kept as history).
+create table public.consents (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  document text not null check (document in ('terms', 'privacy')),
+  version text not null check (char_length(version) between 1 and 64),
+  accepted_at timestamptz not null default now()
+);
+create index consents_user on public.consents (user_id);
+
+create table public.projects (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  name text not null check (char_length(name) between 1 and 120),
+  created_at timestamptz not null default now(),
+  unique (user_id, name)
+);
+
+-- Metadata of every inspection, search, investigation and access sign-in a
+-- user starts. The heavy artifacts stay on disk, under the user's folder.
+create table public.runs (
+  id text primary key check (char_length(id) between 1 and 80),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  kind text not null check (kind in ('inspection', 'search', 'investigation', 'access')),
+  target_url text not null check (char_length(target_url) <= 2048),
+  site text not null check (char_length(site) <= 255),
+  status text not null default 'queued' check (status in ('queued', 'running', 'done', 'failed')),
+  pages_requested integer check (pages_requested is null or pages_requested > 0),
+  ai_usd numeric(12, 4) not null default 0 check (ai_usd >= 0),
+  project_id uuid references public.projects (id) on delete set null,
+  created_at timestamptz not null default now(),
+  finished_at timestamptz
+);
+create index runs_user_created on public.runs (user_id, created_at desc);
+
+-- Waiting list for the paid plans (payments are not built yet).
+create table public.waitlist (
+  id bigint generated always as identity primary key,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  email text not null check (char_length(email) <= 320),
+  plan text not null check (plan in ('pro', 'team', 'enterprise')),
+  created_at timestamptz not null default now(),
+  unique (user_id, plan)
+);
+
+-- Attempts per key (sign-in, sign-up, password recovery): only the app's owner connection uses it.
+create table public.rate_limits (
+  key text primary key check (char_length(key) <= 300),
+  window_start timestamptz not null,
+  hits integer not null
+);
+
+-- Row Level Security on every table.
+alter table public.profiles enable row level security;
+alter table public.consents enable row level security;
+alter table public.projects enable row level security;
+alter table public.runs enable row level security;
+alter table public.waitlist enable row level security;
+alter table public.rate_limits enable row level security;
+
+-- Supabase grants every new public table to anon and authenticated by default: grant only what is needed.
+revoke all on public.profiles, public.consents, public.projects, public.runs, public.waitlist, public.rate_limits from anon, authenticated;
+
+grant select on public.profiles to authenticated;
+grant update (display_name, locale, theme, updated_at) on public.profiles to authenticated;
+create policy "profiles: read own" on public.profiles for select to authenticated using (id = (select auth.uid()));
+create policy "profiles: update own" on public.profiles for update to authenticated using (id = (select auth.uid())) with check (id = (select auth.uid()));
+
+grant select on public.consents to authenticated;
+create policy "consents: read own" on public.consents for select to authenticated using (user_id = (select auth.uid()));
+
+grant select, insert, update, delete on public.projects to authenticated;
+create policy "projects: read own" on public.projects for select to authenticated using (user_id = (select auth.uid()));
+create policy "projects: insert own" on public.projects for insert to authenticated with check (user_id = (select auth.uid()));
+create policy "projects: update own" on public.projects for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "projects: delete own" on public.projects for delete to authenticated using (user_id = (select auth.uid()));
+
+grant select, insert, update, delete on public.runs to authenticated;
+create policy "runs: read own" on public.runs for select to authenticated using (user_id = (select auth.uid()));
+create policy "runs: insert own" on public.runs for insert to authenticated with check (user_id = (select auth.uid()));
+create policy "runs: update own" on public.runs for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "runs: delete own" on public.runs for delete to authenticated using (user_id = (select auth.uid()));
+
+grant select, insert, delete on public.waitlist to authenticated;
+create policy "waitlist: read own" on public.waitlist for select to authenticated using (user_id = (select auth.uid()));
+create policy "waitlist: insert own" on public.waitlist for insert to authenticated with check (user_id = (select auth.uid()));
+create policy "waitlist: delete own" on public.waitlist for delete to authenticated using (user_id = (select auth.uid()));
+
+-- rate_limits: RLS on and no policy, so no user can read or write it.
+
+-- A new account gets its profile and its legal acceptances, from the data the
+-- sign-up form sent (raw_user_meta_data: name, locale, terms and privacy versions).
+create function public.handle_new_user() returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  meta jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
+  terms text := nullif(meta ->> 'terms_version', '');
+  privacy text := nullif(meta ->> 'privacy_version', '');
+  accepted timestamptz := case when terms is not null then now() end;
+begin
+  insert into public.profiles (id, display_name, locale, terms_version, privacy_version, terms_accepted_at)
+  values (
+    new.id,
+    left(coalesce(nullif(meta ->> 'name', ''), nullif(meta ->> 'full_name', ''), nullif(meta ->> 'user_name', ''), ''), 120),
+    case when meta ->> 'locale' in ('en', 'es') then meta ->> 'locale' else 'en' end,
+    terms,
+    privacy,
+    accepted
+  );
+  if terms is not null then
+    insert into public.consents (user_id, document, version) values (new.id, 'terms', left(terms, 64));
+  end if;
+  if privacy is not null then
+    insert into public.consents (user_id, document, version) values (new.id, 'privacy', left(privacy, 64));
+  end if;
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();
+
+-- A sign-in with Google or GitHub skips the sign-up form: the app records the
+-- acceptance shown on its consent screen through this function.
+create function public.accept_legal(terms_version text, privacy_version text) returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'not signed in';
+  end if;
+  if char_length(terms_version) not between 1 and 64 or char_length(privacy_version) not between 1 and 64 then
+    raise exception 'invalid version';
+  end if;
+  update public.profiles
+    set terms_version = accept_legal.terms_version, privacy_version = accept_legal.privacy_version, terms_accepted_at = now(), updated_at = now()
+    where id = uid;
+  insert into public.consents (user_id, document, version) values (uid, 'terms', accept_legal.terms_version), (uid, 'privacy', accept_legal.privacy_version);
+end;
+$$;
+
+revoke all on function public.accept_legal(text, text) from public, anon;
+grant execute on function public.accept_legal(text, text) to authenticated;
+revoke all on function public.handle_new_user() from public, anon, authenticated;

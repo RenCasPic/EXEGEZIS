@@ -69,6 +69,16 @@ export default defineConfig({
       },
       {
         test: {
+          name: "accounts",
+          root: "packages/accounts",
+          include: ["test/**/*.test.ts"],
+          // Postgres (PGlite, in WebAssembly) starts in a few seconds.
+          testTimeout: 60_000,
+          hookTimeout: 60_000,
+        },
+      },
+      {
+        test: {
           name: "web",
           root: "apps/web",
           include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
