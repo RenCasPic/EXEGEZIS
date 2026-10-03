@@ -9,6 +9,7 @@ import { getSummaries } from "@/lib/evidence/investigations";
 import { repositoryInfo } from "@/lib/git";
 import { plannerCredentialsConfigured } from "@/lib/jobs";
 import { environmentOf } from "@/lib/projects";
+import { isCloud } from "@/lib/cloud";
 import { displayPath, repoRoot, runsDir } from "@/lib/workspace";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,6 +17,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const SECTIONS = ["general", "environment", "repository", "models", "security", "permissions"] as const;
+/** In cloud mode the server's paths and repository are not the user's business. */
+const CLOUD_HIDDEN: readonly string[] = ["repository"];
 type Section = (typeof SECTIONS)[number];
 
 /** A fixed, fake-only sample: shows what the planner's redaction does before anything leaves the machine. */
@@ -23,7 +26,9 @@ const REDACTION_SAMPLE = "Login fails for ana@example.com. Authorization: Bearer
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
-  const section: Section = SECTIONS.includes(params.section as Section) ? (params.section as Section) : "general";
+  const cloudMode = isCloud();
+  const sections = SECTIONS.filter((s) => !cloudMode || !CLOUD_HIDDEN.includes(s));
+  const section: Section = sections.includes(params.section as Section) ? (params.section as Section) : "general";
   const [repo, credentials, summaries, t] = await Promise.all([repositoryInfo(), plannerCredentialsConfigured(), getSummaries(), getTranslations("settings")]);
   const environments = [...new Set(summaries.map((s) => environmentOf(s.target)).filter((e) => e !== null))];
   const targets = [...new Set(summaries.map((s) => s.target).filter((t) => t !== null))].slice(0, 8);
@@ -34,7 +39,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <PageHeader title={t("title")} description={t("description")} />
       <div className="grid gap-5 md:grid-cols-[180px_1fr]">
         <nav className="flex gap-1 overflow-x-auto md:flex-col" aria-label={t("sectionsLabel")}>
-          {SECTIONS.map((s) => (
+          {cloudMode && (
+            <Link href="/settings/account" className="rounded-md px-2.5 py-1.5 text-[13px] text-muted hover:bg-hover/60 hover:text-fg">
+              {t("section.account")}
+            </Link>
+          )}
+          {sections.map((s) => (
             <Link
               key={s}
               href={`/settings?section=${s}`}
@@ -54,14 +64,21 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         {section === "general" && (
           <Panel title={t("section.general")}>
             <Meta
-              items={[
-                { label: t("general.workspace"), value: t("general.workspaceValue") },
-                { label: t("general.repoRoot"), value: <Mono>{repoRoot()}</Mono> },
-                { label: t("general.runArtifacts"), value: <Mono>{displayPath(runsDir())}</Mono> },
-                { label: t("general.archived"), value: <Mono>benchmarks/*/results/</Mono> },
-                { label: t("general.dataSource"), value: t("general.dataSourceValue") },
-                { label: t("general.uiServer"), value: t("general.uiServerValue", { address: "127.0.0.1:4100" }) },
-              ]}
+              items={
+                cloudMode
+                  ? [
+                      { label: t("general.workspace"), value: t("general.cloudWorkspace") },
+                      { label: t("general.dataSource"), value: t("general.dataSourceValue") },
+                    ]
+                  : [
+                      { label: t("general.workspace"), value: t("general.workspaceValue") },
+                      { label: t("general.repoRoot"), value: <Mono>{repoRoot()}</Mono> },
+                      { label: t("general.runArtifacts"), value: <Mono>{displayPath(runsDir())}</Mono> },
+                      { label: t("general.archived"), value: <Mono>benchmarks/*/results/</Mono> },
+                      { label: t("general.dataSource"), value: t("general.dataSourceValue") },
+                      { label: t("general.uiServer"), value: t("general.uiServerValue", { address: "127.0.0.1:4100" }) },
+                    ]
+              }
             />
           </Panel>
         )}

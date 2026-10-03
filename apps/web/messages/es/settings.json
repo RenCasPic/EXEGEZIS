@@ -11,7 +11,8 @@
     "security": "Seguridad",
     "permissions": "Permisos",
     "access": "Accesos",
-    "search": "Búsquedas"
+    "search": "Búsquedas",
+    "account": "Cuenta"
   },
   "general": {
     "workspace": "Espacio de trabajo",
@@ -22,7 +23,8 @@
     "dataSource": "Origen de los datos",
     "dataSourceValue": "Solo artefactos en disco. Sin base de datos ni datos de demostración.",
     "uiServer": "Servidor de la interfaz",
-    "uiServerValue": "{address} (solo local)"
+    "uiServerValue": "{address} (solo local)",
+    "cloudWorkspace": "Tu cuenta, en la nube: solo tus datos."
   },
   "environment": {
     "seen": "Entornos vistos",

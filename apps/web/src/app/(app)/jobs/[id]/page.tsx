@@ -1,4 +1,5 @@
 import { ArrowRight, TerminalSquare } from "lucide-react";
+import { isCloud } from "@/lib/cloud";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -182,10 +183,15 @@ async function SearchJobView({ job, status, log }: { job: SearchJob; status: Job
               ...(job.error === null ? [] : [{ label: t("error"), value: <JobError error={job.error} /> }]),
             ]}
           />
-          <div className="mt-4 text-xs text-faint">{t("search.terminal")}</div>
-          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted" translate="no">
-            {terminalCommand(job)}
-          </pre>
+          {/* The CLI command is for a terminal on this machine: not shown in cloud mode (server paths). */}
+          {!isCloud() && (
+            <>
+              <div className="mt-4 text-xs text-faint">{t("search.terminal")}</div>
+              <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted" translate="no">
+                {terminalCommand(job)}
+              </pre>
+            </>
+          )}
         </Panel>
       </div>
     </div>
@@ -266,10 +272,15 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
               ...(job.error === null ? [] : [{ label: t("error"), value: <JobError error={job.error} /> }]),
             ]}
           />
-          <div className="mt-4 text-xs text-faint">{t("inspect.terminal")}</div>
-          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted" translate="no">
-            {terminalCommand(job)}
-          </pre>
+          {/* The CLI command is for a terminal on this machine: not shown in cloud mode (server paths). */}
+          {!isCloud() && (
+            <>
+              <div className="mt-4 text-xs text-faint">{t("inspect.terminal")}</div>
+              <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted" translate="no">
+                {terminalCommand(job)}
+              </pre>
+            </>
+          )}
         </Panel>
       </div>
     </div>
@@ -323,10 +334,15 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
               ...(job.error === null ? [] : [{ label: t("error"), value: <JobError error={job.error} /> }]),
             ]}
           />
-          <div className="mt-4 text-xs text-faint">{t("investigation.terminal")}</div>
-          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted" translate="no">
-            {terminalCommand(job)}
-          </pre>
+          {/* The CLI command is for a terminal on this machine: not shown in cloud mode (server paths). */}
+          {!isCloud() && (
+            <>
+              <div className="mt-4 text-xs text-faint">{t("investigation.terminal")}</div>
+              <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line bg-code p-2 font-mono text-[11px] text-muted" translate="no">
+                {terminalCommand(job)}
+              </pre>
+            </>
+          )}
         </Panel>
       </div>
     </div>
