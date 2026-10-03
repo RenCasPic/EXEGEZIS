@@ -17,10 +17,10 @@
     "exegezis": "exegezis",
     "clean": "tsc -b --clean",
     "benchmark": "exegezis benchmark --suite buggy-shop",
-    "web": "pnpm build && pnpm --filter @exegezis/web dev",
+    "web": "pnpm install --prefer-offline && pnpm build && pnpm --filter @exegezis/web dev",
     "build:web": "pnpm build && pnpm --filter @exegezis/web build",
     "dev": "pnpm web",
-    "site": "pnpm --filter @exegezis/site dev",
+    "site": "pnpm install --prefer-offline && pnpm --filter @exegezis/site dev",
     "build:site": "pnpm --filter @exegezis/site build",
     "design:compare": "node scripts/design-compare.mjs"
   },
