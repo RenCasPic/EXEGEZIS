@@ -8,7 +8,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import { AccessStore, osProtector, ServerKeyProtector } from "@exegezis/access";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createUser, testDatabase } from "../../../packages/accounts/test/database";
+import { createUser, testDatabase } from "../../../packages/accounts/test/database.js";
 import { main } from "../src/main.js";
 import type { CliIo } from "../src/shared.js";
 
