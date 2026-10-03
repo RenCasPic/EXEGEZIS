@@ -271,7 +271,8 @@ function commandArgs(job: JobRecord, runs: string): string[] {
     ...(job.maxDepth === null ? [] : ["--max-depth", String(job.maxDepth)]),
     ...(job.checks === null ? [] : ["--checks", job.checks.join(",")]),
     ...(job.storageState === null ? [] : ["--storage-state", job.storageState]),
-    ...(job.strictReadonly ? ["--strict-readonly"] : []),
+    // The form's box decides, both ways: the CLI's own default is strict when the site has a saved session.
+    ...(job.strictReadonly ? ["--strict-readonly"] : ["--allow-page-writes"]),
     ...(job.ignoreRobots ? ["--ignore-robots"] : []),
     ...(job.browserChannel === "auto" ? [] : ["--browser-channel", job.browserChannel]),
     ...(job.noSession ? ["--no-session"] : []),

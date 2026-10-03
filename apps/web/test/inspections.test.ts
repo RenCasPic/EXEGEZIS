@@ -166,9 +166,16 @@ describe("inspection jobs", () => {
     // Started from a Spanish request (the test locale): the CLI gets --lang es.
     expect(argv.slice(0, 11)).toEqual(["--lang", "es", "inspect", "--url", "https://example.com/a b?x=1;rm -rf", "--runs", "3", "--max-pages", "1", "--checks", "a11y"]);
     expect(argv).toContain("--strict-readonly");
+    expect(argv).not.toContain("--allow-page-writes");
     expect(argv).not.toContain("--ignore-robots");
     expect(argv).not.toContain("--max-depth");
   }, 30_000);
+
+  it("the strict read-only box decides both ways: unchecked lets the page's own writes through even with a saved session", () => {
+    const job = JobRecord.parse({ schemaVersion: "exegezis.web-job/v1", id: JOB_ID, status: "queued", pid: null, startedAt: "2026-10-03T00:00:00.000Z", finishedAt: null, exitCode: null, error: null, kind: "inspect", url: "https://example.com/", runs: 3, maxPages: null, maxDepth: null, checks: null, storageState: null, strictReadonly: false, ignoreRobots: false, browserChannel: "auto", noSession: false });
+    expect(commandFor(job, root)).toContain("--allow-page-writes");
+    expect(commandFor(job, root)).not.toContain("--strict-readonly");
+  });
 
   it("reports a queued job whose server is gone as LOST", async () => {
     const dir = join(root, "runs", "web", "jobs", JOB_ID);

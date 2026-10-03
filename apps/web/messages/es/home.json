@@ -151,6 +151,7 @@
       "storageState": "storageState (ruta a un archivo de sesión de Playwright en esta máquina; su contenido no se muestra ni se guarda en el informe)",
       "storagePlaceholder": "p. ej. ./auth/state.json",
       "strict": "Solo lectura estricta: bloquear también las escrituras que haga la propia página. Esas páginas quedan degradadas y sus hallazgos se descartan.",
+      "strictOffWithSession": "Hay una sesión guardada para este sitio: sin esta opción, lo que la página guarde sola al cargarse (borradores, estadísticas) se hace con esa sesión.",
       "ignoreRobots": "Ignorar robots.txt (la URL inicial se visita siempre; robots.txt solo limita el descubrimiento).",
       "anonymous": "Inspeccionar como visitante anónimo: no usar el acceso guardado para este sitio (sesión, usuario HTTP o token del WAF)."
     },

@@ -220,7 +220,10 @@ export function InspectForm({ initialUrl = "" }: { initialUrl?: string }) {
           </label>
           <label className="flex items-start gap-2 text-[13px] text-fg sm:col-span-3">
             <input type="checkbox" name="strictReadonly" checked={strict} onChange={(e) => setStrict(e.target.checked)} className="mt-0.5 size-4 accent-[var(--accent)]" />
-            <span>{t("inspect.strict")}</span>
+            <span>
+              {t("inspect.strict")}
+              {!strict && access !== null && access.kinds.includes("session") && !noSession && <span className="mt-0.5 block text-[12px] text-muted">{t("inspect.strictOffWithSession")}</span>}
+            </span>
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-muted sm:col-span-3">
             {t("browser")}

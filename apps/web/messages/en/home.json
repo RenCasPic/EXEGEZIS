@@ -151,6 +151,7 @@
       "storageState": "storageState (path to a Playwright session file on this computer; its content is not shown or kept in the report)",
       "storagePlaceholder": "e.g. ./auth/state.json",
       "strict": "Strict read-only: also block the writes the page itself makes. Those pages are marked degraded and their findings are discarded.",
+      "strictOffWithSession": "There is a saved session for this site: without this option, what the page saves on its own while loading (drafts, statistics) is done with that session.",
       "ignoreRobots": "Ignore robots.txt (the start URL is always visited; robots.txt only limits discovery).",
       "anonymous": "Inspect as an anonymous visitor: do not use the saved access for this site (session, HTTP user or WAF token)."
     },
