@@ -20,6 +20,7 @@ import { createServer } from "node:net";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "@playwright/test";
+import { ensureFreshCache } from "../apps/web/scripts/fresh-cache.mjs";
 
 const REPO = join(import.meta.dirname, "..");
 const DESIGN = join(REPO, "docs", "design");
@@ -54,6 +55,7 @@ async function startApp(app) {
   const dir = join(REPO, "apps", app);
   const port = await freePort();
   const base = `http://127.0.0.1:${port}`;
+  ensureFreshCache(".next-shots");
   const server = spawn(process.execPath, [join(dir, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
     cwd: dir,
     env: { ...process.env, EXEGEZIS_NEXT_DIST: ".next-shots", NEXT_TELEMETRY_DISABLED: "1", EXEGEZIS_MODE: "local", NEXT_PUBLIC_EXEGEZIS_MODE: "local" },

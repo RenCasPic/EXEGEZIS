@@ -3,6 +3,7 @@ import { createServer } from "node:net";
 import { join } from "node:path";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ensureFreshCache } from "../scripts/fresh-cache.mjs";
 
 /*
  * The public pages inside the app (src/site), in a real browser, in local
@@ -55,6 +56,8 @@ async function visibleText(page: Page): Promise<string> {
 beforeAll(async () => {
   const port = await freePort();
   base = `http://127.0.0.1:${port}`;
+  // A build folder from before a change of the app's structure would serve stale routes.
+  ensureFreshCache(".next-e2e");
   server = spawn(process.execPath, [join(WEB, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
     cwd: WEB,
     env: { ...process.env, EXEGEZIS_NEXT_DIST: ".next-e2e", NEXT_TELEMETRY_DISABLED: "1", EXEGEZIS_MODE: "local" },

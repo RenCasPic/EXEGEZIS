@@ -12,6 +12,7 @@ import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ensureFreshCache } from "../scripts/fresh-cache.mjs";
 import { testDatabase } from "../../../packages/accounts/test/database";
 import { startAuthStandin, type AuthStandin, type Mail } from "./support/auth-standin";
 
@@ -196,6 +197,8 @@ beforeAll(async () => {
   const logFile = openSync(join(WEB, "test", ".tmp", "cloud-server.log"), "w");
   const appPort = await freePort();
   base = `http://127.0.0.1:${appPort}`;
+  // A build folder from before a change of the app's structure would serve stale routes.
+  ensureFreshCache(".next-cloud");
   server = spawn(process.execPath, [join(WEB, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(appPort)], {
     cwd: WEB,
     env: {
@@ -248,12 +251,28 @@ const bea = { name: "Bea", email: `bea-${Date.now()}@example.com` };
 let anaInspection = "";
 
 describe("cloud mode: accounts", () => {
-  it("without a session every page goes to /login (and back afterwards); the API answers 401", async () => {
+  it("without a session: / is the landing (in the visitor's language), the other app pages go to /login (and back afterwards), the API answers 401", async () => {
     const res = await fetch(`${base}/inspections?x=1`, { redirect: "manual" });
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toContain("/login?next=%2Finspections%3Fx%3D1");
     expect((await fetch(`${base}/api/artifacts/01J0000000000000000000000X/report.json`)).status).toBe(401);
     expect((await fetch(`${base}/api/account/export`)).status).toBe(401);
+    // `/` without a session: the landing, in the visitor's language, at the same URL.
+    const es = await fetch(`${base}/`, { headers: { "accept-language": "es-ES,es;q=0.9" } });
+    expect(es.status).toBe(200);
+    const esBody = await es.text();
+    expect(esBody).toContain("Solo lo que se puede demostrar");
+    expect(esBody).not.toContain('id="home-title"');
+    expect(await (await fetch(`${base}/`, { headers: { "accept-language": "en-US" } })).text()).toContain("Only what can be proven");
+    expect(await (await fetch(`${base}/`, { headers: { "accept-language": "en-US", cookie: "EXEGEZIS_LOCALE=es" } })).text()).toContain("Solo lo que se puede demostrar");
+    // The public pages are there too, without a session.
+    for (const path of ["/producto", "/product", "/privacidad", "/terms"]) expect((await fetch(`${base}${path}`, { redirect: "manual" })).status, path).toBe(200);
+    // A link to the Inspect tab with an address: sign up first, then there.
+    const inspect = await fetch(`${base}/?url=${encodeURIComponent("https://tu-sitio.com/")}`, { redirect: "manual" });
+    expect(inspect.status).toBe(307);
+    const to = new URL(inspect.headers.get("location") ?? "", base);
+    expect(to.pathname).toBe("/signup");
+    expect(to.searchParams.get("next")).toBe("/?url=https://tu-sitio.com/");
   }, 300_000);
 
   it("sign-up → verification email → signed in, with the accepted terms recorded", async () => {
@@ -451,17 +470,17 @@ describe("cloud mode: accounts", () => {
     await two.close();
   }, 300_000);
 
-  it("/api/session tells the landing (its origin only) who is signed in", async () => {
+  it("with a session, / is the app's home and the public pages' header says «Go to the app»; there is no /api/session any more", async () => {
     const ctx = await context();
     const page = await ctx.newPage();
     await signIn(page, bea.email, "otra frase larga 2026");
     await page.waitForURL(`${base}/`);
-    const own = await page.request.get(`${base}/api/session`, { headers: { origin: "http://127.0.0.1:4200" } });
-    expect(await own.json()).toMatchObject({ mode: "cloud", signedIn: true, name: "Bea" });
-    expect(own.headers()["access-control-allow-origin"]).toBe("http://127.0.0.1:4200");
-    expect(own.headers()["access-control-allow-credentials"]).toBe("true");
-    const other = await page.request.get(`${base}/api/session`, { headers: { origin: "https://evil.example" } });
-    expect(other.headers()["access-control-allow-origin"]).toBeUndefined();
+    await page.waitForSelector("#home-title");
+    expect((await ctx.cookies()).find((c) => c.name === "EXEGEZIS_SIGNED_IN")?.value).toBe("B");
+    await page.goto(`${base}/producto`, { waitUntil: "networkidle" });
+    await page.waitForSelector("[data-go-to-app]");
+    expect(await page.locator("header").innerText()).not.toContain("Iniciar sesión");
+    expect((await page.request.get(`${base}/api/session`)).status()).toBe(404);
     await ctx.close();
   }, 300_000);
 
