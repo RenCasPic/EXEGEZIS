@@ -26,8 +26,6 @@ const config: NextConfig = {
   // The end-to-end language test runs its own server without touching a running `pnpm web`.
   ...(process.env["EXEGEZIS_NEXT_DIST"] === undefined ? {} : { distDir: process.env["EXEGEZIS_NEXT_DIST"] }),
   devIndicators: false,
-  // The app ((home), (app), (auth)) and the public pages ((site-es), (site-en)) have separate root layouts: one 404 for both.
-  experimental: { globalNotFound: true },
 };
 
 // next-intl without locale routing: the request config reads the language cookie.

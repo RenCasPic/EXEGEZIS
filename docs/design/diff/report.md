@@ -7,3 +7,7 @@ fair comparison). «PNG»: against the committed capture, made without Geist (di
 | Page | Size (actual vs reference) | HTML | PNG |
 |---|---|---|---|
 | landing | 1440×5789 vs 1440×5686 | 9.63 % | 14.14 % |
+| home-app | 1440×1692 vs 1440×1657 | 8.13 % | 16.03 % |
+| home-app-dark | 1440×1692 vs 1440×1657 | 8.56 % | — |
+| home-app-mobile | 390×2289 vs 390×2010 | 20.31 % | 21.53 % |
+| home-app-mobile-dark | 390×2289 vs 390×2010 | 20.73 % | — |
