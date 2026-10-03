@@ -11,6 +11,7 @@
     "email": "Type a valid email address.",
     "terms": "To create the account, accept the terms and the privacy policy.",
     "tooMany": "Too many attempts. Try again in {minutes, plural, one {# minute} other {# minutes}}.",
+    "emailLimit": "The email service has reached its limit for now: wait a few minutes (up to an hour) and try again.",
     "unexpected": "It could not be done. Try again in a moment.",
     "mismatch": "The two passwords are different.",
     "samePassword": "The new password must be different from the current one.",

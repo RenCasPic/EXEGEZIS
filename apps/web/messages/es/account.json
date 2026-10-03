@@ -11,6 +11,7 @@
     "email": "Escribe un email válido.",
     "terms": "Para crear la cuenta, acepta los términos y la política de privacidad.",
     "tooMany": "Demasiados intentos. Vuelve a intentarlo en {minutes, plural, one {# minuto} other {# minutos}}.",
+    "emailLimit": "El servicio de correo llegó a su límite por ahora: espera unos minutos (hasta una hora) y vuelve a intentarlo.",
     "unexpected": "No se ha podido hacer. Vuelve a intentarlo en un momento.",
     "mismatch": "Las dos contraseñas no coinciden.",
     "samePassword": "La contraseña nueva tiene que ser distinta de la actual.",

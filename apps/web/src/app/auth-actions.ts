@@ -47,6 +47,11 @@ async function guard(): Promise<string | null> {
   return null;
 }
 
+/** Supabase refused to send an email for now (its own limit; its test email service sends only a few an hour). */
+function emailLimited(error: { code?: string | undefined; status?: number | undefined } | null): boolean {
+  return error !== null && (error.code === "over_email_send_rate_limit" || error.code === "over_request_rate_limit" || error.status === 429);
+}
+
 function callbackUrl(next: string): string {
   return `${config().appUrl}/auth/callback?next=${encodeURIComponent(safeNext(next))}`;
 }
@@ -100,7 +105,7 @@ export async function signUpAction(_prev: AuthState, form: FormData): Promise<Au
   });
   if (error !== null) {
     if (error.code === "weak_password") return { error: t("password.leaked"), email, name };
-    if (error.code === "over_email_send_rate_limit" || error.status === 429) return { error: t("tooMany", { minutes: 60 }), email, name };
+    if (emailLimited(error)) return { error: t("emailLimit"), email, name };
     // An email that already has an account gets the same page: nobody learns which emails are registered.
     if (error.code !== "user_already_exists" && error.code !== "email_exists") return { error: t("unexpected"), email, name };
   }
@@ -115,7 +120,9 @@ export async function resendVerificationAction(_prev: AuthState, form: FormData)
   if (!Email.safeParse(email).success) return { error: t("errors.email"), email };
   const wait = await rateLimited("resend", email);
   if (wait !== null) return { error: t("errors.tooMany", { minutes: wait }), email };
-  await (await supabase()).auth.resend({ type: "signup", email, options: { emailRedirectTo: callbackUrl(text(form, "next")) } });
+  const { error } = await (await supabase()).auth.resend({ type: "signup", email, options: { emailRedirectTo: callbackUrl(text(form, "next")) } });
+  // Said, not hidden: otherwise the page says «sent» while nothing was sent.
+  if (emailLimited(error)) return { error: t("errors.emailLimit"), email };
   return { error: null, email };
 }
 
@@ -128,7 +135,8 @@ export async function forgotPasswordAction(_prev: AuthState, form: FormData): Pr
   const wait = await rateLimited("recover", email);
   if (wait !== null) return { error: t("tooMany", { minutes: wait }), email };
   // The same answer whether or not the email has an account.
-  await (await supabase()).auth.resetPasswordForEmail(email, { redirectTo: callbackUrl("/reset-password") });
+  const { error } = await (await supabase()).auth.resetPasswordForEmail(email, { redirectTo: callbackUrl("/reset-password") });
+  if (emailLimited(error)) return { error: t("emailLimit"), email };
   redirect(`/forgot-password?sent=1&email=${encodeURIComponent(email)}`);
 }
 
