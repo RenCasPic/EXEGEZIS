@@ -1,7 +1,7 @@
 /*
  * EXEGEZIS design tokens (docs/08-design-system.md).
  *
- * - Shared by apps/web (the local app) and apps/site (the public site).
+ * - Shared by the app (apps/web) and its public pages (apps/web/src/site).
  * - Themes: html[data-theme="light" | "dark"], set before paint by the inline
  *   script in the root layout. Without JavaScript (no attribute) the OS
  *   preference applies. `.theme-dark` applies the dark palette to one part of

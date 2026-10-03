@@ -121,12 +121,19 @@ re-derived from the raw observations when the report is loaded). Design:
 find logic bugs such as buggy-shop's: that is what `verify`, `ai-verify` and
 `root-cause` are for.
 
-Browse everything in the local web UI (reads `runs/` and the archived benchmark
-results; no demo data):
+Browse everything in the web app (reads `runs/` and the archived benchmark
+results; no demo data). One app, one port: the app, its public pages
+(landing at `/producto` · `/product`, `/privacidad` · `/privacy`, `/terminos` ·
+`/terms`) and, in cloud mode, sign-in:
 
 ```bash
-pnpm web                              # http://127.0.0.1:4100
+pnpm web                              # local mode: http://127.0.0.1:4100
+pnpm web:cloud                        # cloud mode (accounts): reads .env.cloud
 ```
+
+Local mode (the default) has no sign-in; `/` is the app. Cloud mode
+(`.env.cloud`, docs/13-accounts.md) shows the landing at `/` to visitors without
+a session and the app to signed-in users, each one seeing only their own data.
 
 The home page (`/`) inspects a site: a URL field, the options folded away, and
 a one-line permission confirmation before the first inspection of an external
@@ -152,7 +159,8 @@ pnpm --filter @exegezis/adapter-browser exec playwright show-trace <absolute-pat
 | `packages/compiler-playwright` | Test plan → standalone Playwright spec; runs specs with the standard Playwright runner |
 | `packages/planner` | Symptom → TestPlan proposal (provider-agnostic `PlanGenerator`, Anthropic and mock providers, versioned prompt). Never decides verdicts; core does not depend on it |
 | `apps/cli` | `exegezis` command |
-| `apps/web` | Local UI (Next.js): investigations, reproductions, evidence, AI plans, root causes, benchmarks. Reads run artifacts with the core schemas; stages not built yet (fix, fix verification) are shown as NOT IMPLEMENTED |
+| `apps/web` | The web app (Next.js): investigations, reproductions, evidence, AI plans, root causes, benchmarks; its static public pages (`src/site`: landing, legal); sign-in and accounts in cloud mode. Reads run artifacts with the core schemas; stages not built yet (fix, fix verification) are shown as NOT IMPLEMENTED |
+| `packages/accounts` | Cloud mode: plans and limits (`pricing.ts`, also shown by the landing), Postgres store with Row Level Security, rate limits, export and deletion |
 | `examples/buggy-shop` | Evidence lab: a shop with exactly 3 seeded bugs that its own test suite does not catch |
 | `benchmarks/buggy-shop` | Benchmark A: human-authored plans — symptom, reference plan, expected outcome (and compiled spec) per case |
 | `benchmarks/buggy-shop-ai` | Benchmark B: plans generated from symptoms by a planner; results and metrics kept separate |
@@ -166,9 +174,12 @@ pnpm --filter @exegezis/adapter-browser exec playwright show-trace <absolute-pat
 | `pnpm test` | EXEGEZIS tests (incl. end-to-end verification of the 3 lab bugs) + buggy-shop conventional suite + known-bugs ground truth |
 | `pnpm typecheck` | Type-checks packages, tests, the example and its compiled specs |
 | `pnpm lint` | ESLint with type-aware rules |
-| `pnpm verify` | All of the above |
-| `pnpm web` | Builds the packages and starts the local UI on 127.0.0.1:4100 |
-| `pnpm build:web` | Production build of the UI |
+| `pnpm verify` | All of the above (always in local mode) |
+| `pnpm web` | Builds the packages and starts the app on 127.0.0.1:4100, local mode (no sign-in) |
+| `pnpm web:cloud` | The same in cloud mode: accounts, reads `.env.cloud` (docs/13-accounts.md) |
+| `pnpm exegezis:cloud …` | The CLI with `.env.cloud` (e.g. `account claim-local`) |
+| `pnpm build:web` | Production build of the app (public pages prerendered as static) |
+| `pnpm design:compare` | Compares the landing (`/producto`) and the home with docs/design/ |
 
 Design notes: [docs/01-evidence-engine.md](docs/01-evidence-engine.md) (evidence and run format),
 [docs/02-verification-engine.md](docs/02-verification-engine.md) (assertions, reproduction, Verified Bug, compiler),

@@ -9,21 +9,31 @@ EXEGEZIS funciona de dos maneras, según `EXEGEZIS_MODE`:
 
 El modo local no cambia nada de lo que existía: sin login, sin base de datos y con los mismos benchmarks.
 
+Cada modo tiene su configuración:
+
+| | Modo local | Modo nube |
+|---|---|---|
+| Archivo | `.env` (desde `.env.example`) | `.env.cloud` (desde `.env.cloud.example`) |
+| Arrancar la app | `pnpm web` | `pnpm web:cloud` |
+| CLI | `pnpm exegezis …` | `pnpm exegezis:cloud …` |
+
+- `pnpm web`, `pnpm verify` y los tests usan **siempre** el modo local, diga lo que diga `.env`. Nunca leen `.env.cloud`.
+- `scripts/run-mode.mjs` fija el modo y, en la nube, añade `.env.cloud`, avisando de lo que falte.
+- La app, sus páginas públicas (landing y legales) y el inicio de sesión están en un solo servidor y un solo dominio: http://127.0.0.1:4100 en tu equipo (ver `docs/12-site.md`).
+
 ## Arquitectura
 
 ```
-Landing (apps/site, estática)          App (apps/web, Next.js)                    Supabase
- «Iniciar sesión» ───────────────────▶  /login, /signup, …  ───────────────────▶  Auth (GoTrue): contraseñas,
- «Empieza gratis / Probar…» ─────────▶  /signup?plan=…                            emails, OAuth, sesiones
- «Inspeccionar gratis» + URL ────────▶  /signup?next=/?url=…
- cabecera: fetch /api/session ◀──────  (CORS solo para la landing)
-                                        proxy.ts: refresca la sesión,             Postgres (RLS en todas
-                                        /login?next=… si no hay                    las tablas)
-                                        Server actions / route handlers ──────▶   profiles, consents, projects,
-                                        (rol `authenticated` + claims del          runs, waitlist, rate_limits
-                                        usuario en cada transacción)
-                                        EXEGEZIS_DATA_DIR/users/<id>/             (disco)
-                                          runs/ access/ search/
+Un servidor (apps/web, Next.js), un dominio                                        Supabase
+ /producto · /product · /privacidad · …  estáticas: el proxy no pasa por ellas
+ /  sin sesión ──▶ la landing (misma URL)    con sesión ──▶ la app
+ /login, /signup, /auth/callback … ────────────────────────────────────────────▶  Auth (GoTrue): contraseñas,
+ proxy.ts: refresca la sesión,                                                      emails, OAuth, sesiones
+   /login?next=… si no hay
+ Server actions / route handlers ──────────────────────────────────────────────▶  Postgres (RLS en todas
+   (rol `authenticated` + claims del usuario en cada transacción)                   las tablas): profiles,
+ EXEGEZIS_DATA_DIR/users/<id>/  runs/ access/ search/   (disco)                     consents, projects, runs,
+                                                                                    waitlist, rate_limits
 ```
 
 - **Autenticación:** Supabase Auth, con `@supabase/ssr` en el servidor.
@@ -41,7 +51,7 @@ Landing (apps/site, estática)          App (apps/web, Next.js)                 
 - **Accesos guardados:** siguen cifrados (AES-256-GCM), ahora uno por usuario.
   - En un servidor sin llavero del sistema, la clave de cada usuario se protege con `EXEGEZIS_ACCESS_KEY` (`ServerKeyProtector`).
   - La ventana visible para iniciar sesión en un sitio solo existe en modo local: en un servidor nadie la vería. En la nube se pueden guardar un usuario HTTP o un token del WAF.
-- **Planes:** `packages/accounts/src/pricing.ts` es el mismo archivo que muestra la landing (`apps/site/content/pricing.ts` lo reexporta).
+- **Planes:** `packages/accounts/src/pricing.ts` es el mismo archivo que muestra la landing (`src/site`, en la propia app).
   - Los `limits` de cada plan se aplican en el servidor, en `lib/plan-gate.ts`, dentro de `lib/jobs.ts`, así que ningún formulario ni ruta se los salta. Se comprueban sitios, páginas por inspección, inspecciones al mes, búsqueda por significado y saldo de IA.
   - Al llegar a un límite sale un mensaje claro con «Ver planes».
   - Todavía no hay pagos: los planes de pago llevan a una lista de espera.
@@ -82,29 +92,30 @@ Landing (apps/site, estática)          App (apps/web, Next.js)                 
   - `EXEGEZIS_ALLOW_PRIVATE_TARGETS=1` existe solo para los tests y para probar el modo nube en local. Una compilación de producción lo ignora.
 - **Lo que se oculta en la nube:** las rutas del servidor, el repositorio y los comandos de terminal.
 
-## Landing ↔ app
+## Landing ↔ app (el mismo servidor)
 
-- La landing es estática. Con `NEXT_PUBLIC_EXEGEZIS_MODE=cloud`, sus botones van a la app:
+- `/` en modo nube: sin sesión, la landing, en el idioma de la cookie o del navegador. La URL no cambia, y sin cookie de sesión ni se consulta a Supabase. Con sesión, la app.
+- **Botones de la landing:**
   - «Iniciar sesión» → `/login?lang=…`;
   - «Empieza gratis» y «Probar Pro/Equipo» → `/signup?plan=…&lang=…`;
-  - «Inspeccionar gratis» con URL → `/signup?next=/?url=…`. Quien ya tiene sesión pasa directo a la app, porque el proxy le salta `/signup`.
+  - «Inspeccionar gratis» con URL → `/signup?next=/?url=…`. Quien ya tiene sesión pasa directo, porque el proxy le salta `/signup`.
+  - Todo en el mismo dominio: sin CORS y sin cookies compartidas entre dominios.
 - Tras el registro y la verificación, la app abre en la página Inspeccionar con la dirección escrita. Hace falta un clic en «Inspeccionar»: la app pide confirmar el permiso para cada dominio nuevo, y la inspección no se lanza sin ese paso.
-- La cabecera de la landing pregunta a `/api/session` (CORS solo para `EXEGEZIS_SITE_URL`, con credenciales). Con sesión, muestra «Ir a la app» y las iniciales del usuario.
-- `next` lleva a la página que el usuario quería ver (validado).
-- En la app, el menú del usuario ofrece «Mi cuenta», «Ver planes» (`#pricing` de la landing), «Ayuda» (`#faq`) y «Cerrar sesión».
-- **Dominios:**
-  - Landing en `exegezis.com` y app en `app.exegezis.com`: son del mismo sitio, así que la cookie SameSite=Lax viaja en las peticiones de la landing a `/api/session` sin compartirla entre dominios.
-  - `EXEGEZIS_COOKIE_DOMAIN=.exegezis.com` solo hace falta si otra parte necesita la sesión.
-  - En local: 4200 (landing) y 4100 (app).
-- **Legal:** `/es/privacidad`, `/es/terminos`, `/en/privacy` y `/en/terms` son **borradores marcados** («Borrador pendiente de revisión legal»).
+- **Cabecera de la landing con sesión:** muestra «Ir a la app» y las iniciales.
+  - Las lee de `EXEGEZIS_SIGNED_IN`, una cookie que no es secreta: solo lleva las iniciales, no la sesión, que sigue siendo httpOnly.
+  - El proxy la pone al ver una sesión válida y la quita al cerrarla.
+  - Así la landing sigue siendo estática y no existe `/api/session`.
+- `next` lleva a la página que el usuario quería ver (validado: solo rutas de la propia app).
+- En la app, el menú del usuario ofrece «Mi cuenta», «Ver planes» (`/producto#pricing`), «Ayuda» (`/producto#faq`) y «Cerrar sesión».
+- **Legal:** `/privacidad`, `/terminos`, `/privacy` y `/terms` son **borradores marcados** («Borrador pendiente de revisión legal»).
   - El registro exige aceptarlos y guarda la fecha y la versión (`packages/accounts/src/legal.ts`). Cuando cambien los textos, cambia la versión.
-  - El contacto de privacidad es `NEXT_PUBLIC_EXEGEZIS_PRIVACY_EMAIL`.
+  - El contacto de privacidad es `EXEGEZIS_PRIVACY_EMAIL`.
 
 ## Asignar los datos locales a una cuenta
 
 ```bat
-pnpm exegezis account claim-local --dry-run
-pnpm exegezis account claim-local
+pnpm exegezis:cloud account claim-local --dry-run
+pnpm exegezis:cloud account claim-local
 ```
 
 - Da a la primera cuenta creada (o a la de `--email`) lo que hay en este equipo: `runs/`, los ajustes de búsqueda y los accesos guardados.
@@ -126,13 +137,11 @@ pnpm exegezis account claim-local
 3. **App** (`apps/web`), en un servidor Node 22+ con Chromium:
    - Ejecuta `pnpm install`, `pnpm build:web` y `pnpm --filter @exegezis/web start`.
    - Configura detrás de un proxy https que ponga `X-Forwarded-For`.
-   - Variables: `EXEGEZIS_MODE=cloud`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `DATABASE_URL` (secreta), `EXEGEZIS_APP_URL`, `EXEGEZIS_SITE_URL`, `EXEGEZIS_DATA_DIR` (un volumen persistente), `EXEGEZIS_ACCESS_KEY` (secreta), `EXEGEZIS_OAUTH_PROVIDERS` y `EXEGEZIS_PROXY_HOPS`.
+   - Variables: `EXEGEZIS_MODE=cloud`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `DATABASE_URL` (secreta), `EXEGEZIS_APP_URL`, `EXEGEZIS_DATA_DIR` (un volumen persistente), `EXEGEZIS_ACCESS_KEY` (secreta), `EXEGEZIS_OAUTH_PROVIDERS`, `EXEGEZIS_PROXY_HOPS`, `EXEGEZIS_PRIVACY_EMAIL` y `EXEGEZIS_SALES_URL`.
+   - `pnpm build:web` genera las páginas públicas como HTML estático. Compila con `EXEGEZIS_MODE=cloud`: los botones de la landing dependen del modo.
    - Bloquea en el cortafuegos la salida a redes privadas y al servicio de metadatos.
-4. **Landing** (`apps/site`):
-   - Compila con `NEXT_PUBLIC_EXEGEZIS_MODE=cloud`, `NEXT_PUBLIC_EXEGEZIS_APP_URL`, `NEXT_PUBLIC_EXEGEZIS_SITE_URL` y `NEXT_PUBLIC_EXEGEZIS_PRIVACY_EMAIL` (`pnpm build:site`).
-   - Sube `apps/site/out/` a cualquier alojamiento estático.
-5. **Comprobación:** `GET /api/health` responde `{ "ok": true, "mode": "cloud" }`.
-6. **Copias de seguridad:** de Postgres se encarga Supabase. Tú, de `EXEGEZIS_DATA_DIR` y de `EXEGEZIS_ACCESS_KEY`, guardada aparte.
+4. **Comprobación:** `GET /api/health` responde `{ "ok": true, "mode": "cloud" }`.
+5. **Copias de seguridad:** de Postgres se encarga Supabase. Tú, de `EXEGEZIS_DATA_DIR` y de `EXEGEZIS_ACCESS_KEY`, guardada aparte.
 
 Fuera de esta versión: pagos (Stripe), equipos con varios usuarios y roles, SSO de empresa e inspecciones en paralelo. La cola de navegadores es de uno en uno por proceso.
 
@@ -165,7 +174,16 @@ Fuera de esta versión: pagos (Stripe), equipos con varios usuarios y roles, SSO
 
 ## Paso a paso en Windows (CMD), desde la carpeta del repositorio
 
-### 1. Supabase en tu equipo (para probar)
+### Modo local (sin cuentas)
+
+```bat
+pnpm web
+```
+
+- La app: http://127.0.0.1:4100
+- La landing: http://127.0.0.1:4100/producto (en inglés, /product). Los textos legales: /privacidad y /terminos.
+
+### 1. Modo nube con Supabase en tu equipo (para probar)
 
 1. Instala **Docker Desktop** (docker.com → Docker Desktop for Windows) y ábrelo. Espera a que diga «Engine running».
 2. Arranca Supabase. La primera vez descarga sus imágenes (unos minutos) y aplica `supabase/migrations`:
@@ -175,49 +193,42 @@ Fuera de esta versión: pagos (Stripe), equipos con varios usuarios y roles, SSO
    ```
 
    Al terminar imprime `API URL`, `anon key` y `DB URL`. Para verlos de nuevo: `npx supabase status`.
-3. Crea tu `.env`:
+3. Crea tu `.env.cloud` (el `.env` del modo local no se toca):
 
    ```bat
-   copy .env.example .env
-   notepad .env
+   copy .env.cloud.example .env.cloud
+   notepad .env.cloud
    ```
 
    Rellena:
-   - `EXEGEZIS_MODE=cloud`;
-   - `SUPABASE_URL=http://127.0.0.1:54321`;
    - `SUPABASE_ANON_KEY=` con la «anon key»;
-   - `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`;
-   - `NEXT_PUBLIC_EXEGEZIS_MODE=cloud`;
    - `EXEGEZIS_ACCESS_KEY=` con lo que imprime:
 
    ```bat
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    ```
 
-4. Arranca la app y la landing, cada una en su ventana de CMD:
+   `SUPABASE_URL`, `DATABASE_URL` y `EXEGEZIS_APP_URL` ya vienen con los valores locales.
+4. Arranca la app en modo nube. Es un solo servidor: landing, inicio de sesión y app.
 
    ```bat
-   pnpm web
-   ```
-
-   ```bat
-   pnpm site
+   pnpm web:cloud
    ```
 
 5. Prueba el registro de principio a fin:
-   1. Abre http://127.0.0.1:4200/es/ y pulsa «Empieza gratis». Rellena el registro y acepta los términos.
+   1. Abre http://127.0.0.1:4100. Sin sesión verás la landing; pulsa «Empieza gratis», rellena el registro y acepta los términos.
    2. Abre el buzón local en http://127.0.0.1:54324, abre el email «Confirm your signup» y pulsa el enlace. Entras en la app con tu cuenta.
    3. Haz una inspección de una web pública.
-   4. Cierra la sesión desde el menú del usuario (arriba a la derecha).
+   4. Cierra la sesión desde el menú del usuario (arriba a la derecha). En http://127.0.0.1:4100 vuelves a ver la landing.
    5. Prueba «¿Has olvidado tu contraseña?» y vuelve a mirar el buzón.
 6. Da a tu cuenta lo que ya tenías en modo local:
 
    ```bat
-   pnpm exegezis account claim-local --dry-run
-   pnpm exegezis account claim-local
+   pnpm exegezis:cloud account claim-local --dry-run
+   pnpm exegezis:cloud account claim-local
    ```
 
-7. Para volver al modo local, pon `EXEGEZIS_MODE=local` y `NEXT_PUBLIC_EXEGEZIS_MODE=local` en `.env`. Para parar Supabase:
+7. Para volver al modo local, para la app (Ctrl+C) y arranca `pnpm web`. Para parar Supabase:
 
    ```bat
    npx supabase stop
@@ -247,5 +258,5 @@ Fuera de esta versión: pagos (Stripe), equipos con varios usuarios y roles, SSO
    - Authentication → Policies (si tu plan lo permite): «Leaked password protection» activado.
    - Authentication → Sign In / Up: «Manual linking» activado.
    - Authentication → Emails → SMTP: tu servidor de correo. El de Supabase sirve para probar, pero envía pocos emails por hora.
-   - Google y GitHub (opcional): Authentication → Providers. Crea la app en Google Cloud o GitHub con el callback que muestra Supabase y pega su id y su secreto. Luego pon `EXEGEZIS_OAUTH_PROVIDERS=google,github` en `.env`.
-4. Pon esos valores en `.env`, arranca `pnpm web` y prueba como en el paso 1.5.
+   - Google y GitHub (opcional): Authentication → Providers. Crea la app en Google Cloud o GitHub con el callback que muestra Supabase y pega su id y su secreto. Luego pon `EXEGEZIS_OAUTH_PROVIDERS=google,github` en `.env.cloud`.
+4. Pon esos valores en `.env.cloud`, arranca `pnpm web:cloud` y prueba como en el paso 1.5.

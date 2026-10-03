@@ -1,79 +1,102 @@
-# 12 — Web pública (apps/site)
+# 12 — Páginas públicas (landing y legales)
 
-La web pública de EXEGEZIS: qué es el producto, cómo funciona y los precios. Es la página que verá cualquiera antes de usarlo.
+Las páginas públicas de EXEGEZIS explican qué es el producto, cómo funciona y los precios, y publican los textos legales. Viven **dentro de la app** (`apps/web`): un solo servidor, un solo puerto (4100) y un solo dominio, como en Transcriptor.
 
-El diseño de referencia es `docs/design/landing.html`. A 1440 px, la web reproduce su orden, sus textos, medidas, colores, bordes y sombras. `pnpm design:compare` lo comprueba; las diferencias que quedan, y por qué, están en `docs/design/README.md`. En el móvil (375–390 px), las secciones se apilan con el mismo estilo.
+El diseño de referencia es `docs/design/landing.html`. A 1440 px, la landing reproduce su orden, sus textos, medidas, colores, bordes y sombras. `pnpm design:compare` lo comprueba sobre `/producto`; las diferencias que quedan, y por qué, están en `docs/design/README.md`. En el móvil (375–390 px), las secciones se apilan con el mismo estilo.
+
+## Rutas
+
+| Página | Español | Inglés |
+|---|---|---|
+| Landing | `/producto` | `/product` |
+| Privacidad (borrador) | `/privacidad` | `/privacy` |
+| Términos (borrador) | `/terminos` | `/terms` |
+
+`/`:
+- **modo local:** es la página de inicio de la app, como siempre. La landing se ve en `/producto`.
+- **modo nube, sin sesión:** muestra la landing, en el idioma de la cookie de idioma o, si no hay, en el del navegador. La URL sigue siendo `/`.
+  - Si no hay cookie de sesión, ni siquiera se consulta a Supabase.
+  - `/?url=…` lleva primero al registro y después a la pestaña Inspeccionar con esa dirección.
+- **modo nube, con sesión:** la página de inicio de la app.
 
 ## Arquitectura
 
-- **App separada:** `apps/site` (Next.js, App Router). Es independiente de la app local (`apps/web`, 127.0.0.1:4100), para poder publicarla sin ella.
-- **Sitio estático:** `next build` la exporta a `apps/site/out/` (`output: "export"`). Se puede subir tal cual a cualquier alojamiento estático.
-- **Tokens de diseño compartidos:** `packages/design-tokens/tokens.css`, el mismo archivo que usa la app local. No hay colores copiados.
-  - Cabecera, portada y llamada final usan `.theme-dark`: azul marino `#011B34`, texto blanco, botones y bordes lima. La vista previa del informe, dentro de la portada, usa `.theme-light`.
-  - El cuerpo usa el tema claro: fondo `#F2F5F6`, paneles blancos con contorno de 1.5 px `#0066FF`, enlaces `#0052CC` y botones `#0066FF`.
-- **Idiomas:** next-intl, como la app local, pero con el idioma en la URL (`/en/`, `/es/`) para que cada página sea estática.
-  - Catálogos: `apps/site/messages/{en,es}.json`.
-  - `/` envía al idioma elegido antes en ese navegador, si no al del navegador, y si no a inglés.
-  - El selector de la cabecera recuerda la elección.
-  - `<html lang>`, el título, la descripción y Open Graph van en el idioma de cada página.
+- **Estáticas:** cada página pública tiene `export const dynamic = "force-static"`. `next build` las genera como HTML (`○ Static` en la tabla de rutas), y se sirven con `Cache-Control: s-maxage=31536000`. En la prueba local respondieron en unos 4 ms.
+  - No leen cookies, cabeceras ni la sesión, y no ejecutan código de la app.
+  - El proxy (`src/proxy.ts`) no pasa por ellas: su `matcher` las excluye. Un test comprueba las dos cosas.
+- **Dos layouts raíz:** `(site-es)` y `(site-en)` (`src/app`), uno por idioma, con su propio `<html lang>` y su CSS (`src/site/site.css`).
+  - La app tiene los suyos: `(home)` para `/`, `(app)` con la barra lateral y `(auth)` para entrar y registrarse.
+  - Navegar de una a otra recarga la página completa. Es normal en Next con varios layouts raíz.
+  - `global-not-found.tsx` da el 404 de las URL que no existen.
+- **Idiomas:** el idioma lo da la ruta, no una cookie.
+  - El catálogo es `apps/web/messages/site/{en,es}.json` y se usa con su propio traductor (`src/site/i18n.ts`, `createTranslator`), no con la configuración de idioma de la app, que lee cookies.
+  - El selector EN / ES lleva a la misma página en el otro idioma y guarda la elección en la cookie de idioma de la app.
+- **Tokens de diseño compartidos:** `packages/design-tokens/tokens.css`, el mismo archivo que usa la app.
+  - Cabecera, portada y llamada final usan `.theme-dark`: azul marino `#011B34`, texto blanco, botones y bordes lima.
+  - La vista previa del informe usa `.theme-light`. El cuerpo es claro: fondo `#F2F5F6` y paneles blancos con contorno de 1.5 px `#0066FF`.
+- **Código:** `src/site/` contiene:
+  - `components/`, las secciones;
+  - `pages.tsx`, el documento, la landing, las páginas legales y sus metadatos;
+  - `i18n.ts` y `paths.ts`;
+  - `links.ts`, los enlaces de cada modo, solo en el servidor;
+  - `urls.ts`, lo que necesita el navegador;
+  - `legal.ts`, los textos.
 
-## Contenido y configuración
+## Contenido y enlaces
 
-- **Precios:** `apps/site/content/pricing.ts` es el único sitio donde están los precios, los límites y las funciones de cada plan.
-  - Cada función tiene `available`. Lo que EXEGEZIS aún no hace (versión en la nube, cuentas y pagos, vigilancia diaria y alertas, integraciones, informes con marca, API, SSO…) se muestra como «Próximamente».
-  - Los planes de pago dicen «Pagos: próximamente», porque todavía no existen cuentas ni pagos.
+- **Precios:** `packages/accounts/src/pricing.ts` es la fuente única. La landing muestra precios, límites y funciones. La app, en modo nube, aplica esos mismos límites en el servidor.
+  - Cada función tiene `available`. Lo que EXEGEZIS aún no hace se muestra como «Próximamente».
+  - Los planes de pago dicen «Pagos: próximamente».
   - Anual: el precio mensual mostrado es precio × 10 / 12, redondeado. Pro sale a 24 $/mes y se factura 290 $ al año; Equipo, 83 $/mes y 990 $ al año.
-- **Enlaces:** `apps/site/content/links.ts`. Cada uno se cambia al compilar con su variable:
+- **Botones:** todos apuntan al mismo dominio.
 
-  | Variable | Por defecto |
-  |---|---|
-  | `NEXT_PUBLIC_EXEGEZIS_APP_URL` | `http://127.0.0.1:4100` (la app local) |
-  | `NEXT_PUBLIC_EXEGEZIS_START_URL`, `…_SIGN_IN_URL`, `…_TRY_PRO_URL`, `…_TEAM_URL` | la app local |
-  | `NEXT_PUBLIC_EXEGEZIS_SALES_URL` | `mailto:sales@exegezis.example` (dominio reservado: TODO, poner la dirección real) |
-  | `NEXT_PUBLIC_EXEGEZIS_SITE_URL` | `http://127.0.0.1:4200` (URL pública, para Open Graph) |
+  | Botón | Modo nube | Modo local (no hay cuentas) |
+  |---|---|---|
+  | «Iniciar sesión» | `/login` | «Abrir la app» → `/` |
+  | «Empieza gratis», «Probar Pro / Equipo» | `/signup?plan=…` | `/` |
+  | «Inspeccionar gratis» con URL | `/signup?next=/?url=…`. Con sesión, la app lo salta y abre la pestaña Inspeccionar | la pestaña Inspeccionar con la URL (`/?url=…`) |
+  | «Hablar con ventas» | `EXEGEZIS_SALES_URL` | `EXEGEZIS_SALES_URL` |
 
-- **«Inspeccionar gratis»:** mientras no exista la versión en la nube, abre la app local en `/?url=…`, con la dirección ya escrita en la pestaña Inspeccionar.
-  - Si la app local no responde, explica cómo arrancarla: doble clic en `EXEGEZIS.cmd`, o `npm run dev` en la carpeta del repositorio.
-  - La app local solo acepta direcciones http(s) en `?url=`.
-- **Sin inventos:** no hay testimonios, logos de clientes ni cifras de uso, porque todavía no existen. La vista previa del informe de la portada es una ilustración: está marcada `aria-hidden` y usa `example.com`.
-- **Pie:** las páginas que aún no existen (documentación, «cómo verificamos», novedades y las páginas legales) aparecen como texto con «(próximamente)», no como enlaces vacíos. Hay un TODO en `site-footer.tsx`.
+- **Cabecera con sesión:** muestra «Ir a la app» y las iniciales del usuario. Como la página es estática, las lee de una cookie que deja el proxy (`EXEGEZIS_SIGNED_IN`).
+  - Solo contiene las iniciales: no es la sesión, que sigue siendo httpOnly.
+  - La app comprueba la sesión de verdad al entrar.
+  - No hay `/api/session` ni CORS.
+- **Legal:** los textos son **borradores marcados** («Borrador pendiente de revisión legal»).
+  - El registro guarda la versión aceptada (`packages/accounts/src/legal.ts`).
+  - El contacto de privacidad es `EXEGEZIS_PRIVACY_EMAIL`.
+- **Pie:** documentación, «cómo verificamos», novedades y uso responsable aparecen como texto con «(próximamente)».
+- **Sin inventos:** no hay testimonios, logos de clientes ni cifras de uso. La vista previa del informe es una ilustración marcada `aria-hidden`.
 
-## Garantías (pruebas)
+## Pruebas
 
-- `apps/site/test/site.test.ts` comprueba:
-  - catálogos idénticos en los dos idiomas (claves y marcadores ICU);
-  - la matemática de precios;
-  - que nada no disponible se prometa como disponible;
-  - el idioma de `/`;
-  - el contraste AA de todos los pares de color que usa la web.
-- `apps/site/test/site.e2e.test.ts` usa un navegador real con su propio `next dev` y comprueba:
-  - cada idioma sin palabras del otro, con `<html lang>`, título y Open Graph correctos;
-  - el idioma de `/` y el selector;
-  - Mensual y Anual, también con las flechas del teclado;
-  - «Próximamente» donde corresponde;
-  - que no haya scroll horizontal a 375 px y que el menú funcione en el móvil;
-  - teclado: el enlace «Saltar al contenido» va primero y todo lo enfocable tiene foco visible;
-  - las preguntas frecuentes se muestran abiertas, como en el diseño;
-  - «Inspeccionar gratis» con la app local en marcha y parada.
-- Capturas: `node apps/site/scripts/screenshots.mjs` genera `docs/screenshots/site/landing-{en,es}-{1440,375}.png` y las imágenes de Open Graph (`apps/site/public/og-{en,es}.png`).
+- `apps/web/test/site.test.ts` comprueba:
+  - catálogos idénticos en los dos idiomas;
+  - la matemática de precios y que nada no disponible se prometa;
+  - los enlaces de cada modo y los borradores legales;
+  - el contraste AA de todos los pares de color;
+  - que las páginas públicas sean `force-static`, queden fuera del proxy y no importen nada de la petición ni de la sesión.
+- `apps/web/test/site.e2e.test.ts` usa un navegador real, en modo local, y comprueba:
+  - `/producto` y `/product`, cada una solo en su idioma, con `<html lang>`, título y Open Graph;
+  - que `/` sigue siendo la app;
+  - el selector, que cambia también el idioma de la app;
+  - Mensual y Anual, también con el teclado;
+  - «Próximamente» y los borradores;
+  - 375 px sin scroll horizontal, y el menú;
+  - el foco visible en todo;
+  - «Inspeccionar gratis», que abre la pestaña Inspeccionar con la URL.
+- `apps/web/test/cloud.e2e.test.ts` comprueba `/` en modo nube: la landing sin sesión y la app con ella.
+- Capturas: `node apps/web/scripts/site-screenshots.mjs` genera `docs/screenshots/site/landing-{en,es}-{1440,375}.png` y las imágenes de Open Graph (`apps/web/public/og-{en,es}.png`).
 
 ## Comandos (CMD de Windows, desde la carpeta del repositorio)
+
+```bat
+pnpm web
+```
+
+Arranca la app en http://127.0.0.1:4100, en modo local. La landing está en http://127.0.0.1:4100/producto.
 
 ```bat
 pnpm design:compare
 ```
 
-Compara la web y la página de inicio de la app con `docs/design/`, y deja las capturas y las diferencias en `docs\design\diff\`.
-
-
-```bat
-pnpm site
-```
-
-Arranca la web en http://127.0.0.1:4200. `npm run site` hace lo mismo.
-
-```bat
-pnpm build:site
-```
-
-Genera el sitio estático en `apps\site\out\`.
+Compara la landing y la página de inicio de la app con `docs/design/`, y deja las capturas y las diferencias en `docs\design\diff\`.

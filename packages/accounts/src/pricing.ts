@@ -7,7 +7,7 @@
  * promises as available something that does not exist. A test checks it.
  * The words of each feature are in messages/{en,es}.json → pricing.features.<id>.
  *
- * The landing (apps/site/content/pricing.ts re-exports this file) shows these
+ * The landing (apps/web/src/site, /producto) shows these
  * plans, and the app (apps/web, cloud mode) enforces `limits` on the server.
  * The numbers on the cards come from the same `limits`.
  */

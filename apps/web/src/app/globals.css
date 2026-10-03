@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Tokens, themes and the panel outline: packages/design-tokens (shared with apps/site). */
+/* Tokens, themes and the panel outline: packages/design-tokens (shared with the public pages, src/site/site.css). */
 @import "@exegezis/design-tokens/tokens.css";
 
 html,
