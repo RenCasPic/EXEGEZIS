@@ -185,3 +185,27 @@ describe("legal pages (drafts)", () => {
     expect(ES.get("legal.draft")).toBe("Borrador pendiente de revisión legal");
   });
 });
+
+describe("the public pages are static and outside the session", () => {
+  const app = join(__dirname, "..", "src", "app");
+  const pages = ["(site-es)/producto", "(site-es)/privacidad", "(site-es)/terminos", "(site-en)/product", "(site-en)/privacy", "(site-en)/terms"];
+
+  it("every public page and its layout is force-static", () => {
+    for (const p of pages) expect(readFileSync(join(app, p, "page.tsx"), "utf8"), p).toContain('export const dynamic = "force-static"');
+    for (const g of ["(site-es)", "(site-en)"]) expect(readFileSync(join(app, g, "layout.tsx"), "utf8"), g).toContain('export const dynamic = "force-static"');
+  });
+
+  it("the proxy (session, cookies) never runs for them", () => {
+    const proxy = readFileSync(join(__dirname, "..", "src", "proxy.ts"), "utf8");
+    const matcher = /matcher: \["(.*)"\]/.exec(proxy)?.[1] ?? "";
+    for (const p of pages) expect(matcher, p).toContain(`${p.split("/")[1] ?? ""}/?$`);
+  });
+
+  it("they read no cookie, header or session: nothing of the app's request is imported", () => {
+    const src = join(__dirname, "..", "src", "site");
+    for (const file of ["pages.tsx", "i18n.ts", "links.ts", "urls.ts", "paths.ts", "legal.ts"]) {
+      const text = readFileSync(join(src, file), "utf8");
+      expect(text, file).not.toMatch(/next\/headers|@\/lib\/cloud|next-intl\/server/);
+    }
+  });
+});
