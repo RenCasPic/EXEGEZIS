@@ -119,7 +119,7 @@ pnpm exegezis account claim-local
    - O pega `supabase/migrations/*.sql` en el SQL Editor.
 2. **Auth** (Dashboard):
    - Site URL = la URL de la app.
-   - Redirect URLs = `https://app.exegezis.com/auth/callback`.
+   - Redirect URLs = `https://app.exegezis.com/**`. Los enlaces vuelven a `/auth/callback?next=…`, y el patrón tiene que admitir esa consulta.
    - Email confirmations ON, longitud mínima 10, Manual linking ON y, si tu plan lo permite, Leaked password protection ON.
    - SMTP propio para que los emails salgan de tu dominio.
    - Para OAuth: proveedores Google y GitHub con callback `https://<ref>.supabase.co/auth/v1/callback`.
@@ -240,7 +240,7 @@ Fuera de esta versión: pagos (Stripe), equipos con varios usuarios y roles, SSO
    - Connect → Session pooler: copia la cadena de conexión en `DATABASE_URL`, con tu contraseña.
    - Authentication → URL Configuration:
      - Site URL = la URL de la app;
-     - Redirect URLs = `<URL de la app>/auth/callback`.
+     - Redirect URLs = `<URL de la app>/**`.
    - Authentication → Providers → Email:
      - «Confirm email» activado;
      - «Minimum password length» = 10.
