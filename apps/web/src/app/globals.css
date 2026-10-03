@@ -77,10 +77,12 @@ details > summary::-webkit-details-marker {
   .animate-pulse-dot {
     animation: none;
   }
+  /* Without motion: stripes across the whole bar, which never read as «full». */
   .animate-progress-slide {
     left: 0;
     width: 100%;
-    opacity: 0.35;
+    background: repeating-linear-gradient(135deg, var(--accent) 0 6px, transparent 6px 12px);
+    opacity: 0.45;
     animation: none;
   }
 }
