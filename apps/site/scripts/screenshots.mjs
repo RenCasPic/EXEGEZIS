@@ -29,7 +29,7 @@ if (base === null) {
   base = `http://127.0.0.1:${port}`;
   server = spawn(process.execPath, [join(SITE, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
     cwd: SITE,
-    env: { ...process.env, EXEGEZIS_NEXT_DIST: ".next-shots", NEXT_TELEMETRY_DISABLED: "1" },
+    env: { ...process.env, EXEGEZIS_NEXT_DIST: ".next-shots", NEXT_TELEMETRY_DISABLED: "1", EXEGEZIS_MODE: "local", NEXT_PUBLIC_EXEGEZIS_MODE: "local" },
     stdio: "ignore",
     windowsHide: true,
   });

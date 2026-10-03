@@ -27,11 +27,20 @@ export async function requireAccountInCloud(): Promise<void> {
   if (isCloud()) await requireAccount();
 }
 
-/** The client's address. Behind a proxy, it must set X-Forwarded-For (docs/13-accounts.md). */
+/**
+ * The client's address, for the rate limits. Proxies append to
+ * X-Forwarded-For, so the entry a client cannot forge is the one added by the
+ * nearest trusted proxy: EXEGEZIS_PROXY_HOPS (default 1) counts them from the
+ * right (docs/13-accounts.md).
+ */
 export async function clientIp(): Promise<string> {
   const h = await headers();
-  const forwarded = h.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || h.get("x-real-ip") || "local";
+  const list = (h.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p !== "");
+  const hops = Math.max(1, Number(process.env["EXEGEZIS_PROXY_HOPS"] ?? "1") || 1);
+  return list[Math.max(0, list.length - hops)] ?? h.get("x-real-ip") ?? "local";
 }
 
 /**

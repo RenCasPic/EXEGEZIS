@@ -141,7 +141,7 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${port}`;
   server = spawn(process.execPath, [join(WEB, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
     cwd: WEB,
-    env: { ...process.env, EXEGEZIS_NEXT_DIST: ".next-e2e", NEXT_TELEMETRY_DISABLED: "1" },
+    env: { ...process.env, EXEGEZIS_NEXT_DIST: ".next-e2e", NEXT_TELEMETRY_DISABLED: "1", EXEGEZIS_MODE: "local", NEXT_PUBLIC_EXEGEZIS_MODE: "local" },
     stdio: "ignore",
     windowsHide: true,
   });
