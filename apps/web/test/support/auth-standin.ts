@@ -305,7 +305,9 @@ export async function startAuthStandin(databaseUrl: string): Promise<AuthStandin
               mail(b["email"], "email_change", token, redirectTo);
             }
             if (typeof b["data"] === "object" && b["data"] !== null) await sql`update auth.users set raw_user_meta_data = raw_user_meta_data || ${sql.json(b["data"] as never)} where id = ${user.id}`;
-            user = (await findUser({ id: user.id }));
+            const updated = await findUser({ id: user.id });
+            if (updated === null) return fail(res, 404, "user_not_found", "User not found");
+            user = updated;
           }
           return send(res, 200, await userJson(user));
         }
