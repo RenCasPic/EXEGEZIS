@@ -1,6 +1,6 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, openSync } from "node:fs";
 import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { createServer as createHttpServer, type Server } from "node:http";
 import { createServer } from "node:net";
@@ -122,6 +122,18 @@ async function signIn(page: Page, email: string, password = PASSWORD, path = "/l
   await page.click('form:has(input[name="password"]) button[type="submit"]');
 }
 
+/** The text of the form's alert (Next's own route announcer is also role="alert", but empty and outside the forms). */
+async function alertText(page: Page, form = "form"): Promise<string> {
+  const alert = page.locator(`${form} [role="alert"]`).first();
+  await alert.waitFor({ state: "visible", timeout: 60_000 });
+  return ((await alert.textContent()) ?? "").trim();
+}
+
+/** Waits until the form's alert says `text` (it may still show the previous message for a moment). */
+async function expectAlert(page: Page, text: string, form = "form"): Promise<void> {
+  await page.locator(`${form} [role="alert"]`).filter({ hasText: text }).first().waitFor({ state: "visible", timeout: 60_000 });
+}
+
 async function userId(email: string): Promise<string> {
   const rows = await sql<{ id: string }[]>`select id from auth.users where lower(email) = lower(${email})`;
   const id = rows[0]?.id;
@@ -177,6 +189,9 @@ beforeAll(async () => {
   }
   sql = postgres(databaseUrl, { max: 1, prepare: false, onnotice: () => undefined });
 
+  // The app's output, to read when a test fails: apps/web/test/.tmp/cloud-server.log.
+  mkdirSync(join(WEB, "test", ".tmp"), { recursive: true });
+  const logFile = openSync(join(WEB, "test", ".tmp", "cloud-server.log"), "w");
   const appPort = await freePort();
   base = `http://127.0.0.1:${appPort}`;
   server = spawn(process.execPath, [join(WEB, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(appPort)], {
@@ -198,7 +213,7 @@ beforeAll(async () => {
       // The inspected site is on this machine: allowed only for this test (never in a production build).
       EXEGEZIS_ALLOW_PRIVATE_TARGETS: "1",
     },
-    stdio: "ignore",
+    stdio: ["ignore", logFile, logFile],
     windowsHide: true,
   });
   for (let i = 0; ; i++) {
@@ -266,11 +281,11 @@ describe("cloud mode: accounts", () => {
     await page.fill('input[name="password"]', "corta");
     await page.check('input[name="terms"]');
     await page.click('form:has(input[name="terms"]) button[type="submit"]');
-    await expect(page.locator('[role="alert"]').textContent()).resolves.toContain("10 caracteres");
+    await expectAlert(page, "10 caracteres");
     await page.fill('input[name="password"]', PASSWORD);
     await page.uncheck('input[name="terms"]');
     await page.click('form:has(input[name="terms"]) button[type="submit"]');
-    await expect(page.locator('[role="alert"]').textContent()).resolves.toContain("acepta los términos");
+    await expectAlert(page, "acepta los términos");
     // Ana already has an account: the same «check your email» page, nobody learns it.
     await signUp(page, { name: "Otra", email: ana.email });
     await ctx.close();
@@ -280,7 +295,7 @@ describe("cloud mode: accounts", () => {
     const ctx = await context();
     const page = await ctx.newPage();
     await signIn(page, ana.email, "no-es-esta-contraseña");
-    await expect(page.locator('[role="alert"]').textContent()).resolves.toBe("Email o contraseña incorrectos.");
+    await expectAlert(page, "Email o contraseña incorrectos.");
     await signIn(page, ana.email, PASSWORD, `/login?next=${encodeURIComponent("https://evil.example/x")}`);
     await page.waitForURL(`${base}/`);
     await page.goto(`${base}/login?next=%2Fsettings%2Faccount`);
@@ -299,7 +314,9 @@ describe("cloud mode: accounts", () => {
     await page.fill('input[name="maxPages"]', "2");
     await page.fill('input[name="runs"]', "1");
     await page.click('form:has(#inspect-url) button[type="submit"]');
-    await page.waitForURL(/\/jobs\//, { timeout: 120_000 });
+    await page.waitForURL(/\/jobs\//, { timeout: 120_000 }).catch(async (error: unknown) => {
+      throw new Error(`no job started: ${await page.locator('form:has(#inspect-url) [role="alert"]').first().textContent({ timeout: 1000 }).catch(() => "(no message)")}`, { cause: error });
+    });
     const id = await userId(ana.email);
     for (let i = 0; (await inspectionsOf(id)).length === 0 || !existsSync(join((await inspectionsOf(id))[0] ?? "", "inspection-report.json")); i++) {
       if (i > 360) throw new Error("the inspection did not finish");
@@ -348,20 +365,20 @@ describe("cloud mode: accounts", () => {
     // Another site: Free covers one.
     await page.fill("#inspect-url", target.replace("127.0.0.1", "localhost"));
     await page.click('form:has(#inspect-url) button[type="submit"]');
-    await expect(page.locator('form:has(#inspect-url) [role="alert"]').textContent()).resolves.toContain("1 sitio");
+    await expectAlert(page, "1 sitio", "form:has(#inspect-url)");
     await expect(page.locator("[data-see-plans]").getAttribute("href")).resolves.toContain("#pricing");
     // More pages than Free allows.
     await page.fill("#inspect-url", target);
     await page.click('button[aria-controls="inspect-advanced"]');
     await page.fill('input[name="maxPages"]', "21");
     await page.click('form:has(#inspect-url) button[type="submit"]');
-    await expect(page.locator('form:has(#inspect-url) [role="alert"]').textContent()).resolves.toContain("20 páginas");
+    await expectAlert(page, "20 páginas", "form:has(#inspect-url)");
     // Five inspections this month.
     const id = await userId(ana.email);
     for (let i = 0; i < 4; i++) await sql`insert into public.runs (id, user_id, kind, target_url, site, pages_requested) values (${`limit-${i}`}, ${id}, 'inspection', ${target}, '127.0.0.1', 1)`;
     await page.fill('input[name="maxPages"]', "2");
     await page.click('form:has(#inspect-url) button[type="submit"]');
-    await expect(page.locator('form:has(#inspect-url) [role="alert"]').textContent()).resolves.toContain("5 inspecciones al mes");
+    await expectAlert(page, "5 inspecciones al mes", "form:has(#inspect-url)");
     await ctx.close();
   }, 300_000);
 
@@ -382,7 +399,7 @@ describe("cloud mode: accounts", () => {
     await page.click("[data-sign-out]");
     await page.waitForURL(/\/login/);
     await signIn(page, bea.email, PASSWORD);
-    await expect(page.locator('[role="alert"]').textContent()).resolves.toBe("Email o contraseña incorrectos.");
+    await expectAlert(page, "Email o contraseña incorrectos.");
     await signIn(page, bea.email, "otra frase larga 2026");
     await page.waitForURL(`${base}/`);
     await ctx.close();
@@ -409,7 +426,7 @@ describe("cloud mode: accounts", () => {
       const ctx = await context({ ip: "203.0.113.7" });
       const page = await ctx.newPage();
       await signIn(page, email, "x");
-      last = (await page.locator('[role="alert"]').textContent()) ?? "";
+      last = await alertText(page);
       await ctx.close();
     }
     expect(last).toContain("Demasiados intentos");
@@ -497,7 +514,7 @@ describe("cloud mode: accounts", () => {
     await page.goto(`${base}/settings/account#data`, { waitUntil: "networkidle" });
     await page.fill("[data-delete-confirm]", "otra@example.com");
     await page.click('form:has([data-delete-confirm]) button[type="submit"]');
-    await expect(page.locator('form:has([data-delete-confirm]) [role="alert"]').textContent()).resolves.toContain("no coincide");
+    await expectAlert(page, "no coincide", "form:has([data-delete-confirm])");
     await page.fill("[data-delete-confirm]", ana.email);
     await page.click('form:has([data-delete-confirm]) button[type="submit"]');
     await page.waitForURL(/\/login\?notice=deleted/, { timeout: 120_000 });
@@ -508,7 +525,7 @@ describe("cloud mode: accounts", () => {
     }
     expect((await sql`select 1 from auth.users where id = ${id}`).length).toBe(0);
     await signIn(page, ana.email);
-    await expect(page.locator('[role="alert"]').textContent()).resolves.toBe("Email o contraseña incorrectos.");
+    await expectAlert(page, "Email o contraseña incorrectos.");
     await ctx.close();
   }, 300_000);
 });

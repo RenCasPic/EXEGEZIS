@@ -25,3 +25,4 @@ apps/cli/test/.tmp-engine/
 packages/inspect/test/.tmp-access/
 packages/search/test/.tmp-search/
 data/
+apps/web/test/.tmp/

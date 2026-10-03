@@ -94,6 +94,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
             }))}
           counts={counts}
           user={user}
+          account={account}
         />
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 lg:px-8">{children}</main>
       </div>

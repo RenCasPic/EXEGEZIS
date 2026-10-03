@@ -26,7 +26,7 @@ function Submit({ children, danger = false }: { children: ReactNode; danger?: bo
     <button
       type="submit"
       disabled={pending}
-      className={`flex h-10 items-center justify-center gap-2 self-start rounded-lg px-4 text-[14px] font-semibold disabled:opacity-60 ${danger ? "bg-bad text-white hover:opacity-90" : "bg-accent text-on-accent hover:bg-accent-hover"}`}
+      className={`flex h-10 items-center justify-center gap-2 self-start rounded-lg px-4 text-[14px] font-semibold disabled:opacity-60 ${danger ? "bg-bad text-bg hover:opacity-90" : "bg-accent text-on-accent hover:bg-accent-hover"}`}
     >
       {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
       {children}
