@@ -63,10 +63,10 @@ export function Stat({ label, value, hint, footer }: { label: string; value: Rea
 
 export function EmptyState({ icon, title, children, action }: { icon?: ReactNode; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+    <div className="flex min-w-0 flex-col items-center justify-center gap-2 px-6 py-12 text-center">
       {icon !== undefined && <div className="mb-1 text-faint [&>svg]:size-6">{icon}</div>}
       <div className="text-sm font-medium text-fg">{title}</div>
-      {children !== undefined && <div className="max-w-md text-sm text-muted">{children}</div>}
+      {children !== undefined && <div className="max-w-full text-sm text-muted [overflow-wrap:anywhere] sm:max-w-md">{children}</div>}
       {action !== undefined && <div className="mt-3">{action}</div>}
     </div>
   );
