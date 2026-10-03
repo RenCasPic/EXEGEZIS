@@ -1,4 +1,5 @@
 import type { EvidenceLevel } from "@exegezis/core";
+import { searchDir } from "@/lib/user-workspace";
 import { CircleHelp, CircleX, Minus, Search, Check, TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
@@ -275,7 +276,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const tab = params["modo"] === "buscar" ? "search" : "inspect";
   const templates: TemplateOption[] =
     tab === "search"
-      ? (await listTemplates().catch(() => [])).map((tp) => ({ id: tp.id, name: tp.name, description: tp.description, origin: tp.origin, hasExact: tp.exact !== null, hasMeaning: tp.meaning !== null }))
+      ? (await listTemplates(await searchDir()).catch(() => [])).map((tp) => ({ id: tp.id, name: tp.name, description: tp.description, origin: tp.origin, hasExact: tp.exact !== null, hasMeaning: tp.meaning !== null }))
       : [];
   const fmt = formatFor(f.locale);
   const hasUnassigned = all.some((s) => s.project === null);

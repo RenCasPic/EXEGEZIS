@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { searchDir } from "@/lib/user-workspace";
 import { redirect } from "next/navigation";
 import { queryParts } from "@exegezis/core";
 import {
@@ -87,7 +88,7 @@ export async function startSearchAction(_prev: SearchState, form: FormData): Pro
 
 /** Before launching: an order of magnitude by number of pages (the exact estimate comes after reading them). */
 export async function meaningEstimateAction(maxPages: number | null): Promise<{ usd: number; limitUsd: number; model: string; configured: boolean }> {
-  const settings = await readSearchSettings();
+  const settings = await readSearchSettings(await searchDir());
   const pages = maxPages ?? SEARCH_DEFAULTS.maxPages;
   return { usd: ceilCents(roughEstimateByPages(settings.model, pages)), limitUsd: settings.maxCostUsd, model: settings.model, configured: await plannerCredentialsConfigured() };
 }
@@ -100,7 +101,7 @@ export async function suggestEstimateAction(terms: string): Promise<{ usd: numbe
   } catch {
     return { error: await say(ui("common.errors.typeTermFirst")) };
   }
-  const settings = await readSearchSettings();
+  const settings = await readSearchSettings(await searchDir());
   return { usd: estimateSuggestCost(settings.model, list, await getUiLocale()), model: settings.model, configured: await plannerCredentialsConfigured(), terms: list };
 }
 
@@ -189,13 +190,13 @@ export async function saveSearchAction(form: FormData): Promise<void> {
   const name = text(form, "name").trim();
   if (ref === null || ref.report.status !== "ok" || name === "") throw new Error(await say(ui("common.errors.nameSearch")));
   const r = ref.report.value;
-  await saveSearch({ name: name.slice(0, 200), url: r.target.url, query: r.query, options: { maxPages: r.options.maxPages, maxDepth: r.options.maxDepth, runs: r.options.runs, includeHidden: r.options.includeHidden, noSession: false } });
+  await saveSearch({ name: name.slice(0, 200), url: r.target.url, query: r.query, options: { maxPages: r.options.maxPages, maxDepth: r.options.maxDepth, runs: r.options.runs, includeHidden: r.options.includeHidden, noSession: false } }, await searchDir());
   redirect("/searches#guardadas");
 }
 
 export async function runSavedAction(form: FormData): Promise<void> {
   const id = text(form, "saved");
-  const saved = (await listSavedSearches()).find((s) => s.id === id);
+  const saved = (await listSavedSearches(await searchDir())).find((s) => s.id === id);
   if (saved === undefined) throw new Error(await say(ui("common.errors.savedMissing")));
   const job = await startSearch({
     url: saved.url,
@@ -223,7 +224,7 @@ export async function runSavedAction(form: FormData): Promise<void> {
 }
 
 export async function deleteSavedAction(form: FormData): Promise<void> {
-  await deleteSavedSearch(text(form, "saved"));
+  await deleteSavedSearch(text(form, "saved"), await searchDir());
   redirect("/searches#guardadas");
 }
 
@@ -237,7 +238,7 @@ export async function saveSearchSettingsAction(_prev: SettingsState, form: FormD
   const maxCostUsd = Number(raw);
   if (!Number.isFinite(maxCostUsd) || maxCostUsd <= 0 || maxCostUsd > 100) return { error: await say(ui("settings.searchPage.errors.limit")) };
   try {
-    const s = await writeSearchSettings({ maxCostUsd: Math.round(maxCostUsd * 100) / 100, model: text(form, "model") });
+    const s = await writeSearchSettings({ maxCostUsd: Math.round(maxCostUsd * 100) / 100, model: text(form, "model") }, await searchDir());
     return { error: null, done: await say(ui("settings.searchPage.errors.saved", { usd: `${s.maxCostUsd.toFixed(2)} USD`, model: s.model })) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
@@ -263,7 +264,7 @@ export async function saveTemplateAction(_prev: SettingsState, form: FormData): 
       const q = exactQueryFrom({ terms, variants: text(form, "variants") === "on" });
       exact = { terms: q.terms, phrases: q.phrases, excluded: q.excluded, variants: q.variants, regex: null, detectors: [] };
     }
-    await saveUserTemplate({ id: `mi-${id}`, version: 1, name, description: text(form, "description").trim().slice(0, 1000), exact, meaning: meaning === "" ? null : { description: meaning } });
+    await saveUserTemplate({ id: `mi-${id}`, version: 1, name, description: text(form, "description").trim().slice(0, 1000), exact, meaning: meaning === "" ? null : { description: meaning } }, await searchDir());
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   }
@@ -272,6 +273,6 @@ export async function saveTemplateAction(_prev: SettingsState, form: FormData): 
 }
 
 export async function deleteTemplateAction(form: FormData): Promise<void> {
-  await deleteUserTemplate(text(form, "id"));
+  await deleteUserTemplate(text(form, "id"), await searchDir());
   redirect("/settings/search");
 }

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { platform } from "node:os";
 
 /**
@@ -143,7 +144,43 @@ export class SecretToolProtector implements KeyProtector {
   }
 }
 
+/**
+ * A server with no desktop keyring (EXEGEZIS cloud mode): each user's master
+ * key is wrapped with AES-256-GCM under a server key (EXEGEZIS_ACCESS_KEY, 32
+ * bytes in base64), kept outside the data folder (a secret of the deployment).
+ */
+export class ServerKeyProtector implements KeyProtector {
+  readonly name = "server key (EXEGEZIS_ACCESS_KEY)";
+  private readonly key: Buffer;
+
+  constructor(base64Key: string) {
+    const key = Buffer.from(base64Key, "base64");
+    if (key.length !== 32) throw new KeystoreUnavailableError("EXEGEZIS_ACCESS_KEY must be 32 bytes in base64 (for example: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\").");
+    this.key = key;
+  }
+
+  protect(secret: Buffer): Promise<Buffer> {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv("aes-256-gcm", this.key, iv);
+    const body = Buffer.concat([cipher.update(secret), cipher.final()]);
+    return Promise.resolve(Buffer.concat([Buffer.from("EXSK1"), iv, cipher.getAuthTag(), body]));
+  }
+
+  unprotect(blob: Buffer): Promise<Buffer> {
+    if (blob.length < 33 || blob.subarray(0, 5).toString() !== "EXSK1") return Promise.reject(new AccessUnreadableError("This saved access was not protected with the server key."));
+    try {
+      const decipher = createDecipheriv("aes-256-gcm", this.key, blob.subarray(5, 17));
+      decipher.setAuthTag(blob.subarray(17, 33));
+      return Promise.resolve(Buffer.concat([decipher.update(blob.subarray(33)), decipher.final()]));
+    } catch {
+      return Promise.reject(new AccessUnreadableError("This saved access cannot be opened with the current server key."));
+    }
+  }
+}
+
 export function systemProtector(): KeyProtector {
+  const serverKey = process.env["EXEGEZIS_ACCESS_KEY"];
+  if (serverKey !== undefined && serverKey !== "") return new ServerKeyProtector(serverKey);
   switch (platform()) {
     case "win32":
       return new DpapiProtector();

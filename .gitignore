@@ -24,3 +24,4 @@ packages/inspect/test/.tmp-e2e/
 apps/cli/test/.tmp-engine/
 packages/inspect/test/.tmp-access/
 packages/search/test/.tmp-search/
+data/

@@ -1,4 +1,5 @@
 import { listTemplates, PRICES, PRICES_AS_OF, PRICES_SOURCE, readSearchSettings, searchDataDir } from "@exegezis/search/light";
+import { searchDir } from "@/lib/user-workspace";
 import { Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -14,7 +15,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** Settings → Búsquedas (docs/10-search.md §5): cost limit, model and the person's own templates. */
 export default async function SearchSettingsPage() {
-  const [settings, templates, ts, t] = await Promise.all([readSearchSettings(), listTemplates(), getTranslations("settings"), getTranslations("settings.searchPage")]);
+  const dir = await searchDir();
+  const [settings, templates, ts, t] = await Promise.all([readSearchSettings(dir), listTemplates(dir), getTranslations("settings"), getTranslations("settings.searchPage")]);
   const models = Object.entries(PRICES).map(([id, p]) => ({ id, label: p.label, price: t("price", { input: p.input, output: p.output }) }));
   return (
     <div className="flex flex-col gap-5">
@@ -25,7 +27,7 @@ export default async function SearchSettingsPage() {
           </Link>
         }
         title={t("title")}
-        description={t.rich("description", { dir: () => <Mono>{displayPath(searchDataDir())}</Mono> })}
+        description={t.rich("description", { dir: () => <Mono>{displayPath(dir ?? searchDataDir())}</Mono> })}
       />
       <Panel title={t("costModel")}>
         <SearchSettingsForm maxCostUsd={settings.maxCostUsd} model={settings.model} models={models} />

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@exegezis/access": "workspace:*",
+    "@exegezis/accounts": "workspace:*",
     "@exegezis/core": "workspace:*",
     "@exegezis/design-tokens": "workspace:*",
     "@exegezis/planner": "workspace:*",

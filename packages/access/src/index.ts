@@ -1,4 +1,4 @@
-export { AccessUnreadableError, DpapiProtector, KeychainProtector, KeystoreUnavailableError, SecretToolProtector, systemProtector, type KeyProtector } from "./keystore.js";
+export { AccessUnreadableError, DpapiProtector, KeychainProtector, KeystoreUnavailableError, SecretToolProtector, ServerKeyProtector, systemProtector, type KeyProtector } from "./keystore.js";
 export {
   AccessEntry,
   AccessSecrets,

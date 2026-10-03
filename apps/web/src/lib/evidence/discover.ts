@@ -110,13 +110,18 @@ function kindFromParent(dir: string): InvestigationKind {
 }
 
 /** The web job whose output holds `dir` (runs/web/jobs/<id>/…), wherever runs/ is configured. */
-function jobIdFor(dir: string): string | null {
-  const rel = relative(runsDir(), dir).split("\\").join("/");
+function jobIdFor(runs: string, dir: string): string | null {
+  const rel = relative(runs, dir).split("\\").join("/");
   const match = /^web\/jobs\/([0-9A-Z]{26})\//.exec(rel);
   return match?.[1] ?? null;
 }
 
-export async function discover(): Promise<WorkspaceIndex> {
+/**
+ * Everything under `runs` (the workspace's run folder) and, unless it is
+ * excluded (cloud mode: only the user's own data), the repository's
+ * benchmark results.
+ */
+export async function discover(where: { runs: string; includeBenchmarks: boolean } = { runs: runsDir(), includeBenchmarks: true }): Promise<WorkspaceIndex> {
   const investigations: InvestigationRef[] = [];
   const inspections: InspectionRef[] = [];
   const searches: SearchRef[] = [];
@@ -167,12 +172,12 @@ export async function discover(): Promise<WorkspaceIndex> {
     if (files.has("inspection-report.json")) {
       const relDir = displayPath(dir);
       const report = await readArtifact(join(dir, "inspection-report.json"), InspectionReport);
-      inspections.push({ id: uniqueId(basename(dir)), dir, relDir, jobId: jobIdFor(dir), report });
+      inspections.push({ id: uniqueId(basename(dir)), dir, relDir, jobId: jobIdFor(where.runs, dir), report });
       return;
     }
     if (files.has("search-report.json")) {
       const report = await readArtifact(join(dir, "search-report.json"), SearchReport);
-      searches.push({ id: uniqueId(basename(dir)), dir, relDir: displayPath(dir), jobId: jobIdFor(dir), report });
+      searches.push({ id: uniqueId(basename(dir)), dir, relDir: displayPath(dir), jobId: jobIdFor(where.runs, dir), report });
       return;
     }
     if (files.has("root-cause-result.json")) {
@@ -193,7 +198,7 @@ export async function discover(): Promise<WorkspaceIndex> {
         archived,
         benchmarkId: null,
         caseId: null,
-        jobId: jobIdFor(dir),
+        jobId: jobIdFor(where.runs, dir),
       });
       return;
     }
@@ -204,10 +209,12 @@ export async function discover(): Promise<WorkspaceIndex> {
     }
   }
 
-  await walk(runsDir(), 0, false, null);
-  const suites = await listDir(benchmarksDir());
-  for (const suite of suites.dirs) {
-    await walk(join(benchmarksDir(), suite, "results"), 1, true, suite);
+  await walk(where.runs, 0, false, null);
+  if (where.includeBenchmarks) {
+    const suites = await listDir(benchmarksDir());
+    for (const suite of suites.dirs) {
+      await walk(join(benchmarksDir(), suite, "results"), 1, true, suite);
+    }
   }
 
   // Newest first: run directories start with a ULID, archived ones with a date.

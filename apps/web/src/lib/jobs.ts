@@ -6,6 +6,7 @@ import { SuggestedTerm, ulid } from "@exegezis/core";
 import { z } from "zod";
 import { getUiLocale } from "../i18n/server";
 import { readArtifact, readText } from "./evidence/read";
+import { currentWorkspace, workspaceEnv, type Workspace } from "./user-workspace";
 import { displayPath, repoRoot, runsDir } from "./workspace";
 
 /** The CLI has no build to run (pnpm build). Shown translated by the action that caught it. */
@@ -147,12 +148,13 @@ export type JobStatus = JobRecord["status"] | "lost";
 /** Exit codes the CLI documents (their meaning: jobs.exit.<code> in the catalogs). */
 export const EXIT_CODES = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
 
-export const jobsDir = (): string => join(runsDir(), "web", "jobs");
-const jobDir = (id: string): string => join(jobsDir(), id);
-export const jobOutputDir = (id: string): string => join(jobDir(id), "out");
+/** Web jobs live in the workspace's runs folder (each user's own in cloud mode). */
+export const jobsDir = (runs: string = runsDir()): string => join(runs, "web", "jobs");
+const jobDir = (runs: string, id: string): string => join(jobsDir(runs), id);
+export const jobOutputDir = (id: string, runs: string = runsDir()): string => join(jobDir(runs, id), "out");
 
-async function writeJob(job: JobRecord): Promise<void> {
-  await writeFile(join(jobDir(job.id), "job.json"), `${JSON.stringify(job, null, 2)}\n`, "utf8");
+async function writeJob(runs: string, job: JobRecord): Promise<void> {
+  await writeFile(join(jobDir(runs, job.id), "job.json"), `${JSON.stringify(job, null, 2)}\n`, "utf8");
 }
 
 function alive(pid: number | null): boolean {
@@ -165,9 +167,10 @@ function alive(pid: number | null): boolean {
   }
 }
 
-export async function readJob(id: string): Promise<{ job: JobRecord; status: JobStatus } | null> {
+export async function readJob(id: string, ws?: Workspace): Promise<{ job: JobRecord; status: JobStatus } | null> {
   if (!/^[0-9A-Z]{26}$/.test(id)) return null;
-  const loaded = await readArtifact(join(jobDir(id), "job.json"), JobRecord);
+  const runs = (ws ?? (await currentWorkspace())).runs;
+  const loaded = await readArtifact(join(jobDir(runs, id), "job.json"), JobRecord);
   if (loaded.status !== "ok") return null;
   const job = loaded.value;
   let status: JobStatus = job.status;
@@ -177,19 +180,20 @@ export async function readJob(id: string): Promise<{ job: JobRecord; status: Job
 }
 
 export async function listJobs(): Promise<{ job: JobRecord; status: JobStatus }[]> {
+  const ws = await currentWorkspace();
   let names: string[];
   try {
-    names = await readdir(jobsDir());
+    names = await readdir(jobsDir(ws.runs));
   } catch {
     return [];
   }
-  const jobs = await Promise.all(names.sort().reverse().map((name) => readJob(name)));
+  const jobs = await Promise.all(names.sort().reverse().map((name) => readJob(name, ws)));
   return jobs.filter((j) => j !== null);
 }
 
 export async function jobLog(id: string): Promise<string | null> {
   if (!/^[0-9A-Z]{26}$/.test(id)) return null;
-  return readText(join(jobDir(id), "output.log"), 256 * 1024);
+  return readText(join(jobDir((await currentWorkspace()).runs, id), "output.log"), 256 * 1024);
 }
 
 /** Whether the planner can authenticate. Checks presence only; the value is never read into the UI. */
@@ -216,14 +220,14 @@ async function jobLanguage(): Promise<"en" | "es"> {
 }
 
 /** The CLI arguments of a job: exactly what runs, also shown to reproduce it from a terminal. */
-export function commandFor(job: JobRecord): string[] {
-  return ["--lang", job.lang, ...commandArgs(job)];
+export function commandFor(job: JobRecord, runs: string = runsDir()): string[] {
+  return ["--lang", job.lang, ...commandArgs(job, runs)];
 }
 
-function commandArgs(job: JobRecord): string[] {
-  const output = jobOutputDir(job.id);
+function commandArgs(job: JobRecord, runs: string): string[] {
+  const output = jobOutputDir(job.id, runs);
   if (job.kind === "access") {
-    return ["session", "login", "--url", job.url, "--done-file", accessDoneFile(job.id), ...(job.browserChannel === "auto" ? [] : ["--browser-channel", job.browserChannel])];
+    return ["session", "login", "--url", job.url, "--done-file", accessDoneFile(job.id, runs), ...(job.browserChannel === "auto" ? [] : ["--browser-channel", job.browserChannel])];
   }
   if (job.kind === "search") {
     return [
@@ -273,24 +277,25 @@ function commandArgs(job: JobRecord): string[] {
 }
 
 /** Terminal form of a job's command, with the output path shown relative to the repository. */
-export function terminalCommand(job: JobRecord): string {
-  const output = jobOutputDir(job.id);
-  return ["pnpm exegezis", ...commandFor(job).map((a) => (a === output ? displayPath(output) : a)).map((a) => (/[\s"']/.test(a) ? JSON.stringify(a) : a))].join(" ");
+export function terminalCommand(job: JobRecord, runs: string = runsDir()): string {
+  const output = jobOutputDir(job.id, runs);
+  return ["pnpm exegezis", ...commandFor(job, runs).map((a) => (a === output ? displayPath(output) : a)).map((a) => (/[\s"']/.test(a) ? JSON.stringify(a) : a))].join(" ");
 }
 
-function spawnJob(job: JobRecord, onExit: () => void): void {
+function spawnJob(ws: Workspace, job: JobRecord, onExit: () => void): void {
   // Writes are serialized so a fast exit can never be overwritten by an earlier record.
-  let queue = writeJob(job);
+  let queue = writeJob(ws.runs, job);
   const update = (patch: Partial<JobRecord>): void => {
     Object.assign(job, patch);
     const snapshot = { ...job } as JobRecord;
-    queue = queue.then(() => writeJob(snapshot));
+    queue = queue.then(() => writeJob(ws.runs, snapshot));
   };
-  const log = openSync(join(jobDir(job.id), "output.log"), "a");
+  const log = openSync(join(jobDir(ws.runs, job.id), "output.log"), "a");
   try {
     // No shell: every value is one argument, never interpreted. cwd is the
     // repository root so the CLI loads the same `.env` as in a terminal.
-    const child = spawn(process.execPath, [cliEntry(), ...commandFor(job)], { cwd: repoRoot(), stdio: ["ignore", log, log], windowsHide: true });
+    // The CLI reads and writes this workspace only (in cloud mode, the user's own folders).
+    const child = spawn(process.execPath, [cliEntry(), ...commandFor(job, ws.runs)], { cwd: repoRoot(), stdio: ["ignore", log, log], windowsHide: true, env: { ...process.env, ...workspaceEnv(ws) } });
     child.on("error", (error) => {
       update({ status: "failed", finishedAt: new Date().toISOString(), error: error.message });
       onExit();
@@ -328,11 +333,12 @@ export interface StartJobInput {
 
 export async function startJob(input: StartJobInput): Promise<JobRecord> {
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
+  const ws = await currentWorkspace();
   const id = ulid();
-  await mkdir(jobDir(id), { recursive: true });
+  await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: JobRecord = { ...newJobBase(id, await jobLanguage()), status: "running", kind: "ai-verify", planner: "anthropic", ...input };
-  spawnJob(job, () => undefined);
-  await writeJob(job);
+  spawnJob(ws, job, () => undefined);
+  await writeJob(ws.runs, job);
   return { ...job };
 }
 
@@ -349,19 +355,19 @@ export interface StartInspectionInput {
   noSession: boolean;
 }
 
-/** One browser job (inspection or search) at a time: the others wait in a queue owned by this server process. */
-const inspectionQueue: string[] = [];
+/** One browser job (inspection or search) at a time: the others wait in a queue owned by this server process (each with its owner's workspace). */
+const inspectionQueue: { id: string; ws: Workspace }[] = [];
 let inspectionRunning: string | null = null;
 
 async function runNextInspection(): Promise<void> {
   if (inspectionRunning !== null) return;
   const next = inspectionQueue.shift();
   if (next === undefined) return;
-  const found = await readJob(next);
+  const found = await readJob(next.id, next.ws);
   if (found === null || (found.job.kind !== "inspect" && found.job.kind !== "search") || found.job.status !== "queued") return runNextInspection();
   const job: InspectJob | SearchJob = { ...found.job, status: "running", startedAt: new Date().toISOString() };
   inspectionRunning = job.id;
-  spawnJob(job, () => {
+  spawnJob(next.ws, job, () => {
     inspectionRunning = null;
     void runNextInspection();
   });
@@ -369,38 +375,44 @@ async function runNextInspection(): Promise<void> {
 
 export async function startInspection(input: StartInspectionInput): Promise<JobRecord> {
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
+  return startInspectionIn(await currentWorkspace(), input);
+}
+
+async function startInspectionIn(ws: Workspace, input: StartInspectionInput): Promise<JobRecord> {
   const id = ulid();
-  await mkdir(jobDir(id), { recursive: true });
+  await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: InspectJob = { ...newJobBase(id, await jobLanguage()), status: "queued", kind: "inspect", ...input };
-  await writeJob(job);
-  inspectionQueue.push(id);
+  await writeJob(ws.runs, job);
+  inspectionQueue.push({ id, ws });
   await runNextInspection();
-  return (await readJob(id))?.job ?? job;
+  return (await readJob(id, ws))?.job ?? job;
 }
 
 export type StartSearchInput = Omit<SearchJob, keyof typeof JobBase | "kind">;
 
 export async function startSearch(input: StartSearchInput): Promise<JobRecord> {
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
+  const ws = await currentWorkspace();
   const id = ulid();
-  await mkdir(jobDir(id), { recursive: true });
+  await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: SearchJob = SearchJob.parse({ ...newJobBase(id, await jobLanguage()), status: "queued", kind: "search", ...input });
-  await writeJob(job);
-  inspectionQueue.push(id);
+  await writeJob(ws.runs, job);
+  inspectionQueue.push({ id, ws });
   await runNextInspection();
-  return (await readJob(id))?.job ?? job;
+  return (await readJob(id, ws))?.job ?? job;
 }
 
 /** The file the "Listo" button creates for an access job. */
-export function accessDoneFile(id: string): string {
-  return join(jobDir(id), "done");
+export function accessDoneFile(id: string, runs: string = runsDir()): string {
+  return join(jobDir(runs, id), "done");
 }
 
 /** The person finished in the window: the CLI saves the access (if the block is gone) and exits. */
 export async function markAccessDone(id: string): Promise<boolean> {
-  const found = await readJob(id);
+  const ws = await currentWorkspace();
+  const found = await readJob(id, ws);
   if (found === null || found.job.kind !== "access" || found.status !== "running") return false;
-  await writeFile(accessDoneFile(id), `${new Date().toISOString()}\n`, "utf8");
+  await writeFile(accessDoneFile(id, ws.runs), `${new Date().toISOString()}\n`, "utf8");
   return true;
 }
 
@@ -414,19 +426,20 @@ export interface StartAccessInput {
 /** Opens the visible window (one at a time is enough: it is a person's task). */
 export async function startAccessLogin(input: StartAccessInput): Promise<JobRecord> {
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
+  const ws = await currentWorkspace();
   const id = ulid();
-  await mkdir(jobDir(id), { recursive: true });
+  await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: AccessJob = { ...newJobBase(id, await jobLanguage()), status: "running", kind: "access", ...input, relaunchedJobId: null };
-  spawnJob(job, () => {
+  spawnJob(ws, job, () => {
     // Saved (exit 0) and an inspection to repeat: start it with the same options.
     if (job.exitCode === 0 && job.relaunch !== null) {
-      void startInspection(job.relaunch).then(async (next) => {
+      void startInspectionIn(ws, job.relaunch).then(async (next) => {
         job.relaunchedJobId = next.id;
-        await writeJob(job);
+        await writeJob(ws.runs, job);
       });
     }
   });
-  await writeJob(job);
+  await writeJob(ws.runs, job);
   return { ...job };
 }
 
@@ -444,7 +457,7 @@ export type InspectionProgressFile = z.infer<typeof InspectionProgressFile>;
 
 /** The inspection (or search) directory a job's CLI created, if any yet. */
 export async function jobInspectionDir(id: string, kind: "inspections" | "searches" = "inspections"): Promise<string | null> {
-  const base = join(jobOutputDir(id), kind);
+  const base = join(jobOutputDir(id, (await currentWorkspace()).runs), kind);
   try {
     const names = (await readdir(base)).sort();
     const last = names.at(-1);

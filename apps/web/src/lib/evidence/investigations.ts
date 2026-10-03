@@ -17,6 +17,7 @@ import {
 } from "@exegezis/core";
 import { readJob, type AiVerifyJob, type JobStatus } from "../jobs";
 import { benchmarksDir, isInside, repoRoot } from "../workspace";
+import { currentWorkspace } from "../user-workspace";
 import { discover, type BenchmarkRef, type InvestigationRef, type WorkspaceIndex } from "./discover";
 import { generationDetail, GenerationRecord } from "./generation";
 import { exists, readArtifact, readText, valueOf, type Loaded } from "./read";
@@ -24,7 +25,7 @@ import { latestFor, loadRootCauses, type RootCauseEntry } from "./root-causes";
 import { deriveStages, type StageState } from "./stages";
 
 /** One discovery per request. */
-export const getIndex = cache(async (): Promise<WorkspaceIndex> => discover());
+export const getIndex = cache(async (): Promise<WorkspaceIndex> => discover(await currentWorkspace()));
 
 /**
  * What a list row needs. It is a view over the real artifacts (BugReport,

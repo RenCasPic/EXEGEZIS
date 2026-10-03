@@ -129,6 +129,9 @@ importers:
       '@exegezis/access':
         specifier: workspace:*
         version: link:../../packages/access
+      '@exegezis/accounts':
+        specifier: workspace:*
+        version: link:../../packages/accounts
       '@exegezis/core':
         specifier: workspace:*
         version: link:../../packages/core

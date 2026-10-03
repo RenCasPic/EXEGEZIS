@@ -1,4 +1,5 @@
 import { describeQuery, listSavedSearches } from "@exegezis/search/light";
+import { searchDir } from "@/lib/user-workspace";
 import { Bookmark, ChevronRight, Play, Plus, Search, Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -20,7 +21,7 @@ export default async function SearchesPage() {
   const [searches, jobs, saved, t, tm, f, locale] = await Promise.all([
     listSearches(),
     listJobs(),
-    listSavedSearches().catch(() => []),
+    listSavedSearches(await searchDir()).catch(() => []),
     getTranslations("searches.list"),
     getTranslations("searches.mode"),
     getFormat(),
