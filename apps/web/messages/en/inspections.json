@@ -204,5 +204,15 @@
     "specMissing": "The report cites {path}, but the file does not exist.",
     "specHelp": "It fails while the problem exists and passes once it is fixed. Use BASE_URL to point it at another environment.",
     "firstEvidence": "Evidence (first observation)"
+  },
+  "delete": {
+    "button": "Delete",
+    "label": "Delete the inspection {id}",
+    "confirm": "Delete this inspection? It cannot be undone.",
+    "confirmShort": "Delete?",
+    "yes": "Yes, delete",
+    "no": "Cancel",
+    "running": "It is still running: wait for it to finish.",
+    "failed": "It could not be deleted. Reload the page and try again."
   }
 }

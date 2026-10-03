@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { AutoRefresh } from "@/components/ui/auto-refresh";
 import { ButtonLink, EmptyState, PageHeader, Panel, tableClass } from "@/components/ui/primitives";
 import { groupStats } from "@exegezis/core";
+import { DeleteInspection } from "@/components/inspection/delete-inspection";
 import { StatusPill } from "@/components/ui/status";
 import { listInspections } from "@/lib/evidence/inspections";
 import { getFormat } from "@/i18n/server";
@@ -99,9 +100,12 @@ export default async function InspectionsPage() {
                       <td className={`${tableClass.td} font-mono`}>{r?.summary.pagesVisited ?? "—"}</td>
                       <td className={`${tableClass.td} whitespace-nowrap text-xs text-muted`}>{r === null ? "—" : f.relative(r.finishedAt)}</td>
                       <td className={tableClass.td}>
-                        <Link href={`/inspections/${i.id}`} aria-label={t("open", { id: i.id })} className="text-faint hover:text-fg">
-                          <ChevronRight className="size-4" />
-                        </Link>
+                        <div className="flex items-center justify-end gap-1">
+                          <DeleteInspection id={i.id} from="list" />
+                          <Link href={`/inspections/${i.id}`} aria-label={t("open", { id: i.id })} className="text-faint hover:text-fg">
+                            <ChevronRight className="size-4" />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

@@ -11,6 +11,7 @@ import { EngineProblem } from "@/components/ui/copy-command";
 import { FilterForm } from "@/components/ui/filter-form";
 import { IssueGroupList } from "@/components/inspection/issue-groups";
 import { buttonClass, CodeBlock, EmptyState, Meta, Mono, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
+import { DeleteInspection } from "@/components/inspection/delete-inspection";
 import { SeverityLabel } from "@/components/inspection/severity";
 import { EngineText } from "@/components/ui/engine-text";
 import { RunHistory, StatusPill, VerdictPill } from "@/components/ui/status";
@@ -212,7 +213,12 @@ export default async function InspectionPage({ params, searchParams }: { params:
   if (inspection.report.status !== "ok") {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader title={t("invalid")} eyebrow={<StatusPill status="INVALID_REPORT" tone="bad" />} description={<Mono>{inspection.relDir}</Mono>} />
+        <PageHeader
+          title={t("invalid")}
+          eyebrow={<StatusPill status="INVALID_REPORT" tone="bad" />}
+          description={<Mono>{inspection.relDir}</Mono>}
+          actions={<DeleteInspection id={inspection.id} from="detail" />}
+        />
         <Panel title={t("whyHidden")}>
           {inspection.report.status === "missing" ? (
             <p className="text-[13px] text-muted">{t("missing")}</p>
@@ -272,6 +278,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
             <Mono>{inspection.id}</Mono>
           </>
         }
+        actions={<DeleteInspection id={inspection.id} from="detail" />}
       />
 
       {report.engineError !== null && (

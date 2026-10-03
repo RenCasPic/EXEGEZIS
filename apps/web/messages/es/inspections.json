@@ -204,5 +204,15 @@
     "specMissing": "El informe cita {path}, pero el archivo no existe.",
     "specHelp": "Falla mientras el problema exista y pasa cuando se corrige. Usa BASE_URL para apuntarlo a otro entorno.",
     "firstEvidence": "Evidencia (primera observación)"
+  },
+  "delete": {
+    "button": "Eliminar",
+    "label": "Eliminar la inspección {id}",
+    "confirm": "¿Eliminar esta inspección? No se puede deshacer.",
+    "confirmShort": "¿Eliminar?",
+    "yes": "Sí, eliminar",
+    "no": "Cancelar",
+    "running": "Todavía está en curso: espera a que termine.",
+    "failed": "No se pudo eliminar. Recarga la página y vuelve a intentarlo."
   }
 }
