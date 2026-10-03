@@ -83,6 +83,8 @@ export default defineConfig({
           root: "apps/web",
           include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
           setupFiles: ["test/setup.ts"],
+          // The two end-to-end files each start a `next dev` of apps/web, and Next runs one per project at a time.
+          fileParallelism: false,
         },
         resolve: { alias: { "@": fileURLToPath(new URL("./apps/web/src", import.meta.url)) } },
       },
