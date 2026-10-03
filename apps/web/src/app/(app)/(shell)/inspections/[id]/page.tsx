@@ -1,5 +1,5 @@
 import { assertionMessage, groupStats, SEVERITIES, type Finding, type InspectionReport } from "@exegezis/core";
-import { AlertTriangle, Download, ExternalLink, FileCode2, Globe, ListChecks, Wrench } from "lucide-react";
+import { AlertTriangle, Download, ExternalLink, FileCode2, Globe, Info, ListChecks, Wrench } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -293,15 +293,28 @@ export default async function InspectionPage({ params, searchParams }: { params:
         <BlockNotice block={entryBlock} origin={report.target.origin} inspectionId={inspection.id} relaunchJobId={inspection.jobId} hasWafToken={savedAccess?.kinds.includes("wafToken") === true} />
       )}
 
-      {writes.length > 0 && (
+      {writes.length > 0 && report.options.strictReadonly && (
         <div role="alert" className="flex gap-3 rounded-lg border border-warn/40 bg-warn-bg px-4 py-3 text-[13px] text-fg">
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
           <div>
             <strong className="font-semibold">
               {t("writes", { count: writes.length })}
-              {report.options.strictReadonly ? t("writesBlocked") : "."}
+              {t("writesBlocked")}
             </strong>{" "}
-            {report.options.strictReadonly ? t("writesDegraded", { count: s.discardedByPolicy }) : t("writesExplain")}{" "}
+            {t("writesDegraded", { count: s.discardedByPolicy })}{" "}
+            <a href="#page-writes" className="text-accent-text underline">
+              {t("seeWrites")}
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Allowed and listed (the default): information, not a problem. */}
+      {writes.length > 0 && !report.options.strictReadonly && (
+        <div className="flex gap-3 rounded-lg border border-line bg-panel px-4 py-3 text-[13px] text-muted">
+          <Info className="mt-0.5 size-4 shrink-0 text-faint" aria-hidden />
+          <div>
+            {t("writesAllowed", { count: writes.length })}{" "}
             <a href="#page-writes" className="text-accent-text underline">
               {t("seeWrites")}
             </a>
