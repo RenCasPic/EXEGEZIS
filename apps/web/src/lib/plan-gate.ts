@@ -90,7 +90,9 @@ export interface GateRequest {
 export async function gate(ws: Workspace, id: string, request: GateRequest, defaultPages: number): Promise<void> {
   if (!isCloud() || ws.userId === null) return;
   if (request.storageState !== undefined && request.storageState !== null && request.storageState !== "") throw new CloudRefusedError("serverPath");
-  await assertPublicTarget(request.url);
+  // Tests and local development of cloud mode only: never honoured by a production build.
+  const allowPrivate = process.env["EXEGEZIS_ALLOW_PRIVATE_TARGETS"] === "1" && process.env.NODE_ENV !== "production";
+  if (!allowPrivate) await assertPublicTarget(request.url);
   const pages = request.pages ?? defaultPages;
   if (request.kind === "inspection" || request.kind === "search") {
     const profile = await getProfile(db(), ws.userId);
