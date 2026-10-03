@@ -1,4 +1,4 @@
-# Local Supabase for EXEGEZIS cloud mode (`pnpm supabase start`, docs/13-accounts.md).
+# Local Supabase for the EXEGEZIS web app (`npx supabase start`, docs/13-accounts.md).
 # The hosted project needs the same Auth settings, set in the Dashboard.
 
 project_id = "exegezis"

@@ -11,7 +11,7 @@ import { inspectionJobState } from "../src/lib/inspection-state";
 import { commandFor, JobRecord, readJob, startInspection } from "../src/lib/jobs";
 import { buildReport, writeInspection } from "./inspection-fixture";
 
-// The plan limits and the run record need the accounts database: covered by cloud.e2e.test.ts.
+// The plan limits and the run record need the accounts database: covered by accounts.e2e.test.ts.
 vi.mock("../src/lib/plan-gate", async (importOriginal) => ({ ...(await importOriginal<object>()), gate: async () => undefined }));
 
 const env = { runs: process.env.EXEGEZIS_RUNS_DIR, root: process.env.EXEGEZIS_ROOT };

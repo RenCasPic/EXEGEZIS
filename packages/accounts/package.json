@@ -2,7 +2,7 @@
   "name": "@exegezis/accounts",
   "version": "0.1.0",
   "private": true,
-  "description": "EXEGEZIS accounts in cloud mode: mode, plans and limits, the Postgres store with Row Level Security, rate limits, the local-data claim, export and deletion.",
+  "description": "EXEGEZIS accounts: configuration, plans and limits, the Postgres store with Row Level Security, rate limits, the local-data claim, export and deletion.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

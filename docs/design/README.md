@@ -37,7 +37,6 @@ Arranca su propio `next dev` para cada app. Con `SITE_URL` o `WEB_URL` usa uno q
   - Lo que aún no existe lleva un círculo discontinuo en vez de la marca y la etiqueta «Próximamente».
   - Por eso la sección de precios mide unos 100 px más y lo que va debajo baja lo mismo.
 - **Selector de idioma EN / ES** en la cabecera: la referencia está solo en español.
-- **«Abrir la app» en modo local.** En modo local no hay cuentas, así que «Iniciar sesión» se convierte en «Abrir la app» y los botones de los planes llevan a la app. La comparación se hace en modo local; en modo nube la cabecera es la del diseño.
 - **Pie.** Las páginas que aún no existen (documentación, «cómo verificamos», novedades y legales) son texto con «(próximamente)», no enlaces vacíos.
 - **«Inspeccionar gratis» de la llamada final** lleva al campo de la portada, donde se escribe la dirección.
 - **Contraste de «Verificado».** El fondo de la etiqueta es `#EDF7F0` y no el `#E7F4EC` del diseño. Con este último, el verde `#15803D` queda en 4,43:1, por debajo de AA (4,5:1).

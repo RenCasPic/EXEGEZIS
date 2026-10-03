@@ -117,8 +117,8 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => site?.listen(0, "127.0.0.1", resolve));
   const addr = site.address();
   target = `http://127.0.0.1:${typeof addr === "object" && addr !== null ? addr.port : 0}/`;
-  // The app's output, to read when a test fails: apps/web/test/.tmp/cloud-server.log.
-  app = await startTestApp({ dist: ".next-cloud", log: "cloud-server.log" });
+  // The app's output, to read when a test fails: apps/web/test/.tmp/accounts-server.log.
+  app = await startTestApp({ dist: ".next-accounts", log: "accounts-server.log" });
   ({ base, dataDir, sql, standin } = app);
   browser = await chromium.launch();
 }, 600_000);

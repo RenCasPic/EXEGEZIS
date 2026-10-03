@@ -12,12 +12,11 @@ El diseño de referencia es `docs/design/landing.html`. A 1440 px, la landing re
 | Privacidad (borrador) | `/privacidad` | `/privacy` |
 | Términos (borrador) | `/terminos` | `/terms` |
 
-`/`:
-- **modo local:** es la página de inicio de la app, como siempre. La landing se ve en `/producto`.
-- **modo nube, sin sesión:** muestra la landing, en el idioma de la cookie de idioma o, si no hay, en el del navegador. La URL sigue siendo `/`.
+`/`, como en cualquier web app:
+- **sin sesión:** muestra la landing, en el idioma de la cookie de idioma o, si no hay, en el del navegador. La URL sigue siendo `/`.
   - Si no hay cookie de sesión, ni siquiera se consulta a Supabase.
   - `/?url=…` lleva primero al registro y después a la pestaña Inspeccionar con esa dirección.
-- **modo nube, con sesión:** la página de inicio de la app.
+- **con sesión:** la página de inicio de la app.
 
 ## Arquitectura
 
@@ -38,24 +37,24 @@ El diseño de referencia es `docs/design/landing.html`. A 1440 px, la landing re
   - `components/`, las secciones;
   - `pages.tsx`, el documento, la landing, las páginas legales y sus metadatos;
   - `i18n.ts` y `paths.ts`;
-  - `links.ts`, los enlaces de cada modo, solo en el servidor;
+  - `links.ts`, los enlaces de los botones, solo en el servidor;
   - `urls.ts`, lo que necesita el navegador;
   - `legal.ts`, los textos.
 
 ## Contenido y enlaces
 
-- **Precios:** `packages/accounts/src/pricing.ts` es la fuente única. La landing muestra precios, límites y funciones. La app, en modo nube, aplica esos mismos límites en el servidor.
+- **Precios:** `packages/accounts/src/pricing.ts` es la fuente única. La landing muestra precios, límites y funciones. La app aplica esos mismos límites en el servidor.
   - Cada función tiene `available`. Lo que EXEGEZIS aún no hace se muestra como «Próximamente».
   - Los planes de pago dicen «Pagos: próximamente».
   - Anual: el precio mensual mostrado es precio × 10 / 12, redondeado. Pro sale a 24 $/mes y se factura 290 $ al año; Equipo, 83 $/mes y 990 $ al año.
 - **Botones:** todos apuntan al mismo dominio.
 
-  | Botón | Modo nube | Modo local (no hay cuentas) |
-  |---|---|---|
-  | «Iniciar sesión» | `/login` | «Abrir la app» → `/` |
-  | «Empieza gratis», «Probar Pro / Equipo» | `/signup?plan=…` | `/` |
-  | «Inspeccionar gratis» con URL | `/signup?next=/?url=…`. Con sesión, la app lo salta y abre la pestaña Inspeccionar | la pestaña Inspeccionar con la URL (`/?url=…`) |
-  | «Hablar con ventas» | `EXEGEZIS_SALES_URL` | `EXEGEZIS_SALES_URL` |
+  | Botón | Destino |
+  |---|---|
+  | «Iniciar sesión» | `/login` |
+  | «Empieza gratis», «Probar Pro / Equipo» | `/signup?plan=…` |
+  | «Inspeccionar gratis» con URL | `/signup?next=/?url=…`. Con sesión, la app lo salta y abre la pestaña Inspeccionar |
+  | «Hablar con ventas» | `EXEGEZIS_SALES_URL` |
 
 - **Cabecera con sesión:** muestra «Ir a la app» y las iniciales del usuario. Como la página es estática, las lee de una cookie que deja el proxy (`EXEGEZIS_SIGNED_IN`).
   - Solo contiene las iniciales: no es la sesión, que sigue siendo httpOnly.
@@ -72,19 +71,19 @@ El diseño de referencia es `docs/design/landing.html`. A 1440 px, la landing re
 - `apps/web/test/site.test.ts` comprueba:
   - catálogos idénticos en los dos idiomas;
   - la matemática de precios y que nada no disponible se prometa;
-  - los enlaces de cada modo y los borradores legales;
+  - los enlaces de los botones y los borradores legales;
   - el contraste AA de todos los pares de color;
   - que las páginas públicas sean `force-static`, queden fuera del proxy y no importen nada de la petición ni de la sesión.
-- `apps/web/test/site.e2e.test.ts` usa un navegador real, en modo local, y comprueba:
+- `apps/web/test/site.e2e.test.ts` usa un navegador real y comprueba:
   - `/producto` y `/product`, cada una solo en su idioma, con `<html lang>`, título y Open Graph;
-  - que `/` sigue siendo la app;
+  - que `/` sin sesión es la landing;
   - el selector, que cambia también el idioma de la app;
   - Mensual y Anual, también con el teclado;
   - «Próximamente» y los borradores;
   - 375 px sin scroll horizontal, y el menú;
   - el foco visible en todo;
-  - «Inspeccionar gratis», que abre la pestaña Inspeccionar con la URL.
-- `apps/web/test/cloud.e2e.test.ts` comprueba `/` en modo nube: la landing sin sesión y la app con ella.
+  - «Inspeccionar gratis», que pide el registro y después abre la pestaña Inspeccionar con la URL.
+- `apps/web/test/accounts.e2e.test.ts` comprueba también `/` con sesión: la app.
 - Capturas: `node apps/web/scripts/site-screenshots.mjs` genera `docs/screenshots/site/landing-{en,es}-{1440,375}.png` y las imágenes de Open Graph (`apps/web/public/og-{en,es}.png`).
 
 ## Comandos (CMD de Windows, desde la carpeta del repositorio)
@@ -93,7 +92,7 @@ El diseño de referencia es `docs/design/landing.html`. A 1440 px, la landing re
 pnpm web
 ```
 
-Arranca la app en http://127.0.0.1:4100, en modo local. La landing está en http://127.0.0.1:4100/producto.
+Arranca la app en http://127.0.0.1:4100 (necesita las variables de Supabase en `.env`: ver `docs/13-accounts.md`). Sin sesión, `/` es la landing; también está en http://127.0.0.1:4100/producto.
 
 ```bat
 pnpm design:compare

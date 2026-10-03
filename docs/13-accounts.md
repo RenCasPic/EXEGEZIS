@@ -1,25 +1,13 @@
-# 13 — Cuentas de usuario y modo nube
+# 13 — Cuentas de usuario
 
-EXEGEZIS funciona de dos maneras, según `EXEGEZIS_MODE`:
+La app web de EXEGEZIS funciona como cualquier web app: tiene cuentas (Supabase Auth) y cada usuario solo ve lo suyo.
 
-| Modo | Para qué | Cuentas | Datos |
-|---|---|---|---|
-| `local` (por defecto) | Una persona en su equipo | No hay login. Solo en 127.0.0.1 | `runs/`, accesos y búsquedas en las carpetas de siempre |
-| `cloud` | Un servicio con muchas personas | Login obligatorio (Supabase Auth) | Cada usuario solo ve lo suyo |
-
-El modo local no cambia nada de lo que existía: sin login, sin base de datos y con los mismos benchmarks.
-
-Cada modo tiene su configuración:
-
-| | Modo local | Modo nube |
-|---|---|---|
-| Archivo | `.env` (desde `.env.example`) | `.env.cloud` (desde `.env.cloud.example`) |
-| Arrancar la app | `pnpm web` | `pnpm web:cloud` |
-| CLI | `pnpm exegezis …` | `pnpm exegezis:cloud …` |
-
-- `pnpm web`, `pnpm verify` y los tests usan **siempre** el modo local, diga lo que diga `.env`. Nunca leen `.env.cloud`.
-- `scripts/run-mode.mjs` fija el modo y, en la nube, añade `.env.cloud`, avisando de lo que falte.
+- Quien entra sin sesión ve primero la landing. Desde ella se registra o inicia sesión, y entonces usa las funcionalidades.
+- Hay un solo modo y un solo archivo de configuración: `.env` (desde `.env.example`), con las variables de Supabase.
+- `pnpm web` comprueba antes de arrancar que `.env` tiene `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `DATABASE_URL` y `EXEGEZIS_APP_URL`, y dice cuáles faltan.
 - La app, sus páginas públicas (landing y legales) y el inicio de sesión están en un solo servidor y un solo dominio: http://127.0.0.1:4100 en tu equipo (ver `docs/12-site.md`).
+- El CLI (`pnpm exegezis …`) y los benchmarks no usan cuentas: siguen escribiendo en `runs/` de este equipo.
+- Los tests nunca leen `.env`: arrancan su propia base de datos y un sustituto de Supabase Auth (ver «Tests»).
 
 ## Arquitectura
 
@@ -42,15 +30,15 @@ Un servidor (apps/web, Next.js), un dominio                                     
 - **Datos:** la app se conecta a Postgres con `DATABASE_URL`, como propietaria de la base de datos.
   - Todo lo que hace por un usuario va dentro de `asUser()` (`packages/accounts/src/store.ts`).
   - Dentro de esa transacción pone `set local role authenticated` y las claims del usuario (`request.jwt.claims`), las mismas que pondría PostgREST. Así las políticas RLS deciden qué puede leer o escribir.
-  - Solo las tareas de operador usan la conexión de propietario directamente: límites de intentos, borrar una cuenta y asignar los datos locales.
+  - Solo las tareas de operador usan la conexión de propietario directamente: límites de intentos, borrar una cuenta y asignar los datos del CLI.
 - **Artefactos:** capturas, trazas y DOM siguen en disco, en una carpeta por usuario (`EXEGEZIS_DATA_DIR/users/<id>/`).
   - `currentWorkspace()` (`apps/web/src/lib/user-workspace.ts`) da esa carpeta a cada petición.
   - El descubrimiento, los trabajos, la CLI que lanza la app (`EXEGEZIS_RUNS_DIR`, `EXEGEZIS_ACCESS_DIR`, `EXEGEZIS_SEARCH_DIR`), los accesos y las búsquedas solo leen esa carpeta.
-  - Los resultados del repositorio (`benchmarks/*/results`) no se muestran en modo nube.
+  - Los resultados del repositorio (`benchmarks/*/results`) no se muestran en la app: son del CLI.
   - El aislamiento es estructural: un id de otro usuario no se encuentra, así que la respuesta es 404 (páginas, `/api/artifacts`, descarga de specs, trabajos, exportación).
 - **Accesos guardados:** siguen cifrados (AES-256-GCM), ahora uno por usuario.
   - En un servidor sin llavero del sistema, la clave de cada usuario se protege con `EXEGEZIS_ACCESS_KEY` (`ServerKeyProtector`).
-  - La ventana visible para iniciar sesión en un sitio solo existe en modo local: en un servidor nadie la vería. En la nube se pueden guardar un usuario HTTP o un token del WAF.
+  - La ventana visible para iniciar sesión en un sitio solo se abre con `pnpm web` en tu propio equipo. Un servidor compartido (una compilación de producción) la rechaza, porque allí nadie la vería; se pueden guardar un usuario HTTP o un token del WAF.
 - **Planes:** `packages/accounts/src/pricing.ts` es el mismo archivo que muestra la landing (`src/site`, en la propia app).
   - Los `limits` de cada plan se aplican en el servidor, en `lib/plan-gate.ts`, dentro de `lib/jobs.ts`, así que ningún formulario ni ruta se los salta. Se comprueban sitios, páginas por inspección, inspecciones al mes, búsqueda por significado y saldo de IA.
   - Al llegar a un límite sale un mensaje claro con «Ver planes».
@@ -85,16 +73,16 @@ Un servidor (apps/web, Next.js), un dominio                                     
   - La comprobación contra contraseñas filtradas (HaveIBeenPwned) es una opción de Supabase en los planes de pago (Authentication → Policies → «Leaked password protection»). Si está activa, la app muestra su error.
 - **Sin enumeración:** contraseña incorrecta y email desconocido dan el mismo mensaje. Registrarse con un email existente lleva a la misma página. La recuperación responde igual a cualquier email.
 - **`next`:** solo rutas de la propia app (`safeNext`). `//host`, `/\host`, esquemas y caracteres de control llevan a `/`. Las redirecciones usan `EXEGEZIS_APP_URL`, nunca la cabecera Host.
-- **SSRF:** en modo nube la app no visita direcciones privadas.
+- **SSRF:** en un servidor compartido (una compilación de producción) la app no visita direcciones privadas.
   - Se rechazan loopback, redes privadas, link-local (169.254.x, metadatos de la nube), CGNAT y multicast, comprobando todas las IP a las que resuelve el nombre.
   - También se rechazan rutas de archivos del servidor (`storageState`).
   - Riesgo restante: el *DNS rebinding* (el navegador vuelve a resolver el nombre). En producción, bloquea también la salida hacia redes privadas en el cortafuegos del servidor.
-  - `EXEGEZIS_ALLOW_PRIVATE_TARGETS=1` existe solo para los tests y para probar el modo nube en local. Una compilación de producción lo ignora.
-- **Lo que se oculta en la nube:** las rutas del servidor, el repositorio y los comandos de terminal.
+  - Con `pnpm web` (desarrollo, en tu propio equipo) sí se permiten: así puedes inspeccionar tu app en `localhost`, usar un `storageState` y la ventana visible.
+- **Lo que la app no muestra:** las rutas del servidor, el repositorio y los comandos de terminal.
 
 ## Landing ↔ app (el mismo servidor)
 
-- `/` en modo nube: sin sesión, la landing, en el idioma de la cookie o del navegador. La URL no cambia, y sin cookie de sesión ni se consulta a Supabase. Con sesión, la app.
+- `/`: sin sesión, la landing, en el idioma de la cookie o del navegador. La URL no cambia, y sin cookie de sesión ni se consulta a Supabase. Con sesión, la app.
 - **Botones de la landing:**
   - «Iniciar sesión» → `/login?lang=…`;
   - «Empieza gratis» y «Probar Pro/Equipo» → `/signup?plan=…&lang=…`;
@@ -111,17 +99,18 @@ Un servidor (apps/web, Next.js), un dominio                                     
   - El registro exige aceptarlos y guarda la fecha y la versión (`packages/accounts/src/legal.ts`). Cuando cambien los textos, cambia la versión.
   - El contacto de privacidad es `EXEGEZIS_PRIVACY_EMAIL`.
 
-## Asignar los datos locales a una cuenta
+## Dar a una cuenta lo que ya hizo el CLI
 
 ```bat
-pnpm exegezis:cloud account claim-local --dry-run
-pnpm exegezis:cloud account claim-local
+pnpm exegezis account claim-local --dry-run
+pnpm exegezis account claim-local
 ```
 
-- Da a la primera cuenta creada (o a la de `--email`) lo que hay en este equipo: `runs/`, los ajustes de búsqueda y los accesos guardados.
+- Solo necesita `DATABASE_URL` en `.env`.
+- Da a la primera cuenta creada (o a la de `--email`) lo que el CLI tiene en este equipo: `runs/`, los ajustes de búsqueda y los accesos guardados.
 - Los copia a su carpeta y vuelve a cifrar los accesos con `EXEGEZIS_ACCESS_KEY`.
 - Registra las ejecuciones en `runs` como suyas.
-- Los originales se quedan para el modo local. Repetirlo no duplica nada.
+- Los originales se quedan para el CLI. Repetirlo no duplica nada.
 
 ## Desplegar en producción
 
@@ -137,10 +126,10 @@ pnpm exegezis:cloud account claim-local
 3. **App** (`apps/web`), en un servidor Node 22+ con Chromium:
    - Ejecuta `pnpm install`, `pnpm build:web` y `pnpm --filter @exegezis/web start`.
    - Configura detrás de un proxy https que ponga `X-Forwarded-For`.
-   - Variables: `EXEGEZIS_MODE=cloud`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `DATABASE_URL` (secreta), `EXEGEZIS_APP_URL`, `EXEGEZIS_DATA_DIR` (un volumen persistente), `EXEGEZIS_ACCESS_KEY` (secreta), `EXEGEZIS_OAUTH_PROVIDERS`, `EXEGEZIS_PROXY_HOPS`, `EXEGEZIS_PRIVACY_EMAIL` y `EXEGEZIS_SALES_URL`.
-   - `pnpm build:web` genera las páginas públicas como HTML estático. Compila con `EXEGEZIS_MODE=cloud`: los botones de la landing dependen del modo.
+   - Variables: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `DATABASE_URL` (secreta), `EXEGEZIS_APP_URL`, `EXEGEZIS_DATA_DIR` (un volumen persistente), `EXEGEZIS_ACCESS_KEY` (secreta), `EXEGEZIS_OAUTH_PROVIDERS`, `EXEGEZIS_PROXY_HOPS`, `EXEGEZIS_PRIVACY_EMAIL` y `EXEGEZIS_SALES_URL`.
+   - `pnpm build:web` genera las páginas públicas como HTML estático.
    - Bloquea en el cortafuegos la salida a redes privadas y al servicio de metadatos.
-4. **Comprobación:** `GET /api/health` responde `{ "ok": true, "mode": "cloud" }`.
+4. **Comprobación:** `GET /api/health` responde `{ "ok": true }`.
 5. **Copias de seguridad:** de Postgres se encarga Supabase. Tú, de `EXEGEZIS_DATA_DIR` y de `EXEGEZIS_ACCESS_KEY`, guardada aparte.
 
 Fuera de esta versión: pagos (Stripe), equipos con varios usuarios y roles, SSO de empresa e inspecciones en paralelo. La cola de navegadores es de uno en uno por proceso.
@@ -152,14 +141,18 @@ Fuera de esta versión: pagos (Stripe), equipos con varios usuarios y roles, SSO
   - el plan, los consentimientos, los límites de intentos, `anon`, la exportación y el borrado en cascada;
   - además, los límites del plan, `next` y las reglas de contraseña.
 - `apps/cli/test/account.test.ts` prueba `claim-local`.
-- `apps/web/test/cloud.e2e.test.ts` usa un navegador real y la app real en modo nube:
+- Las pruebas de extremo a extremo de la app arrancan la app real (`next dev`) con `apps/web/test/support/app.ts`:
+  - sin Docker, con PGlite y un sustituto de Supabase Auth (`apps/web/test/support/auth-standin.ts`), que habla la misma API HTTP que Supabase y guarda los emails como Mailpit;
+  - cada archivo con su propia carpeta de compilación, de datos y base de datos: un `pnpm web` en marcha no se toca.
+- `apps/web/test/accounts.e2e.test.ts` (cuentas), con un navegador real:
   - registro → email → login → inspección → logout;
   - recuperación de contraseña y OAuth simulado con la pantalla de términos;
   - aislamiento entre dos usuarios en páginas, API, artefactos, specs, trabajos y exportación;
   - límites del plan Gratis, límite de intentos, `next` y cierre de sesión en todos los dispositivos;
   - exportación y borrado de cuenta;
-  - accesibilidad AA (axe) y ausencia de scroll horizontal a 375 px en las pantallas nuevas, en los dos idiomas y temas.
-- Sin Docker, ese test usa PGlite y un sustituto de Supabase Auth (`apps/web/test/support/auth-standin.ts`). Habla la misma API HTTP que Supabase y guarda los emails como Mailpit.
+  - accesibilidad AA (axe) y ausencia de scroll horizontal a 375 px en las pantallas de cuenta, en los dos idiomas y temas.
+- `apps/web/test/site.e2e.test.ts` (páginas públicas) e `i18n-e2e.test.ts` (toda la app en los dos idiomas). La de idiomas inicia sesión con un usuario de prueba cuya carpeta de ejecuciones enlaza a `runs/` del repositorio.
+- Los scripts de capturas (`pnpm design:compare`, `apps/web/scripts/screenshots.mjs`, `site-screenshots.mjs`) usan el mismo arnés.
 - Con un Supabase local de verdad corre lo mismo, salvo el OAuth simulado:
 
   ```bat
@@ -169,75 +162,15 @@ Fuera de esta versión: pagos (Stripe), equipos con varios usuarios y roles, SSO
   set SUPABASE_ANON_KEY=<anon key de supabase status>
   set DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
   set MAILPIT_URL=http://127.0.0.1:54324
-  pnpm vitest run apps/web/test/cloud.e2e.test.ts
+  pnpm vitest run apps/web/test/accounts.e2e.test.ts
   ```
 
 ## Paso a paso en Windows (CMD), desde la carpeta del repositorio
 
-### Modo local (sin cuentas)
+### 1. Con tu proyecto de Supabase
 
-```bat
-pnpm web
-```
-
-- La app: http://127.0.0.1:4100
-- La landing: http://127.0.0.1:4100/producto (en inglés, /product). Los textos legales: /privacidad y /terminos.
-
-### 1. Modo nube con Supabase en tu equipo (para probar)
-
-1. Instala **Docker Desktop** (docker.com → Docker Desktop for Windows) y ábrelo. Espera a que diga «Engine running».
-2. Arranca Supabase. La primera vez descarga sus imágenes (unos minutos) y aplica `supabase/migrations`:
-
-   ```bat
-   npx supabase start
-   ```
-
-   Al terminar imprime `API URL`, `anon key` y `DB URL`. Para verlos de nuevo: `npx supabase status`.
-3. Crea tu `.env.cloud` (el `.env` del modo local no se toca):
-
-   ```bat
-   copy .env.cloud.example .env.cloud
-   notepad .env.cloud
-   ```
-
-   Rellena:
-   - `SUPABASE_ANON_KEY=` con la «anon key»;
-   - `EXEGEZIS_ACCESS_KEY=` con lo que imprime:
-
-   ```bat
-   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-   ```
-
-   `SUPABASE_URL`, `DATABASE_URL` y `EXEGEZIS_APP_URL` ya vienen con los valores locales.
-4. Arranca la app en modo nube. Es un solo servidor: landing, inicio de sesión y app.
-
-   ```bat
-   pnpm web:cloud
-   ```
-
-5. Prueba el registro de principio a fin:
-   1. Abre http://127.0.0.1:4100. Sin sesión verás la landing; pulsa «Empieza gratis», rellena el registro y acepta los términos.
-   2. Abre el buzón local en http://127.0.0.1:54324, abre el email «Confirm your signup» y pulsa el enlace. Entras en la app con tu cuenta.
-   3. Haz una inspección de una web pública.
-   4. Cierra la sesión desde el menú del usuario (arriba a la derecha). En http://127.0.0.1:4100 vuelves a ver la landing.
-   5. Prueba «¿Has olvidado tu contraseña?» y vuelve a mirar el buzón.
-6. Da a tu cuenta lo que ya tenías en modo local:
-
-   ```bat
-   pnpm exegezis:cloud account claim-local --dry-run
-   pnpm exegezis:cloud account claim-local
-   ```
-
-7. Para volver al modo local, para la app (Ctrl+C) y arranca `pnpm web`. Para parar Supabase:
-
-   ```bat
-   npx supabase stop
-   ```
-
-### 2. Tu proyecto de Supabase en la nube
-
-1. En https://supabase.com crea una cuenta y un proyecto (región en la UE si tus usuarios están en Europa). Guarda la contraseña de la base de datos.
-2. Aplica la migración:
+1. En https://supabase.com abre tu proyecto (o crea uno; región en la UE si tus usuarios están en Europa). Ten a mano la contraseña de la base de datos.
+2. Aplica la migración de EXEGEZIS (crea las tablas, las políticas RLS y el disparador de perfiles):
 
    ```bat
    npx supabase login
@@ -247,16 +180,70 @@ pnpm web
 
    `TU_REF` es lo que va entre `https://` y `.supabase.co` en la URL del proyecto.
 3. En el panel del proyecto:
-   - Project Settings → API: copia la URL y la «anon public» key en `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
-   - Connect → Session pooler: copia la cadena de conexión en `DATABASE_URL`, con tu contraseña.
    - Authentication → URL Configuration:
-     - Site URL = la URL de la app;
-     - Redirect URLs = `<URL de la app>/**`.
+     - Site URL = `http://127.0.0.1:4100` (o la URL donde publiques la app);
+     - Redirect URLs = `http://127.0.0.1:4100/**`.
    - Authentication → Providers → Email:
      - «Confirm email» activado;
      - «Minimum password length» = 10.
-   - Authentication → Policies (si tu plan lo permite): «Leaked password protection» activado.
    - Authentication → Sign In / Up: «Manual linking» activado.
+   - Authentication → Policies (si tu plan lo permite): «Leaked password protection» activado.
    - Authentication → Emails → SMTP: tu servidor de correo. El de Supabase sirve para probar, pero envía pocos emails por hora.
-   - Google y GitHub (opcional): Authentication → Providers. Crea la app en Google Cloud o GitHub con el callback que muestra Supabase y pega su id y su secreto. Luego pon `EXEGEZIS_OAUTH_PROVIDERS=google,github` en `.env.cloud`.
-4. Pon esos valores en `.env.cloud`, arranca `pnpm web:cloud` y prueba como en el paso 1.5.
+4. Pon los datos en tu `.env` (si no existe: `copy .env.example .env`):
+
+   ```bat
+   notepad .env
+   ```
+
+   - `SUPABASE_URL=` y `SUPABASE_ANON_KEY=`: Project Settings → API (la URL y la clave «anon public»).
+   - `DATABASE_URL=`: Connect → Session pooler, con tu contraseña.
+   - `EXEGEZIS_APP_URL=http://127.0.0.1:4100`
+   - `EXEGEZIS_ACCESS_KEY=`: lo que imprime
+
+     ```bat
+     node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+     ```
+
+   Tu `EXEGEZIS_ANTHROPIC_API_KEY` se queda como está.
+5. Arranca la app (landing, inicio de sesión y app en un solo servidor):
+
+   ```bat
+   pnpm web
+   ```
+
+6. Prueba de principio a fin:
+   1. Abre http://127.0.0.1:4100. Sin sesión verás la landing; pulsa «Empieza gratis», rellena el registro y acepta los términos.
+   2. Abre el email «Confirm your signup» y pulsa el enlace. Entras en la app con tu cuenta.
+   3. Haz una inspección.
+   4. Cierra la sesión desde el menú del usuario (arriba a la derecha). En http://127.0.0.1:4100 vuelves a ver la landing.
+   5. Prueba «¿Has olvidado tu contraseña?».
+7. Da a tu cuenta lo que ya habías hecho con el CLI:
+
+   ```bat
+   pnpm exegezis account claim-local --dry-run
+   pnpm exegezis account claim-local
+   ```
+
+8. Google y GitHub (opcional): Authentication → Providers. Crea la app en Google Cloud o GitHub con el callback que muestra Supabase y pega su id y su secreto. Luego pon `EXEGEZIS_OAUTH_PROVIDERS=google,github` en `.env`.
+
+### 2. Con Supabase en tu equipo (sin internet, para probar)
+
+1. Instala **Docker Desktop** (docker.com → Docker Desktop for Windows) y ábrelo. Espera a que diga «Engine running».
+2. Arranca Supabase. La primera vez descarga sus imágenes (unos minutos) y aplica `supabase/migrations`:
+
+   ```bat
+   npx supabase start
+   ```
+
+   Al terminar imprime `API URL`, `anon key` y `DB URL`. Para verlos de nuevo: `npx supabase status`.
+3. En `.env`:
+   - `SUPABASE_URL=http://127.0.0.1:54321`
+   - `SUPABASE_ANON_KEY=` la «anon key»
+   - `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`
+   - `EXEGEZIS_APP_URL=http://127.0.0.1:4100`
+4. `pnpm web` y prueba como en el paso 1.6. Los emails llegan al buzón local: http://127.0.0.1:54324.
+5. Para parar Supabase:
+
+   ```bat
+   npx supabase stop
+   ```
