@@ -254,7 +254,7 @@ function initialUrl(value: string | string[] | undefined): string {
 const PANEL = "panel-frame rounded-xl bg-panel";
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  // Cloud mode: a signed-in user who accepted the legal texts (else /login or /welcome).
+  // A signed-in user who accepted the legal texts (else /login or /welcome).
   const account = await accountSummary();
   const [all, rootCauses, inspections, scope, projects, params, t, common, status, f] = await Promise.all([
     getSummaries(),

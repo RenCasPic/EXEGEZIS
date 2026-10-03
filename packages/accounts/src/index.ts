@@ -1,4 +1,4 @@
-export * from "./mode.js";
+export * from "./config.js";
 export * from "./pricing.js";
 export * from "./store.js";
 export * from "./legal.js";

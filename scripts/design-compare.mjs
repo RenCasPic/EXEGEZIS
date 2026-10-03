@@ -12,15 +12,15 @@
 // and report.md with the share of different pixels. The references are rendered at their
 // natural height (see unsqueeze).
 //
-// It starts its own `next dev` of apps/web in local mode (build folder .next-shots), unless
-// WEB_URL points to one that is already running. DESIGN_ONLY=landing,home-app limits the pages. The app home shows the real data in runs/.
-import { spawn, spawnSync } from "node:child_process";
+// It starts its own app (build folder .next-shots, its own database and Supabase Auth stand-in:
+// apps/web/test/support/app.ts). The landing is seen without a session; the app home signed in
+// as a test user whose runs folder shows the real data in runs/. DESIGN_ONLY=landing,home-app
+// limits the pages.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer } from "node:net";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "@playwright/test";
-import { ensureFreshCache } from "../apps/web/scripts/fresh-cache.mjs";
+import { linkRuns, signedInUser, startTestApp } from "../apps/web/test/support/app.ts";
 
 const REPO = join(import.meta.dirname, "..");
 const DESIGN = join(REPO, "docs", "design");
@@ -31,46 +31,22 @@ const FONTS = join(REPO, "apps", "web", "node_modules", "geist", "dist", "fonts"
 const THRESHOLD = 48;
 
 const TARGETS = [
-  { name: "landing", app: "web", path: "/producto", width: 1440, reference: "landing.html", png: "landing.png" },
+  { name: "landing", app: "web", path: "/producto", signedOut: true, width: 1440, reference: "landing.html", png: "landing.png" },
   { name: "home-app", app: "web", path: "/", width: 1440, theme: "light", reference: "home-app.html", png: "home-app.png" },
   { name: "home-app-dark", app: "web", path: "/", width: 1440, theme: "dark", reference: "home-app.html", click: '[aria-label="Tema oscuro"]' },
   { name: "home-app-mobile", app: "web", path: "/", width: 390, theme: "light", reference: "home-app-mobile.html", png: "home-app-mobile.png" },
   { name: "home-app-mobile-dark", app: "web", path: "/", width: 390, theme: "dark", reference: "home-app-mobile.html", click: '[aria-label="Cambiar a tema oscuro"]' },
 ];
 
-function freePort() {
-  return new Promise((resolve) => {
-    const s = createServer();
-    s.listen(0, "127.0.0.1", () => {
-      const { port } = s.address();
-      s.close(() => resolve(port));
-    });
-  });
-}
-
-const servers = [];
-async function startApp(app) {
-  const given = process.env.WEB_URL;
-  if (given) return given.replace(/\/+$/, "");
-  const dir = join(REPO, "apps", app);
-  const port = await freePort();
-  const base = `http://127.0.0.1:${port}`;
-  ensureFreshCache(".next-shots");
-  const server = spawn(process.execPath, [join(dir, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
-    cwd: dir,
-    env: { ...process.env, EXEGEZIS_NEXT_DIST: ".next-shots", NEXT_TELEMETRY_DISABLED: "1", EXEGEZIS_MODE: "local", NEXT_PUBLIC_EXEGEZIS_MODE: "local" },
-    stdio: "ignore",
-    windowsHide: true,
-  });
-  servers.push(server);
-  for (let i = 0; ; i++) {
-    try {
-      if ((await fetch(`${base}/api/health`)).status < 500) break;
-    } catch {}
-    if (i > 480) throw new Error(`apps/${app} did not start`);
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  return base;
+let app = null;
+/** The test user's session cookies, for the app's pages. */
+let session = [];
+async function startApp(browser) {
+  app = await startTestApp({ dist: ".next-shots", log: "shots-server.log" });
+  const user = await signedInUser(app, browser, { name: "Ana Demo", email: `design-${Date.now()}@example.com` });
+  session = user.storageState.cookies.filter((c) => c.name.startsWith("sb-"));
+  linkRuns(app, user.id, process.env.EXEGEZIS_RUNS_DIR ?? join(REPO, "runs"));
+  return app.base;
 }
 
 /** The references load Geist from Google Fonts: serve the same local files the apps use instead. */
@@ -168,7 +144,7 @@ try {
   const scratch = await (await browser.newContext()).newPage();
   const only = process.env.DESIGN_ONLY?.split(",");
   for (const target of TARGETS.filter((t) => only === undefined || only.includes(t.name))) {
-    bases[target.app] ??= await startApp(target.app);
+    bases[target.app] ??= await startApp(browser);
     const viewport = { width: target.width, height: 900 };
 
     // The implementation.
@@ -179,7 +155,7 @@ try {
           localStorage.setItem("exegezis-theme", t);
         } catch {}
       }, target.theme);
-      await ctx.addCookies([{ name: "EXEGEZIS_LOCALE", value: "es", url: bases.web }]);
+      await ctx.addCookies([{ name: "EXEGEZIS_LOCALE", value: "es", url: bases.web }, ...(target.signedOut ? [] : session)]);
     }
     const page = await ctx.newPage();
     await page.goto(`${bases[target.app]}${target.path}`, { waitUntil: "networkidle", timeout: 300_000 });
@@ -213,10 +189,7 @@ try {
   }
 } finally {
   await browser.close();
-  for (const s of servers) {
-    if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(s.pid), "/T", "/F"], { stdio: "ignore" });
-    else s.kill("SIGTERM");
-  }
+  await app?.stop();
 }
 
 writeFileSync(

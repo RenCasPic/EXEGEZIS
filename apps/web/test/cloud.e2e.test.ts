@@ -1,25 +1,18 @@
-import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, openSync } from "node:fs";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { readdir } from "node:fs/promises";
 import { createServer as createHttpServer, type Server } from "node:http";
-import { createServer } from "node:net";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
-import type { PGlite } from "@electric-sql/pglite";
-import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
-import postgres from "postgres";
+import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ensureFreshCache } from "../scripts/fresh-cache.mjs";
-import { testDatabase } from "../../../packages/accounts/test/database";
-import { startAuthStandin, type AuthStandin, type Mail } from "./support/auth-standin";
+import type { AuthStandin } from "./support/auth-standin";
+import { REAL_SUPABASE as REAL, signUp as signUpWith, startTestApp, TEST_PASSWORD as PASSWORD, verify as verifyWith, type TestApp } from "./support/app";
 
 /*
- * Cloud mode end to end (docs/13-accounts.md), in a real browser against the
- * real app (`next dev`, EXEGEZIS_MODE=cloud) and a real Postgres with the
- * migrations and Row Level Security:
+ * Accounts end to end (docs/13-accounts.md), in a real browser against the
+ * real app (`next dev`) and a real Postgres with the migrations and Row Level
+ * Security (support/app.ts):
  * - sign-up → verification email → sign-in → inspection → sign-out;
  * - password recovery; OAuth (simulated provider) with the terms screen;
  * - two users: B never sees, opens or downloads anything of A's, in the UI or
@@ -29,55 +22,18 @@ import { startAuthStandin, type AuthStandin, type Mail } from "./support/auth-st
  * - the new screens in both languages and themes: WCAG AA (axe) and no
  *   sideways scroll at 375 px.
  *
- * Without Docker it uses PGlite and a Supabase Auth stand-in
- * (support/auth-standin.ts). With a real local Supabase (`supabase start`),
- * set EXEGEZIS_TEST_SUPABASE=1 with SUPABASE_URL, SUPABASE_ANON_KEY,
- * DATABASE_URL and MAILPIT_URL (docs/13-accounts.md): the same tests run
- * against it, except the simulated OAuth provider.
+ * With a real local Supabase (EXEGEZIS_TEST_SUPABASE=1, see support/app.ts)
+ * the same tests run against it, except the simulated OAuth provider.
  */
 
-const WEB = join(import.meta.dirname, "..");
-const REAL = process.env["EXEGEZIS_TEST_SUPABASE"] === "1";
-const PASSWORD = "una frase larga y segura";
-
-let db: PGlite | null = null;
-let socket: PGLiteSocketServer | null = null;
+let app: TestApp;
 let standin: AuthStandin | null = null;
 let sql: postgres.Sql;
-let server: ChildProcess | null = null;
 let site: Server | null = null;
 let browser: Browser | null = null;
 let base = "";
 let target = "";
 let dataDir = "";
-let databaseUrl = "";
-
-function freePort(): Promise<number> {
-  return new Promise((resolve) => {
-    const s = createServer();
-    s.listen(0, "127.0.0.1", () => {
-      const a = s.address();
-      s.close(() => resolve(typeof a === "object" && a !== null ? a.port : 0));
-    });
-  });
-}
-
-/** The latest email of `type` to `email`: from the stand-in, or from Mailpit with a real Supabase. */
-async function lastMail(email: string, type: Mail["type"]): Promise<string> {
-  if (!REAL) return (await (standin as AuthStandin).lastMail(email, type)).link;
-  const mailpit = (process.env["MAILPIT_URL"] ?? "http://127.0.0.1:54324").replace(/\/+$/, "");
-  for (let i = 0; i < 60; i++) {
-    const list = (await (await fetch(`${mailpit}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`)).json()) as { messages: { ID: string }[] };
-    const id = list.messages[0]?.ID;
-    if (id !== undefined) {
-      const message = (await (await fetch(`${mailpit}/api/v1/message/${id}`)).json()) as { Text: string };
-      const link = /https?:\/\/\S+(auth\/v1\/verify|auth\/confirm)\S+/.exec(message.Text)?.[0];
-      if (link !== undefined) return link.replace(/[)\]>.,]+$/, "");
-    }
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  throw new Error(`no ${type} mail for ${email}`);
-}
 
 let nextIp = 1;
 
@@ -104,18 +60,11 @@ async function context(options: { width?: number; locale?: "en" | "es"; theme?: 
 }
 
 async function signUp(page: Page, person: { name: string; email: string; password?: string }, path = "/signup"): Promise<void> {
-  await page.goto(`${base}${path}`, { waitUntil: "networkidle", timeout: 180_000 });
-  await page.fill('input[name="name"]', person.name);
-  await page.fill('input[name="email"]', person.email);
-  await page.fill('input[name="password"]', person.password ?? PASSWORD);
-  await page.check('input[name="terms"]');
-  await page.click('form:has(input[name="terms"]) button[type="submit"]');
-  await page.waitForURL(/\/verify-email/, { timeout: 60_000 });
+  await signUpWith(app, page, person, path);
 }
 
 async function verify(page: Page, email: string): Promise<void> {
-  await page.goto(await lastMail(email, "signup"), { waitUntil: "load", timeout: 180_000 });
-  await page.waitForURL((u) => !u.pathname.startsWith("/auth/") && !u.pathname.startsWith("/login"), { timeout: 120_000 });
+  await verifyWith(app, page, email);
 }
 
 async function signIn(page: Page, email: string, password = PASSWORD, path = "/login"): Promise<void> {
@@ -138,13 +87,10 @@ async function expectAlert(page: Page, text: string, form = "form"): Promise<voi
 }
 
 async function userId(email: string): Promise<string> {
-  const rows = await sql<{ id: string }[]>`select id from auth.users where lower(email) = lower(${email})`;
-  const id = rows[0]?.id;
-  if (id === undefined) throw new Error(`no user ${email}`);
-  return id;
+  return app.userId(email);
 }
 
-/** The inspection folders a user has on disk (cloud mode: data/users/<id>/runs/…). */
+/** The inspection folders a user has on disk (data/users/<id>/runs/…). */
 async function inspectionsOf(id: string): Promise<string[]> {
   const found: string[] = [];
   async function walk(dir: string, depth: number) {
@@ -163,7 +109,7 @@ async function inspectionsOf(id: string): Promise<string[]> {
 }
 
 beforeAll(async () => {
-  // The site to inspect: two plain pages on this machine.
+  // The site to inspect: two plain pages on this machine (allowed: `next dev` is not a shared server).
   site = createHttpServer((req, res) => {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     res.end(`<!doctype html><html lang="en"><head><title>Fixture</title></head><body><main><h1>Fixture ${req.url ?? ""}</h1><a href="/about">About</a></main></body></html>`);
@@ -171,86 +117,23 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => site?.listen(0, "127.0.0.1", resolve));
   const addr = site.address();
   target = `http://127.0.0.1:${typeof addr === "object" && addr !== null ? addr.port : 0}/`;
-
-  dataDir = await mkdtemp(join(tmpdir(), "exegezis-cloud-"));
-  let supabaseUrl: string;
-  let anonKey: string;
-  if (REAL) {
-    supabaseUrl = process.env["SUPABASE_URL"] ?? "http://127.0.0.1:54321";
-    anonKey = process.env["SUPABASE_ANON_KEY"] ?? "";
-    databaseUrl = process.env["DATABASE_URL"] ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
-  } else {
-    db = await testDatabase();
-    const port = await freePort();
-    // One Postgres session multiplexed: each connection's transaction runs alone.
-    socket = new PGLiteSocketServer({ db, port, host: "127.0.0.1", maxConnections: 8 });
-    await socket.start();
-    databaseUrl = `postgres://postgres:postgres@127.0.0.1:${port}/postgres`;
-    standin = await startAuthStandin(databaseUrl);
-    supabaseUrl = standin.url;
-    anonKey = standin.anonKey;
-  }
-  sql = postgres(databaseUrl, { max: 1, prepare: false, onnotice: () => undefined });
-
   // The app's output, to read when a test fails: apps/web/test/.tmp/cloud-server.log.
-  mkdirSync(join(WEB, "test", ".tmp"), { recursive: true });
-  const logFile = openSync(join(WEB, "test", ".tmp", "cloud-server.log"), "w");
-  const appPort = await freePort();
-  base = `http://127.0.0.1:${appPort}`;
-  // A build folder from before a change of the app's structure would serve stale routes.
-  ensureFreshCache(".next-cloud");
-  server = spawn(process.execPath, [join(WEB, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(appPort)], {
-    cwd: WEB,
-    env: {
-      ...process.env,
-      EXEGEZIS_NEXT_DIST: ".next-cloud",
-      NEXT_TELEMETRY_DISABLED: "1",
-      EXEGEZIS_MODE: "cloud",
-      SUPABASE_URL: supabaseUrl,
-      SUPABASE_ANON_KEY: anonKey,
-      DATABASE_URL: databaseUrl,
-      EXEGEZIS_APP_URL: base,
-      EXEGEZIS_DATA_DIR: dataDir,
-      EXEGEZIS_OAUTH_PROVIDERS: REAL ? "" : "github",
-      EXEGEZIS_ACCESS_KEY: randomBytes(32).toString("base64"),
-      EXEGEZIS_DB_MAX_CONNECTIONS: "3",
-      // The inspected site is on this machine: allowed only for this test (never in a production build).
-      EXEGEZIS_ALLOW_PRIVATE_TARGETS: "1",
-    },
-    stdio: ["ignore", logFile, logFile],
-    windowsHide: true,
-  });
-  for (let i = 0; ; i++) {
-    try {
-      if ((await fetch(`${base}/api/health`)).status < 500) break;
-    } catch {
-      // not up yet
-    }
-    if (i > 480) throw new Error("the app did not start");
-    await new Promise((r) => setTimeout(r, 500));
-  }
+  app = await startTestApp({ dist: ".next-cloud", log: "cloud-server.log" });
+  ({ base, dataDir, sql, standin } = app);
   browser = await chromium.launch();
 }, 600_000);
 
 afterAll(async () => {
   await browser?.close();
-  if (server?.pid !== undefined) {
-    if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(server.pid), "/T", "/F"], { stdio: "ignore" });
-    else server.kill("SIGTERM");
-  }
   await new Promise<void>((resolve) => (site === null ? resolve() : site.close(() => resolve())));
-  await sql?.end();
-  await standin?.close();
-  await socket?.stop();
-  await db?.close();
-  await rm(dataDir, { recursive: true, force: true });
+  await app?.stop();
 }, 120_000);
 
 const ana = { name: "Ana", email: `ana-${Date.now()}@example.com` };
 const bea = { name: "Bea", email: `bea-${Date.now()}@example.com` };
 let anaInspection = "";
 
-describe("cloud mode: accounts", () => {
+describe("accounts", () => {
   it("without a session: / is the landing (in the visitor's language), the other app pages go to /login (and back afterwards), the API answers 401", async () => {
     const res = await fetch(`${base}/inspections?x=1`, { redirect: "manual" });
     expect(res.status).toBe(307);
@@ -409,7 +292,7 @@ describe("cloud mode: accounts", () => {
     await page.fill('input[name="email"]', bea.email);
     await page.click('form:has(input[name="email"]) button[type="submit"]');
     await page.waitForURL(/forgot-password\?sent=1/);
-    await page.goto(await lastMail(bea.email, "recovery"), { waitUntil: "load" });
+    await page.goto(await app.lastMail(bea.email, "recovery"), { waitUntil: "load" });
     await page.waitForURL(/\/reset-password/);
     await page.fill('input[name="password"]', "otra frase larga 2026");
     await page.fill('input[name="confirm"]', "otra frase larga 2026");

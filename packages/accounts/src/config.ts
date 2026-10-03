@@ -1,23 +1,11 @@
 /*
- * How EXEGEZIS runs (EXEGEZIS_MODE):
- * - local (default): one person, no sign-in, only on 127.0.0.1, data in runs/.
- * - cloud: accounts (Supabase Auth), sign-in required, data per user.
+ * What the app needs to run (docs/13-accounts.md): Supabase for accounts and
+ * sessions, Postgres for each user's data. Like any web app, it always has
+ * accounts: the landing first, sign-in, then the app. (The CLI works without
+ * any of this.)
  */
 
-export type Mode = "local" | "cloud";
-
-export function modeFrom(value: string | undefined): Mode {
-  const v = (value ?? "").trim().toLowerCase();
-  if (v === "" || v === "local") return "local";
-  if (v === "cloud") return "cloud";
-  throw new Error(`EXEGEZIS_MODE must be "local" or "cloud" (it is "${value ?? ""}").`);
-}
-
-export function currentMode(env: NodeJS.ProcessEnv = process.env): Mode {
-  return modeFrom(env["EXEGEZIS_MODE"]);
-}
-
-export interface CloudConfig {
+export interface AppConfig {
   /** Supabase project URL (SUPABASE_URL), e.g. https://xyz.supabase.co or http://127.0.0.1:54321. */
   supabaseUrl: string;
   /** The public anon key (SUPABASE_ANON_KEY). */
@@ -40,8 +28,8 @@ function required(env: NodeJS.ProcessEnv, name: string, problems: string[]): str
   return v;
 }
 
-/** The cloud settings, or the list of missing variables. */
-export function cloudConfig(env: NodeJS.ProcessEnv = process.env): { ok: true; config: CloudConfig } | { ok: false; missing: string[] } {
+/** The app's settings, or the list of missing variables. */
+export function appConfig(env: NodeJS.ProcessEnv = process.env): { ok: true; config: AppConfig } | { ok: false; missing: string[] } {
   const missing: string[] = [];
   const supabaseUrl = required(env, "SUPABASE_URL", missing).replace(/\/+$/, "");
   const supabaseAnonKey = required(env, "SUPABASE_ANON_KEY", missing);

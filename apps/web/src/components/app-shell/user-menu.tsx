@@ -20,8 +20,7 @@ function initials(name: string, email: string): string {
 }
 
 /**
- * The signed-in user (cloud mode), in the same place and size as the local
- * user's initials: My account · See plans · Help · Sign out.
+ * The signed-in user, at the end of the top bar: My account · See plans · Help · Sign out.
  */
 export function UserMenu({ account }: { account: AccountSummary }) {
   const t = useTranslations("account.menu");

@@ -6,7 +6,6 @@
     "enterprise": "Empresa"
   },
   "errors": {
-    "localMode": "Las cuentas solo se usan en modo nube.",
     "origin": "Esta petición no viene de EXEGEZIS. Recarga la página y vuelve a intentarlo.",
     "credentials": "Email o contraseña incorrectos.",
     "email": "Escribe un email válido.",

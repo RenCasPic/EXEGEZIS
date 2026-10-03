@@ -6,7 +6,6 @@
   "section": {
     "general": "General",
     "environment": "Entorno",
-    "repository": "Repositorio",
     "models": "Modelos",
     "security": "Seguridad",
     "permissions": "Permisos",
@@ -16,14 +15,8 @@
   },
   "general": {
     "workspace": "Espacio de trabajo",
-    "workspaceValue": "Espacio local (un solo usuario, este equipo)",
-    "repoRoot": "Raíz del repositorio",
-    "runArtifacts": "Artefactos de ejecución",
-    "archived": "Resultados archivados",
     "dataSource": "Origen de los datos",
     "dataSourceValue": "Solo artefactos en disco. Sin base de datos ni datos de demostración.",
-    "uiServer": "Servidor de la interfaz",
-    "uiServerValue": "{address} (solo local)",
     "cloudWorkspace": "Tu cuenta, en la nube: solo tus datos."
   },
   "environment": {
@@ -33,14 +26,6 @@
     "named": "Entornos con nombre",
     "note": "Los entornos se deducen de la URL de destino de cada ejecución; las direcciones de loopback aparecen como Local.",
     "defaultTargetValue": "{url} (buggy-shop)"
-  },
-  "repository": {
-    "repository": "Repositorio",
-    "branch": "Rama",
-    "remote": "Remoto",
-    "github": "Conexión con GitHub",
-    "analysis": "Análisis del código",
-    "note": "Se lee de la carpeta .git local. Ninguna etapa lee ni analiza todavía el código fuente."
   },
   "models": {
     "provider": "Proveedor del planner",

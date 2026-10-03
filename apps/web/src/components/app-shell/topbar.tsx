@@ -26,9 +26,8 @@ interface TopbarProps {
   palette: PaletteItem[];
   running: RunningJob[];
   counts: SidebarCounts;
-  user: string;
-  /** Cloud mode: the signed-in account (its menu replaces the local user's initials). */
-  account?: AccountSummary | null;
+  /** The signed-in account (its menu). */
+  account: AccountSummary;
 }
 
 function ScopeSelect({ label, value, options, onChange, disabled }: { label: string; value: string; options: { id: string; label: string }[]; onChange: (v: string) => void; disabled: boolean }) {
@@ -53,7 +52,7 @@ function ScopeSelect({ label, value, options, onChange, disabled }: { label: str
   );
 }
 
-export function Topbar({ projects, environments, scope, palette, running, counts, user, account = null }: TopbarProps) {
+export function Topbar({ projects, environments, scope, palette, running, counts, account }: TopbarProps) {
   const t = useTranslations("shell.topbar");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -142,13 +141,7 @@ export function Topbar({ projects, environments, scope, palette, running, counts
             </div>
           )}
         </div>
-        {account === null ? (
-          <span title={t("user", { user })} className="grid size-8 place-items-center rounded-full border border-line-strong bg-panel-2 font-mono text-[11px] uppercase text-muted">
-            {user.slice(0, 2)}
-          </span>
-        ) : (
-          <UserMenu account={account} />
-        )}
+        <UserMenu account={account} />
       </header>
 
       <CommandPalette items={palette} open={paletteOpen} onOpenChange={setPaletteOpen} />

@@ -1,29 +1,19 @@
-import { cloudConfig, connect, currentMode, safeNext, type CloudConfig, type Sql } from "@exegezis/accounts";
+import { appConfig, connect, safeNext, type AppConfig, type Sql } from "@exegezis/accounts";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { cache } from "react";
 
 /*
- * Cloud mode (EXEGEZIS_MODE=cloud, docs/13-accounts.md): Supabase Auth for
- * accounts and sessions, Postgres with Row Level Security for each user's
- * data. In local mode (the default) none of this runs.
+ * Accounts (docs/13-accounts.md), as in any web app: Supabase Auth for
+ * sign-in and sessions, Postgres with Row Level Security for each user's data.
  */
 
-export function isCloud(): boolean {
-  return currentMode() === "cloud";
-}
-
-/** Pages that only exist in cloud mode (sign-in, sign-up…): 404 in local mode. */
-export function cloudOnly(): void {
-  if (!isCloud()) notFound();
-}
-
-/** The cloud settings; a clear error listing what is missing otherwise. */
-export function cloud(): CloudConfig {
-  const c = cloudConfig();
-  if (!c.ok) throw new Error(`EXEGEZIS_MODE=cloud needs ${c.missing.join(", ")} (see .env.cloud.example and docs/13-accounts.md).`);
+/** The app's settings (.env); a clear error listing what is missing otherwise. */
+export function config(): AppConfig {
+  const c = appConfig();
+  if (!c.ok) throw new Error(`EXEGEZIS needs ${c.missing.join(", ")} in .env (see .env.example and docs/13-accounts.md).`);
   return c.config;
 }
 
@@ -31,7 +21,7 @@ const globalDb = globalThis as unknown as { __exegezisDb?: Sql };
 
 /** One pool per server process (kept across hot reloads in development). */
 export function db(): Sql {
-  globalDb.__exegezisDb ??= connect(cloud().databaseUrl);
+  globalDb.__exegezisDb ??= connect(config().databaseUrl);
   return globalDb.__exegezisDb;
 }
 
@@ -41,7 +31,7 @@ export function db(): Sql {
  * app's own host (the public pages are on the same domain: nothing is shared).
  */
 export function sessionCookieOptions(options: CookieOptions = {}): CookieOptions {
-  const c = cloud();
+  const c = config();
   return {
     ...options,
     path: "/",
@@ -53,7 +43,7 @@ export function sessionCookieOptions(options: CookieOptions = {}): CookieOptions
 
 /** Supabase Auth for this request (server components, server actions, route handlers). */
 export async function supabase() {
-  const c = cloud();
+  const c = config();
   const store = await cookies();
   return createServerClient(c.supabaseUrl, c.supabaseAnonKey, {
     cookies: {
@@ -93,9 +83,8 @@ function toSignedIn(user: User): SignedInUser {
   };
 }
 
-/** The signed-in user (checked with Supabase Auth, once per request), or null. Always null in local mode. */
+/** The signed-in user (checked with Supabase Auth, once per request), or null. */
 export const getUser = cache(async (): Promise<SignedInUser | null> => {
-  if (!isCloud()) return null;
   const { data, error } = await (await supabase()).auth.getUser();
   if (error !== null || data.user === null) return null;
   return toSignedIn(data.user);
@@ -107,7 +96,7 @@ async function currentPath(): Promise<string> {
   return safeNext(h.get("x-exegezis-path"), "/");
 }
 
-/** The signed-in user; otherwise, to /login (and back here afterwards). Only meaningful in cloud mode. */
+/** The signed-in user; otherwise, to /login (and back here afterwards). */
 export async function requireUser(): Promise<SignedInUser> {
   const user = await getUser();
   if (user === null) redirect(`/login?next=${encodeURIComponent(await currentPath())}`);

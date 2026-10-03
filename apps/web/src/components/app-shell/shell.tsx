@@ -4,7 +4,6 @@ import { SidebarBrand, SidebarFooter, SidebarNav } from "@/components/app-shell/
 import { Topbar } from "@/components/app-shell/topbar";
 import { accountSummary } from "@/lib/account";
 import { getIndex, getSummaries } from "@/lib/evidence/investigations";
-import { localUser, repositoryInfo } from "@/lib/git";
 import { listJobs } from "@/lib/jobs";
 import { environmentOf, listProjects } from "@/lib/projects";
 import { getScope, inScope, UNASSIGNED } from "@/lib/scope";
@@ -12,14 +11,13 @@ import { countByStatus } from "@/lib/filters";
 
 /** The app's frame on every page but the home: the sidebar and the top bar (scope, search, language, theme, activity). */
 export async function AppShell({ children }: { children: ReactNode }) {
-  // Cloud mode: a signed-in user who accepted the legal texts (else /login or /welcome).
+  // A signed-in user who accepted the legal texts (else /login or /welcome).
   const account = await accountSummary();
   const [t, status] = await Promise.all([getTranslations("shell"), getTranslations("labels.status")]);
-  const [summaries, index, jobs, projects, scope, repo] = await Promise.all([getSummaries(), getIndex(), listJobs(), listProjects(), getScope(), repositoryInfo()]);
+  const [summaries, index, jobs, projects, scope] = await Promise.all([getSummaries(), getIndex(), listJobs(), listProjects(), getScope()]);
   const scoped = summaries.filter((s) => inScope(s, scope));
   const counts = countByStatus(scoped, jobs);
   const environments = [...new Set(summaries.map((s) => environmentOf(s.target)).filter((e) => e !== null))].sort();
-  const user = localUser();
   const hasUnassigned = summaries.some((s) => s.project === null);
 
   const page = t("palette.groupPage");
@@ -70,7 +68,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
             <SidebarNav counts={counts} />
           </Suspense>
         </div>
-        <SidebarFooter workspace={t("footer.localWorkspace")} repository={repo.name} user={user} account={account} />
+        <SidebarFooter account={account} />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar
@@ -93,7 +91,6 @@ export async function AppShell({ children }: { children: ReactNode }) {
               startedAt: j.job.startedAt,
             }))}
           counts={counts}
-          user={user}
           account={account}
         />
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 lg:px-8">{children}</main>

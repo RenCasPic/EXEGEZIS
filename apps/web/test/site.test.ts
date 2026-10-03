@@ -150,27 +150,15 @@ describe("site colours: WCAG AA (4.5:1 for text)", () => {
 });
 
 describe("links of the public pages (same domain as the app)", () => {
-  it("local mode: no accounts, every button opens the app; «Inspect for free» goes to its Inspect tab", () => {
-    const saved = process.env["EXEGEZIS_MODE"];
-    process.env["EXEGEZIS_MODE"] = "local";
-    const links = siteLinks("es");
-    expect([links.cloud, links.signIn, links.start, links.tryPro, links.startTeam]).toEqual([false, "/", "/", "/", "/"]);
-    expect(inspectUrl("https://tu-sitio.com/", "es", false)).toBe("/?url=https%3A%2F%2Ftu-sitio.com%2F");
-    process.env["EXEGEZIS_MODE"] = saved;
-  });
-
-  it("cloud mode: «Sign in» → /login, «Start» and «Try…» → /signup with the plan, «Inspect for free» → /signup and then the address", () => {
-    const saved = process.env["EXEGEZIS_MODE"];
-    process.env["EXEGEZIS_MODE"] = "cloud";
+  it("«Sign in» → /login, «Start» and «Try…» → /signup with the plan, «Inspect for free» → /signup and then the address", () => {
     const es = siteLinks("es");
     expect(es.signIn).toBe("/login?lang=es");
     expect(es.start).toBe("/signup?plan=free&lang=es");
     expect(es.tryPro).toBe("/signup?plan=pro&lang=es");
     expect(es.startTeam).toBe("/signup?plan=team&lang=es");
-    const inspect = new URL(inspectUrl("https://tu-sitio.com/", "en", true), "http://x");
+    const inspect = new URL(inspectUrl("https://tu-sitio.com/", "en"), "http://x");
     expect(inspect.pathname).toBe("/signup");
     expect(inspect.searchParams.get("next")).toBe("/?url=https%3A%2F%2Ftu-sitio.com%2F");
-    process.env["EXEGEZIS_MODE"] = saved;
   });
 });
 

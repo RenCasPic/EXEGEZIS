@@ -1,17 +1,16 @@
 import { exportAccount, userDirs, zipAccount } from "@exegezis/accounts";
 import { NextResponse, type NextRequest } from "next/server";
-import { db, getUser, isCloud } from "@/lib/cloud";
+import { db, getUser } from "@/lib/auth";
 import { dataDir } from "@/lib/user-workspace";
 
 /**
- * «Export my data» (cloud mode): a ZIP with account.json (profile, legal
+ * «Export my data»: a ZIP with account.json (profile, legal
  * acceptances, projects, runs, waiting list) and every file of the user's
  * folders (runs, saved accesses — still encrypted —, search settings).
  * Only the signed-in user's own data; a page from another site cannot ask
  * for it (Sec-Fetch-Site).
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  if (!isCloud()) return new NextResponse(null, { status: 404 });
   const site = request.headers.get("sec-fetch-site");
   if (site !== null && site !== "same-origin" && site !== "none") return new NextResponse(null, { status: 403 });
   const user = await getUser();

@@ -26,11 +26,6 @@
     "notImplementedTag": "N/I",
     "notImplementedYet": "Not implemented yet"
   },
-  "footer": {
-    "workspace": "Workspace",
-    "localWorkspace": "Local workspace",
-    "localUser": "Local user · no authentication"
-  },
   "topbar": {
     "openNavigation": "Open navigation",
     "closeNavigation": "Close navigation",
@@ -43,7 +38,6 @@
     "activity": "Activity: {count, plural, =0 {nothing running} one {# running} other {# running}}",
     "runningAndQueued": "Running and queued",
     "nothingRunning": "Nothing is running. Notifications beyond local runs are not implemented.",
-    "user": "{user} (local, no authentication)",
     "jobInvestigation": "Investigation: {symptom}",
     "jobAccess": "Access: {url}",
     "jobInspect": "Inspection: {url}",

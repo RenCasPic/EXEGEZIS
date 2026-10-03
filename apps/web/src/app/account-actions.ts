@@ -10,11 +10,11 @@ import { z } from "zod";
 import { LOCALE_COOKIE } from "@/i18n/locales";
 import { loadMessages } from "@/i18n/messages";
 import { rateLimited, requireAccount, sameOrigin } from "@/lib/account";
-import { cloud, db, isCloud, supabase } from "@/lib/cloud";
+import { config, db, supabase } from "@/lib/auth";
 import { dataDir } from "@/lib/user-workspace";
 
 /*
- * Settings → Account (cloud mode): profile, security, plan and data. Every
+ * Settings → Account: profile, security, plan and data. Every
  * action checks the request comes from the app and acts only on the signed-in
  * user's own account.
  */
@@ -36,7 +36,6 @@ async function texts() {
 
 async function guard(): Promise<string | null> {
   const t = await texts();
-  if (!isCloud()) return t("errors.localMode");
   if (!(await sameOrigin())) return t("errors.origin");
   return null;
 }
@@ -66,7 +65,7 @@ export async function changeEmailAction(_prev: AccountState, form: FormData): Pr
   const email = text(form, "email").trim().toLowerCase();
   if (!z.email().max(320).safeParse(email).success) return { error: t("errors.email") };
   await requireAccount();
-  const { error } = await (await supabase()).auth.updateUser({ email }, { emailRedirectTo: `${cloud().appUrl}/auth/callback?next=/settings/account` });
+  const { error } = await (await supabase()).auth.updateUser({ email }, { emailRedirectTo: `${config().appUrl}/auth/callback?next=/settings/account` });
   if (error !== null) return { error: t("errors.unexpected") };
   return { error: null, done: t("settings.emailSent", { email }) };
 }
@@ -97,9 +96,9 @@ export async function changePasswordAction(_prev: AccountState, form: FormData):
 export async function linkIdentityAction(form: FormData): Promise<void> {
   if ((await guard()) !== null) redirect("/settings/account?error=origin#security");
   const provider = text(form, "provider");
-  if ((provider !== "google" && provider !== "github") || !cloud().oauthProviders.includes(provider)) redirect("/settings/account#security");
+  if ((provider !== "google" && provider !== "github") || !config().oauthProviders.includes(provider)) redirect("/settings/account#security");
   await requireAccount();
-  const { data, error } = await (await supabase()).auth.linkIdentity({ provider, options: { redirectTo: `${cloud().appUrl}/auth/callback?next=/settings/account` } });
+  const { data, error } = await (await supabase()).auth.linkIdentity({ provider, options: { redirectTo: `${config().appUrl}/auth/callback?next=/settings/account` } });
   if (error !== null || data.url === null) redirect("/settings/account?error=link#security");
   redirect(data.url);
 }

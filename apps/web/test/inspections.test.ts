@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CHECKS } from "@exegezis/inspect";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "../src/app/api/artifacts/[id]/[...path]/route";
 import { discover } from "../src/lib/evidence/discover";
 import { filterFindings, loadFindingEvidence, pageRows, parseFindingFilters, sortFindings } from "../src/lib/evidence/inspections";
@@ -10,6 +10,9 @@ import { INSPECT_CHECKS, parseInspectForm } from "../src/lib/inspect-options";
 import { inspectionJobState } from "../src/lib/inspection-state";
 import { commandFor, JobRecord, readJob, startInspection } from "../src/lib/jobs";
 import { buildReport, writeInspection } from "./inspection-fixture";
+
+// The plan limits and the run record need the accounts database: covered by cloud.e2e.test.ts.
+vi.mock("../src/lib/plan-gate", async (importOriginal) => ({ ...(await importOriginal<object>()), gate: async () => undefined }));
 
 const env = { runs: process.env.EXEGEZIS_RUNS_DIR, root: process.env.EXEGEZIS_ROOT };
 function restoreEnv() {

@@ -1,7 +1,7 @@
 import { getProfile, isPlanId, joinWaitlist } from "@exegezis/accounts";
 import { cookies } from "next/headers";
 import { LOCALE_COOKIE } from "@/i18n/locales";
-import { db, getUser } from "./cloud";
+import { db, getUser } from "./auth";
 
 /**
  * Right after an email link or an OAuth sign-in has created the session:

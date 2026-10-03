@@ -25,7 +25,7 @@ import { latestFor, loadRootCauses, type RootCauseEntry } from "./root-causes";
 import { deriveStages, type StageState } from "./stages";
 
 /** One discovery per request. */
-export const getIndex = cache(async (): Promise<WorkspaceIndex> => discover(await currentWorkspace()));
+export const getIndex = cache(async (): Promise<WorkspaceIndex> => discover({ runs: (await currentWorkspace()).runs, includeBenchmarks: false }));
 
 /**
  * What a list row needs. It is a view over the real artifacts (BugReport,

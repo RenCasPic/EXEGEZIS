@@ -1,24 +1,20 @@
-import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { createServer } from "node:net";
-import { join } from "node:path";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ensureFreshCache } from "../scripts/fresh-cache.mjs";
+import { signUp, startTestApp, verify, type TestApp } from "./support/app";
 
 /*
- * The public pages inside the app (src/site), in a real browser, in local
- * mode: /producto and /product each entirely in their language, <html lang>,
- * title and Open Graph; `/` is still the app's home; the switcher; Monthly /
- * Annual prices; «Coming soon»; the legal drafts; 375 px without sideways
- * scroll; the keyboard (skip link, visible focus); «Inspect for free» opens
- * the Inspect tab with the address filled in. The cloud behaviour of `/` (the
- * landing without a session) is in cloud.e2e.test.ts.
+ * The public pages inside the app (src/site), in a real browser:
+ * /producto and /product each entirely in their language, <html lang>, title
+ * and Open Graph; `/` without a session is the landing; the switcher;
+ * Monthly / Annual prices; «Coming soon»; the legal drafts; 375 px without
+ * sideways scroll; the keyboard (skip link, visible focus); «Inspect for
+ * free» signs the visitor up and then opens the Inspect tab with the address
+ * filled in.
  *
- * It starts its own `next dev` of apps/web on a free port with its own build folder.
+ * It starts its own app (support/app.ts) with its own build folder.
  */
 
-const WEB = join(import.meta.dirname, "..");
-let server: ChildProcess | null = null;
+let app: TestApp;
 let browser: Browser | null = null;
 let base = "";
 
@@ -29,16 +25,6 @@ const FORBIDDEN = {
   en: ["Precios", "Cómo funciona", "Iniciar sesión", "Empieza gratis", "Inspeccionar gratis", "Próximamente", "Mensual", "Anual", "Más elegido", "Disponible", "Verificado", "Producto", "Abrir la app"],
 } as const;
 const LANDING = { es: "/producto", en: "/product" } as const;
-
-function freePort(): Promise<number> {
-  return new Promise((resolve) => {
-    const s = createServer();
-    s.listen(0, "127.0.0.1", () => {
-      const a = s.address();
-      s.close(() => resolve(typeof a === "object" && a !== null ? a.port : 0));
-    });
-  });
-}
 
 async function context(options: { locale?: string; width?: number } = {}): Promise<BrowserContext> {
   return (browser as Browser).newContext({ viewport: { width: options.width ?? 1280, height: 900 }, locale: options.locale ?? "en-US" });
@@ -54,37 +40,17 @@ async function visibleText(page: Page): Promise<string> {
 }
 
 beforeAll(async () => {
-  const port = await freePort();
-  base = `http://127.0.0.1:${port}`;
-  // A build folder from before a change of the app's structure would serve stale routes.
-  ensureFreshCache(".next-e2e");
-  server = spawn(process.execPath, [join(WEB, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
-    cwd: WEB,
-    env: { ...process.env, EXEGEZIS_NEXT_DIST: ".next-e2e", NEXT_TELEMETRY_DISABLED: "1", EXEGEZIS_MODE: "local" },
-    stdio: "ignore",
-    windowsHide: true,
-  });
-  for (let i = 0; ; i++) {
-    try {
-      if ((await fetch(`${base}/api/health`)).status < 500) break;
-    } catch {
-      // not up yet
-    }
-    if (i > 480) throw new Error("the app did not start");
-    await new Promise((r) => setTimeout(r, 500));
-  }
+  app = await startTestApp({ dist: ".next-e2e", log: "site-server.log" });
+  base = app.base;
   browser = await chromium.launch();
-});
+}, 600_000);
 
 afterAll(async () => {
   await browser?.close();
-  if (server?.pid !== undefined) {
-    if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(server.pid), "/T", "/F"], { stdio: "ignore" });
-    else server.kill("SIGTERM");
-  }
-});
+  await app?.stop();
+}, 120_000);
 
-describe("the public pages (local mode)", () => {
+describe("the public pages", () => {
   for (const locale of ["en", "es"] as const) {
     it(`${LANDING[locale]} is entirely in ${locale === "en" ? "English" : "Spanish"}, with the right <html lang>, title and Open Graph`, async () => {
       const ctx = await context();
@@ -101,11 +67,13 @@ describe("the public pages (local mode)", () => {
     });
   }
 
-  it("/ is still the app's home in local mode; the switcher goes to the same page in the other language and sets the app's language", async () => {
+  it("/ without a session is the landing in the visitor's language; the switcher goes to the same page in the other language and sets the app's language", async () => {
     const ctx = await context({ locale: "es-ES" });
     const page = await ctx.newPage();
     await page.goto(`${base}/`, { waitUntil: "load", timeout: 180_000 });
-    await page.waitForSelector("#home-title");
+    expect(new URL(page.url()).pathname).toBe("/");
+    expect(await page.evaluate(() => document.documentElement.lang)).toBe("es");
+    await page.waitForSelector("#hero-title");
     await page.goto(`${base}/producto`, { waitUntil: "networkidle" });
     await page.locator('header a[lang="en"]').click();
     await page.waitForURL(`${base}/product`);
@@ -199,7 +167,7 @@ describe("the public pages (local mode)", () => {
     await ctx.close();
   });
 
-  it("«Inspect for free» opens the app's Inspect tab with the address filled in; a non-address is refused", async () => {
+  it("«Inspect for free» signs up first, then opens the app's Inspect tab with the address filled in; a non-address is refused", async () => {
     const ctx = await context();
     const page = await ctx.newPage();
     await page.goto(`${base}/producto`, { waitUntil: "networkidle" });
@@ -209,6 +177,12 @@ describe("the public pages (local mode)", () => {
     await expect(hero.locator('[role="alert"]').textContent()).resolves.toContain("Escribe una dirección web");
     await hero.locator('input[type="url"]').fill("tu-web.com");
     await hero.locator('button[type="submit"]').click();
+    await page.waitForURL(/\/signup\?/, { timeout: 120_000 });
+    const signup = new URL(page.url());
+    expect(signup.searchParams.get("next")).toBe("/?url=https%3A%2F%2Ftu-web.com%2F");
+    const email = `site-${Date.now()}@example.com`;
+    await signUp(app, page, { name: "Sol", email }, `${signup.pathname}${signup.search}`);
+    await verify(app, page, email);
     await page.waitForURL(/\/\?url=/, { timeout: 120_000 });
     expect(new URL(page.url()).searchParams.get("url")).toBe("https://tu-web.com/");
     await page.waitForSelector("#inspect-url");

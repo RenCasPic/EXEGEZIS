@@ -145,7 +145,7 @@ export class SecretToolProtector implements KeyProtector {
 }
 
 /**
- * A server with no desktop keyring (EXEGEZIS cloud mode): each user's master
+ * A server with no desktop keyring (the EXEGEZIS web app): each user's master
  * key is wrapped with AES-256-GCM under a server key (EXEGEZIS_ACCESS_KEY, 32
  * bytes in base64), kept outside the data folder (a secret of the deployment).
  */

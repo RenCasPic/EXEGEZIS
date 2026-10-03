@@ -26,7 +26,7 @@ import "./site.css";
  * (auth)).
  */
 
-/** Where the site is published (absolute Open Graph URLs): the app's address in cloud mode. */
+/** Where the site is published (absolute Open Graph URLs): the app's address. */
 function publicUrl(): string {
   return ((process.env["EXEGEZIS_APP_URL"] ?? "").trim() || "http://127.0.0.1:4100").replace(/\/+$/, "");
 }
@@ -73,7 +73,7 @@ export function LandingPage({ locale }: { locale: SiteLocale }) {
     <>
       <SiteHeader locale={locale} page="landing" links={links} />
       <main id="content" tabIndex={-1} className="outline-none">
-        <Hero locale={locale} cloud={links.cloud} />
+        <Hero locale={locale} />
         <Guarantees locale={locale} />
         <Features locale={locale} />
         <HowItWorks locale={locale} />

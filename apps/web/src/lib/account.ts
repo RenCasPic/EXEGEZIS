@@ -4,11 +4,11 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { AccountSummary } from "@/components/app-shell/user-menu";
-import { cloud, db, isCloud, requireUser, type SignedInUser } from "./cloud";
+import { config, db, requireUser, type SignedInUser } from "./auth";
 import { siteLinks } from "./links";
 
 /*
- * Helpers for the account pages and actions (cloud mode).
+ * Helpers for the account pages and actions.
  */
 
 /** The signed-in user and their profile; a user who has not accepted the legal texts yet (OAuth sign-up) goes to /welcome first. */
@@ -21,11 +21,6 @@ export const requireAccount = cache(async (): Promise<{ user: SignedInUser; prof
   }
   return { user, profile };
 });
-
-/** In cloud mode, the account (or /login, or /welcome); in local mode nothing is required. */
-export async function requireAccountInCloud(): Promise<void> {
-  if (isCloud()) await requireAccount();
-}
 
 /**
  * The client's address, for the rate limits. Proxies append to
@@ -52,7 +47,7 @@ export async function sameOrigin(): Promise<boolean> {
   const origin = h.get("origin");
   if (origin === null) return false;
   try {
-    const app = new URL(cloud().appUrl);
+    const app = new URL(config().appUrl);
     const from = new URL(origin);
     const host = h.get("x-forwarded-host") ?? h.get("host");
     return from.host === app.host || (host !== null && from.host === host);
@@ -80,9 +75,8 @@ export async function rateLimited(kind: RateKind, email: string): Promise<number
   return Math.max(1, Math.ceil(Math.max(byIp.retryAfterSeconds, byEmail.retryAfterSeconds) / 60));
 }
 
-/** What the user menu shows (cloud mode); null in local mode. */
-export async function accountSummary(): Promise<AccountSummary | null> {
-  if (!isCloud()) return null;
+/** What the user menu shows (the signed-in account; else /login or /welcome). */
+export async function accountSummary(): Promise<AccountSummary> {
   const [{ user, profile }, plans, locale] = await Promise.all([requireAccount(), getTranslations("account.plans"), getLocale()]);
   const links = siteLinks(locale === "es" ? "es" : "en");
   return { name: profile.displayName || user.name, email: user.email, plan: plans(profile.plan), plansUrl: links.plans, helpUrl: links.help };

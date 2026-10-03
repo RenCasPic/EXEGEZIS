@@ -62,8 +62,7 @@
     "noReport": "El CLI terminó sin informe: el detalle está en la salida.",
     "summary": "{hits, plural, one {# resultado} other {# resultados}} · se revisaron {searched} de {found} páginas.",
     "viewResults": "Ver los resultados",
-    "noBrowser": "Ningún navegador pudo arrancar (código de salida 7): no se buscó nada en el sitio.",
-    "terminal": "Lo mismo desde un terminal:"
+    "noBrowser": "Ningún navegador pudo arrancar (código de salida 7): no se buscó nada en el sitio."
   },
   "inspect": {
     "title": "Inspección",
@@ -91,8 +90,7 @@
     "automatic": "automático",
     "session": "Sesión",
     "none": "ninguna",
-    "storageState": "storageState (el contenido no se lee)",
-    "terminal": "La misma inspección desde un terminal:"
+    "storageState": "storageState (el contenido no se lee)"
   },
   "investigation": {
     "running": "El CLI se está ejecutando. Esta página sigue su salida y enlaza la investigación en cuanto existan sus artefactos.",
@@ -104,7 +102,6 @@
     "planner": "Planner",
     "attempts": "Intentos",
     "project": "Proyecto",
-    "unassigned": "Sin asignar",
-    "terminal": "La misma ejecución desde un terminal:"
+    "unassigned": "Sin asignar"
   }
 }

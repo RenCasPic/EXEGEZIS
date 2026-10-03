@@ -9,11 +9,12 @@ import { t } from "./i18n.js";
 import type { CliIo } from "./shared.js";
 
 /*
- * `exegezis account claim-local [--email <email>] [--dry-run]` (cloud mode,
- * docs/13-accounts.md): gives what this machine already has — runs/, the
- * saved site accesses and the search settings — to an account: the first one
- * created, or the one with --email. It copies (the originals stay for local
- * mode), re-encrypts the saved accesses with the cloud key, and records every
+ * `exegezis account claim-local [--email <email>] [--dry-run]`
+ * (docs/13-accounts.md): gives what the CLI already has on this machine —
+ * runs/, the saved site accesses and the search settings — to a web app
+ * account: the first one created, or the one with --email. It copies (the
+ * originals stay for the CLI), re-encrypts the saved accesses with the app's
+ * key, and records every
  * inspection, search and investigation in the database as that user's.
  */
 
@@ -99,8 +100,8 @@ async function exists(path: string): Promise<boolean> {
 export async function accountCommand(command: AccountCommand, io: CliIo, env: NodeJS.ProcessEnv = process.env): Promise<number> {
   const out = (line: string) => io.stdout.write(`${line}\n`);
   const databaseUrl = (env["DATABASE_URL"] ?? "").trim();
-  if ((env["EXEGEZIS_MODE"] ?? "").trim().toLowerCase() !== "cloud" || databaseUrl === "") {
-    io.stderr.write(`${t("account.needsCloud")}\n`);
+  if (databaseUrl === "") {
+    io.stderr.write(`${t("account.needsDatabase")}\n`);
     return EXIT.usage;
   }
   const dataDir = resolve((env["EXEGEZIS_DATA_DIR"] ?? "").trim() || join(process.cwd(), "data"));

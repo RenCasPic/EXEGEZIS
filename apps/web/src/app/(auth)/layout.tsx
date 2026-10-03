@@ -1,20 +1,17 @@
-import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { LanguageSwitcher } from "@/components/app-shell/language-switcher";
 import { ThemeSwitcher } from "@/components/app-shell/theme-switcher";
 import { HomeLogo } from "@/components/home/home-header";
 import { AppDocument, appMetadata } from "@/components/app-shell/document";
 import { getUiLocale } from "@/i18n/server";
-import { isCloud } from "@/lib/cloud";
 import { siteLinks } from "@/lib/links";
 
 export const generateMetadata = appMetadata;
 
 export const dynamic = "force-dynamic";
 
-/** The account screens (cloud mode only): the logo, the language and the theme, and one card in the middle. */
+/** The account screens: the logo, the language and the theme, and one card in the middle. */
 export default async function AuthLayout({ children }: { children: ReactNode }) {
-  if (!isCloud()) notFound();
   const links = siteLinks(await getUiLocale());
   return (
     <AppDocument>

@@ -4,46 +4,20 @@
 //
 //   node apps/web/scripts/site-screenshots.mjs        (from the repository folder)
 //
-// It starts its own `next dev` on a free port with its own build folder (.next-shots), unless
-// WEB_URL points at a running app (local mode).
-import { spawn, spawnSync } from "node:child_process";
+// It starts its own app with its own build folder (.next-shots), database and Supabase Auth
+// stand-in (test/support/app.ts), so a running `pnpm web` is not touched.
 import { mkdirSync } from "node:fs";
-import { createServer } from "node:net";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { ensureFreshCache } from "./fresh-cache.mjs";
+import { startTestApp } from "../test/support/app.ts";
 
 const SITE = join(import.meta.dirname, "..");
 const PATH = { en: "/product", es: "/producto" };
 const REPO = join(SITE, "..", "..");
 const OUT = join(REPO, "docs", "screenshots", "site");
 
-let base = process.env.WEB_URL?.replace(/\/+$/, "") ?? null;
-let server = null;
-if (base === null) {
-  const port = await new Promise((resolve) => {
-    const s = createServer();
-    s.listen(0, "127.0.0.1", () => {
-      const { port } = s.address();
-      s.close(() => resolve(port));
-    });
-  });
-  base = `http://127.0.0.1:${port}`;
-  ensureFreshCache(".next-shots");
-  server = spawn(process.execPath, [join(SITE, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
-    cwd: SITE,
-    env: { ...process.env, EXEGEZIS_NEXT_DIST: ".next-shots", NEXT_TELEMETRY_DISABLED: "1", EXEGEZIS_MODE: "local", NEXT_PUBLIC_EXEGEZIS_MODE: "local" },
-    stdio: "ignore",
-    windowsHide: true,
-  });
-}
-for (let i = 0; ; i++) {
-  try {
-    if ((await fetch(`${base}/api/health`)).status < 500) break;
-  } catch {}
-  if (i > 480) throw new Error("the app did not start");
-  await new Promise((r) => setTimeout(r, 500));
-}
+const app = await startTestApp({ dist: ".next-shots", log: "shots-server.log" });
+const base = app.base;
 
 const browser = await chromium.launch();
 try {
@@ -71,8 +45,5 @@ try {
   if (overflow.length > 0) process.exitCode = 1;
 } finally {
   await browser.close();
-  if (server !== null) {
-    if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(server.pid), "/T", "/F"], { stdio: "ignore" });
-    else server.kill("SIGTERM");
-  }
+  await app.stop();
 }

@@ -25,10 +25,10 @@ export function normalizeSiteUrl(raw: string): string | null {
 export const HERO_URL_ID = "hero-url";
 
 /**
- * «Inspect for free»: the app's Inspect tab with the address filled in (cloud
- * mode: after signing up; a signed-in visitor goes straight there).
+ * «Inspect for free»: the app's Inspect tab with the address filled in, after
+ * signing up (a signed-in visitor goes straight there).
  */
-export function InspectForm({ locale, cloud }: { locale: SiteLocale; cloud: boolean }) {
+export function InspectForm({ locale }: { locale: SiteLocale }) {
   const t = siteT(locale, "inspect");
   const [value, setValue] = useState("");
   const [state, setState] = useState<"idle" | "checking" | "invalid">("idle");
@@ -41,7 +41,7 @@ export function InspectForm({ locale, cloud }: { locale: SiteLocale; cloud: bool
       return;
     }
     setState("checking");
-    window.location.assign(inspectUrl(site, locale, cloud));
+    window.location.assign(inspectUrl(site, locale));
   };
 
   return (

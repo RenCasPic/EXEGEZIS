@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { CliNotBuiltError } from "./jobs";
-import { CloudRefusedError, PlanLimitError } from "./plan-gate";
+import { RefusedError, PlanLimitError } from "./plan-gate";
 import { translateUi, ui, type UiMessage } from "./ui-message";
 
 /** A UiMessage in the request's language (server actions). */
@@ -14,7 +14,7 @@ export async function say(m: UiMessage): Promise<string> {
 export async function errorText(error: unknown): Promise<string> {
   if (error instanceof CliNotBuiltError) return say(ui("common.errors.cliNotBuilt"));
   if (error instanceof PlanLimitError) return say(ui(`account.limits.${error.reason}`, typeof error.limit === "number" ? { limit: error.limit } : {}));
-  if (error instanceof CloudRefusedError) return say(ui(`account.refused.${error.reason}`));
+  if (error instanceof RefusedError) return say(ui(`account.refused.${error.reason}`));
   return say(ui("common.errors.unexpected", { detail: error instanceof Error ? error.message : String(error) }));
 }
 
@@ -28,5 +28,5 @@ export async function plansLinkFor(error: unknown): Promise<{ plansUrl?: string 
 /** Actions without a form state (repeat, approve, run a saved search): a refusal opens the account page, which says why. */
 export function redirectOnRefusal(error: unknown): void {
   if (error instanceof PlanLimitError) redirect(`/settings/account?limit=${error.reason}#plan`);
-  if (error instanceof CloudRefusedError) redirect(`/settings/account?refused=${error.reason}`);
+  if (error instanceof RefusedError) redirect(`/settings/account?refused=${error.reason}`);
 }

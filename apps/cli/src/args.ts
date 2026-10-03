@@ -130,7 +130,7 @@ const PLANNERS: readonly Planner[] = ["anthropic", "mock"];
 export function parseCliArgs(argv: readonly string[]): Command {
   // `search` has its own sub-actions and options (search-args.ts).
   if (argv[0] === "search") return parseSearchArgs(argv.slice(1));
-  // `account` (cloud mode): its own sub-actions (account.ts).
+  // `account` (the web app's accounts): its own sub-actions (account.ts).
   if (argv[0] === "account") return parseAccountArgs(argv.slice(1));
   let parsed;
   try {

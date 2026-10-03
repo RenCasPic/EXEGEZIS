@@ -6,7 +6,6 @@
   "section": {
     "general": "General",
     "environment": "Environment",
-    "repository": "Repository",
     "models": "Models",
     "security": "Security",
     "permissions": "Permissions",
@@ -16,14 +15,8 @@
   },
   "general": {
     "workspace": "Workspace",
-    "workspaceValue": "Local workspace (single user, this machine)",
-    "repoRoot": "Repository root",
-    "runArtifacts": "Run artifacts",
-    "archived": "Archived results",
     "dataSource": "Data source",
     "dataSourceValue": "Artifacts on disk only. No database, no demo data.",
-    "uiServer": "UI server",
-    "uiServerValue": "{address} (local only)",
     "cloudWorkspace": "Your account, in the cloud: only your data."
   },
   "environment": {
@@ -33,14 +26,6 @@
     "named": "Named environments",
     "note": "Environments are derived from each run's target URL; loopback addresses are reported as Local.",
     "defaultTargetValue": "{url} (buggy-shop)"
-  },
-  "repository": {
-    "repository": "Repository",
-    "branch": "Branch",
-    "remote": "Remote",
-    "github": "GitHub connection",
-    "analysis": "Code analysis",
-    "note": "Read from the local .git directory. No stage reads or analyses source code yet."
   },
   "models": {
     "provider": "Planner provider",

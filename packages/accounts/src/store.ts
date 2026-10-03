@@ -2,7 +2,7 @@ import postgres from "postgres";
 import { LIMITS, type PlanId, type PlanLimits, isPlanId } from "./pricing.js";
 
 /*
- * The accounts store (cloud mode). The app connects as the database owner
+ * The accounts store. The app connects as the database owner
  * (DATABASE_URL) and does everything on a user's behalf inside `asUser`,
  * which switches the transaction to the `authenticated` role with that
  * user's id: the Row Level Security policies of

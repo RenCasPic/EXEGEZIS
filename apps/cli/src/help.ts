@@ -28,21 +28,21 @@ const SEARCH_HELP_EN = `
               language of --lang; quotes stay as they are on the page.`;
 
 const ACCOUNT_HELP_EN = `
-  account     Cloud mode (EXEGEZIS_MODE=cloud, DATABASE_URL in .env).
+  account     The web app's accounts (DATABASE_URL in .env).
                 exegezis account claim-local [--email <email>] [--dry-run]
               Gives this machine's runs/, saved accesses and search settings
               to an account (the first one created, or --email): copies them
-              to its folder, re-encrypts the accesses with the cloud key and
-              records the runs as its own. The originals stay for local mode.`;
+              to its folder, re-encrypts the accesses with the app's key and
+              records the runs as its own. The originals stay for the CLI.`;
 
 const ACCOUNT_HELP_ES = `
-  account     Modo nube (EXEGEZIS_MODE=cloud, DATABASE_URL en .env).
+  account     Las cuentas de la app web (DATABASE_URL en .env).
                 exegezis account claim-local [--email <email>] [--dry-run]
               Da a una cuenta (la primera creada, o --email) lo que este
               equipo ya tiene: runs/, los accesos guardados y los ajustes de
               búsqueda. Los copia a su carpeta, vuelve a cifrar los accesos con
-              la clave de la nube y registra las ejecuciones como suyas. Los
-              originales se quedan para el modo local.`;
+              la clave de la app y registra las ejecuciones como suyas. Los
+              originales se quedan para el CLI.`;
 
 const SEARCH_HELP_ES = `
   search      Busca en el texto de un sitio (mismo recorrido, límites, robots.txt,

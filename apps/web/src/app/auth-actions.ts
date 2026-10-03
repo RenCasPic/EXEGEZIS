@@ -7,11 +7,11 @@ import { loadMessages } from "@/i18n/messages";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { rateLimited, requireAccount, sameOrigin } from "@/lib/account";
-import { cloud, db, isCloud, requireUser, supabase } from "@/lib/cloud";
+import { config, db, requireUser, supabase } from "@/lib/auth";
 
 /*
- * Sign-in, sign-up, verification, password recovery, OAuth and sign-out
- * (cloud mode). Passwords go straight to Supabase Auth: EXEGEZIS never stores
+ * Sign-in, sign-up, verification, password recovery, OAuth and sign-out.
+ * Passwords go straight to Supabase Auth: EXEGEZIS never stores
  * them. Every action checks the request comes from the app and counts
  * attempts per address and per email.
  */
@@ -43,13 +43,12 @@ async function errorTexts() {
 
 async function guard(): Promise<string | null> {
   const t = await errorTexts();
-  if (!isCloud()) return t("localMode");
   if (!(await sameOrigin())) return t("origin");
   return null;
 }
 
 function callbackUrl(next: string): string {
-  return `${cloud().appUrl}/auth/callback?next=${encodeURIComponent(safeNext(next))}`;
+  return `${config().appUrl}/auth/callback?next=${encodeURIComponent(safeNext(next))}`;
 }
 
 export async function signInAction(_prev: AuthState, form: FormData): Promise<AuthState> {
@@ -152,20 +151,20 @@ export async function oauthAction(form: FormData): Promise<void> {
   const next = safeNext(text(form, "next"));
   if ((await guard()) !== null) redirect("/login?error=origin");
   if (provider !== "google" && provider !== "github") redirect("/login?error=oauth");
-  if (!cloud().oauthProviders.includes(provider)) redirect("/login?error=oauth");
+  if (!config().oauthProviders.includes(provider)) redirect("/login?error=oauth");
   const { data, error } = await (await supabase()).auth.signInWithOAuth({ provider, options: { redirectTo: callbackUrl(next) } });
   if (error !== null || data.url === null) redirect("/login?error=oauth");
   redirect(data.url);
 }
 
 export async function signOutAction(): Promise<void> {
-  if (isCloud() && (await sameOrigin())) await (await supabase()).auth.signOut({ scope: "local" });
+  if (await sameOrigin()) await (await supabase()).auth.signOut({ scope: "local" });
   redirect("/login?notice=signedOut");
 }
 
 /** Ends every session of the account, on every device (this one too). */
 export async function signOutEverywhereAction(): Promise<void> {
-  if (isCloud() && (await sameOrigin())) {
+  if (await sameOrigin()) {
     await requireUser();
     await (await supabase()).auth.signOut({ scope: "global" });
   }

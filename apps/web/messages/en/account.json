@@ -6,7 +6,6 @@
     "enterprise": "Enterprise"
   },
   "errors": {
-    "localMode": "Accounts are only used in cloud mode.",
     "origin": "This request did not come from EXEGEZIS. Reload the page and try again.",
     "credentials": "Wrong email or password.",
     "email": "Type a valid email address.",

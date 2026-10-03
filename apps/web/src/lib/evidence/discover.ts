@@ -117,9 +117,9 @@ function jobIdFor(runs: string, dir: string): string | null {
 }
 
 /**
- * Everything under `runs` (the workspace's run folder) and, unless it is
- * excluded (cloud mode: only the user's own data), the repository's
- * benchmark results.
+ * Everything under `runs` (the workspace's run folder) and, when asked (the
+ * CLI's own runs and the tests; never the app, which shows only the user's
+ * own data), the repository's benchmark results.
  */
 export async function discover(where: { runs: string; includeBenchmarks: boolean } = { runs: runsDir(), includeBenchmarks: true }): Promise<WorkspaceIndex> {
   const investigations: InvestigationRef[] = [];

@@ -8,10 +8,10 @@ import { repoRoot } from "./workspace";
  * The web side of saved access: metadata only (index.json). The web never
  * decrypts anything; it asks the CLI, passing secrets through stdin.
  */
-/** This workspace's store (each user's own in cloud mode). */
+/** This user's store of saved accesses. */
 async function store(): Promise<AccessStore> {
   const ws = await currentWorkspace();
-  return ws.access === null ? new AccessStore() : new AccessStore(ws.access);
+  return new AccessStore(ws.access);
 }
 
 export async function listAccess(): Promise<{ dir: string; entries: AccessEntry[] }> {
@@ -41,7 +41,7 @@ export function accessState(entry: AccessEntry, now = Date.now()): "active" | "e
 
 /** Runs the CLI without a shell; `stdin` carries any secret. Output stays in memory, never in a log file. */
 export async function runCli(args: string[], stdin = ""): Promise<{ code: number | null; stdout: string; stderr: string }> {
-  // The CLI reads and writes this workspace only (in cloud mode, the user's own folders).
+  // The CLI reads and writes this workspace only (the user's own folders).
   const env = { ...process.env, ...workspaceEnv(await currentWorkspace()) };
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [cliEntry(), ...args], { cwd: repoRoot(), windowsHide: true, stdio: ["pipe", "pipe", "pipe"], env });

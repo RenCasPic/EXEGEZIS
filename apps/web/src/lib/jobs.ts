@@ -8,10 +8,10 @@ import { getUiLocale } from "../i18n/server";
 import { readArtifact, readText } from "./evidence/read";
 import { readSearchSettings } from "@exegezis/search/light";
 import { INSPECT_DEFAULTS } from "./inspect-checks";
-import { CloudRefusedError, gate } from "./plan-gate";
+import { gate, RefusedError, sharedServer } from "./plan-gate";
 import { SEARCH_DEFAULTS } from "./search-defaults";
 import { currentWorkspace, workspaceEnv, type Workspace } from "./user-workspace";
-import { displayPath, repoRoot, runsDir } from "./workspace";
+import { repoRoot, runsDir } from "./workspace";
 
 /** The CLI has no build to run (pnpm build). Shown translated by the action that caught it. */
 export class CliNotBuiltError extends Error {
@@ -152,7 +152,7 @@ export type JobStatus = JobRecord["status"] | "lost";
 /** Exit codes the CLI documents (their meaning: jobs.exit.<code> in the catalogs). */
 export const EXIT_CODES = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
 
-/** Web jobs live in the workspace's runs folder (each user's own in cloud mode). */
+/** Web jobs live in the workspace's runs folder (each user's own). */
 export const jobsDir = (runs: string = runsDir()): string => join(runs, "web", "jobs");
 const jobDir = (runs: string, id: string): string => join(jobsDir(runs), id);
 export const jobOutputDir = (id: string, runs: string = runsDir()): string => join(jobDir(runs, id), "out");
@@ -280,12 +280,6 @@ function commandArgs(job: JobRecord, runs: string): string[] {
   ];
 }
 
-/** Terminal form of a job's command, with the output path shown relative to the repository. */
-export function terminalCommand(job: JobRecord, runs: string = runsDir()): string {
-  const output = jobOutputDir(job.id, runs);
-  return ["pnpm exegezis", ...commandFor(job, runs).map((a) => (a === output ? displayPath(output) : a)).map((a) => (/[\s"']/.test(a) ? JSON.stringify(a) : a))].join(" ");
-}
-
 function spawnJob(ws: Workspace, job: JobRecord, onExit: () => void): void {
   // Writes are serialized so a fast exit can never be overwritten by an earlier record.
   let queue = writeJob(ws.runs, job);
@@ -298,7 +292,7 @@ function spawnJob(ws: Workspace, job: JobRecord, onExit: () => void): void {
   try {
     // No shell: every value is one argument, never interpreted. cwd is the
     // repository root so the CLI loads the same `.env` as in a terminal.
-    // The CLI reads and writes this workspace only (in cloud mode, the user's own folders).
+    // The CLI reads and writes this workspace only (the user's own folders).
     const child = spawn(process.execPath, [cliEntry(), ...commandFor(job, ws.runs)], { cwd: repoRoot(), stdio: ["ignore", log, log], windowsHide: true, env: { ...process.env, ...workspaceEnv(ws) } });
     child.on("error", (error) => {
       update({ status: "failed", finishedAt: new Date().toISOString(), error: error.message });
@@ -401,7 +395,7 @@ export async function startSearch(input: StartSearchInput): Promise<JobRecord> {
   const ws = await currentWorkspace();
   const id = ulid();
   const meaning = input.mode === "meaning" || (input.mode === "template" && input.withMeaning);
-  const meaningUsd = meaning ? (input.maxCostUsd ?? (await readSearchSettings(ws.search ?? undefined)).maxCostUsd) : undefined;
+  const meaningUsd = meaning ? (input.maxCostUsd ?? (await readSearchSettings(ws.search)).maxCostUsd) : undefined;
   await gate(ws, id, { kind: "search", url: input.url, pages: input.maxPages, ...(meaningUsd === undefined ? {} : { meaningUsd }) }, SEARCH_DEFAULTS.maxPages);
   await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: SearchJob = SearchJob.parse({ ...newJobBase(id, await jobLanguage()), status: "queued", kind: "search", ...input });
@@ -436,8 +430,8 @@ export interface StartAccessInput {
 export async function startAccessLogin(input: StartAccessInput): Promise<JobRecord> {
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const ws = await currentWorkspace();
-  // The sign-in window opens on the machine running EXEGEZIS: on a cloud server nobody could see it.
-  if (ws.userId !== null) throw new CloudRefusedError("visibleWindow");
+  // The sign-in window opens on the machine running EXEGEZIS: on a shared server nobody could see it.
+  if (sharedServer()) throw new RefusedError("visibleWindow");
   const id = ulid();
   await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: AccessJob = { ...newJobBase(id, await jobLanguage()), status: "running", kind: "access", ...input, relaunchedJobId: null };

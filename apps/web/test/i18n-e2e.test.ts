@@ -1,12 +1,11 @@
-import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { mkdirSync } from "node:fs";
-import { createServer } from "node:net";
 import { join } from "node:path";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ensureFreshCache } from "../scripts/fresh-cache.mjs";
 import { discover } from "../src/lib/evidence/discover";
 import { listJobs } from "../src/lib/jobs";
+import { runsDir } from "../src/lib/workspace";
+import { linkRuns, signedInUser, startTestApp, type TestApp } from "./support/app";
 
 /*
  * The whole UI in both languages, in a real browser (docs/11-i18n.md): every
@@ -16,8 +15,9 @@ import { listJobs } from "../src/lib/jobs";
  * is never translated (the site's text, the user's, code, URLs) is marked
  * translate="no" and left out of the check.
  *
- * It runs its own `next dev` on a free port with its own build directory, so
- * a running `pnpm web` is not touched. I18N_SCREENSHOTS=1 also writes the
+ * It runs its own app (support/app.ts) with its own build folder, so a
+ * running `pnpm web` is not touched, signed in as a test user whose runs
+ * folder shows the repository's runs/. I18N_SCREENSHOTS=1 also writes the
  * screenshots of docs/screenshots/i18n/.
  */
 
@@ -34,41 +34,19 @@ const FORBIDDEN: Record<Locale, string[]> = {
   en: ["Verificado", "No verificado", "Investigaciones", "Investigación", "Ajustes", "Inspecciones", "Búsquedas", "Proyectos", "No implementado", "Evidencia", "Resumen", "Cargando", "Reproducción", "Causa raíz", "Nueva búsqueda", "Inspeccionar", "Pendiente", "Relevante", "Estado", "Páginas", "Resultados", "Informe", "Intentos", "Buscar"],
 };
 
-let server: ChildProcess | null = null;
+let app: TestApp;
 let browser: Browser | null = null;
 let base = "";
+/** The test user's session cookies (Supabase's), without the language the app saved for them. */
+let session: Awaited<ReturnType<BrowserContext["storageState"]>> = { cookies: [], origins: [] };
 const routes: string[] = [];
 const details: { inspection: string | null; search: string | null } = { inspection: null, search: null };
-
-function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const s = createServer();
-    s.once("error", reject);
-    s.listen(0, "127.0.0.1", () => {
-      const address = s.address();
-      s.close(() => resolve(typeof address === "object" && address !== null ? address.port : 0));
-    });
-  });
-}
-
-async function waitFor(url: string, ms: number): Promise<void> {
-  const end = Date.now() + ms;
-  for (;;) {
-    try {
-      const r = await fetch(url);
-      if (r.status < 500) return;
-    } catch {
-      // not up yet
-    }
-    if (Date.now() > end) throw new Error(`the UI server did not answer at ${url}`);
-    await new Promise((r) => setTimeout(r, 500));
-  }
-}
 
 async function contextFor(locale: Locale | null, options: { width?: number; acceptLanguage?: string } = {}): Promise<BrowserContext> {
   const context = await (browser as Browser).newContext({
     viewport: { width: options.width ?? 1280, height: 900 },
     locale: options.acceptLanguage ?? (locale === "es" ? "es-ES" : "en-US"),
+    storageState: session,
   });
   if (locale !== null) await context.addCookies([{ name: "EXEGEZIS_LOCALE", value: locale, url: base }]);
   return context;
@@ -120,7 +98,8 @@ beforeAll(async () => {
     "/benchmarks",
     "/projects",
     "/settings",
-    ...["environment", "repository", "models", "security", "permissions"].map((s) => `/settings?section=${s}`),
+    ...["environment", "models", "security", "permissions"].map((s) => `/settings?section=${s}`),
+    "/settings/account",
     "/settings/access",
     "/settings/search",
     "/this-page-does-not-exist",
@@ -129,8 +108,6 @@ beforeAll(async () => {
   if (investigation !== undefined) routes.push(`/investigations/${encodeURIComponent(investigation)}`);
   if (details.inspection !== null) routes.push(`/inspections/${details.inspection}`, `/inspections/${details.inspection}?vista=elementos`);
   if (details.search !== null) routes.push(`/searches/${details.search}`);
-  const benchmark = firstOk(index.benchmarks);
-  if (benchmark !== null) routes.push(`/benchmarks/${encodeURIComponent(benchmark)}`);
   const rootCause = index.rootCauses[0]?.id;
   if (rootCause !== undefined) routes.push(`/verification/root-causes/${encodeURIComponent(rootCause)}`);
   for (const kind of ["inspect", "search", "access", "ai-verify"]) {
@@ -138,27 +115,19 @@ beforeAll(async () => {
     if (job !== undefined) routes.push(`/jobs/${job.job.id}`);
   }
 
-  const port = await freePort();
-  base = `http://127.0.0.1:${port}`;
-  // A build folder from before a change of the app's structure would serve stale routes.
-  ensureFreshCache(".next-e2e");
-  server = spawn(process.execPath, [join(WEB, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
-    cwd: WEB,
-    env: { ...process.env, EXEGEZIS_NEXT_DIST: ".next-e2e", NEXT_TELEMETRY_DISABLED: "1", EXEGEZIS_MODE: "local", NEXT_PUBLIC_EXEGEZIS_MODE: "local" },
-    stdio: "ignore",
-    windowsHide: true,
-  });
-  await waitFor(`${base}/`, 240_000);
+  app = await startTestApp({ dist: ".next-e2e", log: "i18n-server.log" });
+  base = app.base;
   browser = await chromium.launch();
-}, 300_000);
+  const user = await signedInUser(app, browser, { name: "Iris Test", email: `i18n-${Date.now()}@example.com` });
+  session = { cookies: user.storageState.cookies.filter((c) => c.name.startsWith("sb-")), origins: [] };
+  // The repository's runs (inspections, searches, investigations, web jobs) as the test user's own.
+  linkRuns(app, user.id, runsDir());
+}, 900_000);
 
 afterAll(async () => {
   await browser?.close();
-  if (server?.pid !== undefined) {
-    if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(server.pid), "/T", "/F"], { stdio: "ignore" });
-    else server.kill("SIGTERM");
-  }
-});
+  await app?.stop();
+}, 120_000);
 
 describe("the UI in English and in Spanish", () => {
   for (const locale of LOCALES) {

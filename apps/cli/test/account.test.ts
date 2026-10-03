@@ -56,15 +56,15 @@ afterAll(async () => {
 });
 
 describe("exegezis account claim-local", () => {
-  it("refuses outside cloud mode", async () => {
+  it("refuses without DATABASE_URL", async () => {
     const o = io();
-    expect(await main(["--lang", "en", "account", "claim-local"], o, { EXEGEZIS_MODE: "local" })).toBe(2);
-    expect(o.err()).toContain("cloud mode");
+    expect(await main(["--lang", "en", "account", "claim-local"], o, {})).toBe(2);
+    expect(o.err()).toContain("DATABASE_URL");
   });
 
   it("says so when there is no account yet", async () => {
     const o = io();
-    expect(await main(["--lang", "en", "account", "claim-local"], o, { EXEGEZIS_MODE: "cloud", DATABASE_URL: url })).toBe(1);
+    expect(await main(["--lang", "en", "account", "claim-local"], o, { DATABASE_URL: url })).toBe(1);
     expect(o.err()).toContain("no account yet");
   });
 
@@ -84,7 +84,6 @@ describe("exegezis account claim-local", () => {
     await createUser(db, "second@example.com");
     const key = randomBytes(32).toString("base64");
     const env = {
-      EXEGEZIS_MODE: "cloud",
       DATABASE_URL: url,
       EXEGEZIS_DATA_DIR: join(work, "data"),
       EXEGEZIS_RUNS_DIR: runs,
@@ -109,7 +108,7 @@ describe("exegezis account claim-local", () => {
       // Re-encrypted with the cloud key: readable with it, the password intact.
       const cloud = new AccessStore(join(root, "access"), new ServerKeyProtector(key));
       expect((await cloud.get("https://intranet.example.com"))?.httpCredentials).toEqual({ username: "ana", password: "s3cret-pass" });
-      // The originals stay for local mode.
+      // The originals stay for the CLI.
       expect(existsSync(join(inspection, "inspection-report.json"))).toBe(true);
       const rows = await db.query<{ id: string; user_id: string; kind: string; site: string }>("select id, user_id, kind, site from public.runs");
       expect(rows.rows).toEqual([{ id: "01J00000000000000000000INS", user_id: first, kind: "inspection", site: "example.com" }]);

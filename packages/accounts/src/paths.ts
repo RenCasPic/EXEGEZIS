@@ -1,7 +1,7 @@
 import { join, resolve } from "node:path";
 import { isUserId } from "./store.js";
 
-/** A user's folders (cloud mode): run artifacts, saved site accesses and search settings. */
+/** A user's folders: run artifacts, saved site accesses and search settings. */
 export interface UserDirs {
   root: string;
   runs: string;

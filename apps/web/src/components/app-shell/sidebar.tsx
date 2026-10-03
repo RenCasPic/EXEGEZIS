@@ -4,7 +4,6 @@ import {
   Activity,
   BadgeCheck,
   Beaker,
-  BookOpenCheck,
   CircleCheckBig,
   Bot,
   FolderGit2,
@@ -143,38 +142,13 @@ export function SidebarBrand() {
   );
 }
 
-export function SidebarFooter({ workspace, repository, user, account = null }: { workspace: string; repository: string; user: string; account?: AccountSummary | null }) {
-  const t = useTranslations("shell.footer");
-  if (account !== null)
-    return (
-      <div className="flex flex-col gap-3 border-t border-line pt-3">
-        <div className="min-w-0 px-2 leading-tight">
-          <div className="truncate text-[13px] text-fg">{account.name || account.email}</div>
-          <div className="truncate text-[11px] text-faint">{account.email}</div>
-          <div className="mt-1 text-[11px] text-faint">{account.plan}</div>
-        </div>
-      </div>
-    );
+export function SidebarFooter({ account }: { account: AccountSummary }) {
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-3">
-      <div className="px-2">
-        <div className="text-[11px] font-medium text-faint">{t("workspace")}</div>
-        <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-fg">
-          <BookOpenCheck className="size-3.5 text-faint" />
-          {workspace}
-        </div>
-        <div className="truncate font-mono text-[11px] text-faint" title={repository}>
-          {repository}
-        </div>
-      </div>
-      <div className="flex items-center gap-2.5 px-2">
-        <span className="grid size-7 place-items-center rounded-full border border-line-strong bg-panel-2 font-mono text-[11px] uppercase text-muted">
-          {user.slice(0, 2)}
-        </span>
-        <div className="min-w-0 leading-tight">
-          <div className="truncate text-[13px] text-fg">{user}</div>
-          <div className="text-[11px] text-faint">{t("localUser")}</div>
-        </div>
+      <div className="min-w-0 px-2 leading-tight">
+        <div className="truncate text-[13px] text-fg">{account.name || account.email}</div>
+        <div className="truncate text-[11px] text-faint">{account.email}</div>
+        <div className="mt-1 text-[11px] text-faint">{account.plan}</div>
       </div>
     </div>
   );

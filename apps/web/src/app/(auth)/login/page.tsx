@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AuthCard, OAuthButtons, SignInForm } from "@/components/auth/forms";
-import { cloud, cloudOnly } from "@/lib/cloud";
+import { config } from "@/lib/auth";
 import { param } from "@/lib/params";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,7 +14,6 @@ const NOTICES = ["signedOut", "signedOutEverywhere", "deleted"] as const;
 const ERRORS = ["link", "oauth", "origin"] as const;
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  cloudOnly();
   const params = await searchParams;
   const t = await getTranslations("account.login");
   const next = safeNext(param(params, "next"));
@@ -44,7 +43,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           {t(`error.${error}`)}
         </p>
       )}
-      <OAuthButtons providers={cloud().oauthProviders} next={next} />
+      <OAuthButtons providers={config().oauthProviders} next={next} />
       <SignInForm next={next} />
     </AuthCard>
   );

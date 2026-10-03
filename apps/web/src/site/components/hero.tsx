@@ -48,7 +48,7 @@ function ReportPreview({ locale }: { locale: SiteLocale }) {
 }
 
 /** Navy hero: label, title, text, the address field, three notes and the report preview. */
-export function Hero({ locale, cloud }: { locale: SiteLocale; cloud: boolean }) {
+export function Hero({ locale }: { locale: SiteLocale }) {
   const t = siteT(locale, "hero");
   return (
     <section aria-labelledby="hero-title" className="theme-dark bg-bg text-heading">
@@ -59,7 +59,7 @@ export function Hero({ locale, cloud }: { locale: SiteLocale; cloud: boolean }) 
             {t("title")}
           </h1>
           <p className="max-w-[620px] text-[18px] leading-[1.55] text-text-soft sm:text-[20px]">{t("text")}</p>
-          <InspectForm locale={locale} cloud={cloud} />
+          <InspectForm locale={locale} />
           <ul className="flex flex-wrap gap-x-6 gap-y-1 text-[14px] text-muted">
             <li>{t("noCard")}</li>
             <li aria-hidden className="max-sm:hidden">·</li>

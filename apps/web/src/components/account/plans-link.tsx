@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-/** «See plans», next to a plan limit (cloud mode): the landing's pricing. */
+/** «See plans», next to a plan limit: the landing's pricing. */
 export function PlansLink({ href }: { href: string | undefined }) {
   const t = useTranslations("account.limits");
   if (href === undefined) return null;

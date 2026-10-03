@@ -1,9 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-// The tests always run in local mode and never read .env.cloud (the cloud end-to-end test sets its own environment).
-process.env["EXEGEZIS_MODE"] = "local";
-
 export default defineConfig({
   test: {
     projects: [

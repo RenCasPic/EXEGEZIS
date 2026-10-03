@@ -39,3 +39,17 @@ vi.mock("next-intl", async (importOriginal) => {
       actual.createTranslator({ locale: current(), messages: CATALOGS[current()] as never, ...(namespace === undefined ? {} : { namespace: namespace as never }) }),
   };
 });
+
+/*
+ * Outside a request there is no signed-in user: the code under test reads and
+ * writes the workspace the test chooses through the environment
+ * (EXEGEZIS_RUNS_DIR, EXEGEZIS_ACCESS_DIR, EXEGEZIS_SEARCH_DIR), as the CLI does.
+ */
+vi.mock("../src/lib/user-workspace", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/lib/user-workspace")>();
+  const { runsDir } = await import("../src/lib/workspace");
+  const { defaultAccessDir } = await import("@exegezis/access");
+  const { searchDataDir } = await import("@exegezis/search/light");
+  const workspace = () => ({ runs: runsDir(), access: defaultAccessDir(), search: searchDataDir(), userId: "00000000-0000-4000-8000-000000000001" });
+  return { ...actual, currentWorkspace: async () => workspace(), searchDir: async () => searchDataDir() };
+});

@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AuthCard, ResendForm } from "@/components/auth/forms";
-import { cloudOnly } from "@/lib/cloud";
 import { param } from "@/lib/params";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -12,7 +11,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** After signing up: the account works once the link in the email is opened. */
 export default async function VerifyEmailPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  cloudOnly();
   const params = await searchParams;
   const t = await getTranslations("account.verify");
   const email = param(params, "email").slice(0, 320);

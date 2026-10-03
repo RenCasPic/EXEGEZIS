@@ -1,4 +1,4 @@
-import { cloudConfig, currentMode, safeNext } from "@exegezis/accounts";
+import { appConfig, safeNext } from "@exegezis/accounts";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
@@ -13,14 +13,14 @@ import { SIGNED_IN_HINT_COOKIE } from "./site/urls";
  * - `?lang=en|es` (links from the public pages) sets the language cookie;
  * - the requested path goes to the page as x-exegezis-path, to come back to
  *   it after signing in;
- * - cloud mode: `/` without a session shows the landing (same URL; no call to
- *   Supabase when there is no session cookie at all); otherwise the Supabase
- *   session is refreshed and a visitor without one is sent to /login?next=…
- *   (API routes answer 401). This is the optimistic check: every page, action
- *   and route checks the user again on the server.
+ * - `/` without a session shows the landing (same URL; no call to Supabase
+ *   when there is no session cookie at all); otherwise the Supabase session is
+ *   refreshed and a visitor without one is sent to /login?next=… (API routes
+ *   answer 401). This is the optimistic check: every page, action and route
+ *   checks the user again on the server.
  */
 
-/** Pages and routes anyone may open in cloud mode. */
+/** Pages and routes anyone may open. */
 const PUBLIC = [/^\/login\/?$/, /^\/signup\/?$/, /^\/forgot-password\/?$/, /^\/verify-email\/?$/, /^\/auth\//, /^\/api\/health\/?$/];
 /** Pages a signed-in user has no reason to see: back to the app. */
 const SIGNED_OUT_ONLY = [/^\/login\/?$/, /^\/signup\/?$/, /^\/forgot-password\/?$/];
@@ -55,10 +55,8 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   const path = request.nextUrl.pathname;
   const headers = new Headers(request.headers);
   headers.set("x-exegezis-path", `${path}${request.nextUrl.search}`);
-  if (currentMode() !== "cloud") return withLanguage(request, NextResponse.next({ request: { headers } }));
-
-  const c = cloudConfig();
-  if (!c.ok) return new NextResponse(`EXEGEZIS_MODE=cloud needs ${c.missing.join(", ")} (see .env.cloud.example).`, { status: 500 });
+  const c = appConfig();
+  if (!c.ok) return new NextResponse(`EXEGEZIS needs ${c.missing.join(", ")} in .env (see .env.example and docs/13-accounts.md).`, { status: 500 });
   const config = c.config;
 
   // `/` without any session cookie: the landing, without asking Supabase.

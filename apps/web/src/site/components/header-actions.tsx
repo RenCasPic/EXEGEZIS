@@ -6,7 +6,7 @@ import type { SiteLinks } from "../links";
 import { SIGNED_IN_HINT_COOKIE } from "../urls";
 import { LIME_BUTTON } from "./ui";
 
-/** The initials the app left in its «signed in» hint cookie (cloud mode), or null. */
+/** The initials the app left in its «signed in» hint cookie, or null. */
 function signedInInitials(): string | null {
   const raw = document.cookie
     .split("; ")
@@ -21,7 +21,7 @@ function signedInInitials(): string | null {
 }
 
 /**
- * «Sign in · Start for free», or — cloud mode, signed in — «Go to the app»
+ * «Sign in · Start for free», or — signed in — «Go to the app»
  * and the visitor's initials. The page is static: the app leaves a hint
  * cookie (not the session, which stays httpOnly) that is read here; the app
  * checks the session itself when the visitor goes there.
@@ -31,8 +31,8 @@ export function HeaderActions({ locale, links, menu = false }: { locale: SiteLoc
   const [initials, setInitials] = useState<string | null>(null);
 
   useEffect(() => {
-    if (links.cloud) setInitials(signedInInitials());
-  }, [links.cloud]);
+    setInitials(signedInInitials());
+  }, []);
 
   if (initials !== null) {
     return menu ? (
@@ -54,7 +54,7 @@ export function HeaderActions({ locale, links, menu = false }: { locale: SiteLoc
   return menu ? (
     <>
       <a href={links.signIn} className="rounded-md px-3 py-2 text-[15px] text-heading hover:bg-hover">
-        {t(links.cloud ? "signIn" : "openApp")}
+        {t("signIn")}
       </a>
       <a href={links.start} className={`${LIME_BUTTON} mt-1 h-10 rounded-[10px] px-[18px] text-[15px] font-semibold`}>
         {t("start")}
@@ -63,7 +63,7 @@ export function HeaderActions({ locale, links, menu = false }: { locale: SiteLoc
   ) : (
     <>
       <a href={links.signIn} className="hidden text-[15px] font-medium text-heading hover:underline md:inline">
-        {t(links.cloud ? "signIn" : "openApp")}
+        {t("signIn")}
       </a>
       <a href={links.start} className={`${LIME_BUTTON} h-10 rounded-[10px] px-[18px] text-[15px] font-semibold max-sm:hidden`}>
         {t("start")}

@@ -9,7 +9,7 @@ import { acceptTermsAction, forgotPasswordAction, oauthAction, resendVerificatio
 import { cn } from "@/lib/cn";
 
 /*
- * The account screens (cloud mode): one card with the panel outline of the
+ * The account screens: one card with the panel outline of the
  * design system (1.5 px, electric blue in light, lime in dark).
  */
 
