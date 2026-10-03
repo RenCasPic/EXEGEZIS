@@ -6,7 +6,7 @@ import type { BlockInfo } from "@exegezis/core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { accessStatusAction } from "../src/app/access-actions";
-import AccessSettingsPage from "../src/app/(app)/settings/access/page";
+import AccessSettingsPage from "../src/app/(app)/(shell)/settings/access/page";
 import { BlockNotice } from "../src/components/access/block-notice";
 import { accessState, deleteAccess, listAccess, setSiteSettings } from "../src/lib/access";
 import { commandFor, JobRecord } from "../src/lib/jobs";
