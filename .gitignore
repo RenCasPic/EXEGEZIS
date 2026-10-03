@@ -19,6 +19,7 @@ apps/cli/test/.tmp-ai/
 
 # Local secrets (e.g. EXEGEZIS_ANTHROPIC_API_KEY). Never commit.
 .env
+.env.cloud
 apps/cli/test/.tmp-rc/
 packages/inspect/test/.tmp-e2e/
 apps/cli/test/.tmp-engine/
