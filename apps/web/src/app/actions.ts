@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { errorText, say } from "@/lib/action-errors";
+import { errorText, plansLinkFor, say } from "@/lib/action-errors";
 import { checkBrowser } from "@/lib/browser-check";
 import { isLoopbackHost } from "@/lib/inspect-checks";
 import { probeTarget } from "@/lib/probe";
@@ -35,6 +35,8 @@ const StartInput = z.strictObject({
 
 export interface StartState {
   error: string | null;
+  /** A plan limit: the landing's pricing («See plans»). */
+  plansUrl?: string;
   fields?: Record<string, string>;
   /** Commands that fix the problem (a browser that cannot start). */
   remedy?: string[];
@@ -76,13 +78,15 @@ export async function startInvestigation(_prev: StartState, form: FormData): Pro
   try {
     jobId = (await startJob({ symptom: text, baseUrl, runs, project: project === "" ? null : project })).id;
   } catch (error) {
-    return { error: await errorText(error), fields: raw };
+    return { error: await errorText(error), fields: raw, ...(await plansLinkFor(error)) };
   }
   redirect(`/jobs/${jobId}`);
 }
 
 export interface InspectState {
   error: string | null;
+  /** A plan limit: the landing's pricing («See plans»). */
+  plansUrl?: string;
   /** Commands that fix the problem (a browser that cannot start). */
   remedy?: string[];
 }
@@ -114,7 +118,7 @@ export async function startInspectionAction(_prev: InspectState, form: FormData)
   try {
     jobId = (await startInspection(result.input)).id;
   } catch (error) {
-    return { error: await errorText(error) };
+    return { error: await errorText(error), ...(await plansLinkFor(error)) };
   }
   redirect(`/jobs/${jobId}`);
 }

@@ -98,5 +98,18 @@
     "plans": "Ver planes",
     "help": "Ayuda",
     "signOut": "Cerrar sesión"
+  },
+  "limits": {
+    "seePlans": "Ver planes",
+    "inspectionsPerMonth": "Tu plan incluye {limit, plural, one {# inspección} other {# inspecciones}} al mes y ya las has usado. Se renuevan el día 1, o cambia de plan.",
+    "pagesPerInspection": "Tu plan revisa hasta {limit, plural, one {# página} other {# páginas}} cada vez. Baja las páginas en las opciones avanzadas, o cambia de plan.",
+    "sites": "Tu plan cubre {limit, plural, one {# sitio} other {# sitios}} y este sería otro más. Sigue con tu sitio, o cambia de plan.",
+    "meaningSearch": "La búsqueda por significado (con IA) no está en tu plan. La búsqueda exacta sí.",
+    "aiBalance": "Esta búsqueda superaría el saldo de IA de este mes de tu plan ({limit} $)."
+  },
+  "refused": {
+    "privateAddress": "EXEGEZIS en la nube solo visita direcciones públicas: ni localhost, ni redes privadas, ni servicios internos.",
+    "serverPath": "En la nube no se puede indicar un archivo de sesión por su ruta. Guarda el acceso en Ajustes → Accesos.",
+    "visibleWindow": "La ventana para iniciar sesión se abre en el equipo donde corre EXEGEZIS: en la nube nadie la vería. Usa la versión local para las zonas privadas, o guarda un usuario HTTP o un token del WAF."
   }
 }

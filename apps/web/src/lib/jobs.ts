@@ -6,6 +6,10 @@ import { SuggestedTerm, ulid } from "@exegezis/core";
 import { z } from "zod";
 import { getUiLocale } from "../i18n/server";
 import { readArtifact, readText } from "./evidence/read";
+import { readSearchSettings } from "@exegezis/search/light";
+import { INSPECT_DEFAULTS } from "./inspect-checks";
+import { CloudRefusedError, gate } from "./plan-gate";
+import { SEARCH_DEFAULTS } from "./search-defaults";
 import { currentWorkspace, workspaceEnv, type Workspace } from "./user-workspace";
 import { displayPath, repoRoot, runsDir } from "./workspace";
 
@@ -335,6 +339,7 @@ export async function startJob(input: StartJobInput): Promise<JobRecord> {
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const ws = await currentWorkspace();
   const id = ulid();
+  await gate(ws, id, { kind: "investigation", url: input.baseUrl, pages: null }, 0);
   await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: JobRecord = { ...newJobBase(id, await jobLanguage()), status: "running", kind: "ai-verify", planner: "anthropic", ...input };
   spawnJob(ws, job, () => undefined);
@@ -380,6 +385,7 @@ export async function startInspection(input: StartInspectionInput): Promise<JobR
 
 async function startInspectionIn(ws: Workspace, input: StartInspectionInput): Promise<JobRecord> {
   const id = ulid();
+  await gate(ws, id, { kind: "inspection", url: input.url, pages: input.maxPages, storageState: input.storageState }, INSPECT_DEFAULTS.maxPages);
   await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: InspectJob = { ...newJobBase(id, await jobLanguage()), status: "queued", kind: "inspect", ...input };
   await writeJob(ws.runs, job);
@@ -394,6 +400,9 @@ export async function startSearch(input: StartSearchInput): Promise<JobRecord> {
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const ws = await currentWorkspace();
   const id = ulid();
+  const meaning = input.mode === "meaning" || (input.mode === "template" && input.withMeaning);
+  const meaningUsd = meaning ? (input.maxCostUsd ?? (await readSearchSettings(ws.search ?? undefined)).maxCostUsd) : undefined;
+  await gate(ws, id, { kind: "search", url: input.url, pages: input.maxPages, ...(meaningUsd === undefined ? {} : { meaningUsd }) }, SEARCH_DEFAULTS.maxPages);
   await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: SearchJob = SearchJob.parse({ ...newJobBase(id, await jobLanguage()), status: "queued", kind: "search", ...input });
   await writeJob(ws.runs, job);
@@ -427,6 +436,8 @@ export interface StartAccessInput {
 export async function startAccessLogin(input: StartAccessInput): Promise<JobRecord> {
   if (!existsSync(cliEntry())) throw new CliNotBuiltError();
   const ws = await currentWorkspace();
+  // The sign-in window opens on the machine running EXEGEZIS: on a cloud server nobody could see it.
+  if (ws.userId !== null) throw new CloudRefusedError("visibleWindow");
   const id = ulid();
   await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: AccessJob = { ...newJobBase(id, await jobLanguage()), status: "running", kind: "access", ...input, relaunchedJobId: null };

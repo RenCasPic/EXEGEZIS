@@ -98,5 +98,18 @@
     "plans": "See plans",
     "help": "Help",
     "signOut": "Sign out"
+  },
+  "limits": {
+    "seePlans": "See plans",
+    "inspectionsPerMonth": "Your plan includes {limit, plural, one {# inspection} other {# inspections}} a month and you have used them all. They renew on the 1st, or change plan.",
+    "pagesPerInspection": "Your plan inspects up to {limit, plural, one {# page} other {# pages}} each time. Lower the pages in the advanced options, or change plan.",
+    "sites": "Your plan covers {limit, plural, one {# site} other {# sites}} and this one would be another. Keep to your site, or change plan.",
+    "meaningSearch": "Search by meaning (with AI) is not in your plan. Exact search is.",
+    "aiBalance": "This search would go over this month's AI balance of your plan (${limit})."
+  },
+  "refused": {
+    "privateAddress": "EXEGEZIS in the cloud only visits public addresses: not localhost, private networks or internal services.",
+    "serverPath": "In the cloud, a session file cannot be given as a path. Save the access in Settings → Accesses.",
+    "visibleWindow": "The sign-in window opens on the computer that runs EXEGEZIS: in the cloud nobody could see it. Use the local version for private areas, or save an HTTP user or a WAF token."
   }
 }

@@ -3,6 +3,7 @@
 import { AlertTriangle, ArrowRight, Globe, KeyRound, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { PlansLink } from "@/components/account/plans-link";
 import { useActionState, useEffect, useState } from "react";
 import { accessStatusAction } from "@/app/access-actions";
 import { startInspectionAction, type InspectState } from "@/app/actions";
@@ -249,6 +250,7 @@ export function InspectForm({ initialUrl = "" }: { initialUrl?: string }) {
           <div role="alert" className="flex items-start gap-2 rounded-md border border-bad/30 bg-bad-bg p-3 text-[13px] text-bad">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
             {state.error}
+            <PlansLink href={state.plansUrl} />
           </div>
         ))}
     </form>

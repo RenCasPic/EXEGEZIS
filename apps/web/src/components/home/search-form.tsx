@@ -2,6 +2,7 @@
 
 import { AlertTriangle, ChevronDown, Globe, Loader2, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { PlansLink } from "@/components/account/plans-link";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { meaningEstimateAction, startSearchAction, suggestAction, suggestEstimateAction, type SearchState, type Suggestion } from "@/app/search-actions";
 import { EngineProblem } from "@/components/ui/copy-command";
@@ -384,6 +385,7 @@ export function SearchForm({ templates }: { templates: TemplateOption[] }) {
           <div role="alert" className="flex items-start gap-2 rounded-md border border-bad/30 bg-bad-bg p-3 text-[13px] text-bad">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
             {state.error}
+            <PlansLink href={state.plansUrl} />
           </div>
         ))}
     </form>

@@ -21,7 +21,7 @@ import {
 } from "@exegezis/search/light";
 import { getUiLocale } from "@/i18n/server";
 import { runCli } from "@/lib/access";
-import { errorText, say } from "@/lib/action-errors";
+import { errorText, plansLinkFor, redirectOnRefusal, say } from "@/lib/action-errors";
 import { ui } from "@/lib/ui-message";
 import { checkBrowser } from "@/lib/browser-check";
 import { findSearch } from "@/lib/evidence/searches";
@@ -44,6 +44,8 @@ function text(form: FormData, name: string): string {
 
 export interface SearchState {
   error: string | null;
+  /** A plan limit: the landing's pricing («See plans»). */
+  plansUrl?: string;
   remedy?: string[];
 }
 
@@ -81,7 +83,7 @@ export async function startSearchAction(_prev: SearchState, form: FormData): Pro
   try {
     jobId = (await startSearch(result.input)).id;
   } catch (error) {
-    return { error: await errorText(error) };
+    return { error: await errorText(error), ...(await plansLinkFor(error)) };
   }
   redirect(`/jobs/${jobId}`);
 }
@@ -172,7 +174,10 @@ export async function approveCostAction(form: FormData): Promise<void> {
   const ref = await findSearch(text(form, "search"));
   if (ref === null || ref.report.status !== "ok" || ref.report.value.ai === null) throw new Error(await say(ui("common.errors.searchMissing")));
   const approved = ceilCents(ref.report.value.ai.estimateUsd);
-  const job = await startSearch(rerunInput(ref.report, { maxCostUsd: approved, reuse: ref.dir }));
+  const job = await startSearch(rerunInput(ref.report, { maxCostUsd: approved, reuse: ref.dir })).catch((error: unknown) => {
+    redirectOnRefusal(error);
+    throw error;
+  });
   redirect(`/jobs/${job.id}`);
 }
 
@@ -181,7 +186,10 @@ export async function repeatSearchAction(form: FormData): Promise<void> {
   const ref = await findSearch(text(form, "search"));
   if (ref === null || ref.report.status !== "ok") throw new Error(await say(ui("common.errors.searchMissing")));
   const saved = ref.report.value.savedSearchId;
-  const job = await startSearch(rerunInput(ref.report, saved === null ? {} : { saved }));
+  const job = await startSearch(rerunInput(ref.report, saved === null ? {} : { saved })).catch((error: unknown) => {
+    redirectOnRefusal(error);
+    throw error;
+  });
   redirect(`/jobs/${job.id}`);
 }
 
@@ -219,6 +227,9 @@ export async function runSavedAction(form: FormData): Promise<void> {
     saved: saved.id,
     save: null,
     reuse: null,
+  }).catch((error: unknown) => {
+    redirectOnRefusal(error);
+    throw error;
   });
   redirect(`/jobs/${job.id}`);
 }

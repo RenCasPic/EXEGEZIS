@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { accessEntry, deleteAccess, runCli, setSiteSettings } from "@/lib/access";
 import { isLoopbackHost } from "@/lib/inspect-checks";
-import { say } from "@/lib/action-errors";
+import { redirectOnRefusal, say } from "@/lib/action-errors";
 import { ui } from "@/lib/ui-message";
 import { markAccessDone, readJob, startAccessLogin, startInspection, type StartInspectionInput } from "@/lib/jobs";
 
@@ -58,7 +58,10 @@ export async function openAccessWindowAction(form: FormData): Promise<void> {
     throw new Error(await say(ui("access.errors.confirmPermission")));
   }
   const channel = (CHANNELS as readonly string[]).includes(text(form, "browserChannel")) ? (text(form, "browserChannel") as Channel) : "auto";
-  const job = await startAccessLogin({ url, browserChannel: channel, block, relaunch: await relaunchOf(text(form, "relaunch")) });
+  const job = await startAccessLogin({ url, browserChannel: channel, block, relaunch: await relaunchOf(text(form, "relaunch")) }).catch((error: unknown) => {
+    redirectOnRefusal(error);
+    throw error;
+  });
   redirect(`/jobs/${job.id}`);
 }
 

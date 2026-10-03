@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Loader2, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { PlansLink } from "@/components/account/plans-link";
 import { useActionState, useState } from "react";
 import { startInvestigation, type StartState } from "@/app/actions";
 import { EngineProblem } from "@/components/ui/copy-command";
@@ -116,6 +117,7 @@ export function StartForm({
           <div role="alert" className="flex items-start gap-2 rounded-md border border-bad/40 bg-bad-bg p-3 text-[13px] text-bad">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             {state.error}
+            <PlansLink href={state.plansUrl} />
           </div>
         ))}
 
