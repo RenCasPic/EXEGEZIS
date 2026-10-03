@@ -203,9 +203,9 @@ export async function startAuthStandin(databaseUrl: string): Promise<AuthStandin
             return send(res, 200, { id: randomUUID(), aud: "authenticated", role: "", email, identities: [], user_metadata: {}, app_metadata: {}, created_at: new Date().toISOString() });
           }
           const meta = (b["data"] ?? {}) as Record<string, unknown>;
-          const rows = await sql<UserRow[]>`insert into auth.users (email, encrypted_password, raw_user_meta_data, raw_app_meta_data) values (${email}, ${hash(password)}, ${sql.json(meta as never)}, ${sql.json({ provider: "email", providers: ["email"] } as never)}) returning *`;
+          const rows = await sql<UserRow[]>`insert into auth.users (email, encrypted_password, raw_user_meta_data, raw_app_meta_data) values (${email}, ${hash(password)}, ${sql.json(meta as never)}, ${sql.json({ provider: "email", providers: ["email"] })}) returning *`;
           const user = rows[0] as UserRow;
-          await sql`insert into auth.identities (user_id, provider, provider_id, identity_data) values (${user.id}, 'email', ${user.id}, ${sql.json({ email } as never)})`;
+          await sql`insert into auth.identities (user_id, provider, provider_id, identity_data) values (${user.id}, 'email', ${user.id}, ${sql.json({ email })})`;
           const token = randomBytes(16).toString("hex");
           tokens.set(token, { userId: user.id, type: "signup", challenge: text(b["code_challenge"]) || null, redirectTo });
           mail(email, "signup", token, redirectTo);
@@ -251,10 +251,10 @@ export async function startAuthStandin(databaseUrl: string): Promise<AuthStandin
           const linkUser = url.searchParams.get("link_user");
           let user = linkUser === null ? await findUser({ email: oauthPerson.email }) : await findUser({ id: linkUser });
           if (user === null) {
-            const rows = await sql<UserRow[]>`insert into auth.users (email, email_confirmed_at, raw_user_meta_data, raw_app_meta_data) values (${oauthPerson.email}, now(), ${sql.json({ full_name: oauthPerson.name, avatar_url: null } as never)}, ${sql.json({ provider, providers: [provider] } as never)}) returning *`;
+            const rows = await sql<UserRow[]>`insert into auth.users (email, email_confirmed_at, raw_user_meta_data, raw_app_meta_data) values (${oauthPerson.email}, now(), ${sql.json({ full_name: oauthPerson.name, avatar_url: null })}, ${sql.json({ provider, providers: [provider] })}) returning *`;
             user = rows[0] as UserRow;
           }
-          await sql`insert into auth.identities (user_id, provider, provider_id, identity_data) values (${user.id}, ${provider}, ${`${provider}-${user.email}`}, ${sql.json({ email: user.email } as never)}) on conflict (provider, provider_id) do nothing`;
+          await sql`insert into auth.identities (user_id, provider, provider_id, identity_data) values (${user.id}, ${provider}, ${`${provider}-${user.email}`}, ${sql.json({ email: user.email })}) on conflict (provider, provider_id) do nothing`;
           return redirect(res, withCode(redirectTo || base, codeFor(user.id, challenge, "oauth")));
         }
 
@@ -305,7 +305,7 @@ export async function startAuthStandin(databaseUrl: string): Promise<AuthStandin
               mail(b["email"], "email_change", token, redirectTo);
             }
             if (typeof b["data"] === "object" && b["data"] !== null) await sql`update auth.users set raw_user_meta_data = raw_user_meta_data || ${sql.json(b["data"] as never)} where id = ${user.id}`;
-            user = (await findUser({ id: user.id })) as UserRow;
+            user = (await findUser({ id: user.id }));
           }
           return send(res, 200, await userJson(user));
         }

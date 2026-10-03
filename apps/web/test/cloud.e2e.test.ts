@@ -94,7 +94,9 @@ async function context(options: { width?: number; locale?: "en" | "es"; theme?: 
     await ctx.addInitScript((t) => {
       try {
         localStorage.setItem("exegezis-theme", t);
-      } catch {}
+      } catch {
+        // No storage: the OS theme (colorScheme) applies.
+      }
     }, options.theme);
   }
   return ctx;
@@ -146,7 +148,7 @@ async function inspectionsOf(id: string): Promise<string[]> {
   const found: string[] = [];
   async function walk(dir: string, depth: number) {
     if (depth > 8) return;
-    let names: string[] = [];
+    let names: string[];
     try {
       names = await readdir(dir);
     } catch {
