@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useActionState, useId, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { changeEmailAction, changePasswordAction, deleteAccountAction, updateProfileAction, type AccountState } from "@/app/account-actions";
+import { LOCALE_NAME, LOCALES } from "@/i18n/locales";
 import { applyTheme, writeThemePreference, type ThemePreference } from "@/lib/theme";
 
 const FIELD = "h-10 w-full rounded-lg border-[1.5px] border-line-strong bg-field px-3 text-[14px] text-fg focus:border-accent";
@@ -72,8 +73,11 @@ export function ProfileForm({ displayName, locale, theme }: { displayName: strin
       <div className="grid gap-4 sm:grid-cols-2">
         <Row label={t("language")} id={ids.locale}>
           <select id={ids.locale} name="locale" defaultValue={locale} className={FIELD}>
-            <option value="en">English</option>
-            <option value="es">Español</option>
+            {LOCALES.map((l) => (
+              <option key={l} value={l}>
+                {LOCALE_NAME[l]}
+              </option>
+            ))}
           </select>
         </Row>
         <Row label={t("theme")} id={ids.theme}>
