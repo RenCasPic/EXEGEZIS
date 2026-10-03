@@ -1,4 +1,5 @@
 import type * as NextIntl from "next-intl";
+import type * as UserWorkspace from "../src/lib/user-workspace";
 import { vi } from "vitest";
 
 /*
@@ -46,7 +47,7 @@ vi.mock("next-intl", async (importOriginal) => {
  * (EXEGEZIS_RUNS_DIR, EXEGEZIS_ACCESS_DIR, EXEGEZIS_SEARCH_DIR), as the CLI does.
  */
 vi.mock("../src/lib/user-workspace", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/lib/user-workspace")>();
+  const actual = await importOriginal<typeof UserWorkspace>();
   const { runsDir } = await import("../src/lib/workspace");
   const { defaultAccessDir } = await import("@exegezis/access");
   const { searchDataDir } = await import("@exegezis/search/light");
