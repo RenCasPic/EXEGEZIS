@@ -105,5 +105,11 @@
     "attempts": "Attempts",
     "project": "Project",
     "unassigned": "Unassigned"
+  },
+  "queue": {
+    "waiting": "Position {position} in the queue · starts in {eta}",
+    "ending": "Ends in {eta}, roughly.",
+    "soon": "less than a minute",
+    "minutes": "~{count, plural, one {# minute} other {# minutes}}"
   }
 }

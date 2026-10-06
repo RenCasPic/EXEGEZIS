@@ -105,5 +105,11 @@
     "attempts": "Intentos",
     "project": "Proyecto",
     "unassigned": "Sin asignar"
+  },
+  "queue": {
+    "waiting": "Posición {position} en la cola · empieza en {eta}",
+    "ending": "Termina en {eta}, más o menos.",
+    "soon": "menos de un minuto",
+    "minutes": "~{count, plural, one {# minuto} other {# minutos}}"
   }
 }

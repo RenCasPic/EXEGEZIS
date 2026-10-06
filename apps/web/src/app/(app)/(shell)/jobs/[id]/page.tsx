@@ -16,7 +16,8 @@ import { listInspections } from "@/lib/evidence/inspections";
 import { getSummaries } from "@/lib/evidence/investigations";
 import { listSearches } from "@/lib/evidence/searches";
 import { jobPercent } from "@/lib/progress";
-import { EXIT_CODES, jobLog, jobProgress, readJob, type AccessJob, type InspectJob, type InspectionProgressFile, type JobStatus, type SearchJob } from "@/lib/jobs";
+import type { QueueStatus } from "@/lib/queue";
+import { EXIT_CODES, jobLog, jobProgress, queueStatus, readJob, type AccessJob, type InspectJob, type InspectionProgressFile, type JobStatus, type SearchJob } from "@/lib/jobs";
 import { SEARCH_STATUS_TONE } from "@/lib/search-labels";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,6 +30,14 @@ const PHASES = ["robots", "crawl", "repeat", "specs", "search", "ai", "done"] as
 function exitText(t: (key: never) => string, code: number | null): string {
   if (code === null) return "—";
   return `${code} (${(EXIT_CODES as readonly number[]).includes(code) ? t(`exit.${code}` as never) : t("exit.unknown" as never)})`;
+}
+
+/** «Position 2 in the queue · starts in ~3 minutes» (queued) or «Ends in ~3 minutes» (running); `fallback` when the queue does not know the job. */
+function queueText(t: (key: never, values?: never) => string, q: QueueStatus | null, fallback: string): string {
+  if (q === null) return fallback;
+  const tt = t as (key: string, values?: Record<string, string | number>) => string;
+  const eta = q.etaMs < 60_000 ? tt("queue.soon") : tt("queue.minutes", { count: Math.ceil(q.etaMs / 60_000) });
+  return q.state === "queued" ? tt("queue.waiting", { position: q.position ?? 1, eta }) : tt("queue.ending", { eta });
 }
 
 function Progress({ progress }: { progress: InspectionProgressFile | null }) {
@@ -133,7 +142,7 @@ function AccessJobView({ job, status, log }: { job: AccessJob; status: JobStatus
 }
 
 async function SearchJobView({ job, status, log }: { job: SearchJob; status: JobStatus; log: string | null }) {
-  const [progress, searches, t, f] = await Promise.all([jobProgress(job.id, "searches"), listSearches(), getTranslations("jobs"), getFormat()]);
+  const [progress, searches, t, f, queue] = await Promise.all([jobProgress(job.id, "searches"), listSearches(), getTranslations("jobs"), getFormat(), queueStatus(job.id)]);
   const search = searches.find((s) => s.jobId === job.id) ?? null;
   const report = search?.report.status === "ok" ? search.report.value : null;
   const active = status === "running" || status === "queued";
@@ -162,9 +171,9 @@ async function SearchJobView({ job, status, log }: { job: SearchJob; status: Job
           <>
             <span className="block">{t("search.heading", { what })}</span>
             {status === "queued"
-              ? t("search.queued")
+              ? queueText(t, queue, t("search.queued"))
               : status === "running"
-                ? t("search.running")
+                ? `${t("search.running")} ${queueText(t, queue, "")}`
                 : status === "lost"
                   ? t("search.lost")
                   : report === null
@@ -207,7 +216,7 @@ async function SearchJobView({ job, status, log }: { job: SearchJob; status: Job
 }
 
 async function InspectJobView({ job, status, log }: { job: InspectJob; status: JobStatus; log: string | null }) {
-  const [progress, inspections, t, tc, f] = await Promise.all([jobProgress(job.id), listInspections(), getTranslations("jobs"), getTranslations("common"), getFormat()]);
+  const [progress, inspections, t, tc, f, queue] = await Promise.all([jobProgress(job.id), listInspections(), getTranslations("jobs"), getTranslations("common"), getFormat(), queueStatus(job.id)]);
   const inspection = inspections.find((i) => i.jobId === job.id) ?? null;
   const report = inspection?.report.status === "ok" ? inspection.report.value : null;
   const state = inspectionJobState(status, job.exitCode, report?.status ?? null);
@@ -224,9 +233,9 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
         title={<span className="break-all font-mono text-[20px]">{job.url}</span>}
         description={
           status === "queued"
-            ? t("inspect.queued")
+            ? queueText(t, queue, t("inspect.queued"))
             : status === "running"
-              ? t("inspect.running")
+              ? `${t("inspect.running")} ${queueText(t, queue, "")}`
               : status === "lost"
                 ? t("inspect.lost")
                 : state.label === "BLOCKED"

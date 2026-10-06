@@ -9,6 +9,8 @@ import { readArtifact, readText } from "./evidence/read";
 import { readSearchSettings } from "@exegezis/search/light";
 import { INSPECT_DEFAULTS } from "./inspect-checks";
 import { gate, RefusedError, sharedServer } from "./plan-gate";
+import { jobPercent } from "./progress";
+import { JobQueue, workerCount, type QueueStatus } from "./queue";
 import { SEARCH_DEFAULTS } from "./search-defaults";
 import { currentWorkspace, workspaceEnv, type Workspace } from "./user-workspace";
 import { repoRoot, runsDir } from "./workspace";
@@ -363,21 +365,61 @@ export interface StartInspectionInput {
 }
 
 /** One browser job (inspection or search) at a time: the others wait in a queue owned by this server process (each with its owner's workspace). */
-const inspectionQueue: { id: string; ws: Workspace }[] = [];
-let inspectionRunning: string | null = null;
+// The browser jobs of this server (inspections and searches), first come first served, on
+// EXEGEZIS_WORKERS workers (queue.ts). Kept on globalThis: a reload in development keeps it.
+const queueState = globalThis as unknown as { __exegezisQueue?: { queue: JobQueue; workspaces: Map<string, Workspace> } };
+function browserJobs(): { queue: JobQueue; workspaces: Map<string, Workspace> } {
+  if (queueState.__exegezisQueue === undefined) {
+    const workspaces = new Map<string, Workspace>();
+    const queue = new JobQueue(workerCount(), async (id) => {
+      const ws = workspaces.get(id);
+      const found = ws === undefined ? null : await readJob(id, ws);
+      if (ws === undefined || found === null || (found.job.kind !== "inspect" && found.job.kind !== "search") || found.job.status !== "queued") {
+        workspaces.delete(id);
+        return false;
+      }
+      const job: InspectJob | SearchJob = { ...found.job, status: "running", startedAt: new Date().toISOString() };
+      spawnJob(ws, job, () => {
+        workspaces.delete(id);
+        void queue.finished(id);
+      });
+      return true;
+    });
+    queueState.__exegezisQueue = { queue, workspaces };
+  }
+  return queueState.__exegezisQueue;
+}
 
-async function runNextInspection(): Promise<void> {
-  if (inspectionRunning !== null) return;
-  const next = inspectionQueue.shift();
-  if (next === undefined) return;
-  const found = await readJob(next.id, next.ws);
-  if (found === null || (found.job.kind !== "inspect" && found.job.kind !== "search") || found.job.status !== "queued") return runNextInspection();
-  const job: InspectJob | SearchJob = { ...found.job, status: "running", startedAt: new Date().toISOString() };
-  inspectionRunning = job.id;
-  spawnJob(next.ws, job, () => {
-    inspectionRunning = null;
-    void runNextInspection();
-  });
+async function enqueue(ws: Workspace, id: string, visits: number): Promise<void> {
+  const { queue, workspaces } = browserJobs();
+  workspaces.set(id, ws);
+  await queue.enqueue({ id, visits });
+}
+
+/** A queued job's place and when it should start; a running one, when it should end. null: not in the queue. */
+export async function queueStatus(id: string): Promise<QueueStatus | null> {
+  const { queue, workspaces } = browserJobs();
+  // How far the running jobs have got (any user's: only the fraction is used, nothing is shown).
+  const done = new Map<string, number>();
+  for (const running of queue.runningIds()) {
+    const ws = workspaces.get(running);
+    const progress = ws === undefined ? null : await progressIn(ws, running);
+    const pct = progress === null ? null : jobPercent(progress);
+    if (pct !== null) done.set(running, pct / 100);
+  }
+  return queue.status(id, Date.now(), done);
+}
+
+async function progressIn(ws: Workspace, id: string): Promise<InspectionProgressFile | null> {
+  for (const kind of ["inspections", "searches"] as const) {
+    const base = join(jobOutputDir(id, ws.runs), kind);
+    const names = await readdir(base).catch(() => [] as string[]);
+    const last = names.sort().at(-1);
+    if (last === undefined) continue;
+    const loaded = await readArtifact(join(base, last, "progress.json"), InspectionProgressFile);
+    if (loaded.status === "ok") return loaded.value;
+  }
+  return null;
 }
 
 export async function startInspection(input: StartInspectionInput): Promise<JobRecord> {
@@ -391,8 +433,7 @@ async function startInspectionIn(ws: Workspace, input: StartInspectionInput): Pr
   await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: InspectJob = { ...newJobBase(id, await jobLanguage()), status: "queued", kind: "inspect", ...input };
   await writeJob(ws.runs, job);
-  inspectionQueue.push({ id, ws });
-  await runNextInspection();
+  await enqueue(ws, id, (input.maxPages ?? INSPECT_DEFAULTS.maxPages) * input.runs * Math.max(1, input.devices.length));
   return (await readJob(id, ws))?.job ?? job;
 }
 
@@ -408,8 +449,7 @@ export async function startSearch(input: StartSearchInput): Promise<JobRecord> {
   await mkdir(jobDir(ws.runs, id), { recursive: true });
   const job: SearchJob = SearchJob.parse({ ...newJobBase(id, await jobLanguage()), status: "queued", kind: "search", ...input });
   await writeJob(ws.runs, job);
-  inspectionQueue.push({ id, ws });
-  await runNextInspection();
+  await enqueue(ws, id, (input.maxPages ?? SEARCH_DEFAULTS.maxPages) * (input.runs ?? (meaning ? SEARCH_DEFAULTS.runsMeaning : SEARCH_DEFAULTS.runsExact)));
   return (await readJob(id, ws))?.job ?? job;
 }
 
