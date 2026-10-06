@@ -127,7 +127,7 @@ export default async function BenchmarksPage() {
         )}
       </Panel>
       {broken.length > 0 && (
-        <p className="text-xs text-bad">
+        <p className="text-xs text-bad [overflow-wrap:anywhere]">
           {t("broken", { count: broken.length })} {broken.map((b) => b.relDir).join(", ")}
         </p>
       )}
