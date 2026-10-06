@@ -125,8 +125,9 @@ The web app works like any web app: accounts (Supabase Auth), each user seeing
 only their own data. One app, one port: its public pages (landing at
 `/producto` · `/product`, `/privacidad` · `/privacy`, `/terminos` · `/terms`),
 sign-in and the app. `/` shows the landing to visitors without a session and
-the app to signed-in users. It needs the Supabase variables in `.env`
-(`.env.example`, docs/13-accounts.md):
+the app to signed-in users. Like Transcriptor, it connects to a project on
+supabase.com with three keys in `.env` (no Docker, no database password;
+`.env.example`, docs/13-accounts.md):
 
 ```bash
 pnpm web                              # http://127.0.0.1:4100
@@ -174,6 +175,7 @@ pnpm --filter @exegezis/adapter-browser exec playwright show-trace <absolute-pat
 | `pnpm lint` | ESLint with type-aware rules |
 | `pnpm verify` | All of the above (the tests never read `.env`) |
 | `pnpm web` | Checks the Supabase variables in `.env`, builds the packages and starts the app on 127.0.0.1:4100 (docs/13-accounts.md) |
+| `pnpm db:setup` | Copies the whole database (`supabase/setup.sql`) and opens your Supabase project's SQL Editor: paste and «Run» |
 | `pnpm build:web` | Production build of the app (public pages prerendered as static) |
 | `pnpm design:compare` | Compares the landing (`/producto`) and the home with docs/design/ |
 

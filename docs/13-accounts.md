@@ -3,11 +3,12 @@
 La app web de EXEGEZIS funciona como cualquier web app: tiene cuentas (Supabase Auth) y cada usuario solo ve lo suyo.
 
 - Quien entra sin sesión ve primero la landing. Desde ella se registra o inicia sesión, y entonces usa las funcionalidades.
-- Hay un solo modo y un solo archivo de configuración: `.env` (desde `.env.example`), con las variables de Supabase.
-- `pnpm web` comprueba antes de arrancar que `.env` tiene `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `DATABASE_URL` y `EXEGEZIS_APP_URL`, y dice cuáles faltan.
+- Igual que Transcriptor: la app se conecta directamente a un proyecto de supabase.com con tres claves en `.env` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`). Sin Docker y sin contraseña de la base de datos.
+- La base de datos se crea pegando `supabase/setup.sql` en el SQL Editor del panel (`pnpm db:setup` lo copia y abre el editor).
+- `pnpm web` comprueba antes de arrancar que `.env` tiene las tres claves, y dice cuáles faltan.
 - La app, sus páginas públicas (landing y legales) y el inicio de sesión están en un solo servidor y un solo dominio: http://127.0.0.1:4100 en tu equipo (ver `docs/12-site.md`).
 - El CLI (`pnpm exegezis …`) y los benchmarks no usan cuentas: siguen escribiendo en `runs/` de este equipo.
-- Los tests nunca leen `.env`: arrancan su propia base de datos y un sustituto de Supabase Auth (ver «Tests»).
+- Los tests nunca leen `.env` ni necesitan Docker: arrancan su propia base de datos y un sustituto de Supabase (ver «Tests»).
 
 ## Arquitectura
 
@@ -18,8 +19,9 @@ Un servidor (apps/web, Next.js), un dominio                                     
  /login, /signup, /auth/callback … ────────────────────────────────────────────▶  Auth (GoTrue): contraseñas,
  proxy.ts: refresca la sesión,                                                      emails, OAuth, sesiones
    /login?next=… si no hay
- Server actions / route handlers ──────────────────────────────────────────────▶  Postgres (RLS en todas
-   (rol `authenticated` + claims del usuario en cada transacción)                   las tablas): profiles,
+ Server actions / route handlers ──────────────────────────────────────────────▶  Data API (PostgREST) →
+   (@supabase/supabase-js con la sesión del usuario)                                Postgres (RLS en todas
+                                                                                    las tablas): profiles,
  EXEGEZIS_DATA_DIR/users/<id>/  runs/ access/ search/   (disco)                     consents, projects, runs,
                                                                                     waitlist, rate_limits
 ```
@@ -27,10 +29,9 @@ Un servidor (apps/web, Next.js), un dominio                                     
 - **Autenticación:** Supabase Auth, con `@supabase/ssr` en el servidor.
   - El navegador no tiene cliente de Supabase. Las cookies de sesión son httpOnly, SameSite=Lax y Secure en https.
   - EXEGEZIS nunca ve ni guarda contraseñas: van directas a Supabase.
-- **Datos:** la app se conecta a Postgres con `DATABASE_URL`, como propietaria de la base de datos.
-  - Todo lo que hace por un usuario va dentro de `asUser()` (`packages/accounts/src/store.ts`).
-  - Dentro de esa transacción pone `set local role authenticated` y las claims del usuario (`request.jwt.claims`), las mismas que pondría PostgREST. Así las políticas RLS deciden qué puede leer o escribir.
-  - Solo las tareas de operador usan la conexión de propietario directamente: límites de intentos, borrar una cuenta y asignar los datos del CLI.
+- **Datos:** a través de la API de datos de Supabase, con `@supabase/supabase-js` (`packages/accounts/src/store.ts`, con los tipos del esquema en `database.ts`), como cualquier app de Supabase.
+  - Lo de cada usuario va con **su propia sesión** (la clave anon más su token): las políticas RLS deciden qué puede leer o escribir.
+  - Solo las tareas de operador usan la **service role key**, y solo en el servidor: límites de intentos (`consume_rate_limit`), borrar una cuenta, asignar los datos del CLI y cambiar un plan.
 - **Artefactos:** capturas, trazas y DOM siguen en disco, en una carpeta por usuario (`EXEGEZIS_DATA_DIR/users/<id>/`).
   - `currentWorkspace()` (`apps/web/src/lib/user-workspace.ts`) da esa carpeta a cada petición.
   - El descubrimiento, los trabajos, la CLI que lanza la app (`EXEGEZIS_RUNS_DIR`, `EXEGEZIS_ACCESS_DIR`, `EXEGEZIS_SEARCH_DIR`), los accesos y las búsquedas solo leen esa carpeta.
@@ -106,7 +107,7 @@ pnpm exegezis account claim-local --dry-run
 pnpm exegezis account claim-local
 ```
 
-- Solo necesita `DATABASE_URL` en `.env`.
+- Usa el mismo proyecto de Supabase que la app (`.env`): su URL y la service role key.
 - Da a la primera cuenta creada (o a la de `--email`) lo que el CLI tiene en este equipo: `runs/`, los ajustes de búsqueda y los accesos guardados.
 - Los copia a su carpeta y vuelve a cifrar los accesos con `EXEGEZIS_ACCESS_KEY`.
 - Registra las ejecuciones en `runs` como suyas.
@@ -114,9 +115,7 @@ pnpm exegezis account claim-local
 
 ## Desplegar en producción
 
-1. **Supabase:** crea el proyecto y aplica la migración.
-   - Con la CLI: `npx supabase link --project-ref <ref>` y `npx supabase db push`.
-   - O pega `supabase/migrations/*.sql` en el SQL Editor.
+1. **Supabase:** crea el proyecto y pega `supabase/setup.sql` en el SQL Editor (`pnpm db:setup`). Se puede repetir: solo crea lo que falta.
 2. **Auth** (Dashboard):
    - Site URL = la URL de la app.
    - Redirect URLs = `https://app.exegezis.com/**`. Los enlaces vuelven a `/auth/callback?next=…`, y el patrón tiene que admitir esa consulta.
@@ -126,7 +125,7 @@ pnpm exegezis account claim-local
 3. **App** (`apps/web`), en un servidor Node 22+ con Chromium:
    - Ejecuta `pnpm install`, `pnpm build:web` y `pnpm --filter @exegezis/web start`.
    - Configura detrás de un proxy https que ponga `X-Forwarded-For`.
-   - Variables: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `DATABASE_URL` (secreta), `EXEGEZIS_APP_URL`, `EXEGEZIS_DATA_DIR` (un volumen persistente), `EXEGEZIS_ACCESS_KEY` (secreta), `EXEGEZIS_OAUTH_PROVIDERS`, `EXEGEZIS_PROXY_HOPS`, `EXEGEZIS_PRIVACY_EMAIL` y `EXEGEZIS_SALES_URL`.
+   - Variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (secreta), `EXEGEZIS_APP_URL`, `EXEGEZIS_DATA_DIR` (un volumen persistente), `EXEGEZIS_ACCESS_KEY` (secreta), `EXEGEZIS_OAUTH_PROVIDERS`, `EXEGEZIS_PROXY_HOPS`, `EXEGEZIS_PRIVACY_EMAIL` y `EXEGEZIS_SALES_URL`.
    - `pnpm build:web` genera las páginas públicas como HTML estático.
    - Bloquea en el cortafuegos la salida a redes privadas y al servicio de metadatos.
 4. **Comprobación:** `GET /api/health` responde `{ "ok": true }`.
@@ -136,13 +135,16 @@ Fuera de esta versión: pagos (Stripe), equipos con varios usuarios y roles, SSO
 
 ## Tests
 
-- `packages/accounts/test/accounts.test.ts` usa un Postgres real (PGlite) con las migraciones. Comprueba con dos usuarios:
-  - lecturas, ediciones, borrados e inserciones a nombre de otro;
+Sin Docker y sin proyecto de Supabase: todo corre en este equipo.
+
+- `packages/accounts/test/setup-sql.test.ts`: `supabase/setup.sql` está al día con `supabase/migrations` y se puede aplicar dos veces.
+- `packages/accounts/test/accounts.test.ts`: un Postgres real (PGlite) con `supabase/setup.sql`, a través de un sustituto de la API de datos de Supabase (`packages/accounts/test/rest-standin.ts`), con dos usuarias, cada una con su sesión, y el operador con la service role key. Comprueba:
+  - lecturas, ediciones, borrados e inserciones a nombre de otra;
   - el plan, los consentimientos, los límites de intentos, `anon`, la exportación y el borrado en cascada;
-  - además, los límites del plan, `next` y las reglas de contraseña.
+  - además, los límites del plan, `claim-local`, `next` y las reglas de contraseña.
 - `apps/cli/test/account.test.ts` prueba `claim-local`.
 - Las pruebas de extremo a extremo de la app arrancan la app real (`next dev`) con `apps/web/test/support/app.ts`:
-  - sin Docker, con PGlite y un sustituto de Supabase Auth (`apps/web/test/support/auth-standin.ts`), que habla la misma API HTTP que Supabase y guarda los emails como Mailpit;
+  - PGlite y un sustituto de Supabase (`apps/web/test/support/auth-standin.ts`: Auth, la API de datos y un buzón con los emails que enviaría);
   - cada archivo con su propia carpeta de compilación, de datos y base de datos: un `pnpm web` en marcha no se toca.
 - `apps/web/test/accounts.e2e.test.ts` (cuentas), con un navegador real:
   - registro → email → login → inspección → logout;
@@ -153,97 +155,70 @@ Fuera de esta versión: pagos (Stripe), equipos con varios usuarios y roles, SSO
   - accesibilidad AA (axe) y ausencia de scroll horizontal a 375 px en las pantallas de cuenta, en los dos idiomas y temas.
 - `apps/web/test/site.e2e.test.ts` (páginas públicas) e `i18n-e2e.test.ts` (toda la app en los dos idiomas). La de idiomas inicia sesión con un usuario de prueba cuya carpeta de ejecuciones enlaza a `runs/` del repositorio.
 - Los scripts de capturas (`pnpm design:compare`, `apps/web/scripts/screenshots.mjs`, `site-screenshots.mjs`) usan el mismo arnés.
-- Con un Supabase local de verdad corre lo mismo, salvo el OAuth simulado:
 
-  ```bat
-  npx supabase start
-  set EXEGEZIS_TEST_SUPABASE=1
-  set SUPABASE_URL=http://127.0.0.1:54321
-  set SUPABASE_ANON_KEY=<anon key de supabase status>
-  set DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
-  set MAILPIT_URL=http://127.0.0.1:54324
-  pnpm vitest run apps/web/test/accounts.e2e.test.ts
-  ```
+## Paso a paso en Windows (CMD)
 
-## Paso a paso en Windows (CMD), desde la carpeta del repositorio
+Igual que en Transcriptor: un proyecto en supabase.com, tres claves en `.env` y un archivo SQL pegado en el panel. EXEGEZIS tiene **su propio proyecto**: no uses el de Transcriptor.
 
-### 1. Con tu proyecto de Supabase
+### 1. Crea el proyecto
 
-1. En https://supabase.com abre tu proyecto (o crea uno; región en la UE si tus usuarios están en Europa). Ten a mano la contraseña de la base de datos.
-2. Aplica la migración de EXEGEZIS (crea las tablas, las políticas RLS y el disparador de perfiles):
+1. Entra en https://supabase.com/dashboard y pulsa **New project**.
+2. Elige una organización gratuita (Free), ponle de nombre `exegezis` y pulsa **Create new project**. La contraseña de la base de datos no la vas a necesitar.
+3. Espera un par de minutos a que diga que está listo.
 
-   ```bat
-   npx supabase login
-   npx supabase link --project-ref TU_REF
-   npx supabase db push
-   ```
+### 2. Copia las claves en `.env`
 
-   `TU_REF` es lo que va entre `https://` y `.supabase.co` en la URL del proyecto.
-3. En el panel del proyecto:
-   - Authentication → URL Configuration:
-     - Site URL = `http://127.0.0.1:4100` (o la URL donde publiques la app);
-     - Redirect URLs = `http://127.0.0.1:4100/**`.
-   - Authentication → Providers → Email:
-     - «Confirm email» activado;
-     - «Minimum password length» = 10.
-   - Authentication → Sign In / Up: «Manual linking» activado.
-   - Authentication → Policies (si tu plan lo permite): «Leaked password protection» activado.
-   - Authentication → Emails → SMTP: tu servidor de correo. El de Supabase sirve para probar, pero envía pocos emails por hora.
-4. Pon los datos en tu `.env` (si no existe: `copy .env.example .env`):
+En el proyecto: **Project Settings → API Keys**.
 
-   ```bat
-   notepad .env
-   ```
+```bat
+cd C:\Users\PC_SYSTEM\Documents\GitHub\EXEGEZIS
+notepad .env
+```
 
-   - `SUPABASE_URL=` y `SUPABASE_ANON_KEY=`: Project Settings → API (la URL y la clave «anon public»).
-   - `DATABASE_URL=`: Connect → Session pooler, con tu contraseña.
-   - `EXEGEZIS_APP_URL=http://127.0.0.1:4100`
-   - `EXEGEZIS_ACCESS_KEY=`: lo que imprime
+Pega estas tres líneas con tus valores (si ya tienes `SUPABASE_URL` y `SUPABASE_ANON_KEY` de antes, también sirven; solo añade la tercera):
 
-     ```bat
-     node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-     ```
+```
+NEXT_PUBLIC_SUPABASE_URL=https://TU_PROYECTO.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=la clave anon public
+SUPABASE_SERVICE_ROLE_KEY=la clave service_role
+```
 
-   Tu `EXEGEZIS_ANTHROPIC_API_KEY` se queda como está.
-5. Arranca la app (landing, inicio de sesión y app en un solo servidor):
+- La URL está arriba en esa misma página (o en **Project Settings → Data API**).
+- Las claves están en la pestaña **Legacy API Keys**: `anon` `public` y `service_role` (pulsa **Reveal** para verla). También sirven las nuevas `publishable` y `secret`.
+- La `service_role` es secreta: no la compartas. `.env` no se sube a GitHub.
 
-   ```bat
-   pnpm web
-   ```
+Guarda y cierra el Bloc de notas.
 
-6. Prueba de principio a fin:
-   1. Abre http://127.0.0.1:4100. Sin sesión verás la landing; pulsa «Empieza gratis», rellena el registro y acepta los términos.
-   2. Abre el email «Confirm your signup» y pulsa el enlace. Entras en la app con tu cuenta.
-   3. Haz una inspección.
-   4. Cierra la sesión desde el menú del usuario (arriba a la derecha). En http://127.0.0.1:4100 vuelves a ver la landing.
-   5. Prueba «¿Has olvidado tu contraseña?».
-7. Da a tu cuenta lo que ya habías hecho con el CLI:
+### 3. Crea las tablas
 
-   ```bat
-   pnpm exegezis account claim-local --dry-run
-   pnpm exegezis account claim-local
-   ```
+```bat
+pnpm db:setup
+```
 
-8. Google y GitHub (opcional): Authentication → Providers. Crea la app en Google Cloud o GitHub con el callback que muestra Supabase y pega su id y su secreto. Luego pon `EXEGEZIS_OAUTH_PROVIDERS=google,github` en `.env`.
+Se abre el SQL Editor de tu proyecto con todo copiado: pega con **Ctrl+V** y pulsa **Run**. Debe decir «Success. No rows returned». Se puede repetir sin problema.
 
-### 2. Con Supabase en tu equipo (sin internet, para probar)
+### 4. Direcciones de retorno
 
-1. Instala **Docker Desktop** (docker.com → Docker Desktop for Windows) y ábrelo. Espera a que diga «Engine running».
-2. Arranca Supabase. La primera vez descarga sus imágenes (unos minutos) y aplica `supabase/migrations`:
+En el proyecto: **Authentication → URL Configuration**.
 
-   ```bat
-   npx supabase start
-   ```
+- **Site URL:** `http://127.0.0.1:4100`
+- **Redirect URLs:** pulsa **Add URL** y pon `http://127.0.0.1:4100/**`
 
-   Al terminar imprime `API URL`, `anon key` y `DB URL`. Para verlos de nuevo: `npx supabase status`.
-3. En `.env`:
-   - `SUPABASE_URL=http://127.0.0.1:54321`
-   - `SUPABASE_ANON_KEY=` la «anon key»
-   - `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`
-   - `EXEGEZIS_APP_URL=http://127.0.0.1:4100`
-4. `pnpm web` y prueba como en el paso 1.6. Los emails llegan al buzón local: http://127.0.0.1:54324.
-5. Para parar Supabase:
+En **Authentication → Sign In / Providers**: deja **Confirm email** activado y, en **Email**, pon **Minimum password length** en `10`.
 
-   ```bat
-   npx supabase stop
-   ```
+### 5. Arranca y regístrate
+
+```bat
+pnpm web
+```
+
+1. Abre http://127.0.0.1:4100: verás la landing.
+2. Pulsa **Empieza gratis**, rellena el registro y acepta los términos.
+3. Abre el correo de confirmación y pulsa el enlace: entras en la app.
+
+El correo de prueba de Supabase envía pocos mensajes por hora. Si no llega, espera unos minutos y usa «Reenviar».
+
+### Opcional
+
+- Lo que ya hiciste con el CLI, a tu cuenta: `pnpm exegezis account claim-local`.
+- Google o GitHub: **Authentication → Providers**, y luego `EXEGEZIS_OAUTH_PROVIDERS=google,github` en `.env`.
