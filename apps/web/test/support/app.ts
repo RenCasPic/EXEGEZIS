@@ -50,7 +50,7 @@ export function freePort(): Promise<number> {
 }
 
 /** Starts the database, the Supabase stand-in and the app. Its output: apps/web/test/.tmp/<log>. */
-export async function startTestApp(options: { dist: string; log: string; env?: Record<string, string> }): Promise<TestApp> {
+export async function startTestApp(options: { dist: string; log: string; env?: Record<string, string>; /** `next build` then `next start`, as on a server (NODE_ENV=production). */ production?: boolean }): Promise<TestApp> {
   const dataDir = await mkdtemp(join(tmpdir(), "exegezis-test-"));
   const db: PGlite = await testDatabase();
   const port = await freePort();
@@ -67,7 +67,12 @@ export async function startTestApp(options: { dist: string; log: string; env?: R
   const base = `http://127.0.0.1:${appPort}`;
   // A build folder from before a change of the app's structure would serve stale routes.
   ensureFreshCache(options.dist);
-  const server: ChildProcess = spawn(process.execPath, [join(WEB, "node_modules", "next", "dist", "bin", "next"), "dev", "--hostname", "127.0.0.1", "--port", String(appPort)], {
+  const next = join(WEB, "node_modules", "next", "dist", "bin", "next");
+  if (options.production === true) {
+    const built = spawnSync(process.execPath, [next, "build"], { cwd: WEB, env: { ...process.env, NODE_ENV: "production", EXEGEZIS_NEXT_DIST: options.dist, NEXT_TELEMETRY_DISABLED: "1" }, stdio: ["ignore", logFile, logFile], windowsHide: true });
+    if (built.status !== 0) throw new Error(`next build failed (see apps/web/test/.tmp/${options.log})`);
+  }
+  const server: ChildProcess = spawn(process.execPath, [next, options.production === true ? "start" : "dev", "--hostname", "127.0.0.1", "--port", String(appPort)], {
     cwd: WEB,
     env: {
       ...process.env,
@@ -80,6 +85,7 @@ export async function startTestApp(options: { dist: string; log: string; env?: R
       EXEGEZIS_DATA_DIR: dataDir,
       EXEGEZIS_OAUTH_PROVIDERS: "github",
       EXEGEZIS_ACCESS_KEY: randomBytes(32).toString("base64"),
+      ...(options.production === true ? { NODE_ENV: "production" } : {}),
       ...options.env,
     },
     stdio: ["ignore", logFile, logFile],
