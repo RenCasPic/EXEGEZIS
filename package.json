@@ -20,7 +20,8 @@
     "web": "node scripts/check-env.mjs && pnpm install --prefer-offline && pnpm build && node apps/web/scripts/fresh-cache.mjs && pnpm --filter @exegezis/web dev",
     "build:web": "pnpm build && pnpm --filter @exegezis/web build",
     "dev": "pnpm web",
-    "design:compare": "node scripts/design-compare.mjs"
+    "design:compare": "node scripts/design-compare.mjs",
+    "db:setup": "node scripts/db-setup.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

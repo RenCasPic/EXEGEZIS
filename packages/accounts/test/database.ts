@@ -13,11 +13,16 @@ export function migrations(): string[] {
     .map((f) => readFileSync(join(dir, f), "utf8"));
 }
 
-/** A fresh Postgres (PGlite) with what Supabase provides and every migration applied. */
+/** supabase/setup.sql: the file people paste in Supabase's SQL Editor (`pnpm db:setup`). */
+export function setupSql(): string {
+  return readFileSync(join(REPO, "supabase", "setup.sql"), "utf8");
+}
+
+/** A fresh Postgres (PGlite) with what Supabase provides and the database of supabase/setup.sql. */
 export async function testDatabase(): Promise<PGlite> {
   const db = new PGlite();
   await db.exec(readFileSync(join(import.meta.dirname, "supabase-shim.sql"), "utf8"));
-  for (const sql of migrations()) await db.exec(sql);
+  await db.exec(setupSql());
   return db;
 }
 
