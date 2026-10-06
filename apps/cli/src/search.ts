@@ -209,6 +209,7 @@ async function searchRun(c: SearchRunArgs, io: CliIo, exegezisVersion: string): 
     ...(c.pageTimeoutMs === undefined ? {} : { pageTimeoutMs: c.pageTimeoutMs }),
     ...(c.totalTimeoutMs === undefined ? {} : { totalTimeoutMs: c.totalTimeoutMs }),
     ...(c.delayMs === undefined ? {} : { delayMs: c.delayMs }),
+    ...(c.concurrency === undefined ? {} : { concurrency: c.concurrency }),
     model: usesModel ? { client: modelClient(model, c.mockResponse, io), maxCostUsd, language: cliLocale() } : null,
     ...(reuse === undefined ? {} : { reuse }),
     onProgress: (p) => {

@@ -94,6 +94,7 @@ export async function inspectCommand(options: InspectCommandOptions, io: CliIo):
       ...(options.pageTimeoutMs === undefined ? {} : { pageTimeoutMs: options.pageTimeoutMs }),
       ...(options.totalTimeoutMs === undefined ? {} : { totalTimeoutMs: options.totalTimeoutMs }),
       ...(options.delayMs === undefined ? {} : { delayMs: options.delayMs }),
+      ...(options.concurrency === undefined ? {} : { concurrency: options.concurrency }),
       ...(options.checks === undefined ? {} : { checks: options.checks }),
       ...(options.storageState === undefined ? {} : { storageState: absolute(io, options.storageState) }),
       onProgress: (p) => {

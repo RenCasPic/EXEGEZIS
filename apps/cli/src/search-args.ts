@@ -30,6 +30,8 @@ export interface SearchRunArgs {
   pageTimeoutMs?: number;
   totalTimeoutMs?: number;
   delayMs?: number;
+  /** Pages visited at the same time (1-3). */
+  concurrency?: number;
   strictReadonly?: boolean;
   ignoreRobots: boolean;
   noSession: boolean;
@@ -76,7 +78,7 @@ export type SearchCommand = SearchRunArgs | SearchSuggestArgs | SearchExportArgs
 
 const ALLOWED: Record<SearchAction, string[]> = {
   run: [
-    "url", "terms", "meaning", "template", "with-meaning", "variants", "exclude-scope", "regex", "suggested", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay",
+    "url", "terms", "meaning", "template", "with-meaning", "variants", "exclude-scope", "regex", "suggested", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay", "concurrency",
     "strict-readonly", "allow-page-writes", "ignore-robots", "no-session", "no-hidden", "max-cost", "model", "mock-response", "saved", "save", "reuse", "output", "headed", "browser-channel",
   ],
   suggest: ["terms", "model", "max-cost", "mock-response", "json"],
@@ -107,6 +109,7 @@ export function parseSearchArgs(argv: readonly string[]): SearchCommand {
         "page-timeout": { type: "string" },
         "total-timeout": { type: "string" },
         delay: { type: "string" },
+        concurrency: { type: "string" },
         "strict-readonly": { type: "boolean", default: false },
         "allow-page-writes": { type: "boolean", default: false },
         "ignore-robots": { type: "boolean", default: false },
@@ -213,6 +216,7 @@ export function parseSearchArgs(argv: readonly string[]): SearchCommand {
         ...optional("pageTimeoutMs", int("page-timeout", values["page-timeout"], 1_000, 300_000)),
         ...optional("totalTimeoutMs", int("total-timeout", values["total-timeout"], 10_000, 7_200_000)),
         ...optional("delayMs", int("delay", values.delay, 0, 60_000)),
+        ...optional("concurrency", int("concurrency", values.concurrency, 1, 3)),
         ...(values["strict-readonly"] ? { strictReadonly: true } : values["allow-page-writes"] ? { strictReadonly: false } : {}),
         ignoreRobots: values["ignore-robots"],
         noSession: values["no-session"],

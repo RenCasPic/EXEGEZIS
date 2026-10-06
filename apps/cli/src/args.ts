@@ -85,6 +85,8 @@ export interface InspectArgs {
   pageTimeoutMs?: number;
   totalTimeoutMs?: number;
   delayMs?: number;
+  /** Pages visited at the same time (1-3; the per-site cap is 3). */
+  concurrency?: number;
   checks?: string[];
   storageState?: string;
   /** undefined: the default (strict with a saved session, off without). */
@@ -156,6 +158,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
         "page-timeout": { type: "string" },
         "total-timeout": { type: "string" },
         delay: { type: "string" },
+        concurrency: { type: "string" },
         checks: { type: "string" },
         "storage-state": { type: "string" },
         "strict-readonly": { type: "boolean", default: false },
@@ -210,7 +213,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
     "generate-plan": ["symptom", "base-url", "planner", "model", "mock-response", "examples", "browser-channel"],
     "ai-verify": ["symptom", "base-url", "runs", "planner", "model", "mock-response", "examples", "browser-channel"],
     "root-cause": ["suite", "runs", "case", "browser-channel"],
-    inspect: ["url", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay", "checks", "storage-state", "strict-readonly", "ignore-robots", "browser-channel", "no-session", "allow-page-writes"],
+    inspect: ["url", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay", "concurrency", "checks", "storage-state", "strict-readonly", "ignore-robots", "browser-channel", "no-session", "allow-page-writes"],
     session: ["url", "browser-channel", "done-file", "stdin", "rotate", "robots-owner", "unsafe-pattern", "json"],
     doctor: ["install", "json"],
   };
@@ -233,6 +236,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
     "page-timeout",
     "total-timeout",
     "delay",
+    "concurrency",
     "checks",
     "storage-state",
     "strict-readonly",
@@ -356,6 +360,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
         ...optional("pageTimeoutMs", int("page-timeout", values["page-timeout"], 1_000, 300_000)),
         ...optional("totalTimeoutMs", int("total-timeout", values["total-timeout"], 10_000, 7_200_000)),
         ...optional("delayMs", int("delay", values.delay, 0, 60_000)),
+        ...optional("concurrency", int("concurrency", values.concurrency, 1, 3)),
         ...optional("checks", values.checks?.split(",").map((c) => c.trim()).filter((c) => c !== "")),
         ...optional("storageState", values["storage-state"]),
         ...(values["strict-readonly"] ? { strictReadonly: true } : values["allow-page-writes"] ? { strictReadonly: false } : {}),

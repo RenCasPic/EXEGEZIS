@@ -35,9 +35,10 @@ import { z } from "zod";
 import { AxeBuilder } from "@axe-core/playwright";
 import { axeSelector, evaluateAssertion } from "./assertions.js";
 import { toLocator } from "./locator.js";
-import { domSettleScript, highlightScript, PAGE_FACTS_SCRIPT, PageFacts, textBlocksScript, UNHIGHLIGHT_SCRIPT } from "./page-scripts.js";
+import { domSettleScript, highlightScript, MAIN_THREAD_IDLE_SCRIPT, MAIN_VISIBLE_SCRIPT, PAGE_FACTS_SCRIPT, PageFacts, textBlocksScript, UNHIGHLIGHT_SCRIPT } from "./page-scripts.js";
 import { drainWithDeadline } from "./drain.js";
 import type { BrowserAdapterOptions } from "./options.js";
+import { sameSite } from "./same-site.js";
 import { sanitizeTraceArchive } from "./trace-redaction.js";
 
 /** What the extraction script returns (validated: page scripts are never trusted). */
@@ -70,6 +71,13 @@ export class BrowserSession implements AdapterSession {
   private readonly domSnapshots: DomSnapshotEvidence[] = [];
   /** Async capture work (e.g. response bodies) that must finish before collecting. */
   private readonly pending = new Set<Promise<void>>();
+  /** Captures of third-party requests (first-party readiness): waited for briefly, never a failure. */
+  private readonly pendingThirdParty = new Set<Promise<void>>();
+  /** The site being visited (first navigation): what counts as the page's own requests. */
+  private site: string | null = null;
+  /** The page's own requests in flight, and when the last one started or ended. */
+  private readonly ownInFlight = new Set<Request>();
+  private ownActivityAt = Date.now();
   /** Requests aborted by --strict-readonly (see blockPageWrites). */
   private readonly blockedRequests = new WeakSet<Request>();
   private readonly collectorFailures = new Map<string, string>();
@@ -115,6 +123,7 @@ export class BrowserSession implements AdapterSession {
     const timeout = action.type === "screenshot" ? undefined : action.timeoutMs;
     switch (action.type) {
       case "navigate":
+        this.site ??= safeHost(action.url);
         await page.goto(action.url, {
           waitUntil: action.waitUntil ?? "load",
           timeout: timeout ?? this.options.navigationTimeoutMs,
@@ -198,11 +207,15 @@ export class BrowserSession implements AdapterSession {
     const evidence: Observation["evidence"] = {};
 
     let settled = false;
-    try {
-      await page.waitForLoadState("networkidle", { timeout: this.options.settleTimeoutMs });
-      settled = true;
-    } catch {
-      // Not settling is a fact about the target, recorded in the observation.
+    if (this.options.readiness === "first-party") {
+      settled = (await this.waitReady()).network;
+    } else {
+      try {
+        await page.waitForLoadState("networkidle", { timeout: this.options.settleTimeoutMs });
+        settled = true;
+      } catch {
+        // Not settling is a fact about the target, recorded in the observation.
+      }
     }
 
     const url = this.url(page.url());
@@ -362,12 +375,17 @@ export class BrowserSession implements AdapterSession {
   private async collectInspection(): Promise<void> {
     const page = this.page;
     let network = true;
-    try {
-      await page.waitForLoadState("networkidle", { timeout: this.options.settleTimeoutMs });
-    } catch {
-      network = false;
+    let dom: boolean;
+    if (this.options.readiness === "first-party") {
+      ({ network, dom } = await this.waitReady());
+    } else {
+      try {
+        await page.waitForLoadState("networkidle", { timeout: this.options.settleTimeoutMs });
+      } catch {
+        network = false;
+      }
+      dom = await page.evaluate<boolean>(domSettleScript(this.options.domSettleTimeoutMs)).catch(() => false);
     }
-    const dom = await page.evaluate<boolean>(domSettleScript(this.options.domSettleTimeoutMs)).catch(() => false);
     const facts = PageFacts.parse(await page.evaluate<unknown>(PAGE_FACTS_SCRIPT));
 
     let axe: PageInspectionFile["axe"] = null;
@@ -523,10 +541,19 @@ export class BrowserSession implements AdapterSession {
     const { context, page } = this;
     context.on("console", (message) => this.guard("console", () => this.onConsole(message)));
     context.on("weberror", (error) => this.guard("console", () => this.onWebError(error)));
-    context.on("request", (request) => this.guard("network", () => this.onRequest(request)));
-    context.on("response", (response) => this.guard("network", () => this.onResponse(response)));
-    context.on("requestfinished", (request) => this.guard("network", () => this.onRequestFinished(request)));
-    context.on("requestfailed", (request) => this.guard("network", () => this.onRequestFailed(request)));
+    context.on("request", (request) => {
+      this.trackOwn(request, true);
+      this.guard("network", () => this.onRequest(request), this.thirdParty(request));
+    });
+    context.on("response", (response) => this.guard("network", () => this.onResponse(response), this.thirdParty(response.request())));
+    context.on("requestfinished", (request) => {
+      this.trackOwn(request, false);
+      this.guard("network", () => this.onRequestFinished(request), this.thirdParty(request));
+    });
+    context.on("requestfailed", (request) => {
+      this.trackOwn(request, false);
+      this.guard("network", () => this.onRequestFailed(request), this.thirdParty(request));
+    });
     page.on("load", () =>
       this.guard("page", () => {
         this.recorder.emit("PAGE_LOADED", "page", { url: this.url(page.url()) });
@@ -549,7 +576,7 @@ export class BrowserSession implements AdapterSession {
    * Listener bodies must never throw into Playwright's event loop. A failure
    * is recorded against its collector, which is then reported as failed.
    */
-  private guard(collector: string, fn: () => void | Promise<void>): void {
+  private guard(collector: string, fn: () => void | Promise<void>, thirdParty = false): void {
     const onError = (error: unknown): void => {
       const info = toErrorInfo(error);
       this.collectorFailures.set(collector, info.message);
@@ -562,15 +589,17 @@ export class BrowserSession implements AdapterSession {
     };
     try {
       const result = fn();
-      if (result instanceof Promise) this.track(result.catch(onError));
+      if (result instanceof Promise) this.track(result.catch(onError), thirdParty);
     } catch (error) {
       onError(error);
     }
   }
 
-  private track(promise: Promise<void>): void {
-    this.pending.add(promise);
-    void promise.finally(() => this.pending.delete(promise));
+  private track(promise: Promise<void>, thirdParty = false): void {
+    // Third parties are set apart only with first-party readiness; otherwise every capture counts the same.
+    const set = thirdParty && this.options.readiness === "first-party" ? this.pendingThirdParty : this.pending;
+    set.add(promise);
+    void promise.finally(() => set.delete(promise));
   }
 
   private async drainPending(): Promise<void> {
@@ -579,6 +608,51 @@ export class BrowserSession implements AdapterSession {
       // The recorded network/console evidence is incomplete: say so, never wait forever.
       this.collectorFailures.set("network", `${left} capture(s) still pending after ${this.options.captureDrainTimeoutMs} ms; the network evidence is incomplete`);
     }
+    // Ads and analytics that never finish do not hold the page: a short wait, then what has arrived is written.
+    await drainWithDeadline(this.pendingThirdParty, this.options.thirdPartyDrainTimeoutMs);
+  }
+
+  /** Is this request to another site than the one being visited (ads, analytics, chat, CDNs of others)? */
+  private thirdParty(request: Request): boolean {
+    return this.site !== null && !sameSite(this.site, safeHost(request.url()));
+  }
+
+  private trackOwn(request: Request, started: boolean): void {
+    if (this.options.readiness !== "first-party" || this.thirdParty(request)) return;
+    if (started) this.ownInFlight.add(request);
+    else this.ownInFlight.delete(request);
+    this.ownActivityAt = Date.now();
+  }
+
+  /**
+   * First-party readiness: no request to the page's own site in flight for
+   * 500 ms, the DOM stable for 500 ms and the main content visible, within
+   * readyTimeoutMs. Third-party requests are not waited for. Returns which
+   * signals were reached (not reaching them is a fact about the page).
+   */
+  private async waitReady(): Promise<{ network: boolean; dom: boolean }> {
+    const page = this.page;
+    const deadline = Date.now() + this.options.readyTimeoutMs;
+    const quietMs = 500;
+    let network = false;
+    while (Date.now() < deadline) {
+      if (this.ownInFlight.size === 0 && Date.now() - this.ownActivityAt >= quietMs) {
+        const visible = await page.evaluate<boolean>(MAIN_VISIBLE_SCRIPT).catch(() => false);
+        if (visible) {
+          network = true;
+          break;
+        }
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    // The page's own work after its requests (hydration, rendering): wait until its main thread is idle,
+    // and for the load event, briefly (third-party iframes and ads can hold it back for a long time).
+    await page.evaluate<boolean>(MAIN_THREAD_IDLE_SCRIPT).catch(() => false);
+    await page.waitForLoadState("load", { timeout: Math.max(0, Math.min(this.options.loadGraceMs, deadline - Date.now())) }).catch(() => undefined);
+    const left = Math.max(quietMs + 100, deadline - Date.now());
+    const dom = await page.evaluate<boolean>(domSettleScript(Math.min(left, this.options.domSettleTimeoutMs))).catch(() => false);
+    await page.evaluate<boolean>(MAIN_THREAD_IDLE_SCRIPT).catch(() => false);
+    return { network, dom };
   }
 
   private onConsole(message: ConsoleMessage): void {
@@ -769,4 +843,12 @@ function consoleLevel(type: string): ConsoleLevel {
 
 function truncate(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max)}…`;
+}
+
+function safeHost(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
 }

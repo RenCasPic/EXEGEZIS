@@ -45,6 +45,20 @@ export const BrowserAdapterOptions = z.strictObject({
   blockPageWrites: z.boolean().default(false),
   /** Cap for DOM stability (no mutations for 500 ms) in inspection mode. */
   domSettleTimeoutMs: z.int().nonnegative().default(5_000),
+  /**
+   * When a page counts as ready before it is observed:
+   * - networkidle: no request at all for 500 ms (capped by settleTimeoutMs);
+   * - first-party: the page's own signals — no request in flight to its own
+   *   site for 500 ms, the DOM stable and the main content visible — ignoring
+   *   third parties (ads, analytics, chat widgets), which can keep a page from
+   *   ever being idle (capped by readyTimeoutMs). Web inspections use it.
+   */
+  readiness: z.enum(["networkidle", "first-party"]).default("networkidle"),
+  readyTimeoutMs: z.int().nonnegative().default(10_000),
+  /** first-party: how long to wait for the load event once the page's own requests are done (ads can hold it back). */
+  loadGraceMs: z.int().nonnegative().default(3_000),
+  /** first-party: how long to wait for third-party evidence captures before writing the evidence (they are not waited for otherwise). */
+  thirdPartyDrainTimeoutMs: z.int().nonnegative().default(1_000),
   /** Capture request/response bodies of fetch/XHR calls (redacted). */
   captureBodies: z.boolean().default(true),
   maxBodyBytes: z.int().nonnegative().default(64 * 1024),

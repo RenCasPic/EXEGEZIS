@@ -70,7 +70,37 @@ export interface CrawlOptions {
   trace?: boolean;
   /** Search mode: record the page text in blocks (text-blocks.json). */
   extract?: { includeHidden: boolean };
+  /** Pages visited at the same time (default 3). */
+  concurrency?: number;
+  /** At most this many visits to the same site at once, whatever `concurrency` says (default 3): never overload it. */
+  perSiteLimit?: number;
+  /**
+   * When a page counts as loaded (adapter-browser options.ts): "first-party"
+   * (default) waits for the page's own requests, DOM and main content and
+   * ignores ads and analytics; "load" waits for the load event and the whole
+   * network, as before.
+   */
+  readiness?: "first-party" | "load";
   onProgress?: (progress: CrawlProgress) => void;
+}
+
+/** Visits at the same time and per site, by default. */
+export const DEFAULT_CONCURRENCY = 3;
+export const DEFAULT_PER_SITE_LIMIT = 3;
+
+/** Runs `work` on every item with at most `limit` at a time; results in the items' order. */
+export async function pool<T, R>(items: readonly T[], limit: number, work: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const lanes = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      results[i] = await work(items[i] as T, i);
+    }
+  });
+  await Promise.all(lanes);
+  return results;
 }
 
 export interface CrawlProgress {
@@ -99,7 +129,7 @@ export interface Crawl {
   startedAt: string;
   entry: string;
   origin: string;
-  cfg: { maxPages: number; maxDepth: number; runs: number; pageTimeoutMs: number; totalTimeoutMs: number; delayMs: number };
+  cfg: { maxPages: number; maxDepth: number; runs: number; pageTimeoutMs: number; totalTimeoutMs: number; delayMs: number; concurrency: number };
   userAgent: string;
   strict: boolean;
   sessionUsed: boolean;
@@ -128,9 +158,12 @@ export function userAgentFor(version: string): string {
 
 /**
  * Walks a site: run 1 breadth-first within the same origin and budget; runs
- * 2..N revisit the same pages in fresh browser contexts. Read-only: it only
- * navigates (goto) and makes GET/HEAD requests of its own. `use` receives the
- * result while the HTTP probe is open; the probe is closed afterwards.
+ * 2..N revisit the same pages in fresh browser contexts. Several pages are
+ * visited at once (`concurrency`, never more than `perSiteLimit` on the
+ * site), level by level, so the pages found and their order are the same as
+ * one at a time. Read-only: it only navigates (goto) and makes GET/HEAD
+ * requests of its own. `use` receives the result while the HTTP probe is
+ * open; the probe is closed afterwards.
  */
 export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) => Promise<T>): Promise<T> {
   const startedAt = new Date().toISOString();
@@ -144,6 +177,7 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
     pageTimeoutMs: options.pageTimeoutMs ?? 30_000,
     totalTimeoutMs: options.totalTimeoutMs ?? 600_000,
     delayMs: options.delayMs ?? 500,
+    concurrency: Math.max(1, Math.min(options.concurrency ?? DEFAULT_CONCURRENCY, options.perSiteLimit ?? DEFAULT_PER_SITE_LIMIT)),
   };
   const userAgent = userAgentFor(options.exegezisVersion);
   const access = options.access ?? null;
@@ -158,7 +192,7 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
   let traceDropped = false;
   const overBudget = () => Date.now() - t0 > cfg.totalTimeoutMs;
   let totalTimeoutReached = false;
-  let lastNavigation = 0;
+  let nextStart = 0;
 
   const progress: CrawlProgress = { phase: "robots", run: 1, runs: cfg.runs, pagesDone: 0, pagesPlanned: 1, current: entry, updatedAt: startedAt };
   const report = async (patch: Partial<CrawlProgress>) => {
@@ -197,12 +231,19 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
     let engineError: EngineErrorInfo | null = null;
 
     let pace = cfg.delayMs;
+    // Navigations start at least `pace` apart, whatever runs in parallel (polite to the site).
+    const startSlot = async (): Promise<void> => {
+      const now = Date.now();
+      const at = Math.max(now, nextStart);
+      nextStart = at + pace;
+      if (at > now) await new Promise((r) => setTimeout(r, at - now));
+    };
+    const readiness = options.readiness ?? "first-party";
+    let done = 0;
     const visit = async (url: string, depth: number, run: number): Promise<Visit> => {
       for (let attempt = 0; ; attempt++) {
-        const wait = pace - (Date.now() - lastNavigation);
-        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-        lastNavigation = Date.now();
-        const v = await visitPage({ url, depth, run, dir: options.dir, options, userAgent, strict, pageTimeoutMs: cfg.pageTimeoutMs, origin, access, sessionUsed });
+        await startSlot();
+        const v = await visitPage({ url, depth, run, dir: options.dir, options, userAgent, strict, pageTimeoutMs: cfg.pageTimeoutMs, origin, access, sessionUsed, readiness });
         if (v.traceDropped) traceDropped = true;
         // RATE_LIMITED: respect Retry-After (or back off), slow down, and try the same page again, within caps.
         const b = v.visit.block;
@@ -217,79 +258,115 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
             continue;
           }
         }
-        pages.push(v.visit);
-        visits.push(v);
         return v;
       }
     };
+    // Visits finish in any order: each is kept with its place, and sorted once at the end.
+    const order = new Map<Visit, number>();
+    const placed: { place: number; page: PageVisit }[] = [];
+    let seq = 0;
+    const keep = (v: Visit, place: number) => {
+      order.set(v, place);
+      visits.push(v);
+      placed.push({ place, page: v.visit });
+    };
+    const skip = (page: PageVisit, place = seq++) => placed.push({ place, page });
 
     try {
-      // Run 1: discovery.
+      // Run 1: discovery, breadth-first, one level at a time (the pages of a level in parallel).
       await report({ phase: "crawl", run: 1 });
       const targets: { url: string; depth: number }[] = [];
-      const queue: { url: string; depth: number }[] = [{ url: entry, depth: 0 }];
+      let level: { url: string; depth: number }[] = [{ url: entry, depth: 0 }];
       const seen = new Set([entry]);
-      while (queue.length > 0) {
-        const next = queue.shift() as { url: string; depth: number };
-        if (overBudget()) {
-          totalTimeoutReached = true;
-          pages.push(skipped(next.url, next.depth, "SKIPPED_BUDGET", msg("pageTimeBudget")));
-          continue;
-        }
-        if (targets.length >= cfg.maxPages) {
-          pages.push(skipped(next.url, next.depth, "SKIPPED_BUDGET", msg("pageMaxPages", { max: String(cfg.maxPages) })));
-          continue;
-        }
-        await report({ current: next.url, pagesPlanned: Math.min(cfg.maxPages, targets.length + queue.length + 1) });
-        const v = await visit(next.url, next.depth, 1);
-        targets.push(next);
-        await report({ pagesDone: targets.length });
-        if (next.depth === 0 && ["BLOCKED", "UNREACHABLE", "TIMEOUT"].includes(v.visit.status)) break;
-        if (v.evidence === null || (v.visit.status !== "OK" && v.visit.status !== "DEGRADED")) continue;
-        for (const link of v.evidence.inspection.links) {
-          const url = normalizePageUrl(link.href);
-          if (new URL(url).origin !== origin) {
-            if (!externalLinks.has(url)) externalLinks.set(url, next.url);
+      let stop = false;
+      while (level.length > 0 && !stop) {
+        const now: { url: string; depth: number; place: number }[] = [];
+        for (const next of level) {
+          if (overBudget()) {
+            totalTimeoutReached = true;
+            skip(skipped(next.url, next.depth, "SKIPPED_BUDGET", msg("pageTimeBudget")));
             continue;
           }
-          if (seen.has(url)) continue;
-          seen.add(url);
-          const danger = unsafe(url, link.text);
-          if (danger !== null) {
-            // Never followed: logging out or a destructive action behind a GET.
-            skippedForSafety.set(url, { url, from: next.url, reason: danger });
+          if (targets.length >= cfg.maxPages) {
+            skip(skipped(next.url, next.depth, "SKIPPED_BUDGET", msg("pageMaxPages", { max: String(cfg.maxPages) })));
             continue;
           }
-          if (!allowed(url)) {
-            pages.push(skipped(url, next.depth + 1, "SKIPPED_ROBOTS", msg("pageRobots")));
-            continue;
-          }
-          if (next.depth + 1 <= cfg.maxDepth) queue.push({ url, depth: next.depth + 1 });
+          targets.push(next);
+          now.push({ ...next, place: seq++ });
         }
+        await report({ pagesPlanned: Math.min(cfg.maxPages, targets.length) });
+        const results = await pool(now, cfg.concurrency, async (t) => {
+          await report({ current: t.url });
+          const v = await visit(t.url, t.depth, 1);
+          keep(v, t.place);
+          await report({ pagesDone: ++done });
+          return v;
+        });
+        const following: { url: string; depth: number }[] = [];
+        for (const [i, v] of results.entries()) {
+          const from = now[i] as { url: string; depth: number };
+          if (from.depth === 0 && ["BLOCKED", "UNREACHABLE", "TIMEOUT"].includes(v.visit.status)) {
+            stop = true;
+            break;
+          }
+          if (v.evidence === null || (v.visit.status !== "OK" && v.visit.status !== "DEGRADED")) continue;
+          for (const link of v.evidence.inspection.links) {
+            const url = normalizePageUrl(link.href);
+            if (new URL(url).origin !== origin) {
+              if (!externalLinks.has(url)) externalLinks.set(url, from.url);
+              continue;
+            }
+            if (seen.has(url)) continue;
+            seen.add(url);
+            const danger = unsafe(url, link.text);
+            if (danger !== null) {
+              // Never followed: logging out or a destructive action behind a GET.
+              skippedForSafety.set(url, { url, from: from.url, reason: danger });
+              continue;
+            }
+            if (!allowed(url)) {
+              skip(skipped(url, from.depth + 1, "SKIPPED_ROBOTS", msg("pageRobots")));
+              continue;
+            }
+            if (from.depth + 1 <= cfg.maxDepth) following.push({ url, depth: from.depth + 1 });
+          }
+        }
+        level = following;
       }
 
       // Runs 2..N: the same pages, fresh contexts. No re-discovery: a stable page set.
       const revisit = targets.filter((t) => {
-        const first = pages.find((p) => p.run === 1 && p.url === t.url);
+        const first = placed.find((p) => p.page.run === 1 && p.page.url === t.url)?.page;
         return first !== undefined && INSPECTABLE.includes(first.status);
       });
-      for (let run = 2; run <= cfg.runs; run++) {
-        await report({ phase: "repeat", run, pagesDone: 0, pagesPlanned: revisit.length });
-        for (const [i, t] of revisit.entries()) {
+      // All the repetitions share the parallel lanes; each visit is still a fresh browser.
+      const repeats: { url: string; depth: number; run: number; place: number }[] = [];
+      for (let run = 2; run <= cfg.runs; run++) for (const t of revisit) repeats.push({ ...t, run, place: seq++ });
+      if (repeats.length > 0) {
+        done = 0;
+        await report({ phase: "repeat", run: 2, pagesDone: 0, pagesPlanned: revisit.length });
+        await pool(repeats, cfg.concurrency, async (t) => {
           if (overBudget()) {
             totalTimeoutReached = true;
-            pages.push(skipped(t.url, t.depth, "SKIPPED_BUDGET", msg("pageTimeBudget"), run));
-            continue;
+            skip(skipped(t.url, t.depth, "SKIPPED_BUDGET", msg("pageTimeBudget"), t.run), t.place);
+            return;
           }
           await report({ current: t.url });
-          await visit(t.url, t.depth, run);
-          await report({ pagesDone: i + 1 });
-        }
+          const v = await visit(t.url, t.depth, t.run);
+          keep(v, t.place);
+          done++;
+          // Progress per repetition: the repetition reached and its pages done.
+          const run = 2 + Math.floor((done - 1) / Math.max(1, revisit.length));
+          await report({ run: Math.min(run, cfg.runs), pagesDone: ((done - 1) % Math.max(1, revisit.length)) + 1 });
+        });
       }
     } catch (error) {
       if (!isEngineUnavailable(error)) throw error;
       engineError = error.toInfo();
     }
+    // The visits in the order a one-at-a-time walk would have made them.
+    visits.sort((x, y) => (order.get(x) ?? 0) - (order.get(y) ?? 0));
+    pages.push(...placed.sort((x, y) => x.place - y.place).map((p) => p.page));
 
     return await use({
       startedAt,
@@ -338,6 +415,7 @@ interface VisitArgs {
   /** A saved session is loaded into the visit's browser context. */
   sessionUsed?: boolean;
   access?: AdapterAccess | null;
+  readiness: "first-party" | "load";
 }
 
 /** One page, one run: a fresh browser, navigate + observe, then the adapter's inspection evidence. */
@@ -351,7 +429,8 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
     title: `Inspect ${url}`.slice(0, 200),
     target: { kind: "web", baseUrl: url },
     steps: [
-      { type: "navigate", url, timeoutMs: args.pageTimeoutMs },
+      // First-party readiness: the page is ready by its own signals (adapter), not when every ad has loaded.
+      { type: "navigate", url, timeoutMs: args.pageTimeoutMs, ...(args.readiness === "first-party" ? { waitUntil: "domcontentloaded" as const } : {}) },
       { type: "observe", label: "page" },
     ],
   });
@@ -367,6 +446,7 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
       trace: run === 1 && options.trace !== false,
       navigationTimeoutMs: args.pageTimeoutMs,
       blockPageWrites: strict,
+      readiness: args.readiness === "first-party" ? "first-party" : "networkidle",
       ...(options.storageState === undefined ? {} : { storageState: options.storageState }),
       ...(options.ignoreHTTPSErrors === true ? { ignoreHTTPSErrors: true } : {}),
     },

@@ -20,6 +20,26 @@ export function domSettleScript(capMs: number): string {
 })`;
 }
 
+/** The page shows its main content: parsed, with a visible main region, heading or text. */
+export const MAIN_VISIBLE_SCRIPT = `(() => {
+  if (document.readyState === "loading" || document.body === null) return false;
+  const visible = (el) => {
+    if (el === null) return false;
+    const r = el.getBoundingClientRect();
+    const s = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none" && Number(s.opacity) > 0;
+  };
+  if (visible(document.querySelector("main, [role=main]")) || visible(document.querySelector("h1"))) return true;
+  return document.body.innerText.trim().length > 0;
+})()`;
+
+/** Resolves when the page's main thread has a moment free (two idle callbacks in a row), at most 2 s. */
+export const MAIN_THREAD_IDLE_SCRIPT = `new Promise((resolve) => {
+  if (typeof requestIdleCallback !== "function") { setTimeout(() => resolve(true), 50); return; }
+  const cap = setTimeout(() => resolve(false), 2000);
+  requestIdleCallback(() => requestIdleCallback(() => { clearTimeout(cap); resolve(true); }, { timeout: 2000 }), { timeout: 2000 });
+})`;
+
 export const PAGE_FACTS_SCRIPT = `(() => {
   const text = (document.body ? document.body.innerText : "").slice(0, 5000);
   const markers = [];

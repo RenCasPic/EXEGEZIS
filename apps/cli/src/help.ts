@@ -17,7 +17,7 @@ const SEARCH_HELP_EN = `
                 exegezis search suggest --terms "a, b" [--json]
                 exegezis search export --search <id|dir> --format csv|pdf [--sep ";"|","|tab]
                 exegezis search templates [--json]
-              Common: --max-pages 20 --max-depth 2 --runs 3 (1 by meaning)
+              Common: --max-pages 20 --max-depth 2 --runs 3 (1 by meaning) --concurrency 3
               --no-session --no-hidden --save "<name>" --saved <id> --reuse <dir>.
               Exact: deterministic, accents and capitals ignored (ñ kept),
               whole words; VERIFIED in every load, INTERMITTENT otherwise.
@@ -56,7 +56,7 @@ const SEARCH_HELP_ES = `
                 exegezis search suggest --terms "a, b" [--json]
                 exegezis search export --search <id|carpeta> --format csv|pdf [--sep ";"|","|tab]
                 exegezis search templates [--json]
-              Comunes: --max-pages 20 --max-depth 2 --runs 3 (1 por significado)
+              Comunes: --max-pages 20 --max-depth 2 --runs 3 (1 por significado) --concurrency 3
               --no-session --no-hidden --save "<nombre>" --saved <id> --reuse <carpeta>.
               Exacta: determinista, sin importar acentos ni mayúsculas (la ñ
               cuenta), palabras completas; VERIFIED si aparece en todas las
@@ -82,7 +82,7 @@ Usage:
   exegezis ai-verify     --symptom "<text>" [--runs 10] [--base-url <url>] [--planner ...] [--examples <suite>] [options]
   exegezis root-cause    [--suite buggy-shop-root-cause] [--case <id>]... [--runs 5] [options]
   exegezis inspect       --url <url> [--runs 3] [--max-pages 20] [--max-depth 2] [--checks a,b]
-                         [--storage-state <file>] [--strict-readonly] [--ignore-robots] [options]
+                         [--storage-state <file>] [--strict-readonly] [--ignore-robots] [--concurrency 3] [options]
   exegezis doctor        [--install] [--json]
   exegezis session login|list|delete|http-auth|waf-token|set --url <site> [options]
   exegezis search        --url <site> (--terms "a, b" | --meaning "<text>" | --template <id>) [options]
