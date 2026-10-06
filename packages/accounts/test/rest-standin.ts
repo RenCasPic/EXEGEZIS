@@ -54,13 +54,14 @@ const ident = (name: string): string => {
   return `"${name}"`;
 };
 
+// Plain fields (no parameter properties): Node runs this file as is in the screenshot scripts.
 class HttpError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-  ) {
+  readonly status: number;
+  readonly code: string;
+  constructor(status: number, code: string, message: string) {
     super(message);
+    this.status = status;
+    this.code = code;
   }
 }
 
