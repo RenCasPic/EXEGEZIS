@@ -112,13 +112,14 @@
       "meta": "the meta tag",
       "dns": "the DNS record"
     },
-    "howMeta": "Option 1: put this tag inside the <head> of the home page:",
+    "howMeta": "Option 1: put this tag inside the head of the home page:",
     "howDns": "Option 2: add this TXT record to the DNS of {host}:",
     "check": "Check now",
     "notFound": "Neither the meta tag nor the TXT record was found. If you just added them, wait a few minutes (DNS can take a while) and check again.",
     "nowVerified": "Site verified: you can now check more than {pages} pages.",
     "remove": "Remove {site}",
     "errorSite": "Write a domain or an address, for example your-site.com.",
-    "errorOrigin": "The request did not come from EXEGEZIS. Reload the page."
+    "errorOrigin": "The request did not come from EXEGEZIS. Reload the page.",
+    "sitePlaceholder": "your-site.com"
   }
 }

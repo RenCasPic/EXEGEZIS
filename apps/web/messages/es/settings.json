@@ -112,13 +112,14 @@
       "meta": "la meta etiqueta",
       "dns": "el registro DNS"
     },
-    "howMeta": "Opción 1: pon esta etiqueta dentro del <head> de la página de inicio:",
+    "howMeta": "Opción 1: pon esta etiqueta dentro del head de la página de inicio:",
     "howDns": "Opción 2: añade este registro TXT en el DNS de {host}:",
     "check": "Comprobar ahora",
     "notFound": "No se encontró ni la meta etiqueta ni el registro TXT. Si acabas de añadirlos, espera unos minutos (el DNS puede tardar) y vuelve a comprobar.",
     "nowVerified": "Sitio verificado: ya puedes revisar más de {pages} páginas.",
     "remove": "Quitar {site}",
     "errorSite": "Escribe un dominio o una dirección, por ejemplo tu-sitio.com.",
-    "errorOrigin": "La petición no vino de EXEGEZIS. Recarga la página."
+    "errorOrigin": "La petición no vino de EXEGEZIS. Recarga la página.",
+    "sitePlaceholder": "tu-sitio.com"
   }
 }

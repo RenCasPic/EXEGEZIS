@@ -44,7 +44,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
           <label htmlFor="site" className="sr-only">
             {t("siteLabel")}
           </label>
-          <input id="site" name="site" required defaultValue={focus} placeholder="tu-sitio.com" className="h-9 min-w-0 flex-1 rounded-md border border-line-strong bg-panel px-3 font-mono text-[13px] text-fg" />
+          <input id="site" name="site" required defaultValue={focus} placeholder={t("sitePlaceholder")} className="h-9 min-w-0 flex-1 rounded-md border border-line-strong bg-panel px-3 font-mono text-[13px] text-fg" />
           <button type="submit" className={buttonClass("primary")}>
             {t("addButton")}
           </button>
