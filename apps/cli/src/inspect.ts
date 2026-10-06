@@ -1,6 +1,6 @@
 import { join } from "node:path";
-import { groupStats, SEVERITIES, ulid } from "@exegezis/core";
-import { INSPECTION_REPORT_FILE, inspectSite } from "@exegezis/inspect";
+import { deviceScope, groupStats, SEVERITIES, ulid } from "@exegezis/core";
+import { DEFAULT_DEVICES, INSPECTION_REPORT_FILE, inspectSite } from "@exegezis/inspect";
 import { EXIT, UsageError, type InspectArgs } from "./args.js";
 import { printEngineError } from "./doctor.js";
 import { engineText, t } from "./i18n.js";
@@ -63,6 +63,8 @@ export async function inspectCommand(options: InspectCommandOptions, io: CliIo):
     out(t("inspect.accessSaved", { kinds: kinds.join(", ") }));
   } else if (options.noSession) out(t("inspect.accessAnonymous"));
   out(strict ? t("inspect.modeStrict") : t("inspect.modeReadonly"));
+  const devices = options.devices ?? DEFAULT_DEVICES;
+  out(t("inspect.devices", { list: devices.map((d) => t(`inspect.device.${d}`)).join(", ") }));
   if (session && options.strictReadonly === false) out(t("inspect.allowWrites"));
   out(
     t("inspect.budget", {
@@ -96,6 +98,7 @@ export async function inspectCommand(options: InspectCommandOptions, io: CliIo):
       ...(options.delayMs === undefined ? {} : { delayMs: options.delayMs }),
       ...(options.concurrency === undefined ? {} : { concurrency: options.concurrency }),
       ...(options.checks === undefined ? {} : { checks: options.checks }),
+      ...(options.devices === undefined ? {} : { devices: options.devices }),
       ...(options.storageState === undefined ? {} : { storageState: absolute(io, options.storageState) }),
       onProgress: (p) => {
         const line =
@@ -153,7 +156,9 @@ export async function inspectCommand(options: InspectCommandOptions, io: CliIo):
     out(t("inspect.top", { count: top.length }));
     for (const x of top.slice(0, 5)) {
       const where = t("inspect.where", { elements: x.verified, pages: x.pages.length });
-      out(`  ${x.id} [${x.severity}] ${x.title} — ${where}${x.intermittent > 0 ? t("inspect.plusIntermittent", { count: x.intermittent }) : ""}`);
+      const scope = deviceScope(report.findings.filter((f) => x.findings.includes(f.id)), report.options.devices);
+      const on = scope === null ? "" : scope === "all" ? t("inspect.onAll") : t("inspect.onlyOn", { list: scope.map((d) => t(`inspect.device.${d}`)).join(", ") });
+      out(`  ${x.id} [${x.severity}] ${x.title} — ${where}${on}${x.intermittent > 0 ? t("inspect.plusIntermittent", { count: x.intermittent }) : ""}`);
     }
     if (top.length > 5) out(t("inspect.more", { count: top.length - 5 }));
   }

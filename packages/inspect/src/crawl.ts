@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { BrowserAdapter, HttpProbe, type AdapterAccess, type BrowserChannel, type ConcreteChannel } from "@exegezis/adapter-browser";
 import {
   ConsoleFile,
+  DEVICES,
   englishOf,
   executeRun,
   INSPECTABLE,
@@ -16,12 +17,14 @@ import {
   silentLogger,
   TestPlan,
   TextBlocksFile,
+  type Device,
   type EngineErrorInfo,
   type EngineMessage,
   type PageVisit,
 } from "@exegezis/core";
 import type { PageEvidence } from "./checks/index.js";
 import { classifyVisit } from "./classify.js";
+import { DEVICE_PROFILES, runFolder } from "./devices.js";
 import { isAllowed, parseRobots, type RobotsRules } from "./robots.js";
 
 /*
@@ -81,6 +84,12 @@ export interface CrawlOptions {
    * network, as before.
    */
   readiness?: "first-party" | "load";
+  /**
+   * The devices every page is visited as, each with all its runs (default:
+   * desktop only; inspections ask for desktop and mobile). Pages are found
+   * once, on the first device.
+   */
+  devices?: readonly Device[];
   onProgress?: (progress: CrawlProgress) => void;
 }
 
@@ -107,6 +116,10 @@ export interface CrawlProgress {
   phase: "robots" | "crawl" | "repeat" | "specs" | "search" | "ai" | "done";
   run: number;
   runs: number;
+  /** The device of the current visits, and how many devices there are (1 in files from before devices). */
+  device?: Device;
+  devices?: number;
+  deviceIndex?: number;
   pagesDone: number;
   pagesPlanned: number;
   current: string | null;
@@ -129,7 +142,7 @@ export interface Crawl {
   startedAt: string;
   entry: string;
   origin: string;
-  cfg: { maxPages: number; maxDepth: number; runs: number; pageTimeoutMs: number; totalTimeoutMs: number; delayMs: number; concurrency: number };
+  cfg: { maxPages: number; maxDepth: number; runs: number; pageTimeoutMs: number; totalTimeoutMs: number; delayMs: number; concurrency: number; devices: Device[] };
   userAgent: string;
   strict: boolean;
   sessionUsed: boolean;
@@ -178,7 +191,11 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
     totalTimeoutMs: options.totalTimeoutMs ?? 600_000,
     delayMs: options.delayMs ?? 500,
     concurrency: Math.max(1, Math.min(options.concurrency ?? DEFAULT_CONCURRENCY, options.perSiteLimit ?? DEFAULT_PER_SITE_LIMIT)),
+    // In DEVICES order (desktop first), each once.
+    devices: DEVICES.filter((d) => (options.devices ?? ["desktop"]).includes(d)),
   };
+  if (cfg.devices.length === 0) cfg.devices.push("desktop");
+  const primary = cfg.devices[0] as Device;
   const userAgent = userAgentFor(options.exegezisVersion);
   const access = options.access ?? null;
   const sessionUsed = access?.storageState !== undefined;
@@ -194,7 +211,7 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
   let totalTimeoutReached = false;
   let nextStart = 0;
 
-  const progress: CrawlProgress = { phase: "robots", run: 1, runs: cfg.runs, pagesDone: 0, pagesPlanned: 1, current: entry, updatedAt: startedAt };
+  const progress: CrawlProgress = { phase: "robots", run: 1, runs: cfg.runs, device: primary, devices: cfg.devices.length, deviceIndex: 0, pagesDone: 0, pagesPlanned: 1, current: entry, updatedAt: startedAt };
   const report = async (patch: Partial<CrawlProgress>) => {
     Object.assign(progress, patch, { updatedAt: new Date().toISOString() });
     options.onProgress?.({ ...progress });
@@ -240,10 +257,10 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
     };
     const readiness = options.readiness ?? "first-party";
     let done = 0;
-    const visit = async (url: string, depth: number, run: number): Promise<Visit> => {
+    const visit = async (url: string, depth: number, run: number, device: Device = primary): Promise<Visit> => {
       for (let attempt = 0; ; attempt++) {
         await startSlot();
-        const v = await visitPage({ url, depth, run, dir: options.dir, options, userAgent, strict, pageTimeoutMs: cfg.pageTimeoutMs, origin, access, sessionUsed, readiness });
+        const v = await visitPage({ url, depth, run, device, dir: options.dir, options, userAgent, strict, pageTimeoutMs: cfg.pageTimeoutMs, origin, access, sessionUsed, readiness });
         if (v.traceDropped) traceDropped = true;
         // RATE_LIMITED: respect Retry-After (or back off), slow down, and try the same page again, within caps.
         const b = v.visit.block;
@@ -284,11 +301,11 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
         for (const next of level) {
           if (overBudget()) {
             totalTimeoutReached = true;
-            skip(skipped(next.url, next.depth, "SKIPPED_BUDGET", msg("pageTimeBudget")));
+            skip(skipped(next.url, next.depth, "SKIPPED_BUDGET", msg("pageTimeBudget"), 1, primary));
             continue;
           }
           if (targets.length >= cfg.maxPages) {
-            skip(skipped(next.url, next.depth, "SKIPPED_BUDGET", msg("pageMaxPages", { max: String(cfg.maxPages) })));
+            skip(skipped(next.url, next.depth, "SKIPPED_BUDGET", msg("pageMaxPages", { max: String(cfg.maxPages) }), 1, primary));
             continue;
           }
           targets.push(next);
@@ -325,7 +342,7 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
               continue;
             }
             if (!allowed(url)) {
-              skip(skipped(url, from.depth + 1, "SKIPPED_ROBOTS", msg("pageRobots")));
+              skip(skipped(url, from.depth + 1, "SKIPPED_ROBOTS", msg("pageRobots"), 1, primary));
               continue;
             }
             if (from.depth + 1 <= cfg.maxDepth) following.push({ url, depth: from.depth + 1 });
@@ -339,25 +356,29 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
         const first = placed.find((p) => p.page.run === 1 && p.page.url === t.url)?.page;
         return first !== undefined && INSPECTABLE.includes(first.status);
       });
-      // All the repetitions share the parallel lanes; each visit is still a fresh browser.
-      const repeats: { url: string; depth: number; run: number; place: number }[] = [];
-      for (let run = 2; run <= cfg.runs; run++) for (const t of revisit) repeats.push({ ...t, run, place: seq++ });
+      // The other runs of the first device, then every run of the other devices. They share the
+      // parallel lanes; each visit is still a fresh browser.
+      const repeats: { url: string; depth: number; run: number; device: Device; place: number }[] = [];
+      for (const device of cfg.devices) {
+        for (let run = device === primary ? 2 : 1; run <= cfg.runs; run++) for (const t of revisit) repeats.push({ ...t, run, device, place: seq++ });
+      }
       if (repeats.length > 0) {
         done = 0;
-        await report({ phase: "repeat", run: 2, pagesDone: 0, pagesPlanned: revisit.length });
+        await report({ phase: "repeat", run: repeats[0]?.run ?? 2, device: repeats[0]?.device ?? primary, deviceIndex: cfg.devices.indexOf(repeats[0]?.device ?? primary), pagesDone: 0, pagesPlanned: revisit.length });
+        const block = Math.max(1, revisit.length);
         await pool(repeats, cfg.concurrency, async (t) => {
           if (overBudget()) {
             totalTimeoutReached = true;
-            skip(skipped(t.url, t.depth, "SKIPPED_BUDGET", msg("pageTimeBudget"), t.run), t.place);
+            skip(skipped(t.url, t.depth, "SKIPPED_BUDGET", msg("pageTimeBudget"), t.run, t.device), t.place);
             return;
           }
           await report({ current: t.url });
-          const v = await visit(t.url, t.depth, t.run);
+          const v = await visit(t.url, t.depth, t.run, t.device);
           keep(v, t.place);
           done++;
-          // Progress per repetition: the repetition reached and its pages done.
-          const run = 2 + Math.floor((done - 1) / Math.max(1, revisit.length));
-          await report({ run: Math.min(run, cfg.runs), pagesDone: ((done - 1) % Math.max(1, revisit.length)) + 1 });
+          // Progress: the repetition (device and run) reached, and its pages done.
+          const at = repeats[Math.min(repeats.length - 1, Math.floor((done - 1) / block) * block)] ?? t;
+          await report({ run: at.run, device: at.device, deviceIndex: cfg.devices.indexOf(at.device), pagesDone: ((done - 1) % block) + 1 });
         });
       }
     } catch (error) {
@@ -398,14 +419,15 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
   }
 }
 
-export function skipped(url: string, depth: number, status: "SKIPPED_BUDGET" | "SKIPPED_ROBOTS", reason: EngineMessage, run = 1): PageVisit {
-  return { url, depth, run, status, finalUrl: null, httpStatus: null, settled: null, reason: englishOf(reason), reasonMessage: reason, runPath: null, blockedWrites: 0, block: null };
+export function skipped(url: string, depth: number, status: "SKIPPED_BUDGET" | "SKIPPED_ROBOTS", reason: EngineMessage, run = 1, device: Device = "desktop"): PageVisit {
+  return { url, depth, run, status, finalUrl: null, httpStatus: null, settled: null, reason: englishOf(reason), reasonMessage: reason, runPath: null, blockedWrites: 0, block: null, device };
 }
 
 interface VisitArgs {
   url: string;
   depth: number;
   run: number;
+  device: Device;
   dir: string;
   options: CrawlOptions;
   userAgent: string;
@@ -420,8 +442,9 @@ interface VisitArgs {
 
 /** One page, one run: a fresh browser, navigate + observe, then the adapter's inspection evidence. */
 async function visitPage(args: VisitArgs): Promise<Visit> {
-  const { url, depth, run, dir, options, userAgent, strict, origin } = args;
-  const recorder = await RunRecorder.create({ outputDir: join(dir, "pages", `run-${run}`) });
+  const { url, depth, run, device, dir, options, userAgent, strict, origin } = args;
+  const profile = DEVICE_PROFILES[device];
+  const recorder = await RunRecorder.create({ outputDir: join(dir, "pages", runFolder(device, run)) });
   const runPath = relative(dir, recorder.dir).split("\\").join("/");
   const plan = TestPlan.parse({
     schemaVersion: "exegezis.test-plan/v1",
@@ -442,8 +465,12 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
       axe: options.axe ?? true,
       extractText: options.extract !== undefined,
       includeHiddenText: options.extract?.includeHidden ?? true,
-      userAgent,
-      trace: run === 1 && options.trace !== false,
+      userAgent: profile.userAgent(userAgent),
+      viewport: profile.viewport,
+      isMobile: profile.isMobile,
+      hasTouch: profile.hasTouch,
+      deviceScaleFactor: profile.deviceScaleFactor,
+      trace: run === 1 && device === "desktop" && options.trace !== false,
       navigationTimeoutMs: args.pageTimeoutMs,
       blockPageWrites: strict,
       readiness: args.readiness === "first-party" ? "first-party" : "networkidle",
@@ -486,10 +513,11 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
     runPath,
     blockedWrites: inspection?.blockedWrites.length ?? 0,
     block,
+    device,
   };
   const evidence =
     consoleFile !== null && network !== null && inspection !== null
-      ? { page: url, origin, depth, run, runPath, console: consoleFile, network, inspection, observations, hasTrace: run === 1 && outcome.manifest.artifacts.some((a) => a.type === "trace") }
+      ? { page: url, origin, depth, run, device, runPath, console: consoleFile, network, inspection, observations, hasTrace: run === 1 && outcome.manifest.artifacts.some((a) => a.type === "trace") }
       : null;
   const b = outcome.metadata.environment?.browser;
   const browser = b?.channel === undefined ? null : { channel: b.channel, version: b.version, system: b.system === true };

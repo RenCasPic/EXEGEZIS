@@ -21,6 +21,11 @@ import { handleSearch } from "./search.ts";
  * /healthy/ is a healthy section (0 findings expected).
  * /access/* are the access fixtures, one per block kind (see access.ts).
  * /search/* are the search fixtures (see search.ts).
+ * /devices/ is the desktop and mobile fixture: on a phone it scrolls
+ * sideways (a 600 px table), has a 16×16 button, 10 px text, a meta viewport
+ * that blocks zoom and a fixed banner over half the screen; a console error
+ * only on wide screens ("desktop only") and one on every screen ("both").
+ * /devices/fine is the same page done right (0 mobile findings).
  * /groups/ (3 pages) repeats one low-contrast card (#9ca3af on white) on
  * every page, adds a second colour pair (#c4862a on white) on /groups/b, and
  * logs a console error whose numbers change on every load: issue grouping
@@ -97,6 +102,26 @@ const HEALTHY = page(
    <main><h1>Healthy site</h1><img src="/hero.svg" alt="Lab logo" width="120" height="40"><p>Nothing to find here.</p></main>
    <script>fetch("/api/ok");</script>`,
 );
+const DEVICES_BAD = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>Devices</title>
+<style>body{margin:0;font:16px/1.5 sans-serif}main{padding:16px}#wide{width:600px;border:1px solid #333}#tiny{width:16px;height:16px;padding:0;border:1px solid #333}.fine{font-size:10px}#banner{position:fixed;left:0;right:0;bottom:0;height:50vh;background:#1f2937;color:#fff}</style></head>
+<body><main><h1>Devices</h1>
+<table id="wide"><tr><td>A table 600 px wide</td></tr></table>
+<button id="tiny" type="button" aria-label="Close"></button>
+<p class="fine">The fine print, in 10 px.</p>
+<a href="/devices/fine">The page done right</a>
+</main><div id="banner">Subscribe to our newsletter</div>
+<script>
+  console.error("Shown on every screen");
+  if (window.matchMedia("(min-width: 800px)").matches) console.error("Only on wide screens");
+</script></body></html>`;
+
+const DEVICES_FINE = page(
+  "Devices · fine",
+  `<main><h1>Done right</h1><p>Readable text, big enough targets, nothing over the content.</p><a href="/devices/" style="display:inline-block;padding:12px">Back</a></main>`,
+);
+
 const HEALTHY_ABOUT = page("Healthy · About", `<main><h1>About the healthy site</h1><a href="/healthy/">Back</a></main>`);
 
 /** The same low-contrast card on every /groups/ page, at a different position each time. */
@@ -143,6 +168,10 @@ function handler(secure: boolean) {
         return send(res, 403, "text/html; charset=utf-8", BLOCKED);
       case "/healthy/":
         return send(res, 200, "text/html; charset=utf-8", HEALTHY);
+      case "/devices/":
+        return send(res, 200, "text/html; charset=utf-8", DEVICES_BAD);
+      case "/devices/fine":
+        return send(res, 200, "text/html; charset=utf-8", DEVICES_FINE);
       case "/healthy/about":
         return send(res, 200, "text/html; charset=utf-8", HEALTHY_ABOUT);
       case "/groups/":

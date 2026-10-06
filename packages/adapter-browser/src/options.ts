@@ -13,6 +13,10 @@ export const BrowserAdapterOptions = z.strictObject({
   browserChannel: z.enum(["auto", "chromium", "chrome", "msedge"]).default("auto"),
   headless: z.boolean().default(true),
   viewport: Viewport.default({ width: 1280, height: 720 }),
+  /** Phone or tablet emulation (web inspection's devices): touch, the meta viewport honoured, a high-density screen. */
+  isMobile: z.boolean().default(false),
+  hasTouch: z.boolean().default(false),
+  deviceScaleFactor: z.number().positive().default(1),
   locale: z.string().default("en-US"),
   timezoneId: z.string().default("UTC"),
   actionTimeoutMs: z.int().positive().default(10_000),

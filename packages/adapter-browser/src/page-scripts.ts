@@ -40,6 +40,123 @@ export const MAIN_THREAD_IDLE_SCRIPT = `new Promise((resolve) => {
   requestIdleCallback(() => requestIdleCallback(() => { clearTimeout(cap); resolve(true); }, { timeout: 2000 }), { timeout: 2000 });
 })`;
 
+/**
+ * Layout facts for the mobile checks, measured on the page as it is shown:
+ * sideways overflow and what causes it, touch targets smaller than 24×24 CSS
+ * px (WCAG 2.2, 2.5.8; links inside a sentence are exempt), text smaller than
+ * 12 px, the meta viewport, and fixed or sticky elements over the screen.
+ */
+export const LAYOUT_FACTS_SCRIPT = `(() => {
+  const vw = document.documentElement.clientWidth;
+  const vh = window.innerHeight;
+  const path = (el) => {
+    if (el.id) return "#" + CSS.escape(el.id);
+    const parts = [];
+    let e = el;
+    for (let depth = 0; e && e.nodeType === 1 && e !== document.body && depth < 4; depth++) {
+      let part = e.tagName.toLowerCase();
+      if (e.id) { parts.unshift("#" + CSS.escape(e.id)); break; }
+      const same = e.parentElement ? Array.from(e.parentElement.children).filter((c) => c.tagName === e.tagName) : [];
+      if (same.length > 1) part += ":nth-of-type(" + (same.indexOf(e) + 1) + ")";
+      parts.unshift(part);
+      e = e.parentElement;
+    }
+    return parts.join(" > ");
+  };
+  const shown = (el) => {
+    const r = el.getBoundingClientRect();
+    const s = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none" && Number(s.opacity) > 0;
+  };
+  const label = (el) => (el.getAttribute("aria-label") || el.textContent || el.getAttribute("title") || el.getAttribute("value") || "").replace(/\\s+/g, " ").trim().slice(0, 60);
+
+  const scrollWidth = document.documentElement.scrollWidth;
+  const overflowing = [];
+  if (scrollWidth > vw + 1) {
+    for (const el of document.body ? document.body.querySelectorAll("*") : []) {
+      if (overflowing.length >= 5) break;
+      const r = el.getBoundingClientRect();
+      if (r.right <= vw + 1 || r.width === 0) continue;
+      let clipped = false;
+      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+        const ox = getComputedStyle(a).overflowX;
+        if (ox !== "visible") { clipped = true; break; }
+      }
+      if (clipped) continue;
+      // Only the outermost element that sticks out.
+      if (overflowing.some((o) => o.el.contains(el))) continue;
+      overflowing.push({ el, selector: path(el), right: Math.round(r.right) });
+    }
+  }
+
+  const targets = [];
+  const interactive = "a[href], button, input:not([type=hidden]), select, textarea, [role=button], [role=link], [role=checkbox], [role=tab], [onclick]";
+  for (const el of document.querySelectorAll(interactive)) {
+    if (targets.length >= 30) break;
+    if (!shown(el)) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width >= 24 && r.height >= 24) continue;
+    // WCAG exception: a link inside a sentence or a block of text.
+    if (el.tagName === "A") {
+      const parent = el.parentElement;
+      const text = parent ? (parent.textContent || "").replace(/\\s+/g, " ").trim() : "";
+      const own = (el.textContent || "").replace(/\\s+/g, " ").trim();
+      if (parent && text.length > own.length + 20 && getComputedStyle(el).display === "inline") continue;
+    }
+    targets.push({ selector: path(el), width: Math.round(r.width), height: Math.round(r.height), text: label(el) });
+  }
+
+  const small = [];
+  let smallCount = 0;
+  const walker = document.body ? document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT) : null;
+  const seen = new Set();
+  for (let n = walker ? walker.nextNode() : null; n; n = walker.nextNode()) {
+    if ((n.textContent || "").trim().length < 2) continue;
+    const el = n.parentElement;
+    if (!el || seen.has(el) || !shown(el)) continue;
+    seen.add(el);
+    const size = parseFloat(getComputedStyle(el).fontSize);
+    if (!(size < 12)) continue;
+    smallCount++;
+    if (small.length < 10) small.push({ selector: path(el), fontSize: Math.round(size * 10) / 10, text: (n.textContent || "").replace(/\\s+/g, " ").trim().slice(0, 60) });
+  }
+
+  const meta = document.querySelector('meta[name="viewport" i]');
+  const content = meta ? meta.getAttribute("content") || "" : null;
+  const parts = {};
+  for (const kv of (content || "").split(/[,;]/)) {
+    const [k, v] = kv.split("=").map((x) => (x || "").trim().toLowerCase());
+    if (k) parts[k] = v || "";
+  }
+  const maxScale = parts["maximum-scale"] !== undefined ? parseFloat(parts["maximum-scale"]) : null;
+  const blocksZoom = parts["user-scalable"] === "no" || parts["user-scalable"] === "0" || (maxScale !== null && !isNaN(maxScale) && maxScale < 2);
+
+  const fixed = [];
+  let covered = 0;
+  for (const el of document.body ? document.body.querySelectorAll("*") : []) {
+    const pos = getComputedStyle(el).position;
+    if (pos !== "fixed" && pos !== "sticky") continue;
+    if (!shown(el)) continue;
+    const r = el.getBoundingClientRect();
+    const w = Math.max(0, Math.min(r.right, vw) - Math.max(r.left, 0));
+    const h = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+    if (w * h === 0) continue;
+    if (fixed.some((f) => f.el.contains(el))) continue;
+    covered += w * h;
+    fixed.push({ el, selector: path(el), position: pos, top: Math.round(r.top), height: Math.round(h), share: Math.round((w * h * 1000) / (vw * vh)) / 1000 });
+  }
+
+  return {
+    viewport: { width: vw, height: vh },
+    scrollWidth,
+    overflowing: overflowing.map(({ selector, right }) => ({ selector, right })),
+    smallTargets: targets,
+    smallText: { count: smallCount, samples: small },
+    metaViewport: { content, blocksZoom },
+    fixed: { coveredShare: Math.min(1, Math.round((covered * 1000) / Math.max(1, vw * vh)) / 1000), elements: fixed.slice(0, 5).map(({ selector, position, top, height, share }) => ({ selector, position, top, height, share })) },
+  };
+})()`;
+
 export const PAGE_FACTS_SCRIPT = `(() => {
   const text = (document.body ? document.body.innerText : "").slice(0, 5000);
   const markers = [];

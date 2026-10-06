@@ -87,6 +87,7 @@ const page = (url: string, status: PageVisit["status"], run = 1, depth = 0): Pag
   runPath: `pages/run-${run}/x`,
   blockedWrites: 0,
   block: null,
+  device: "desktop",
 });
 
 function observation(run: number, quoteText: string, term: string): SearchObservation {

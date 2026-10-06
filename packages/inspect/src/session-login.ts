@@ -74,6 +74,8 @@ export async function captureAccess(options: CaptureAccessOptions): Promise<Capt
       maxPages: 1,
       maxDepth: 0,
       delayMs: 0,
+      // Only whether the access works: one visit, as desktop.
+      devices: ["desktop"],
       ignoreRobots: true,
       checks: ["seo-basics"],
       ...(options.browserChannel === undefined ? {} : { browserChannel: options.browserChannel }),

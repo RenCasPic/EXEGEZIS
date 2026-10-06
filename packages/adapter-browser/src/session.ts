@@ -27,6 +27,7 @@ import {
   type ScreenshotEvidence,
   AxeImpact,
   PageInspectionFile,
+  PageLayout,
   TextBlock,
   TextBlocksFile,
 } from "@exegezis/core";
@@ -35,7 +36,7 @@ import { z } from "zod";
 import { AxeBuilder } from "@axe-core/playwright";
 import { axeSelector, evaluateAssertion } from "./assertions.js";
 import { toLocator } from "./locator.js";
-import { domSettleScript, highlightScript, MAIN_THREAD_IDLE_SCRIPT, MAIN_VISIBLE_SCRIPT, PAGE_FACTS_SCRIPT, PageFacts, textBlocksScript, UNHIGHLIGHT_SCRIPT } from "./page-scripts.js";
+import { domSettleScript, highlightScript, LAYOUT_FACTS_SCRIPT, MAIN_THREAD_IDLE_SCRIPT, MAIN_VISIBLE_SCRIPT, PAGE_FACTS_SCRIPT, PageFacts, textBlocksScript, UNHIGHLIGHT_SCRIPT } from "./page-scripts.js";
 import { drainWithDeadline } from "./drain.js";
 import type { BrowserAdapterOptions } from "./options.js";
 import { sameSite } from "./same-site.js";
@@ -387,6 +388,8 @@ export class BrowserSession implements AdapterSession {
       dom = await page.evaluate<boolean>(domSettleScript(this.options.domSettleTimeoutMs)).catch(() => false);
     }
     const facts = PageFacts.parse(await page.evaluate<unknown>(PAGE_FACTS_SCRIPT));
+    // Measured before axe outlines anything on the page.
+    const layout = PageLayout.safeParse(await page.evaluate<unknown>(LAYOUT_FACTS_SCRIPT).catch(() => null)).data ?? null;
 
     let axe: PageInspectionFile["axe"] = null;
     let axeError: string | null = null;
@@ -440,6 +443,7 @@ export class BrowserSession implements AdapterSession {
         cookieNames: [...new Set((await this.context.cookies().catch(() => [])).map((c) => c.name))].sort(),
       },
       blockedWrites: this.blockedWrites,
+      layout,
     };
     await this.recorder.writeJson("inspection", "inspection.json", PageInspectionFile.parse(file), {
       description: "Web inspection: links, metadata, axe-core results, block signals",

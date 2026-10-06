@@ -67,6 +67,7 @@ const visit = (run: number, status: PageVisit["status"] = "OK", url = PAGE, dept
   runPath: `pages/run-${run}/x`,
   blockedWrites: 0,
   block: null,
+  device: "desktop",
 });
 const obs = (fingerprint: string, severity: InspectionObservation["severity"] = "serious"): InspectionObservation => ({
   fingerprint,
@@ -85,6 +86,7 @@ const check = (run: number, observations: InspectionObservation[], page = PAGE):
   status: "ran",
   error: null,
   observations,
+  device: "desktop",
 });
 
 describe("verdicts", () => {

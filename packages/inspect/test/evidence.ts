@@ -1,10 +1,11 @@
-import type { ConsoleMessageEvidence, NetworkExchangeEvidence, PageErrorEvidence, PageInspectionFile } from "@exegezis/core";
+import type { ConsoleMessageEvidence, Device, NetworkExchangeEvidence, PageErrorEvidence, PageInspectionFile } from "@exegezis/core";
 import type { PageEvidence } from "../src/index.js";
 
 /** Synthetic evidence for one page, for the unit tests of the checks. */
 export function evidence(patch: {
   page?: string;
   depth?: number;
+  device?: Device;
   messages?: Partial<ConsoleMessageEvidence>[];
   pageErrors?: Partial<PageErrorEvidence>[];
   exchanges?: { method?: string; url: string; status?: number; failure?: string; isNavigation?: boolean; resourceType?: string; responseHeaders?: Record<string, string> }[];
@@ -19,6 +20,7 @@ export function evidence(patch: {
     origin,
     depth: patch.depth ?? 0,
     run: 1,
+    device: patch.device ?? "desktop",
     runPath: "pages/run-1/R",
     console: {
       schemaVersion: "exegezis.console/v1",
@@ -48,6 +50,7 @@ export function evidence(patch: {
       highlight: null,
       blockSignals: { markers: [], passwordField: false, login: { visiblePassword: false, wordsOutsideForms: 200, mainContent: true }, consent: null, cookieNames: [] },
       blockedWrites: [],
+      layout: null,
       ...patch.inspection,
     },
     observations: null,

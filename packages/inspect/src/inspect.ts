@@ -20,8 +20,10 @@ import {
 } from "@exegezis/core";
 import { selectChecks, type Check, type LinkStatus, type PageEvidence } from "./checks/index.js";
 import { crawlSite, type CrawlOptions, type CrawlProgress } from "./crawl.js";
+import { DEFAULT_DEVICES } from "./devices.js";
 
 export { PROGRESS_FILE, unsafeLinkMatcher, userAgentFor } from "./crawl.js";
+export { DEFAULT_DEVICES, DEVICE_PROFILES } from "./devices.js";
 
 export const INSPECTION_REPORT_FILE = "inspection-report.json";
 
@@ -46,7 +48,8 @@ const PLAYWRIGHT_VERSION = (require("playwright/package.json") as { version: str
 export async function inspectSite(options: InspectOptions): Promise<InspectionReport> {
   const checks = selectChecks(options.checks);
   const maxLinkChecks = options.maxLinkChecks ?? 100;
-  return crawlSite(options, async (crawl) => {
+  // Every page on desktop and on mobile unless told otherwise.
+  return crawlSite({ ...options, devices: options.devices ?? DEFAULT_DEVICES }, async (crawl) => {
     const { cfg, entry, origin, pages, visits, probe, allowed, unsafe, overBudget, strict, engineError, report } = crawl;
 
     // Link statuses per run: a visited page answers for itself; other internal links get one GET each.
@@ -89,13 +92,15 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
     const ordered = buildFindings(groups, () => ({ checkVersion: "", reproduction: [], spec: null, settled: true }));
     for (const f of ordered) {
       const group = groups.find((g) => g.page === f.page && g.checkId === f.checkId && g.fingerprint === f.fingerprint) as FindingGroup;
-      specs.set(group.key, f.verdict === "VERIFIED" && f.assertion !== null ? await writeSpec(f.id, f.title, f.page, f.assertion, specDir, options) : null);
+      // A spec runs in a desktop browser: written for what is verified on desktop.
+      const onDesktop = group.devices.some((d) => d.device === "desktop" && d.verdict === "VERIFIED");
+      specs.set(group.key, onDesktop && f.assertion !== null ? await writeSpec(f.id, f.title, f.page, f.assertion, specDir, options) : null);
     }
     const findings = buildFindings(groups, (g) => ({
       checkVersion: checks.find((c) => c.id === g.checkId)?.version ?? "",
       reproduction: reproductionSteps(g),
       spec: specs.get(g.key) ?? null,
-      settled: pages.filter((p) => p.url === g.page && g.occurrences.includes(p.run)).every((p) => p.settled === true),
+      settled: pages.filter((p) => p.url === g.page && g.devices.some((d) => d.device === p.device && d.occurrences.includes(p.run))).every((p) => p.settled === true),
     }));
 
     const pageWrites: PageWrite[] = visits.flatMap(({ visit: v, evidence }) =>
@@ -107,6 +112,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
           status: x.response?.status ?? null,
           page: v.url,
           run: v.run,
+          device: v.device,
           // The adapter's own record of what it blocked is the source of truth.
           blocked: (evidence?.inspection.blockedWrites ?? []).some((b) => b.method === x.request.method && b.url === x.request.url),
         })),
@@ -124,6 +130,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       strictReadonly: strict,
       ignoreRobots: options.ignoreRobots === true,
       storageState: options.storageState !== undefined,
+      devices: cfg.devices,
     };
     const inspection = InspectionReport.parse({
       schemaVersion: "exegezis.inspection-report/v2",
@@ -163,7 +170,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
 }
 
 function runCheck(check: Check, v: PageVisit, evidence: PageEvidence | null): CheckResult {
-  const base = { checkId: check.id, checkVersion: check.version, page: v.url, run: v.run };
+  const base = { checkId: check.id, checkVersion: check.version, page: v.url, run: v.run, device: v.device };
   if (evidence === null) return { ...base, status: "skipped", error: null, observations: [] };
   try {
     return { ...base, status: "ran", error: null, observations: check.run(evidence) };
@@ -173,7 +180,9 @@ function runCheck(check: Check, v: PageVisit, evidence: PageEvidence | null): Ch
 }
 
 function reproductionSteps(g: FindingGroup): string[] {
-  const steps = [`Open ${g.page} in a fresh browser context (no cookies, no cache).`, "Wait until the network is idle and the DOM stops changing."];
+  const where = g.devices.filter((d) => d.verdict === "VERIFIED").map((d) => d.device);
+  const as = where.length === 0 ? (g.devices[0]?.device ?? "desktop") : where.join(" and ");
+  const steps = [`Open ${g.page} as ${as} (see DEVICE_PROFILES) in a fresh browser context (no cookies, no cache).`, "Wait until the page's own requests are done and the DOM stops changing."];
   if (g.first.assertion !== null) steps.push(`Check: ${describeAssertion(g.first.assertion)}.`);
   steps.push(`Observed: ${g.first.title}`);
   return steps;

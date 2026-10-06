@@ -41,7 +41,7 @@ let counter = 0;
 function run(url: string, options: Partial<InspectOptions> = {}): Promise<InspectionReport> {
   counter += 1;
   const dir = join(WORK, `inspection-${counter}`);
-  return inspectSite({ url, dir, id: `test-${counter}`, exegezisVersion: "0.1.0", delayMs: 0, ignoreHTTPSErrors: true, ...options });
+  return inspectSite({ url, dir, id: `test-${counter}`, exegezisVersion: "0.1.0", delayMs: 0, ignoreHTTPSErrors: true, devices: ["desktop"], ...options });
 }
 
 beforeAll(async () => {
@@ -154,6 +154,44 @@ describe("the healthy site", () => {
   }, 300_000);
 });
 
+describe("desktop and mobile (the /devices/ section)", () => {
+  let report: InspectionReport;
+  beforeAll(async () => {
+    report = await run(`${http}devices/`, { runs: 2, devices: ["desktop", "mobile"] });
+  }, 300_000);
+
+  const where = (f: InspectionReport["findings"][number]) =>
+    f.devices
+      .filter((d) => d.verdict === "VERIFIED")
+      .map((d) => d.device)
+      .join("+");
+
+  it("visits every page as each device, each with all its runs", () => {
+    expect(report.options.devices).toEqual(["desktop", "mobile"]);
+    const visits = report.pages.filter((p) => p.status === "OK").map((p) => `${p.device} ${p.run} ${p.url.slice(http.length)}`);
+    expect(visits.sort()).toEqual(["desktop 1 devices/", "desktop 1 devices/fine", "desktop 2 devices/", "desktop 2 devices/fine", "mobile 1 devices/", "mobile 1 devices/fine", "mobile 2 devices/", "mobile 2 devices/fine"]);
+    expect(report.pages.find((p) => p.device === "mobile")?.runPath).toMatch(/^pages\/mobile-run-/);
+  });
+
+  it("says whether each finding is only on mobile, only on desktop or on both", () => {
+    const verified = report.findings.filter((f) => f.verdict === "VERIFIED" && f.page === `${http}devices/`);
+    const byTitle = new Map(verified.map((f) => [f.title, where(f)]));
+    expect(byTitle.get("Console error: Shown on every screen")).toBe("desktop+mobile");
+    expect(byTitle.get("Console error: Only on wide screens")).toBe("desktop");
+    expect(byTitle.get("The page scrolls sideways on a small screen")).toBe("mobile");
+  });
+
+  it("finds the mobile problems on a phone and none on the page done right", () => {
+    const mobile = report.findings.filter((f) => f.verdict === "VERIFIED" && f.checkId.startsWith("mobile-"));
+    const on = (page: string) => mobile.filter((f) => f.page === `${http}${page}`).map((f) => f.checkId);
+    expect(new Set(on("devices/"))).toEqual(new Set(["mobile-scroll", "mobile-tap-targets", "mobile-text-size", "mobile-viewport", "mobile-fixed-overlap"]));
+    expect(on("devices/fine")).toEqual([]);
+    expect(mobile.every((f) => where(f) === "mobile")).toBe(true);
+    const tiny = mobile.find((f) => f.checkId === "mobile-tap-targets");
+    expect(tiny?.detail).toContain("16×16");
+  });
+});
+
 describe("issue groups (the /groups/ section: one component on 3 pages, two colour pairs, a varying console error)", () => {
   let first: InspectionReport;
   let second: InspectionReport;
@@ -207,8 +245,8 @@ describe("read-only", () => {
     expect(delta("POST /api/like")).toBe(0);
     expect(delta("POST /api/track")).toBe(2);
     expect(report.pageWrites).toEqual([
-      { method: "POST", url: `${http}api/track`, status: 200, page: `${http}forms`, run: 1, blocked: false },
-      { method: "POST", url: `${http}api/track`, status: 200, page: `${http}forms`, run: 2, blocked: false },
+      { method: "POST", url: `${http}api/track`, status: 200, page: `${http}forms`, run: 1, blocked: false, device: "desktop" },
+      { method: "POST", url: `${http}api/track`, status: 200, page: `${http}forms`, run: 2, blocked: false, device: "desktop" },
     ]);
     expect(report.summary.pageWrites).toBe(2);
   }, 300_000);

@@ -87,6 +87,8 @@ export interface InspectArgs {
   delayMs?: number;
   /** Pages visited at the same time (1-3; the per-site cap is 3). */
   concurrency?: number;
+  /** The devices to visit every page as (default desktop and mobile). */
+  devices?: ("desktop" | "mobile" | "tablet")[];
   checks?: string[];
   storageState?: string;
   /** undefined: the default (strict with a saved session, off without). */
@@ -159,6 +161,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
         "total-timeout": { type: "string" },
         delay: { type: "string" },
         concurrency: { type: "string" },
+        devices: { type: "string" },
         checks: { type: "string" },
         "storage-state": { type: "string" },
         "strict-readonly": { type: "boolean", default: false },
@@ -213,7 +216,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
     "generate-plan": ["symptom", "base-url", "planner", "model", "mock-response", "examples", "browser-channel"],
     "ai-verify": ["symptom", "base-url", "runs", "planner", "model", "mock-response", "examples", "browser-channel"],
     "root-cause": ["suite", "runs", "case", "browser-channel"],
-    inspect: ["url", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay", "concurrency", "checks", "storage-state", "strict-readonly", "ignore-robots", "browser-channel", "no-session", "allow-page-writes"],
+    inspect: ["url", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay", "concurrency", "devices", "checks", "storage-state", "strict-readonly", "ignore-robots", "browser-channel", "no-session", "allow-page-writes"],
     session: ["url", "browser-channel", "done-file", "stdin", "rotate", "robots-owner", "unsafe-pattern", "json"],
     doctor: ["install", "json"],
   };
@@ -237,6 +240,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
     "total-timeout",
     "delay",
     "concurrency",
+    "devices",
     "checks",
     "storage-state",
     "strict-readonly",
@@ -361,6 +365,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
         ...optional("totalTimeoutMs", int("total-timeout", values["total-timeout"], 10_000, 7_200_000)),
         ...optional("delayMs", int("delay", values.delay, 0, 60_000)),
         ...optional("concurrency", int("concurrency", values.concurrency, 1, 3)),
+        ...optional("devices", deviceList(values.devices)),
         ...optional("checks", values.checks?.split(",").map((c) => c.trim()).filter((c) => c !== "")),
         ...optional("storageState", values["storage-state"]),
         ...(values["strict-readonly"] ? { strictReadonly: true } : values["allow-page-writes"] ? { strictReadonly: false } : {}),
@@ -414,4 +419,15 @@ function httpUrl(option: string, raw: string): string {
     throw new UsageError(t("args.httpOnly", { option, protocol: url.protocol }));
   }
   return url.toString();
+}
+
+const DEVICE_NAMES = ["desktop", "mobile", "tablet"] as const;
+
+/** --devices desktop,mobile,tablet (each at most once). */
+function deviceList(raw: string | undefined): ("desktop" | "mobile" | "tablet")[] | undefined {
+  if (raw === undefined) return undefined;
+  const names = [...new Set(raw.split(",").map((d) => d.trim().toLowerCase()).filter((d) => d !== ""))];
+  const bad = names.filter((d) => !(DEVICE_NAMES as readonly string[]).includes(d));
+  if (names.length === 0 || bad.length > 0) throw new UsageError(t("args.devices", { value: raw }));
+  return names as ("desktop" | "mobile" | "tablet")[];
 }

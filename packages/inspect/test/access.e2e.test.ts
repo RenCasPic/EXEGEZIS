@@ -48,7 +48,7 @@ let counter = 0;
 async function inspect(path: string, options: Partial<InspectOptions> = {}): Promise<{ report: InspectionReport; dir: string }> {
   counter += 1;
   const dir = join(WORK, `inspection-${counter}`);
-  const report = await inspectSite({ url: `${base}${path}`, dir, id: `access-${counter}`, exegezisVersion: VERSION, runs: 1, maxPages: 1, delayMs: 0, ...options });
+  const report = await inspectSite({ url: `${base}${path}`, dir, id: `access-${counter}`, exegezisVersion: VERSION, runs: 1, maxPages: 1, delayMs: 0, devices: ["desktop"], ...options });
   return { report, dir };
 }
 const kind = (r: InspectionReport) => r.pages.find((p) => p.depth === 0 && p.run === 1)?.block?.kind ?? null;

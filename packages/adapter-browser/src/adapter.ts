@@ -73,6 +73,9 @@ export class BrowserAdapter implements Adapter {
       for (const a of launched.attempts) log.warn("browser candidate unavailable", { engine: a.engine, error: a.error });
       const context = await browser.newContext({
         viewport: options.viewport,
+        isMobile: options.isMobile,
+        hasTouch: options.hasTouch,
+        deviceScaleFactor: options.deviceScaleFactor,
         locale: options.locale,
         timezoneId: options.timezoneId,
         ...(options.userAgent === undefined ? {} : { userAgent: options.userAgent }),

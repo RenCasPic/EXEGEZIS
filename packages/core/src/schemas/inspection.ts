@@ -76,6 +76,15 @@ export const BlockInfo = z.strictObject({
 });
 export type BlockInfo = z.infer<typeof BlockInfo>;
 
+/**
+ * The device a page is visited as. desktop 1280×800; mobile 390×844, touch,
+ * a phone's user agent; tablet 820×1180, touch. Reports from before devices
+ * existed are desktop.
+ */
+export const Device = z.enum(["desktop", "mobile", "tablet"]);
+export type Device = z.infer<typeof Device>;
+export const DEVICES: readonly Device[] = Device.options;
+
 export const PageVisit = z.strictObject({
   /** Normalized URL (no fragment). */
   url: z.string(),
@@ -95,6 +104,7 @@ export const PageVisit = z.strictObject({
   blockedWrites: z.int().nonnegative(),
   /** BLOCKED (and UNREACHABLE · NETWORK_RESTRICTED) visits: the concrete kind and its evidence. */
   block: BlockInfo.nullable().default(null),
+  device: Device.default("desktop"),
 });
 export type PageVisit = z.infer<typeof PageVisit>;
 
@@ -122,6 +132,7 @@ export const CheckResult = z.strictObject({
   status: z.enum(["ran", "skipped", "error"]),
   error: z.string().nullable(),
   observations: z.array(InspectionObservation),
+  device: Device.default("desktop"),
 });
 export type CheckResult = z.infer<typeof CheckResult>;
 
@@ -142,9 +153,16 @@ export const Finding = z.strictObject({
   title: z.string(),
   detail: z.string(),
   thirdParty: z.boolean(),
-  /** Runs in which it was observed. */
+  /** Runs in which it was observed (on the device where it was verified, or seen most). */
   occurrences: z.array(z.int().positive()),
+  /** VERIFIED if it is on at least one device (see `devices`). */
   verdict: FindingVerdict,
+  /**
+   * Per device inspected: the runs it was observed in and its verdict there —
+   * what says «only on mobile», «only on desktop» or «on both». Empty in
+   * reports from before devices existed.
+   */
+  devices: z.array(z.strictObject({ device: Device, occurrences: z.array(z.int().positive()), verdict: FindingVerdict })).default([]),
   /** Evidence of the first occurrence. */
   evidence: z.array(EvidenceRef),
   reproduction: z.array(z.string()),
@@ -165,6 +183,7 @@ export const PageWrite = z.strictObject({
   run: z.int().positive(),
   /** Blocked by --strict-readonly. */
   blocked: z.boolean(),
+  device: Device.default("desktop"),
 });
 export type PageWrite = z.infer<typeof PageWrite>;
 
@@ -247,6 +266,8 @@ export const InspectionReport = z
       ignoreRobots: z.boolean(),
       /** Whether a storage state was used (its content is never recorded). */
       storageState: z.boolean(),
+      /** The devices every page was visited as (each with all its runs). */
+      devices: z.array(Device).min(1).default(["desktop"]),
     }),
     tools: z.strictObject({
       userAgent: z.string(),
@@ -361,28 +382,37 @@ export interface FindingGroup {
   verdict: FindingVerdict;
   first: InspectionObservation;
   firstRun: number;
+  /** The device of the first observation. */
+  firstDevice: Device;
+  /** Per device: runs observed and verdict there, in DEVICES order. */
+  devices: { device: Device; occurrences: number[]; verdict: FindingVerdict }[];
 }
 
 /**
- * Groups observations by page + check + fingerprint across runs. Only visits
- * the checks may use count; under --strict-readonly a DEGRADED visit's
- * observations are discarded. VERIFIED iff observed in every one of the
- * `runs` runs.
+ * Groups observations by page + check + fingerprint across runs and devices.
+ * Only visits the checks may use count; under --strict-readonly a DEGRADED
+ * visit's observations are discarded. On each device: VERIFIED iff observed
+ * in every one of the `runs` runs. Overall: VERIFIED if it is on at least one
+ * device; its occurrences are those of the first such device (or of the
+ * device where it was seen most).
  */
 export function deriveFindings(
-  checks: readonly CheckResult[],
-  pages: readonly Pick<PageVisit, "url" | "run" | "status">[],
+  // Without a device (reports and data from before devices existed): desktop, as the schema loads them.
+  checks: readonly (Omit<CheckResult, "device"> & { device?: Device })[],
+  pages: readonly (Pick<PageVisit, "url" | "run" | "status"> & { device?: Device })[],
   runs: number,
   strictReadonly: boolean,
 ): { groups: FindingGroup[]; discarded: number } {
   const usable = new Set(
-    pages.filter((p) => INSPECTABLE.includes(p.status) && !(strictReadonly && p.status === "DEGRADED")).map((p) => `${p.url}@${p.run}`),
+    pages.filter((p) => INSPECTABLE.includes(p.status) && !(strictReadonly && p.status === "DEGRADED")).map((p) => `${p.url}@${p.run}@${p.device ?? "desktop"}`),
   );
-  const groups = new Map<string, FindingGroup>();
+  const groups = new Map<string, FindingGroup & { seen: Map<Device, Set<number>> }>();
+  const rank = (d: Device) => DEVICES.indexOf(d);
   let discarded = 0;
-  for (const check of checks) {
+  for (const c of checks) {
+    const check = { ...c, device: c.device ?? "desktop" };
     if (check.status !== "ran") continue;
-    if (!usable.has(`${check.page}@${check.run}`)) {
+    if (!usable.has(`${check.page}@${check.run}@${check.device}`)) {
       discarded += check.observations.length;
       continue;
     }
@@ -390,21 +420,46 @@ export function deriveFindings(
       const key = `${check.page}|${check.checkId}|${o.fingerprint}`;
       const g = groups.get(key);
       if (g === undefined) {
-        groups.set(key, { key, checkId: check.checkId, page: check.page, fingerprint: o.fingerprint, occurrences: [check.run], verdict: "INTERMITTENT", first: o, firstRun: check.run });
+        groups.set(key, {
+          key,
+          checkId: check.checkId,
+          page: check.page,
+          fingerprint: o.fingerprint,
+          occurrences: [],
+          verdict: "INTERMITTENT",
+          first: o,
+          firstRun: check.run,
+          firstDevice: check.device,
+          devices: [],
+          seen: new Map([[check.device, new Set([check.run])]]),
+        });
       } else {
-        if (!g.occurrences.includes(check.run)) g.occurrences.push(check.run);
-        if (check.run < g.firstRun) {
+        const runsSeen = g.seen.get(check.device) ?? new Set<number>();
+        runsSeen.add(check.run);
+        g.seen.set(check.device, runsSeen);
+        if (rank(check.device) < rank(g.firstDevice) || (check.device === g.firstDevice && check.run < g.firstRun)) {
           g.first = o;
           g.firstRun = check.run;
+          g.firstDevice = check.device;
         }
       }
     }
   }
-  for (const g of groups.values()) {
-    g.occurrences.sort((a, b) => a - b);
-    g.verdict = g.occurrences.length === runs ? "VERIFIED" : "INTERMITTENT";
+  const out: FindingGroup[] = [];
+  for (const { seen, ...g } of groups.values()) {
+    g.devices = [...seen.entries()]
+      .sort((a, b) => rank(a[0]) - rank(b[0]))
+      .map(([device, set]) => {
+        const occurrences = [...set].sort((a, b) => a - b);
+        return { device, occurrences, verdict: occurrences.length === runs ? "VERIFIED" : "INTERMITTENT" };
+      });
+    const verified = g.devices.find((d) => d.verdict === "VERIFIED");
+    const most = [...g.devices].sort((a, b) => b.occurrences.length - a.occurrences.length || rank(a.device) - rank(b.device))[0];
+    g.verdict = verified === undefined ? "INTERMITTENT" : "VERIFIED";
+    g.occurrences = (verified ?? most)?.occurrences ?? [];
+    out.push(g);
   }
-  return { groups: [...groups.values()], discarded };
+  return { groups: out, discarded };
 }
 
 function findingsMatch(findings: readonly Finding[], groups: readonly FindingGroup[]): boolean {
@@ -412,8 +467,30 @@ function findingsMatch(findings: readonly Finding[], groups: readonly FindingGro
   const byKey = new Map(groups.map((g) => [g.key, g]));
   return findings.every((f) => {
     const g = byKey.get(`${f.page}|${f.checkId}|${f.fingerprint}`);
-    return g !== undefined && g.verdict === f.verdict && g.occurrences.join(",") === f.occurrences.join(",") && g.first.severity === f.severity;
+    if (g === undefined || g.verdict !== f.verdict || g.occurrences.join(",") !== f.occurrences.join(",") || g.first.severity !== f.severity) return false;
+    // Reports from before devices existed carry none (every visit was desktop).
+    if (f.devices.length === 0) return g.devices.every((d) => d.device === "desktop");
+    return canonicalJson(f.devices) === canonicalJson(g.devices);
   });
+}
+
+/** The devices on which a finding is VERIFIED (legacy findings without devices: desktop). */
+export function verifiedDevices(f: Pick<Finding, "devices" | "verdict">): Device[] {
+  if (f.devices.length === 0) return f.verdict === "VERIFIED" ? ["desktop"] : [];
+  return f.devices.filter((d) => d.verdict === "VERIFIED").map((d) => d.device);
+}
+
+/**
+ * Where something is verified, for «only on mobile», «only on desktop» or
+ * «on both»: "all" when on every device inspected, else the devices (in
+ * DEVICES order); null when on none, or when only one device was inspected.
+ */
+export function deviceScope(findings: readonly Pick<Finding, "devices" | "verdict">[], inspected: readonly Device[]): "all" | Device[] | null {
+  if (inspected.length < 2) return null;
+  const on = new Set(findings.flatMap(verifiedDevices));
+  if (on.size === 0) return null;
+  if (inspected.every((d) => on.has(d))) return "all";
+  return DEVICES.filter((d) => on.has(d));
 }
 
 export function deriveSummary(
@@ -465,6 +542,7 @@ export function buildFindings(
       thirdParty: g.first.thirdParty,
       occurrences: g.occurrences,
       verdict: g.verdict,
+      devices: g.devices,
       evidence: g.first.evidence,
       reproduction: m.reproduction,
       assertion: g.first.assertion,
@@ -479,6 +557,24 @@ export function buildFindings(
 // ---------------------------------------------------------------------------
 
 export const AxeImpact = z.enum(["critical", "serious", "moderate", "minor"]);
+
+export const PageLayout = z.strictObject({
+  viewport: z.strictObject({ width: z.number(), height: z.number() }),
+  scrollWidth: z.number(),
+  /** The outermost elements that stick out sideways, not clipped by a scrolling container. */
+  overflowing: z.array(z.strictObject({ selector: z.string(), right: z.number() })),
+  /** Touch targets smaller than 24×24 CSS px (WCAG 2.2, 2.5.8), links inside text exempt. */
+  smallTargets: z.array(z.strictObject({ selector: z.string(), width: z.number(), height: z.number(), text: z.string() })),
+  /** Visible text under 12 px. */
+  smallText: z.strictObject({ count: z.int().nonnegative(), samples: z.array(z.strictObject({ selector: z.string(), fontSize: z.number(), text: z.string() })) }),
+  metaViewport: z.strictObject({ content: z.string().nullable(), blocksZoom: z.boolean() }),
+  /** Fixed and sticky elements on the screen and the share of it they cover. */
+  fixed: z.strictObject({
+    coveredShare: z.number(),
+    elements: z.array(z.strictObject({ selector: z.string(), position: z.string(), top: z.number(), height: z.number(), share: z.number() })),
+  }),
+});
+export type PageLayout = z.infer<typeof PageLayout>;
 
 /** `inspection.json`, written by the browser adapter in inspection mode. */
 export const PageInspectionFile = z.strictObject({
@@ -528,5 +624,7 @@ export const PageInspectionFile = z.strictObject({
   }),
   /** Page writes blocked by --strict-readonly. */
   blockedWrites: z.array(z.strictObject({ method: z.string(), url: z.string() })),
+  /** Layout facts for the mobile checks (LAYOUT_FACTS_SCRIPT). null in files from before they existed. */
+  layout: PageLayout.nullable().default(null),
 });
 export type PageInspectionFile = z.infer<typeof PageInspectionFile>;

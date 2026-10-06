@@ -1,5 +1,6 @@
 import type {
   ConsoleFile,
+  Device,
   EvidenceRef,
   InspectionObservation,
   NetworkFile,
@@ -15,6 +16,8 @@ export interface PageEvidence {
   origin: string;
   depth: number;
   run: number;
+  /** The device of the visit (the mobile checks run on mobile and tablet only). */
+  device: Device;
   /** Run directory, relative to the inspection directory. */
   runPath: string;
   console: ConsoleFile;
