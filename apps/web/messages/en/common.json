@@ -131,7 +131,8 @@
     "searchMissing": "The search was not found.",
     "nameSearch": "Give the search a name.",
     "savedMissing": "The saved search was not found.",
-    "pdfFailed": "The PDF could not be generated: {detail}"
+    "pdfFailed": "The PDF could not be generated: {detail}",
+    "devicesNone": "Choose at least one device."
   },
   "copy": {
     "copy": "Copy",
@@ -158,5 +159,10 @@
     "text": "Only inspect sites that are yours or that you are allowed to inspect."
   },
   "tabs": "Tabs",
-  "close": "Close"
+  "close": "Close",
+  "device": {
+    "desktop": "Desktop",
+    "mobile": "Mobile",
+    "tablet": "Tablet"
+  }
 }

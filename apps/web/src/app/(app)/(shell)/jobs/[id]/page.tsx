@@ -33,6 +33,7 @@ function exitText(t: (key: never) => string, code: number | null): string {
 
 function Progress({ progress }: { progress: InspectionProgressFile | null }) {
   const t = useTranslations("jobs");
+  const tc = useTranslations("common");
   if (progress === null) return <p className="text-[13px] text-muted">{t("progress.waiting")}</p>;
   const pct = jobPercent(progress);
   const phase = (PHASES as readonly string[]).includes(progress.phase) ? t(`phase.${progress.phase as (typeof PHASES)[number]}`) : progress.phase;
@@ -43,7 +44,10 @@ function Progress({ progress }: { progress: InspectionProgressFile | null }) {
           {phase}
           {pct !== null && <span className="ml-2 font-mono text-xs text-muted">{pct} %</span>}
         </span>
-        <span className="font-mono text-xs text-muted">{t("progress.counts", { run: progress.run, runs: progress.runs, done: progress.pagesDone, planned: progress.pagesPlanned })}</span>
+        <span className="font-mono text-xs text-muted">
+          {progress.device !== undefined && (progress.devices ?? 1) > 1 && <span className="mr-1.5 font-sans font-medium text-fg">{tc(`device.${progress.device}`)} ·</span>}
+          {t("progress.counts", { run: progress.run, runs: progress.runs, done: progress.pagesDone, planned: progress.pagesPlanned })}
+        </span>
       </div>
       <div
         className="relative h-2 overflow-hidden rounded-full bg-line"
@@ -203,7 +207,7 @@ async function SearchJobView({ job, status, log }: { job: SearchJob; status: Job
 }
 
 async function InspectJobView({ job, status, log }: { job: InspectJob; status: JobStatus; log: string | null }) {
-  const [progress, inspections, t, f] = await Promise.all([jobProgress(job.id), listInspections(), getTranslations("jobs"), getFormat()]);
+  const [progress, inspections, t, tc, f] = await Promise.all([jobProgress(job.id), listInspections(), getTranslations("jobs"), getTranslations("common"), getFormat()]);
   const inspection = inspections.find((i) => i.jobId === job.id) ?? null;
   const report = inspection?.report.status === "ok" ? inspection.report.value : null;
   const state = inspectionJobState(status, job.exitCode, report?.status ?? null);
@@ -263,6 +267,7 @@ async function InspectJobView({ job, status, log }: { job: InspectJob; status: J
             items={[
               { label: t("job"), value: <Mono>{job.id}</Mono> },
               { label: t("inspect.runs"), value: job.runs },
+              { label: t("inspect.devices"), value: job.devices.map((d) => tc(`device.${d}`)).join(", ") },
               { label: t("inspect.pages"), value: job.maxPages ?? t("inspect.pagesDefault") },
               { label: t("inspect.depth"), value: job.maxDepth ?? t("inspect.depthDefault") },
               { label: t("inspect.checks"), value: job.checks?.join(", ") ?? t("inspect.allChecks") },

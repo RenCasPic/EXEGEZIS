@@ -146,14 +146,22 @@
         "broken-links": "Broken links",
         "a11y": "Accessibility (axe, WCAG 2.1 AA)",
         "mixed-content": "Mixed content",
-        "seo-basics": "Basic SEO (info)"
+        "seo-basics": "Basic SEO (info)",
+        "mobile-scroll": "Sideways scroll on mobile",
+        "mobile-tap-targets": "Small touch targets (WCAG 2.2)",
+        "mobile-text-size": "Text too small on mobile",
+        "mobile-viewport": "Meta viewport missing or blocking zoom",
+        "mobile-fixed-overlap": "Content covered by fixed elements"
       },
       "storageState": "storageState (path to a Playwright session file on this computer; its content is not shown or kept in the report)",
       "storagePlaceholder": "e.g. ./auth/state.json",
       "strict": "Strict read-only: also block the writes the page itself makes. Those pages are marked degraded and their findings are discarded.",
       "strictOffWithSession": "There is a saved session for this site: without this option, what the page saves on its own while loading (drafts, statistics) is done with that session.",
       "ignoreRobots": "Ignore robots.txt (the start URL is always visited; robots.txt only limits discovery).",
-      "anonymous": "Inspect as an anonymous visitor: do not use the saved access for this site (session, HTTP user or WAF token)."
+      "anonymous": "Inspect as an anonymous visitor: do not use the saved access for this site (session, HTTP user or WAF token).",
+      "devices": "Devices",
+      "devicesHelp": "Every page is visited on each device, with all the runs.",
+      "chipDevices": "{list}"
     },
     "search": {
       "submit": "Search",

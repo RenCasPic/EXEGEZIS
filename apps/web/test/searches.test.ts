@@ -87,7 +87,7 @@ describe("the search form", () => {
   });
 });
 
-const page = (url: string): PageVisit => ({ url, depth: 0, run: 1, status: "OK", finalUrl: url, httpStatus: 200, settled: true, reason: null, runPath: null, blockedWrites: 0, block: null });
+const page = (url: string): PageVisit => ({ url, depth: 0, run: 1, status: "OK", finalUrl: url, httpStatus: 200, settled: true, reason: null, runPath: null, blockedWrites: 0, block: null, device: "desktop" });
 
 function obs(url: string, quote: string, term: string): SearchObservation {
   const at = quote.toLowerCase().indexOf(term);

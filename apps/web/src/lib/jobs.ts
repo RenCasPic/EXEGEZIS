@@ -61,6 +61,8 @@ export const InspectJob = z.strictObject({
   maxPages: z.int().nullable(),
   maxDepth: z.int().nullable(),
   checks: z.array(z.string()).nullable(),
+  /** Devices every page is visited as. Jobs from before devices ran as desktop only. */
+  devices: z.array(z.enum(["desktop", "mobile", "tablet"])).default(["desktop"]),
   /** Path of a Playwright storageState file on this machine; its content is never read by the UI. */
   storageState: z.string().nullable(),
   strictReadonly: z.boolean(),
@@ -127,6 +129,8 @@ const InspectRelaunch = z.strictObject({
   maxPages: z.int().nullable(),
   maxDepth: z.int().nullable(),
   checks: z.array(z.string()).nullable(),
+  /** Devices every page is visited as. Jobs from before devices ran as desktop only. */
+  devices: z.array(z.enum(["desktop", "mobile", "tablet"])).default(["desktop"]),
   storageState: z.string().nullable(),
   strictReadonly: z.boolean(),
   ignoreRobots: z.boolean(),
@@ -270,6 +274,8 @@ function commandArgs(job: JobRecord, runs: string): string[] {
     ...(job.maxPages === null ? [] : ["--max-pages", String(job.maxPages)]),
     ...(job.maxDepth === null ? [] : ["--max-depth", String(job.maxDepth)]),
     ...(job.checks === null ? [] : ["--checks", job.checks.join(",")]),
+    "--devices",
+    job.devices.join(","),
     ...(job.storageState === null ? [] : ["--storage-state", job.storageState]),
     // The form's box decides, both ways: the CLI's own default is strict when the site has a saved session.
     ...(job.strictReadonly ? ["--strict-readonly"] : ["--allow-page-writes"]),
@@ -348,6 +354,7 @@ export interface StartInspectionInput {
   maxPages: number | null;
   maxDepth: number | null;
   checks: string[] | null;
+  devices: ("desktop" | "mobile" | "tablet")[];
   storageState: string | null;
   strictReadonly: boolean;
   ignoreRobots: boolean;
@@ -454,6 +461,10 @@ export const InspectionProgressFile = z.looseObject({
   phase: z.string(),
   run: z.int(),
   runs: z.int(),
+  /** The device of the current visits and its place (absent in files from before devices). */
+  device: z.enum(["desktop", "mobile", "tablet"]).optional(),
+  devices: z.int().positive().optional(),
+  deviceIndex: z.int().nonnegative().optional(),
   pagesDone: z.int(),
   pagesPlanned: z.int(),
   current: z.string().nullable(),

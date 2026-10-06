@@ -14,7 +14,12 @@
     "broken-links": "Enlaces rotos",
     "a11y": "Accesibilidad",
     "mixed-content": "Contenido mixto",
-    "seo-basics": "SEO básico"
+    "seo-basics": "SEO básico",
+    "mobile-scroll": "Scroll horizontal en móvil",
+    "mobile-tap-targets": "Objetivos táctiles pequeños",
+    "mobile-text-size": "Texto pequeño en móvil",
+    "mobile-viewport": "Meta viewport",
+    "mobile-fixed-overlap": "Elementos fijos que tapan contenido"
   },
   "title": {
     "console": "Error de consola: {text}",
@@ -30,7 +35,13 @@
     "noViewport": "La página no tiene meta viewport",
     "noH1": "La página no tiene h1",
     "manyH1": "La página tiene {count} elementos h1",
-    "contrast": "Texto {fgName} {fg} sobre {bgName} {bg}: contraste {ratio}:1, mínimo {required}:1{large, select, yes { (texto grande)} other {}}"
+    "contrast": "Texto {fgName} {fg} sobre {bgName} {bg}: contraste {ratio}:1, mínimo {required}:1{large, select, yes { (texto grande)} other {}}",
+    "mobileScroll": "La página se desplaza de lado en una pantalla pequeña",
+    "mobileTap": "Objetivo táctil de menos de 24×24 px: {target}",
+    "mobileText": "Texto de menos de 12 px en {count, plural, one {# sitio} other {# sitios}}",
+    "mobileNoViewport": "Sin meta viewport: el móvil muestra la página de escritorio encogida",
+    "mobileZoom": "El meta viewport impide hacer zoom",
+    "mobileFixed": "Los elementos fijos tapan el {percent} % de la pantalla"
   },
   "color": {
     "color": "color",
@@ -213,5 +224,11 @@
     "no": "Cancelar",
     "running": "Todavía está en curso: espera a que termine.",
     "failed": "No se pudo eliminar. Recarga la página y vuelve a intentarlo."
+  },
+  "devices": {
+    "all": "En todos los dispositivos",
+    "both": "En ambos",
+    "only": "Solo en {list}",
+    "inspected": "Dispositivos"
   }
 }

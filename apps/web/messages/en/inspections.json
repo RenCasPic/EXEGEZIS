@@ -14,7 +14,12 @@
     "broken-links": "Broken links",
     "a11y": "Accessibility",
     "mixed-content": "Mixed content",
-    "seo-basics": "Basic SEO"
+    "seo-basics": "Basic SEO",
+    "mobile-scroll": "Sideways scroll on mobile",
+    "mobile-tap-targets": "Small touch targets",
+    "mobile-text-size": "Small text on mobile",
+    "mobile-viewport": "Meta viewport",
+    "mobile-fixed-overlap": "Fixed elements over the content"
   },
   "title": {
     "console": "Console error: {text}",
@@ -30,7 +35,13 @@
     "noViewport": "The page has no meta viewport",
     "noH1": "The page has no h1",
     "manyH1": "The page has {count} h1 elements",
-    "contrast": "Text {fgName} {fg} on {bgName} {bg}: contrast {ratio}:1, minimum {required}:1{large, select, yes { (large text)} other {}}"
+    "contrast": "Text {fgName} {fg} on {bgName} {bg}: contrast {ratio}:1, minimum {required}:1{large, select, yes { (large text)} other {}}",
+    "mobileScroll": "The page scrolls sideways on a small screen",
+    "mobileTap": "Touch target smaller than 24×24 px: {target}",
+    "mobileText": "Text under 12 px in {count, plural, one {# place} other {# places}}",
+    "mobileNoViewport": "No meta viewport: phones show the desktop page shrunk",
+    "mobileZoom": "The meta viewport keeps people from zooming",
+    "mobileFixed": "Fixed elements cover {percent} % of the screen"
   },
   "color": {
     "color": "colour",
@@ -213,5 +224,11 @@
     "no": "Cancel",
     "running": "It is still running: wait for it to finish.",
     "failed": "It could not be deleted. Reload the page and try again."
+  },
+  "devices": {
+    "all": "On every device",
+    "both": "On both",
+    "only": "Only on {list}",
+    "inspected": "Devices"
   }
 }

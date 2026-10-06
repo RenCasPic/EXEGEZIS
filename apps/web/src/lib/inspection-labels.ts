@@ -27,7 +27,20 @@ export const PAGE_STATUS_TONE: Record<PageStatus, Tone> = {
 };
 
 /** The checks EXEGEZIS has (their names: inspections.check.<id>). */
-export const CHECK_IDS = ["js-exceptions", "console-errors", "failed-requests", "broken-links", "a11y", "mixed-content", "seo-basics"] as const;
+export const CHECK_IDS = [
+  "js-exceptions",
+  "console-errors",
+  "failed-requests",
+  "broken-links",
+  "a11y",
+  "mixed-content",
+  "seo-basics",
+  "mobile-scroll",
+  "mobile-tap-targets",
+  "mobile-text-size",
+  "mobile-viewport",
+  "mobile-fixed-overlap",
+] as const;
 
 export const isKnownCheck = (id: string): id is (typeof CHECK_IDS)[number] => (CHECK_IDS as readonly string[]).includes(id);
 

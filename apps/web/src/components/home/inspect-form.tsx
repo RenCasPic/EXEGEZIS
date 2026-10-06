@@ -10,7 +10,7 @@ import { startInspectionAction, type InspectState } from "@/app/actions";
 import { EngineProblem } from "@/components/ui/copy-command";
 import { cn } from "@/lib/cn";
 import { hostOf, remember, remembered } from "@/lib/site-permission";
-import { BROWSER_CHANNEL_IDS, INSPECT_CHECKS, INSPECT_DEFAULTS, isLoopbackHost, type BrowserChannelId } from "@/lib/inspect-checks";
+import { BROWSER_CHANNEL_IDS, DEVICE_IDS, INSPECT_CHECKS, INSPECT_DEFAULTS, isLoopbackHost, type BrowserChannelId, type DeviceId } from "@/lib/inspect-checks";
 
 const ACCESS_KINDS = ["session", "httpCredentials", "wafToken"] as const;
 
@@ -30,6 +30,7 @@ export function InspectForm({ initialUrl = "" }: { initialUrl?: string }) {
   const [maxDepth, setMaxDepth] = useState("");
   const [runs, setRuns] = useState("");
   const [checks, setChecks] = useState<string[]>([]);
+  const [devices, setDevices] = useState<DeviceId[]>([...INSPECT_DEFAULTS.devices]);
   const [storageState, setStorageState] = useState("");
   const [strict, setStrict] = useState(false);
   const [ignoreRobots, setIgnoreRobots] = useState(false);
@@ -75,6 +76,7 @@ export function InspectForm({ initialUrl = "" }: { initialUrl?: string }) {
     { key: "pages", wide: t("chipUpTo", { count: pages }), narrow: t("chipPages", { count: pages }) },
     { key: "depth", wide: t("chipDepth", { depth: maxDepth === "" ? INSPECT_DEFAULTS.maxDepth : maxDepth }), desktopOnly: true },
     { key: "runs", wide: t("inspect.chipRuns", { count: runCount }) },
+    { key: "devices", wide: t("inspect.chipDevices", { list: DEVICE_IDS.filter((d) => devices.includes(d)).map((d) => tc(`device.${d}`)).join(" + ") }) },
     { key: "readonly", wide: strict ? t("inspect.chipStrict") : t("inspect.chipReadonly"), lock: true },
     ...(checks.length > 0 && checks.length < INSPECT_CHECKS.length ? [{ key: "checks", wide: t("inspect.chipChecks", { count: checks.length }) }] : []),
     ...(ignoreRobots ? [{ key: "robots", wide: t("chipIgnoreRobots") }] : []),
@@ -196,6 +198,25 @@ export function InspectForm({ initialUrl = "" }: { initialUrl?: string }) {
               <input name={name} type="number" min={min} max={max} placeholder={String(def)} value={value} onChange={(e) => set(e.target.value)} className={`${input} font-mono`} />
             </label>
           ))}
+          <fieldset className="sm:col-span-3">
+            <legend className="mb-1 text-[12px] text-muted">{t("inspect.devices")}</legend>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {DEVICE_IDS.map((d) => (
+                <label key={d} className="flex items-center gap-2 text-[13px] text-fg">
+                  <input
+                    type="checkbox"
+                    name="devices"
+                    value={d}
+                    checked={devices.includes(d)}
+                    onChange={(e) => setDevices((prev) => (e.target.checked ? [...prev, d] : prev.filter((x) => x !== d)))}
+                    className="size-4 accent-[var(--accent)]"
+                  />
+                  {tc(`device.${d}`)}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-[12px] text-faint">{t("inspect.devicesHelp")}</p>
+          </fieldset>
           <fieldset className="sm:col-span-3">
             <legend className="mb-1 text-[12px] text-muted">{t("inspect.checks")}</legend>
             <div className="grid gap-1 sm:grid-cols-2">

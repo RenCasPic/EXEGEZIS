@@ -32,6 +32,7 @@ export function buildReport(id = "01M3TEST00000000000000000A", origin = "http://
     runPath: `pages/run-${run}/R${run}`,
     blockedWrites: 0,
     block: null,
+    device: "desktop" as const,
   }));
   const failing: InspectionObservation = {
     fingerprint: "failed-requests:GET /api/fail",
@@ -51,8 +52,9 @@ export function buildReport(id = "01M3TEST00000000000000000A", origin = "http://
     status: "ran",
     error: null,
     observations: run === 1 ? [failing, flaky] : [failing],
+    device: "desktop" as const,
   }));
-  const pageWrites: PageWrite[] = [{ method: "POST", url: `${origin}/api/track`, status: 200, page: url, run: 1, blocked: false }];
+  const pageWrites: PageWrite[] = [{ method: "POST", url: `${origin}/api/track`, status: 200, page: url, run: 1, blocked: false, device: "desktop" }];
   const { groups } = deriveFindings(checks, pages, runs, false);
   const findings = buildFindings(groups, (g) => ({
     checkVersion: "1.0.0",

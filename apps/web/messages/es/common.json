@@ -131,7 +131,8 @@
     "searchMissing": "No se encontró la búsqueda.",
     "nameSearch": "Pon un nombre a la búsqueda.",
     "savedMissing": "No se encontró la búsqueda guardada.",
-    "pdfFailed": "No se pudo generar el PDF: {detail}"
+    "pdfFailed": "No se pudo generar el PDF: {detail}",
+    "devicesNone": "Elige al menos un dispositivo."
   },
   "copy": {
     "copy": "Copiar",
@@ -158,5 +159,10 @@
     "text": "Inspecciona solo sitios que sean tuyos o para los que tengas permiso."
   },
   "tabs": "Pestañas",
-  "close": "Cerrar"
+  "close": "Cerrar",
+  "device": {
+    "desktop": "Escritorio",
+    "mobile": "Móvil",
+    "tablet": "Tableta"
+  }
 }

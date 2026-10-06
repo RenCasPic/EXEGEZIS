@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import { z } from "zod";
 import type { StartInspectionInput } from "./jobs";
-import { BROWSER_CHANNEL_IDS, INSPECT_CHECKS, INSPECT_DEFAULTS } from "./inspect-checks";
+import { BROWSER_CHANNEL_IDS, DEVICE_IDS, INSPECT_CHECKS, INSPECT_DEFAULTS } from "./inspect-checks";
 import { ui, type UiMessage } from "./ui-message";
 import { repoRoot } from "./workspace";
 
@@ -45,6 +45,7 @@ export const InspectForm = z.strictObject({
   maxPages: optionalInt(1, 500, "common.errors.pagesRange"),
   maxDepth: optionalInt(0, 10, "common.errors.depthRange"),
   checks: z.array(z.enum(INSPECT_CHECKS.map((c) => c.id))),
+  devices: z.array(z.enum(DEVICE_IDS)).min(1, "common.errors.devicesNone"),
   storageState: z.string().trim(),
   strictReadonly: z.boolean(),
   ignoreRobots: z.boolean(),
@@ -78,6 +79,8 @@ export function parseInspectForm(raw: Record<keyof z.input<typeof InspectForm>, 
       maxDepth: v.maxDepth,
       // Every check selected is the same as no selection: the CLI runs them all.
       checks: v.checks.length === 0 || v.checks.length === INSPECT_CHECKS.length ? null : v.checks,
+      // In the CLI's order, each once.
+      devices: DEVICE_IDS.filter((d) => v.devices.includes(d)),
       storageState,
       strictReadonly: v.strictReadonly,
       ignoreRobots: v.ignoreRobots,

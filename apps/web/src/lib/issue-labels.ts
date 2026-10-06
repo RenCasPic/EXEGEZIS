@@ -86,6 +86,20 @@ export function findingTitle(t: InspectionsT, locale: string, checkId: string, t
       m = /^The page has (\d+) h1 elements$/.exec(title);
       return m === null ? title : say(t, "title.manyH1", { count: Number(m[1]) });
     }
+    case "mobile-scroll":
+      return title === "The page scrolls sideways on a small screen" ? say(t, "title.mobileScroll") : title;
+    case "mobile-tap-targets":
+      m = /^Touch target smaller than 24×24 px: ([\s\S]*)$/.exec(title);
+      return m === null ? title : say(t, "title.mobileTap", { target: m[1] ?? "" });
+    case "mobile-text-size":
+      m = /^Text under 12 px in (\d+) places?$/.exec(title);
+      return m === null ? title : say(t, "title.mobileText", { count: Number(m[1]) });
+    case "mobile-viewport":
+      if (title.startsWith("No meta viewport")) return say(t, "title.mobileNoViewport");
+      return title === "The meta viewport keeps people from zooming" ? say(t, "title.mobileZoom") : title;
+    case "mobile-fixed-overlap":
+      m = /^Fixed elements cover (\d+) % of the screen$/.exec(title);
+      return m === null ? title : say(t, "title.mobileFixed", { percent: Number(m[1]) });
     default:
       return title;
   }

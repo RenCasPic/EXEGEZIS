@@ -144,7 +144,7 @@ describe("inspection jobs", () => {
     await rm(root, { recursive: true, force: true });
   });
 
-  const input = { url: "https://example.com/a b?x=1;rm -rf", runs: 3, maxPages: 1, maxDepth: null, checks: ["a11y"], storageState: null, strictReadonly: true, ignoreRobots: false, browserChannel: "auto" as const, noSession: false };
+  const input = { url: "https://example.com/a b?x=1;rm -rf", runs: 3, maxPages: 1, maxDepth: null, checks: ["a11y"], devices: ["desktop" as const], storageState: null, strictReadonly: true, ignoreRobots: false, browserChannel: "auto" as const, noSession: false };
 
   async function until(check: () => Promise<boolean>, ms = 15_000): Promise<void> {
     const deadline = Date.now() + ms;
@@ -220,12 +220,12 @@ describe("the inspection form", () => {
     expect(INSPECT_CHECKS.map((c) => c.id).sort()).toEqual(CHECKS.map((c) => c.id).sort());
   });
 
-  const base = { url: "https://example.com", runs: "", maxPages: "", maxDepth: "", checks: [], storageState: "", strictReadonly: false, ignoreRobots: false, browserChannel: "auto", noSession: false };
+  const base = { url: "https://example.com", runs: "", maxPages: "", maxDepth: "", checks: [], devices: ["desktop", "mobile"], storageState: "", strictReadonly: false, ignoreRobots: false, browserChannel: "auto", noSession: false };
 
   it("applies the CLI defaults and limits", () => {
     expect(parseInspectForm(base)).toEqual({
       ok: true,
-      input: { url: "https://example.com/", runs: 3, maxPages: null, maxDepth: null, checks: null, storageState: null, strictReadonly: false, ignoreRobots: false, browserChannel: "auto", noSession: false },
+      input: { url: "https://example.com/", runs: 3, maxPages: null, maxDepth: null, checks: null, devices: ["desktop", "mobile"], storageState: null, strictReadonly: false, ignoreRobots: false, browserChannel: "auto", noSession: false },
     });
     expect(parseInspectForm({ ...base, runs: "21" }).ok).toBe(false);
     expect(parseInspectForm({ ...base, maxDepth: "0" })).toMatchObject({ ok: true, input: { maxDepth: 0 } });

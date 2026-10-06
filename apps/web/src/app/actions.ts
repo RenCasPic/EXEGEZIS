@@ -103,6 +103,7 @@ export async function startInspectionAction(_prev: InspectState, form: FormData)
     maxPages: text("maxPages"),
     maxDepth: text("maxDepth"),
     checks: form.getAll("checks").filter((c) => typeof c === "string"),
+    devices: form.getAll("devices").filter((d) => typeof d === "string"),
     storageState: text("storageState"),
     strictReadonly: text("strictReadonly") === "on",
     ignoreRobots: text("ignoreRobots") === "on",

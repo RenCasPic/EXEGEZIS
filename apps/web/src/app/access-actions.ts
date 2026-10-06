@@ -37,7 +37,7 @@ async function relaunchOf(jobId: string): Promise<StartInspectionInput | null> {
   const found = await readJob(jobId);
   if (found === null || found.job.kind !== "inspect") return null;
   const j = found.job;
-  return { url: j.url, runs: j.runs, maxPages: j.maxPages, maxDepth: j.maxDepth, checks: j.checks, storageState: j.storageState, strictReadonly: j.strictReadonly, ignoreRobots: j.ignoreRobots, browserChannel: j.browserChannel, noSession: j.noSession };
+  return { url: j.url, runs: j.runs, maxPages: j.maxPages, maxDepth: j.maxDepth, checks: j.checks, devices: j.devices, storageState: j.storageState, strictReadonly: j.strictReadonly, ignoreRobots: j.ignoreRobots, browserChannel: j.browserChannel, noSession: j.noSession };
 }
 
 export interface AccessState {

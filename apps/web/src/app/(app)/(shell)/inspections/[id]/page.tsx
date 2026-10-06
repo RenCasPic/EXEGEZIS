@@ -12,6 +12,7 @@ import { FilterForm } from "@/components/ui/filter-form";
 import { IssueGroupList } from "@/components/inspection/issue-groups";
 import { buttonClass, CodeBlock, EmptyState, Meta, Mono, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
 import { DeleteInspection } from "@/components/inspection/delete-inspection";
+import { DeviceScope } from "@/components/inspection/device-scope";
 import { SeverityLabel } from "@/components/inspection/severity";
 import { EngineText } from "@/components/ui/engine-text";
 import { RunHistory, StatusPill, VerdictPill } from "@/components/ui/status";
@@ -138,6 +139,7 @@ function FindingItem({ inspectionId, finding, report, evidence }: { inspectionId
           <span className="min-w-0 flex-1 basis-60 text-[13px] font-medium break-words text-fg">{title}</span>
           <span className="text-xs text-muted">{checkName(ti, finding.checkId)}</span>
           <span className="font-mono text-[11px] text-muted">{shortUrl(finding.page, report.target.origin)}</span>
+          <DeviceScope findings={[finding]} inspected={report.options.devices} />
           <Occurrences finding={finding} runs={report.options.runs} />
         </summary>
         <div className="grid gap-5 border-t border-line bg-panel-2 px-4 py-4 lg:grid-cols-2">
@@ -265,7 +267,9 @@ export default async function InspectionPage({ params, searchParams }: { params:
   const savedAccess = entryBlock === null ? null : await accessEntry(report.target.origin);
   const usedAccess = [report.access.session && t("accessKind.session"), report.access.httpCredentials && t("accessKind.http"), report.access.wafToken && t("accessKind.waf")].filter((x) => typeof x === "string");
   const severityOf = (sev: (typeof SEVERITIES)[number]) => labels(`severity.${sev}`);
-  const all = (await getTranslations("common"))("filter.all");
+  const tcommon = await getTranslations("common");
+  const tdev = await getTranslations("inspections.devices");
+  const all = tcommon("filter.all");
 
   return (
     <div className="flex flex-col gap-6">
@@ -471,6 +475,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
               items={[
                 { label: t("mode"), value: report.options.strictReadonly ? t("strictReadonly") : t("readonly") },
                 { label: t("budget"), value: t("budgetValue", { pages: report.options.maxPages, depth: report.options.maxDepth, runs: report.options.runs }) },
+                { label: tdev("inspected"), value: report.options.devices.map((d) => tcommon(`device.${d}`)).join(", ") },
                 {
                   label: "robots.txt",
                   value: report.robots.respected

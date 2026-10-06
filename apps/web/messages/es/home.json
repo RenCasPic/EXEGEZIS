@@ -146,14 +146,22 @@
         "broken-links": "Enlaces rotos",
         "a11y": "Accesibilidad (axe, WCAG 2.1 AA)",
         "mixed-content": "Contenido mixto",
-        "seo-basics": "SEO básico (info)"
+        "seo-basics": "SEO básico (info)",
+        "mobile-scroll": "Scroll horizontal en móvil",
+        "mobile-tap-targets": "Objetivos táctiles pequeños (WCAG 2.2)",
+        "mobile-text-size": "Texto demasiado pequeño en móvil",
+        "mobile-viewport": "Meta viewport ausente o que bloquea el zoom",
+        "mobile-fixed-overlap": "Contenido tapado por elementos fijos"
       },
       "storageState": "storageState (ruta a un archivo de sesión de Playwright en esta máquina; su contenido no se muestra ni se guarda en el informe)",
       "storagePlaceholder": "p. ej. ./auth/state.json",
       "strict": "Solo lectura estricta: bloquear también las escrituras que haga la propia página. Esas páginas quedan degradadas y sus hallazgos se descartan.",
       "strictOffWithSession": "Hay una sesión guardada para este sitio: sin esta opción, lo que la página guarde sola al cargarse (borradores, estadísticas) se hace con esa sesión.",
       "ignoreRobots": "Ignorar robots.txt (la URL inicial se visita siempre; robots.txt solo limita el descubrimiento).",
-      "anonymous": "Inspeccionar como visitante anónimo: no usar el acceso guardado para este sitio (sesión, usuario HTTP o token del WAF)."
+      "anonymous": "Inspeccionar como visitante anónimo: no usar el acceso guardado para este sitio (sesión, usuario HTTP o token del WAF).",
+      "devices": "Dispositivos",
+      "devicesHelp": "Cada página se visita en cada dispositivo, con todas las repeticiones.",
+      "chipDevices": "{list}"
     },
     "search": {
       "submit": "Buscar",

@@ -1,6 +1,7 @@
 import type { Finding, InspectionReport, IssueGroup } from "@exegezis/core";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
+import { DeviceScope } from "@/components/inspection/device-scope";
 import { SeverityLabel } from "@/components/inspection/severity";
 import { VerdictPill } from "@/components/ui/status";
 import { shortUrl } from "@/lib/inspection-labels";
@@ -73,6 +74,7 @@ export function IssueGroupItem({ inspectionId, group, report }: { inspectionId: 
             </span>
           )}
           <span className="min-w-0 flex-1 basis-64 text-[13px] font-medium break-words text-fg">{groupTitle(ti, locale, group)}</span>
+          <DeviceScope findings={report.findings.filter((f) => group.findings.includes(f.id))} inspected={report.options.devices} />
           <span className="font-mono text-[12px] whitespace-nowrap text-muted">
             {t("counts", { elements: group.elements, pages: group.pages.length })}
             {group.intermittent > 0 && group.verified > 0 ? ` · ${t("intermittentCount", { count: group.intermittent })}` : ""}

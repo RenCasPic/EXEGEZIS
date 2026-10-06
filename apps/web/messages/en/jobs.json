@@ -24,7 +24,8 @@
   "progress": {
     "waiting": "Waiting for the CLI's first progress report…",
     "counts": "run {run}/{runs} · {done}/{planned} pages",
-    "label": "Progress of the inspection"
+    "label": "Progress of the inspection",
+    "device": "{device}"
   },
   "output": "CLI output",
   "outputNoSecrets": "output.log (no secrets)",
@@ -90,7 +91,8 @@
     "automatic": "automatic",
     "session": "Session",
     "none": "none",
-    "storageState": "storageState (its content is not read)"
+    "storageState": "storageState (its content is not read)",
+    "devices": "Devices"
   },
   "investigation": {
     "running": "The CLI is running. This page follows its output and links the investigation as soon as its artifacts exist.",

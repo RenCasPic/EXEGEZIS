@@ -28,3 +28,12 @@ describe("the job page's progress bar", () => {
     expect(at("done", 3, 20, 20)).toBe(100);
   });
 });
+
+describe("the progress bar with several devices", () => {
+  it("counts every run of every device", () => {
+    const at = (deviceIndex: number, run: number, pagesDone: number) => jobPercent({ phase: "repeat", run, runs: 3, devices: 2, deviceIndex, pagesDone, pagesPlanned: 10 });
+    expect(at(0, 3, 10)).toBe(45);
+    expect(at(1, 1, 5)).toBe(53);
+    expect(at(1, 3, 10)).toBe(90);
+  });
+});

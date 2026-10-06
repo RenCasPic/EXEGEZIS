@@ -24,7 +24,8 @@
   "progress": {
     "waiting": "Esperando el primer informe de progreso del CLI…",
     "counts": "repetición {run}/{runs} · {done}/{planned} páginas",
-    "label": "Avance de la inspección"
+    "label": "Avance de la inspección",
+    "device": "{device}"
   },
   "output": "Salida del CLI",
   "outputNoSecrets": "output.log (sin secretos)",
@@ -90,7 +91,8 @@
     "automatic": "automático",
     "session": "Sesión",
     "none": "ninguna",
-    "storageState": "storageState (el contenido no se lee)"
+    "storageState": "storageState (el contenido no se lee)",
+    "devices": "Dispositivos"
   },
   "investigation": {
     "running": "El CLI se está ejecutando. Esta página sigue su salida y enlaza la investigación en cuanto existan sus artefactos.",
