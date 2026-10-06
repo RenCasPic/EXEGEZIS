@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database, ProfileRow } from "./database.js";
 import { LIMITS, type PlanId, type PlanLimits, isPlanId } from "./pricing.js";
@@ -192,12 +193,13 @@ export async function listProjects(db: Db): Promise<{ id: string; name: string }
 
 /** Everything the database holds about the signed-in user, for «Export my data». */
 export async function exportAccount(db: Db): Promise<Record<string, unknown>> {
-  const [profile, consents, projects, runs, waitlist] = await Promise.all([
+  const [profile, consents, projects, runs, waitlist, sites] = await Promise.all([
     db.from("profiles").select("*").limit(1),
     db.from("consents").select("document, version, accepted_at").order("accepted_at"),
     db.from("projects").select("id, name, created_at").order("created_at"),
     db.from("runs").select("id, kind, target_url, site, status, pages_requested, ai_usd, created_at, finished_at").order("created_at"),
     db.from("waitlist").select("plan, email, created_at").order("created_at"),
+    db.from("site_verifications").select("site, method, verified_at, created_at").order("created_at"),
   ]);
   return {
     profile: (must(profile, "exportAccount") as unknown[])[0] ?? null,
@@ -205,10 +207,57 @@ export async function exportAccount(db: Db): Promise<Record<string, unknown>> {
     projects: must(projects, "exportAccount"),
     runs: must(runs, "exportAccount"),
     waitlist: must(waitlist, "exportAccount"),
+    sites: must(sites, "exportAccount"),
   };
 }
 
+// ---- Site ownership (inspections and searches of more than OWNERSHIP_PAGES pages) ----
+
+export interface SiteVerification {
+  site: string;
+  /** What to put on the site: <meta name="exegezis-site-verification" content="…"> or a TXT record exegezis-site-verification=… */
+  token: string;
+  method: "meta" | "dns" | null;
+  verifiedAt: string | null;
+}
+
+export async function listSites(db: Db): Promise<SiteVerification[]> {
+  const rows = must(await db.from("site_verifications").select("site, token, method, verified_at").order("site"), "listSites");
+  return rows.map((r) => ({ site: r.site, token: r.token, method: r.method === "meta" || r.method === "dns" ? r.method : null, verifiedAt: r.verified_at === null ? null : new Date(r.verified_at).toISOString() }));
+}
+
+/** Adds a site to verify, with a new token (an existing one keeps its token). */
+export async function addSite(db: Db, userId: string, site: string): Promise<void> {
+  must(await db.from("site_verifications").upsert({ user_id: userId, site: site.slice(0, 255), token: randomBytes(16).toString("hex") }, { onConflict: "user_id,site", ignoreDuplicates: true }), "addSite");
+}
+
+export async function removeSite(db: Db, site: string): Promise<void> {
+  must(await db.from("site_verifications").delete().eq("site", site), "removeSite");
+}
+
+/** Has the signed-in user verified this site (siteOf: the host without «www.»)? */
+export async function isSiteVerified(db: Db, site: string): Promise<boolean> {
+  const rows = must(await db.from("site_verifications").select("verified_at").eq("site", site).limit(1), "isSiteVerified");
+  return rows[0]?.verified_at !== null && rows[0]?.verified_at !== undefined;
+}
+
+/** The signed-in user's AI spending since `since` (their own runs). */
+export async function aiSpentSince(db: Db, since: string): Promise<number> {
+  const rows = must(await db.from("runs").select("ai_usd").gte("created_at", since), "aiSpentSince");
+  return rows.reduce((n, r) => n + Number(r.ai_usd), 0);
+}
+
 // ---- Operator tasks: the service role client, never on a user's behalf ----
+
+/** The server checked the site: the token is on it. */
+export async function markSiteVerified(admin: Db, userId: string, site: string, method: "meta" | "dns"): Promise<void> {
+  must(await admin.from("site_verifications").update({ method, verified_at: new Date().toISOString() }).eq("user_id", userId).eq("site", site), "markSiteVerified");
+}
+
+/** What every user together has spent on AI since `since` (the daily global cap). */
+export async function aiSpentByEveryone(admin: Db, since: string): Promise<number> {
+  return Number(must(await admin.rpc("ai_spent_since", { p_since: since }), "aiSpentByEveryone"));
+}
 
 /**
  * Deletes the account: its auth user and, by cascade, every row of every

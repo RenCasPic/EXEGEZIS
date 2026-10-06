@@ -19,7 +19,7 @@ describe("supabase/setup.sql (pasted in Supabase's SQL Editor)", () => {
     await db.exec(setupSql());
     await db.exec(setupSql());
     const tables = await db.query<{ table_name: string }>("select table_name from information_schema.tables where table_schema = 'public' order by table_name");
-    expect(tables.rows.map((r) => r.table_name)).toEqual(["consents", "profiles", "projects", "rate_limits", "runs", "waitlist"]);
+    expect(tables.rows.map((r) => r.table_name)).toEqual(["consents", "profiles", "projects", "rate_limits", "runs", "site_verifications", "waitlist"]);
     const fn = await db.query<{ n: number }>("select count(*)::int as n from pg_proc where proname = 'consume_rate_limit'");
     expect(fn.rows[0]?.n).toBe(1);
     await db.close();

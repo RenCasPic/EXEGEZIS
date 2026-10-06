@@ -1,4 +1,4 @@
-import { LIMITS, listWaitlist, usage } from "@exegezis/accounts";
+import { aiDailyCaps, LIMITS, listWaitlist, usage } from "@exegezis/accounts";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -17,6 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const LIMIT_REASONS = ["inspectionsPerMonth", "pagesPerInspection", "sites", "meaningSearch", "aiBalance"] as const;
 const REFUSED = ["privateAddress", "serverPath", "visibleWindow"] as const;
+const ABUSE = ["tooMany", "aiDailyUser", "aiDailyTotal"] as const;
 const PROVIDERS = [
   ["google", "Google"],
   ["github", "GitHub"],
@@ -41,6 +42,7 @@ export default async function AccountSettingsPage({ searchParams }: { searchPara
   const links = siteLinks(locale === "es" ? "es" : "en");
   const limitReason = LIMIT_REASONS.find((r) => r === param(params, "limit"));
   const refused = REFUSED.find((r) => r === param(params, "refused"));
+  const abuse = ABUSE.find((r) => r === param(params, "abuse"));
   const providers = config().oauthProviders;
   const identities = user.user.identities ?? [];
   const waiting = new Set(waitlist.map((w) => w.plan));
@@ -68,6 +70,12 @@ export default async function AccountSettingsPage({ searchParams }: { searchPara
         title={t("title")}
         description={t("description", { email: user.email })}
       />
+
+      {abuse !== undefined && (
+        <p role="alert" className="rounded-xl border border-warn/30 bg-warn-bg px-4 py-3 text-[14px] text-fg">
+          {t(`abuse.${abuse}`, { minutes: 60, limit: aiDailyCaps().user })}
+        </p>
+      )}
 
       {(limitReason !== undefined || refused !== undefined) && (
         <p role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-warn/30 bg-warn-bg px-4 py-3 text-[14px] text-fg">

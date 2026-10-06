@@ -5,7 +5,16 @@ import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   acceptLegal,
+  addSite,
   adoptRuns,
+  aiSpentByEveryone,
+  aiSpentSince,
+  dayStart,
+  isDisposableEmail,
+  isSiteVerified,
+  listSites,
+  markSiteVerified,
+  removeSite,
   checkLimits,
   consumeRateLimit,
   deleteUser,
@@ -225,6 +234,38 @@ describe("helpers", () => {
     expect(passwordProblems("aaaaaaaaaaaa")).toEqual(["repeated"]);
     expect(passwordProblems("anamaria-2026", "anamaria@example.com")).toEqual(["email"]);
     expect(passwordProblems("ñ".repeat(40))).toContain("long");
+  });
+});
+
+describe("protection against abuse", () => {
+  it("a user adds a site and sees its token, but only the server marks it verified", async () => {
+    await addSite(asAna, a, "ana.example");
+    const [site] = await listSites(asAna);
+    expect(site).toMatchObject({ site: "ana.example", method: null, verifiedAt: null });
+    expect(site?.token).toMatch(/^[0-9a-f]{32}$/);
+    expect(await isSiteVerified(asAna, "ana.example")).toBe(false);
+    // Marking it herself is refused (no update privilege), and Bea never sees it.
+    expect((await asAna.from("site_verifications").update({ verified_at: new Date().toISOString() }).eq("site", "ana.example")).error?.message).toMatch(/permission denied/);
+    expect((await asAna.from("site_verifications").insert({ site: "x.example", token: "0123456789abcdef0123", verified_at: new Date().toISOString() } as never)).error?.message).toMatch(/permission denied/);
+    expect(await listSites(asBea)).toEqual([]);
+    await markSiteVerified(admin, a, "ana.example", "meta");
+    expect(await isSiteVerified(asAna, "ana.example")).toBe(true);
+    expect(await isSiteVerified(asBea, "ana.example")).toBe(false);
+    await removeSite(asAna, "ana.example");
+    expect(await listSites(asAna)).toEqual([]);
+  });
+
+  it("AI spent today: each user their own; everyone together only for the operator", async () => {
+    await recordRun(asAna, a, { id: "01J00000000000000000000AI1", kind: "search", targetUrl: "https://ana.example/", pagesRequested: 5, aiUsd: 0.4 });
+    expect(await aiSpentSince(asAna, dayStart())).toBeCloseTo(0.4);
+    expect(await aiSpentSince(asBea, dayStart())).toBe(0);
+    expect(await aiSpentByEveryone(admin, dayStart())).toBeCloseTo(0.4);
+    expect((await asAna.rpc("ai_spent_since", { p_since: dayStart() })).error?.message).toMatch(/permission denied/);
+  });
+
+  it("throwaway email providers are refused at sign-up (subdomains too), real ones are not", () => {
+    for (const bad of ["x@mailinator.com", "x@sub.yopmail.com", "X@Guerrillamail.COM", "a@10minutemail.com"]) expect(isDisposableEmail(bad), bad).toBe(true);
+    for (const good of ["ana@gmail.com", "rene@jesushealingministry.net", "a@outlook.com", "nobody", ""]) expect(isDisposableEmail(good), good).toBe(false);
   });
 });
 

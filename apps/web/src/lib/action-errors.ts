@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { CliNotBuiltError } from "./jobs";
-import { RefusedError, PlanLimitError } from "./plan-gate";
+import { AbuseError, RefusedError, PlanLimitError } from "./plan-gate";
 import { translateUi, ui, type UiMessage } from "./ui-message";
 
 /** A UiMessage in the request's language (server actions). */
@@ -15,6 +15,7 @@ export async function errorText(error: unknown): Promise<string> {
   if (error instanceof CliNotBuiltError) return say(ui("common.errors.cliNotBuilt"));
   if (error instanceof PlanLimitError) return say(ui(`account.limits.${error.reason}`, typeof error.limit === "number" ? { limit: error.limit } : {}));
   if (error instanceof RefusedError) return say(ui(`account.refused.${error.reason}`));
+  if (error instanceof AbuseError) return say(ui(`account.abuse.${error.reason}`, error.values));
   return say(ui("common.errors.unexpected", { detail: error instanceof Error ? error.message : String(error) }));
 }
 
@@ -29,4 +30,5 @@ export async function plansLinkFor(error: unknown): Promise<{ plansUrl?: string 
 export function redirectOnRefusal(error: unknown): void {
   if (error instanceof PlanLimitError) redirect(`/settings/account?limit=${error.reason}#plan`);
   if (error instanceof RefusedError) redirect(`/settings/account?refused=${error.reason}`);
+  if (error instanceof AbuseError) redirect(error.reason === "ownership" ? `/settings/sites?site=${encodeURIComponent(String(error.values["site"] ?? ""))}` : `/settings/account?abuse=${error.reason}`);
 }

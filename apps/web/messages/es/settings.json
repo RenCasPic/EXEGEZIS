@@ -11,7 +11,8 @@
     "permissions": "Permisos",
     "access": "Accesos",
     "search": "Búsquedas",
-    "account": "Cuenta"
+    "account": "Cuenta",
+    "sites": "Sitios"
   },
   "general": {
     "workspace": "Espacio de trabajo",
@@ -95,5 +96,29 @@
       "templateSaved": "Plantilla «{name}» guardada."
     },
     "version": "v{version}"
+  },
+  "sitesPage": {
+    "metaTitle": "Sitios",
+    "title": "Sitios verificados",
+    "description": "Para revisar más de {pages} páginas de un sitio, demuestra que es tuyo, como en Google Search Console: con una meta etiqueta en su página de inicio o un registro TXT en su DNS.",
+    "add": "Añadir un sitio",
+    "siteLabel": "Sitio",
+    "addButton": "Añadir",
+    "count": "{count, plural, =0 {Ningún sitio} one {# sitio} other {# sitios}}",
+    "none": "Todavía no has añadido ningún sitio.",
+    "verified": "Verificado con {method} el {date}",
+    "pending": "Sin verificar",
+    "method": {
+      "meta": "la meta etiqueta",
+      "dns": "el registro DNS"
+    },
+    "howMeta": "Opción 1: pon esta etiqueta dentro del <head> de la página de inicio:",
+    "howDns": "Opción 2: añade este registro TXT en el DNS de {host}:",
+    "check": "Comprobar ahora",
+    "notFound": "No se encontró ni la meta etiqueta ni el registro TXT. Si acabas de añadirlos, espera unos minutos (el DNS puede tardar) y vuelve a comprobar.",
+    "nowVerified": "Sitio verificado: ya puedes revisar más de {pages} páginas.",
+    "remove": "Quitar {site}",
+    "errorSite": "Escribe un dominio o una dirección, por ejemplo tu-sitio.com.",
+    "errorOrigin": "La petición no vino de EXEGEZIS. Recarga la página."
   }
 }

@@ -22,7 +22,8 @@
       "email": "La contraseña no puede contener tu email.",
       "repeated": "La contraseña no puede ser uno o dos caracteres repetidos.",
       "leaked": "Esa contraseña aparece en filtraciones conocidas. Elige otra."
-    }
+    },
+    "disposable": "Usa un correo permanente: los correos desechables (de los que duran unos minutos) no se aceptan."
   },
   "form": {
     "email": "Email",
@@ -180,6 +181,18 @@
       "confirmLabel": "Para confirmar, escribe tu email: <email></email>",
       "button": "Borrar mi cuenta y todos sus datos",
       "mismatch": "El email no coincide. No se ha borrado nada."
+    },
+    "abuse": {
+      "tooMany": "Demasiados trabajos seguidos. Vuelve a intentarlo en {minutes, plural, one {# minuto} other {# minutos}}.",
+      "ownership": "Para revisar más de {pages} páginas de {site}, primero demuestra que el sitio es tuyo en Ajustes → Sitios.",
+      "aiDailyUser": "Llegaste al tope diario de IA ({limit} USD). Vuelve a intentarlo mañana, o usa la búsqueda exacta, que no usa IA.",
+      "aiDailyTotal": "El servicio llegó a su tope diario de IA. Vuelve a intentarlo mañana, o usa la búsqueda exacta, que no usa IA."
     }
+  },
+  "abuse": {
+    "tooMany": "Demasiados trabajos seguidos. Vuelve a intentarlo en {minutes, plural, one {# minuto} other {# minutos}}.",
+    "ownership": "Para revisar más de {pages} páginas de {site}, primero demuestra que el sitio es tuyo en Ajustes → Sitios.",
+    "aiDailyUser": "Llegaste al tope diario de IA ({limit} USD). Vuelve a intentarlo mañana, o usa la búsqueda exacta, que no usa IA.",
+    "aiDailyTotal": "El servicio llegó a su tope diario de IA. Vuelve a intentarlo mañana, o usa la búsqueda exacta, que no usa IA."
   }
 }

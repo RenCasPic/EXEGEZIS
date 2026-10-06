@@ -1,6 +1,6 @@
 "use server";
 
-import { acceptLegal, isPlanId, passwordProblems, PRIVACY_VERSION, safeNext, TERMS_VERSION } from "@exegezis/accounts";
+import { acceptLegal, isDisposableEmail, isPlanId, passwordProblems, PRIVACY_VERSION, safeNext, TERMS_VERSION } from "@exegezis/accounts";
 import { createTranslator } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { loadMessages } from "@/i18n/messages";
@@ -84,6 +84,7 @@ export async function signUpAction(_prev: AuthState, form: FormData): Promise<Au
   const blocked = await guard();
   if (blocked !== null) return { error: blocked, email, name };
   if (!Email.safeParse(email).success) return { error: t("email"), email, name };
+  if (isDisposableEmail(email)) return { error: t("disposable"), email, name };
   const problems = passwordProblems(password, email);
   if (problems.length > 0) return { error: t(`password.${problems[0] ?? "short"}`), email, name };
   if (text(form, "terms") !== "on") return { error: t("terms"), email, name };

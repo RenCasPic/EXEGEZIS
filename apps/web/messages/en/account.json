@@ -22,7 +22,8 @@
       "email": "The password cannot contain your email.",
       "repeated": "The password cannot be one or two characters repeated.",
       "leaked": "That password has appeared in known data leaks. Choose another one."
-    }
+    },
+    "disposable": "Use a permanent email: throwaway addresses (the ones that last minutes) are not accepted."
   },
   "form": {
     "email": "Email",
@@ -180,6 +181,18 @@
       "confirmLabel": "To confirm, type your email: <email></email>",
       "button": "Delete my account and all its data",
       "mismatch": "The email does not match. Nothing has been deleted."
+    },
+    "abuse": {
+      "tooMany": "Too many jobs in a row. Try again in {minutes, plural, one {# minute} other {# minutes}}.",
+      "ownership": "To check more than {pages} pages of {site}, first prove the site is yours in Settings → Sites.",
+      "aiDailyUser": "You reached the daily AI cap ({limit} USD). Try again tomorrow, or use the exact search, which uses no AI.",
+      "aiDailyTotal": "The service reached its daily AI cap. Try again tomorrow, or use the exact search, which uses no AI."
     }
+  },
+  "abuse": {
+    "tooMany": "Too many jobs in a row. Try again in {minutes, plural, one {# minute} other {# minutes}}.",
+    "ownership": "To check more than {pages} pages of {site}, first prove the site is yours in Settings → Sites.",
+    "aiDailyUser": "You reached the daily AI cap ({limit} USD). Try again tomorrow, or use the exact search, which uses no AI.",
+    "aiDailyTotal": "The service reached its daily AI cap. Try again tomorrow, or use the exact search, which uses no AI."
   }
 }

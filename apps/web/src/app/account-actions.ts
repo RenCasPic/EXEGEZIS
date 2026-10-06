@@ -1,7 +1,7 @@
 "use server";
 
 import { rm } from "node:fs/promises";
-import { deleteUser, joinWaitlist, passwordProblems, updateProfile, userDirs } from "@exegezis/accounts";
+import { deleteUser, isDisposableEmail, joinWaitlist, passwordProblems, updateProfile, userDirs } from "@exegezis/accounts";
 import { createTranslator } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { cookies } from "next/headers";
@@ -64,6 +64,7 @@ export async function changeEmailAction(_prev: AccountState, form: FormData): Pr
   const t = await texts();
   const email = text(form, "email").trim().toLowerCase();
   if (!z.email().max(320).safeParse(email).success) return { error: t("errors.email") };
+  if (isDisposableEmail(email)) return { error: t("errors.disposable") };
   await requireAccount();
   const { error } = await (await supabase()).auth.updateUser({ email }, { emailRedirectTo: `${config().appUrl}/auth/callback?next=/settings/account` });
   if (error !== null) return { error: t("errors.unexpected") };

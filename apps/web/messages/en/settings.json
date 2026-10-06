@@ -11,7 +11,8 @@
     "permissions": "Permissions",
     "access": "Access",
     "search": "Searches",
-    "account": "Account"
+    "account": "Account",
+    "sites": "Sites"
   },
   "general": {
     "workspace": "Workspace",
@@ -95,5 +96,29 @@
       "templateSaved": "Template “{name}” saved."
     },
     "version": "v{version}"
+  },
+  "sitesPage": {
+    "metaTitle": "Sites",
+    "title": "Verified sites",
+    "description": "To check more than {pages} pages of a site, prove it is yours, as in Google Search Console: with a meta tag on its home page or a TXT record in its DNS.",
+    "add": "Add a site",
+    "siteLabel": "Site",
+    "addButton": "Add",
+    "count": "{count, plural, =0 {No sites} one {# site} other {# sites}}",
+    "none": "You have not added any site yet.",
+    "verified": "Verified with {method} on {date}",
+    "pending": "Not verified",
+    "method": {
+      "meta": "the meta tag",
+      "dns": "the DNS record"
+    },
+    "howMeta": "Option 1: put this tag inside the <head> of the home page:",
+    "howDns": "Option 2: add this TXT record to the DNS of {host}:",
+    "check": "Check now",
+    "notFound": "Neither the meta tag nor the TXT record was found. If you just added them, wait a few minutes (DNS can take a while) and check again.",
+    "nowVerified": "Site verified: you can now check more than {pages} pages.",
+    "remove": "Remove {site}",
+    "errorSite": "Write a domain or an address, for example your-site.com.",
+    "errorOrigin": "The request did not come from EXEGEZIS. Reload the page."
   }
 }

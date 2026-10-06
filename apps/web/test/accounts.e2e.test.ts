@@ -282,6 +282,53 @@ describe("accounts", () => {
     await ctx.close();
   }, 300_000);
 
+  it("protection against abuse: a site to verify above 20 pages, too many in a row, throwaway emails", async () => {
+    // Bea moves to Pro (500 pages), but more than 20 pages need her site verified.
+    const id = await userId(bea.email);
+    await sql`update public.profiles set plan = 'pro' where id = ${id}`;
+    const ctx = await context();
+    const page = await ctx.newPage();
+    await signIn(page, bea.email);
+    await page.waitForURL(`${base}/`);
+    await page.fill("#inspect-url", target);
+    await page.click('button[aria-controls="inspect-advanced"]');
+    await page.fill('input[name="maxPages"]', "30");
+    await page.click('form:has(#inspect-url) button[type="submit"]');
+    await expectAlert(page, "Ajustes → Sitios", "form:has(#inspect-url)");
+    // Settings → Sites: the site, its token and the instructions; only the server marks it verified.
+    await page.goto(`${base}/settings/sites`, { waitUntil: "networkidle" });
+    await page.fill("#site", "127.0.0.1");
+    await page.click('form:has(#site) button[type="submit"]');
+    await page.waitForURL(/settings\/sites\?site=127\.0\.0\.1/);
+    expect(await page.textContent("main")).toContain("exegezis-site-verification");
+    await sql`update public.site_verifications set verified_at = now(), method = 'meta' where user_id = ${id}`;
+    // Verified: the same 30-page inspection starts.
+    await page.goto(`${base}/`, { waitUntil: "networkidle" });
+    await page.fill("#inspect-url", target);
+    await page.click('button[aria-controls="inspect-advanced"]');
+    await page.fill('input[name="maxPages"]', "30");
+    await page.click('form:has(#inspect-url) button[type="submit"]');
+    await page.waitForURL(/\/jobs\//, { timeout: 120_000 });
+    // Too many in a row: Pro allows 30 inspections an hour.
+    await sql`update public.rate_limits set hits = 30 where key = ${`run:inspection:user:${id}`}`;
+    await page.goto(`${base}/`, { waitUntil: "networkidle" });
+    await page.fill("#inspect-url", target);
+    await page.click('form:has(#inspect-url) button[type="submit"]');
+    await expectAlert(page, "Demasiados trabajos seguidos", "form:has(#inspect-url)");
+    await ctx.close();
+    // A throwaway address cannot sign up.
+    const other = await context();
+    const signup = await other.newPage();
+    await signup.goto(`${base}/signup`, { waitUntil: "networkidle" });
+    await signup.fill('input[name="name"]', "Temp");
+    await signup.fill('input[name="email"]', "temp@mailinator.com");
+    await signup.fill('input[name="password"]', PASSWORD);
+    await signup.check('input[name="terms"]');
+    await signup.click('form:has(input[name="terms"]) button[type="submit"]');
+    await expectAlert(signup, "correo permanente");
+    await other.close();
+  }, 600_000);
+
   it("password recovery: the email's link, a new password, and only the new one works", async () => {
     const ctx = await context();
     const page = await ctx.newPage();

@@ -50,6 +50,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <Link href="/settings/search" className="rounded-md px-2.5 py-1.5 text-[13px] text-muted hover:bg-hover/60 hover:text-fg">
             {t("section.search")}
           </Link>
+          <Link href="/settings/sites" className="rounded-md px-2.5 py-1.5 text-[13px] text-muted hover:bg-hover/60 hover:text-fg">
+            {t("section.sites")}
+          </Link>
         </nav>
 
         {section === "general" && (

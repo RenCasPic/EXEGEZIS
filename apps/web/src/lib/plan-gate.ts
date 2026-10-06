@@ -1,7 +1,26 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { checkLimits, getProfile, recordRun, usage, type LimitReason, type RunKind } from "@exegezis/accounts";
-import { supabase } from "./auth";
+import {
+  aiDailyCaps,
+  aiSpentByEveryone,
+  aiSpentSince,
+  checkLimits,
+  consumeRateLimit,
+  dayStart,
+  getProfile,
+  HOURLY_PER_IP,
+  HOURLY_PER_USER,
+  INVESTIGATION_AI_USD,
+  isSiteVerified,
+  OWNERSHIP_PAGES,
+  recordRun,
+  siteOf,
+  usage,
+  type LimitReason,
+  type RunKind,
+} from "@exegezis/accounts";
+import { clientIp } from "./account";
+import { adminDb, supabase } from "./auth";
 import type { Workspace } from "./user-workspace";
 
 /*
@@ -13,8 +32,24 @@ import type { Workspace } from "./user-workspace";
  *   - no file paths of the server (storageState), no visible browser window.
  *   `pnpm web` on your own machine (development) allows them.
  * - The plan's limits (packages/accounts/src/pricing.ts) with this month's usage.
+ * - More than OWNERSHIP_PAGES pages: the site must be verified as the user's
+ *   (a meta tag or a DNS TXT record, Settings → Sites).
+ * - AI work (search by meaning, investigations): the daily caps per user and
+ *   for everyone together (packages/accounts/src/abuse.ts).
+ * - Jobs per hour, per user (by plan) and per address.
  * Then the run is recorded for the user (metadata, usage and ownership).
  */
+
+/** Refused to protect the service: too many in a row, a site not verified, the daily AI cap. */
+export class AbuseError extends Error {
+  override readonly name = "AbuseError";
+  constructor(
+    readonly reason: "tooMany" | "ownership" | "aiDailyUser" | "aiDailyTotal",
+    readonly values: Record<string, string | number> = {},
+  ) {
+    super(`refused: ${reason}`);
+  }
+}
 
 /** The plan does not allow it: the UI says why and offers «See plans». */
 export class PlanLimitError extends Error {
@@ -93,18 +128,22 @@ export interface GateRequest {
   storageState?: string | null;
 }
 
-/** Checks the request and records the run with `id`. Throws PlanLimitError or RefusedError. */
+/** Checks the request and records the run with `id`. Throws RefusedError, AbuseError or PlanLimitError. */
 export async function gate(ws: Workspace, id: string, request: GateRequest, defaultPages: number): Promise<void> {
   if (sharedServer()) {
     if (request.storageState !== undefined && request.storageState !== null && request.storageState !== "") throw new RefusedError("serverPath");
     await assertPublicTarget(request.url);
   }
   const pages = request.pages ?? defaultPages;
+  const sb = await supabase();
+  const profile = await getProfile(sb, ws.userId);
+  const plan = profile?.plan ?? "free";
+  const crawls = request.kind === "inspection" || request.kind === "search";
+
+  // The plan first: what it does not allow, no verification can allow.
   if (request.kind === "inspection" || request.kind === "search") {
-    const sb = await supabase();
-    const profile = await getProfile(sb, ws.userId);
     const used = await usage(sb);
-    const verdict = checkLimits(profile?.plan ?? "free", used, {
+    const verdict = checkLimits(plan, used, {
       kind: request.kind,
       url: request.url,
       pages,
@@ -112,5 +151,37 @@ export async function gate(ws: Workspace, id: string, request: GateRequest, defa
     });
     if (!verdict.ok) throw new PlanLimitError(verdict.reason, verdict.limit);
   }
-  await recordRun(await supabase(), ws.userId, { id, kind: request.kind, targetUrl: request.url, pagesRequested: request.kind === "inspection" || request.kind === "search" ? pages : null, aiUsd: request.meaningUsd ?? 0 });
+
+  // A big crawl only of the user's own site.
+  if (crawls && pages > OWNERSHIP_PAGES) {
+    const site = siteOf(request.url);
+    if (!(await isSiteVerified(sb, site))) throw new AbuseError("ownership", { site, pages: OWNERSHIP_PAGES });
+  }
+
+  // AI work within the daily caps.
+  const ai = request.kind === "investigation" ? INVESTIGATION_AI_USD : (request.meaningUsd ?? 0);
+  if (ai > 0) {
+    const caps = aiDailyCaps();
+    if ((await aiSpentSince(sb, dayStart())) + ai > caps.user) throw new AbuseError("aiDailyUser", { limit: caps.user });
+    if ((await aiSpentByEveryone(adminDb(), dayStart())) + ai > caps.total) {
+      // For the operator, in the server's log.
+      process.stderr.write(`[exegezis] the daily AI cap for everyone (${caps.total} USD, EXEGEZIS_AI_DAILY_TOTAL_USD) is reached: AI work is refused until tomorrow (UTC)\n`);
+      throw new AbuseError("aiDailyTotal");
+    }
+  }
+
+  // Bursts: counted last, so a refusal above does not use up the hour.
+  if (request.kind === "inspection" || request.kind === "search" || request.kind === "investigation") {
+    const perUser = HOURLY_PER_USER[plan][request.kind];
+    const checks = [
+      ...(perUser === null ? [] : [{ key: `run:${request.kind}:user:${ws.userId}`, limit: perUser }]),
+      { key: `run:${request.kind}:ip:${await clientIp()}`, limit: HOURLY_PER_IP[request.kind] },
+    ];
+    for (const c of checks) {
+      const r = await consumeRateLimit(adminDb(), c.key, c.limit, 3600);
+      if (!r.allowed) throw new AbuseError("tooMany", { minutes: Math.max(1, Math.ceil(r.retryAfterSeconds / 60)) });
+    }
+  }
+
+  await recordRun(sb, ws.userId, { id, kind: request.kind, targetUrl: request.url, pagesRequested: crawls ? pages : null, aiUsd: ai });
 }
