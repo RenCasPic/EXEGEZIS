@@ -81,6 +81,40 @@ Un servidor (apps/web, Next.js), un dominio                                     
   - Con `pnpm web` (desarrollo, en tu propio equipo) sí se permiten: así puedes inspeccionar tu app en `localhost`, usar un `storageState` y la ventana visible.
 - **Lo que la app no muestra:** las rutas del servidor, el repositorio y los comandos de terminal.
 
+## Protección contra abusos
+
+Todo se comprueba en el servidor antes de empezar cualquier trabajo (`apps/web/src/lib/plan-gate.ts`), en este orden:
+
+1. **Los límites del plan** (`pricing.ts`): sitios, páginas por inspección, inspecciones al mes, búsqueda por significado y saldo de IA.
+2. **Sitios verificados:** una inspección o búsqueda de **más de 20 páginas** solo de un sitio que el usuario ha demostrado que es suyo, como en Google Search Console (**Ajustes → Sitios**):
+   - una meta etiqueta en la página de inicio: `<meta name="exegezis-site-verification" content="TOKEN">`;
+   - o un registro TXT en el DNS del dominio: `exegezis-site-verification=TOKEN`.
+   Solo el servidor marca un sitio como verificado (`site_verifications`, RLS: los usuarios no pueden actualizarlo). En un servidor compartido, la comprobación nunca sigue una redirección a una dirección privada.
+3. **Tope diario de IA** (búsqueda por significado e investigaciones, que cuentan 0,05 USD cada una), por usuario y para todos juntos, en `.env`:
+   - `EXEGEZIS_AI_DAILY_USER_USD` (2 por defecto);
+   - `EXEGEZIS_AI_DAILY_TOTAL_USD` (25 por defecto).
+   Al llegar, el usuario ve un mensaje claro y el servidor deja una línea en su registro.
+4. **Trabajos por hora**, que se cuentan al final, para que un rechazo anterior no gaste la hora:
+
+   | | Gratis | Pro | Equipo | Empresa | Por IP |
+   |---|---|---|---|---|---|
+   | Inspecciones | 5 | 30 | 60 | sin límite | 60 |
+   | Búsquedas | 10 | 60 | 120 | sin límite | 120 |
+   | Investigaciones | 5 | 30 | 60 | sin límite | 60 |
+
+5. **Registro:** se rechazan los correos desechables (los que duran unos minutos), también al cambiar el correo. Ya existía el límite de intentos por IP y por correo.
+
+La vigilancia periódica de un sitio todavía no existe. Cuando se construya, también pedirá el sitio verificado.
+
+## Cola de trabajos
+
+Las inspecciones y las búsquedas pasan por una cola (`apps/web/src/lib/queue.ts`):
+
+- **Trabajadores:** `EXEGEZIS_WORKERS` en `.env` (1 por defecto). Cada trabajo ya visita hasta 3 páginas a la vez, así que con 1 trabajador un servidor pequeño va bien; uno más grande puede llevar 2 o 3.
+- Por orden de llegada, entre todos los usuarios. Mientras espera, la página del trabajo dice «Posición 2 en la cola · empieza en ~3 minutos»; mientras corre, cuánto le falta más o menos.
+- La estimación sale del tamaño del trabajo (páginas × repeticiones × dispositivos) y del ritmo medido en los trabajos terminados. Cuando ya corre, sale de su avance real.
+- Un servidor guarda la cola en memoria. Si se reinicia, los trabajos que esperaban aparecen como `LOST`. Para varios servidores, la cola tendría que pasar a la base de datos y los archivos de cada usuario a un almacenamiento compartido.
+
 ## Landing ↔ app (el mismo servidor)
 
 - `/`: sin sesión, la landing, en el idioma de la cookie o del navegador. La URL no cambia, y sin cookie de sesión ni se consulta a Supabase. Con sesión, la app.

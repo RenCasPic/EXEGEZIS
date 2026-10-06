@@ -20,10 +20,18 @@
 
 ## 2. Flujo y reutilización
 
-1. **Descubrimiento** (ejecución 1): recorrido BFS dentro del mismo origen, con `--max-pages 20`, `--max-depth 2`, `--page-timeout`, `--total-timeout` y `--delay 500ms` entre navegaciones. Los enlaces se leen de `a[href]` en el DOM y se visitan con `goto`. Nunca hay clics.
-2. **Repetición** (ejecuciones 2..N): la **misma lista de páginas**, cada ejecución en un contexto nuevo. No se vuelve a recorrer el sitio, para que el conjunto de páginas sea estable.
-3. En cada página, las comprobaciones (módulos puros) reciben la evidencia que ya captura el adaptador: consola, `pageerror`, red, árbol de accesibilidad, DOM, capturas y trace. Solo axe se ejecuta dentro de la página.
-4. **Agregación:** fingerprint, luego ocurrencias, luego veredicto. Cada hallazgo `VERIFIED` tiene su spec.
+1. **Descubrimiento** (ejecución 1, primer dispositivo): recorrido BFS dentro del mismo origen, con `--max-pages 20`, `--max-depth 2`, `--page-timeout`, `--total-timeout` y `--delay 500ms` entre el inicio de dos navegaciones. Los enlaces se leen de `a[href]` en el DOM y se visitan con `goto`. Nunca hay clics.
+   - **En paralelo** (`--concurrency`, 3 por defecto, nunca más de 3 a la vez en un sitio): se recorre **por niveles**, así el conjunto de páginas y su orden son los mismos que de una en una.
+2. **Repetición** (ejecuciones 2..N, y todas las de los otros dispositivos): la **misma lista de páginas**, cada visita en un navegador nuevo. No se vuelve a recorrer el sitio, para que el conjunto de páginas sea estable.
+3. **Dispositivos** (`--devices`, por defecto `desktop,mobile`): cada página se visita en cada dispositivo con todas las repeticiones.
+   - Escritorio: 1280×800.
+   - Móvil: 390×844, táctil, agente de usuario de Chrome en Android.
+   - Tableta (opcional): 820×1180, táctil.
+   - El agente de usuario siempre termina en `EXEGEZIS-Inspector/<versión>`.
+   - Cada hallazgo guarda en qué dispositivos se vio y su veredicto en cada uno: la app y el CLI dicen «solo en móvil», «solo en escritorio» o «en ambos».
+   - Las specs se generan para lo verificado en escritorio, porque se ejecutan en un navegador de escritorio.
+4. En cada página, las comprobaciones (módulos puros) reciben la evidencia que ya captura el adaptador: consola, `pageerror`, red, árbol de accesibilidad, DOM, capturas y trace. Solo axe se ejecuta dentro de la página.
+5. **Agregación:** fingerprint, luego ocurrencias por dispositivo, luego veredicto. Un hallazgo es `VERIFIED` si lo es en al menos un dispositivo.
 
 Qué se reutiliza y qué es nuevo:
 
@@ -36,14 +44,22 @@ Qué se reutiliza y qué es nuevo:
   - el paquete **`@exegezis/inspect`**, con el orquestador y `checks/`, una comprobación por archivo (`id`, `version`, `severity`, `run(evidence) → observations`) y su propio test;
   - en el adaptador: `readOnly`, `storageState`, `extractLinks()`, `runAxe()` y la clasificación de errores de navegación.
 
-## 3. Estabilidad para SPAs
+## 3. Estabilidad para SPAs: la página está lista por sus propias señales
 
-Se espera a `load` y después a que se cumplan **las dos anclas a la vez**:
+Los anuncios, la analítica y los chats de terceros pueden impedir que una página «termine de cargar» (el evento `load` o la red en reposo) durante mucho tiempo. Las inspecciones (`readiness: "first-party"` en adapter-browser) no los esperan:
 
-- **Red inactiva:** 0 peticiones en curso durante 500 ms, ignorando websockets, EventSource y peticiones de más de 10 s.
-- **DOM estable:** un `MutationObserver` sin mutaciones durante 500 ms.
+1. Se navega hasta `DOMContentLoaded`.
+2. **Red propia en reposo:** ninguna petición en curso al propio sitio (el mismo dominio registrable: `www`, el dominio y sus subdominios) durante 500 ms. Las de terceros no cuentan.
+3. **Contenido principal visible:** `main`, `[role=main]`, un `h1` o texto en la página.
+4. **Hilo principal libre** (`requestIdleCallback`): la hidratación de React y similares ha terminado.
+5. El evento `load`, como mucho 3 s más (`loadGraceMs`).
+6. **DOM estable:** un `MutationObserver` sin mutaciones durante 500 ms.
 
-El tope es `settleTimeoutMs`, que ya existe (3 s, configurable hasta 10 s). Si se alcanza el tope, la visita queda `settled: false`. Sus hallazgos se registran igual, pero se muestran marcados. No se usa ningún *sleep* fijo.
+El tope total es `readyTimeoutMs` (10 s). Si no se alcanzan las señales, la visita queda `settled: false`: sus hallazgos se registran igual, pero se muestran marcados. Las capturas de evidencia de terceros que siguen abiertas se esperan como mucho 1 s y no marcan la evidencia como incompleta.
+
+Medido en jesushealingministry.net con sesión (10 páginas × 3 repeticiones): 304 s antes; 158 s ahora solo en escritorio; 251 s en escritorio y móvil. Con 20 páginas × 3 en escritorio, 490 s antes y 264 s ahora, con los mismos 2 problemas verificados.
+
+Las verificaciones y las investigaciones (planes con acciones) siguen esperando `load` y la red en reposo, como antes.
 
 ## 4. Modelo de seguridad (nivel `READ` de §13)
 
@@ -255,3 +271,17 @@ Los hallazgos (uno por elemento y página) siguen siendo la fuente de verdad. Lo
 **Esquema:** `InspectionReport` v2 guarda los grupos. Al cargar un informe, los grupos se vuelven a derivar de los hallazgos: si no cuadran, el informe no carga. Los informes v1 cargan y reciben los grupos derivados.
 
 **Desviación respecto al diseño pedido.** Los datos de contraste (colores, tamaño y ratio) se leen del texto que axe guarda en cada hallazgo, no de campos nuevos del informe. Es la única forma de que los informes v1 obtengan también sus grupos. El texto es estable porque axe-core está fijado a 4.13.0.
+
+## 10. Comprobaciones de móvil
+
+Solo en las visitas de móvil y tableta. Son funciones puras de los datos de diseño que se miden en la página (`LAYOUT_FACTS_SCRIPT`, en `inspection.json` → `layout`):
+
+| Comprobación | Qué detecta | Severidad |
+|---|---|---|
+| `mobile-scroll` | La página es más ancha que la pantalla, y qué elemento sobresale (sin contar los que están dentro de un contenedor con scroll) | serious |
+| `mobile-tap-targets` | Objetivos táctiles de menos de 24×24 px (WCAG 2.2, 2.5.8). Los enlaces dentro de un texto están exentos | moderate |
+| `mobile-text-size` | Texto visible de menos de 12 px | minor |
+| `mobile-viewport` | Sin `<meta name="viewport">` (serious), o uno que impide hacer zoom: `user-scalable=no` o `maximum-scale` < 2 (WCAG 1.4.4) | serious |
+| `mobile-fixed-overlap` | Elementos fijos o pegajosos que tapan más del 30 % de la pantalla | moderate |
+
+El sitio de prueba `examples/inspect-lab` tiene `/devices/`, con todos estos problemas, y `/devices/fine`, sin ninguno.
