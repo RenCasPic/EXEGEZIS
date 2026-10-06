@@ -2,7 +2,7 @@
   "name": "@exegezis/accounts",
   "version": "0.1.0",
   "private": true,
-  "description": "EXEGEZIS accounts: configuration, plans and limits, the Postgres store with Row Level Security, rate limits, the local-data claim, export and deletion.",
+  "description": "EXEGEZIS accounts: configuration, plans and limits, the store through Supabase's Data API (Row Level Security), rate limits, the CLI's claim, export and deletion.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,8 +21,11 @@
     "sql"
   ],
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "fflate": "^0.8.3",
-    "postgres": "^3.4.9",
     "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "postgres": "^3.4.9"
   }
 }

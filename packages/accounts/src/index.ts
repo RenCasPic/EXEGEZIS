@@ -6,3 +6,4 @@ export * from "./paths.js";
 export * from "./safe-next.js";
 export * from "./password.js";
 export * from "./zip.js";
+export type { Database } from "./database.js";

@@ -7,7 +7,7 @@ import { chromium, type Browser, type BrowserContext, type Page } from "playwrig
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { AuthStandin } from "./support/auth-standin";
-import { REAL_SUPABASE as REAL, signUp as signUpWith, startTestApp, TEST_PASSWORD as PASSWORD, verify as verifyWith, type TestApp } from "./support/app";
+import { signUp as signUpWith, startTestApp, TEST_PASSWORD as PASSWORD, verify as verifyWith, type TestApp } from "./support/app";
 
 /*
  * Accounts end to end (docs/13-accounts.md), in a real browser against the
@@ -21,13 +21,10 @@ import { REAL_SUPABASE as REAL, signUp as signUpWith, startTestApp, TEST_PASSWOR
  * - sign out on every device; export (ZIP) and account deletion;
  * - the new screens in both languages and themes: WCAG AA (axe) and no
  *   sideways scroll at 375 px.
- *
- * With a real local Supabase (EXEGEZIS_TEST_SUPABASE=1, see support/app.ts)
- * the same tests run against it, except the simulated OAuth provider.
  */
 
 let app: TestApp;
-let standin: AuthStandin | null = null;
+let standin: AuthStandin;
 let sql: postgres.Sql;
 let site: Server | null = null;
 let browser: Browser | null = null;
@@ -308,8 +305,8 @@ describe("accounts", () => {
     await ctx.close();
   }, 300_000);
 
-  it.skipIf(REAL)("OAuth (simulated GitHub): a new account accepts the terms first, then enters", async () => {
-    (standin as AuthStandin).oauthAs({ email: `octo-${Date.now()}@example.com`, name: "Octo Cat", provider: "github" });
+  it("OAuth (simulated GitHub): a new account accepts the terms first, then enters", async () => {
+    standin.oauthAs({ email: `octo-${Date.now()}@example.com`, name: "Octo Cat", provider: "github" });
     const ctx = await context();
     const page = await ctx.newPage();
     await page.goto(`${base}/login`, { waitUntil: "networkidle" });

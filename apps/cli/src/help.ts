@@ -28,7 +28,7 @@ const SEARCH_HELP_EN = `
               language of --lang; quotes stay as they are on the page.`;
 
 const ACCOUNT_HELP_EN = `
-  account     The web app's accounts (DATABASE_URL in .env).
+  account     The web app's accounts (its Supabase project in .env).
                 exegezis account claim-local [--email <email>] [--dry-run]
               Gives this machine's runs/, saved accesses and search settings
               to an account (the first one created, or --email): copies them
@@ -36,7 +36,7 @@ const ACCOUNT_HELP_EN = `
               records the runs as its own. The originals stay for the CLI.`;
 
 const ACCOUNT_HELP_ES = `
-  account     Las cuentas de la app web (DATABASE_URL en .env).
+  account     Las cuentas de la app web (su proyecto de Supabase en .env).
                 exegezis account claim-local [--email <email>] [--dry-run]
               Da a una cuenta (la primera creada, o --email) lo que este
               equipo ya tiene: runs/, los accesos guardados y los ajustes de

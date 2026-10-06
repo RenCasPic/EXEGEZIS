@@ -7,7 +7,7 @@ import { signOutEverywhereAction } from "@/app/auth-actions";
 import { DeleteAccountForm, EmailForm, PasswordForm, ProfileForm } from "@/components/account/settings-forms";
 import { PageHeader, Panel } from "@/components/ui/primitives";
 import { requireAccount } from "@/lib/account";
-import { config, db } from "@/lib/auth";
+import { config, supabase } from "@/lib/auth";
 import { siteLinks } from "@/lib/links";
 import { param } from "@/lib/params";
 
@@ -35,7 +35,8 @@ function Bar({ used, limit }: { used: number; limit: number | null }) {
 /** Settings → Account: profile, security, plan and usage, data. */
 export default async function AccountSettingsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [{ user, profile }, params, t, plans, locale] = await Promise.all([requireAccount(), searchParams, getTranslations("account.settings"), getTranslations("account.plans"), getLocale()]);
-  const [used, waitlist] = await Promise.all([usage(db(), user.id), listWaitlist(db(), user.id)]);
+  const sb = await supabase();
+  const [used, waitlist] = await Promise.all([usage(sb), listWaitlist(sb)]);
   const limits = LIMITS[profile.plan];
   const links = siteLinks(locale === "es" ? "es" : "en");
   const limitReason = LIMIT_REASONS.find((r) => r === param(params, "limit"));

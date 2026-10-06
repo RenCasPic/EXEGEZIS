@@ -1,7 +1,7 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { checkLimits, getProfile, recordRun, usage, type LimitReason, type RunKind } from "@exegezis/accounts";
-import { db } from "./auth";
+import { supabase } from "./auth";
 import type { Workspace } from "./user-workspace";
 
 /*
@@ -101,8 +101,9 @@ export async function gate(ws: Workspace, id: string, request: GateRequest, defa
   }
   const pages = request.pages ?? defaultPages;
   if (request.kind === "inspection" || request.kind === "search") {
-    const profile = await getProfile(db(), ws.userId);
-    const used = await usage(db(), ws.userId);
+    const sb = await supabase();
+    const profile = await getProfile(sb, ws.userId);
+    const used = await usage(sb);
     const verdict = checkLimits(profile?.plan ?? "free", used, {
       kind: request.kind,
       url: request.url,
@@ -111,5 +112,5 @@ export async function gate(ws: Workspace, id: string, request: GateRequest, defa
     });
     if (!verdict.ok) throw new PlanLimitError(verdict.reason, verdict.limit);
   }
-  await recordRun(db(), ws.userId, { id, kind: request.kind, targetUrl: request.url, pagesRequested: request.kind === "inspection" || request.kind === "search" ? pages : null, aiUsd: request.meaningUsd ?? 0 });
+  await recordRun(await supabase(), ws.userId, { id, kind: request.kind, targetUrl: request.url, pagesRequested: request.kind === "inspection" || request.kind === "search" ? pages : null, aiUsd: request.meaningUsd ?? 0 });
 }

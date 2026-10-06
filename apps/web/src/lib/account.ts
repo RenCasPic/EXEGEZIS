@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { AccountSummary } from "@/components/app-shell/user-menu";
-import { config, db, requireUser, type SignedInUser } from "./auth";
+import { adminDb, config, requireUser, type SignedInUser, supabase } from "./auth";
 import { siteLinks } from "./links";
 
 /*
@@ -14,7 +14,7 @@ import { siteLinks } from "./links";
 /** The signed-in user and their profile; a user who has not accepted the legal texts yet (OAuth sign-up) goes to /welcome first. */
 export const requireAccount = cache(async (): Promise<{ user: SignedInUser; profile: Profile }> => {
   const user = await requireUser();
-  const profile = await getProfile(db(), user.id);
+  const profile = await getProfile(await supabase(), user.id);
   if (profile === null || profile.termsVersion === null || profile.privacyVersion === null) {
     const path = (await headers()).get("x-exegezis-path") ?? "/";
     redirect(`/welcome?next=${encodeURIComponent(path)}`);
@@ -69,8 +69,8 @@ const RATE: Record<RateKind, { perIp: number; perEmail: number; windowSeconds: n
 export async function rateLimited(kind: RateKind, email: string): Promise<number | null> {
   const r = RATE[kind];
   const ip = await clientIp();
-  const byIp = await consumeRateLimit(db(), `${kind}:ip:${ip}`, r.perIp, r.windowSeconds);
-  const byEmail = email === "" ? { allowed: true, retryAfterSeconds: 0 } : await consumeRateLimit(db(), `${kind}:email:${email.toLowerCase()}`, r.perEmail, r.windowSeconds);
+  const byIp = await consumeRateLimit(adminDb(), `${kind}:ip:${ip}`, r.perIp, r.windowSeconds);
+  const byEmail = email === "" ? { allowed: true, retryAfterSeconds: 0 } : await consumeRateLimit(adminDb(), `${kind}:email:${email.toLowerCase()}`, r.perEmail, r.windowSeconds);
   if (byIp.allowed && byEmail.allowed) return null;
   return Math.max(1, Math.ceil(Math.max(byIp.retryAfterSeconds, byEmail.retryAfterSeconds) / 60));
 }

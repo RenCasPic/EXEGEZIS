@@ -7,7 +7,7 @@ import { loadMessages } from "@/i18n/messages";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { rateLimited, requireAccount, sameOrigin } from "@/lib/account";
-import { config, db, requireUser, supabase } from "@/lib/auth";
+import { config, requireUser, supabase } from "@/lib/auth";
 
 /*
  * Sign-in, sign-up, verification, password recovery, OAuth and sign-out.
@@ -185,8 +185,9 @@ export async function acceptTermsAction(_prev: AuthState, form: FormData): Promi
   const blocked = await guard();
   if (blocked !== null) return { error: blocked };
   if (text(form, "terms") !== "on") return { error: t("terms") };
-  const user = await requireUser();
-  await acceptLegal(db(), user.id, TERMS_VERSION, PRIVACY_VERSION);
+  // Signed in (else to /login): accept_legal records it for the session's user.
+  await requireUser();
+  await acceptLegal(await supabase(), TERMS_VERSION, PRIVACY_VERSION);
   redirect(safeNext(text(form, "next")));
 }
 

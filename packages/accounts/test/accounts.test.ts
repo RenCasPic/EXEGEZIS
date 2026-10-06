@@ -1,14 +1,16 @@
 import { createServer } from "node:net";
 import type { PGlite } from "@electric-sql/pglite";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
+import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  asUser,
+  acceptLegal,
+  adoptRuns,
   checkLimits,
-  connect,
   consumeRateLimit,
   deleteUser,
   exportAccount,
+  findClaimant,
   getProfile,
   joinWaitlist,
   LIMITS,
@@ -17,24 +19,33 @@ import {
   PRIVACY_VERSION,
   recordRun,
   safeNext,
+  serviceClient,
   setPlan,
   TERMS_VERSION,
   updateProfile,
   usage,
-  type Sql,
+  type Database,
+  type Db,
 } from "../src/index.js";
 import { PLANS } from "../src/pricing.js";
 import { createUser, testDatabase } from "./database.js";
+import { startRestStandin, userToken } from "./rest-standin.js";
 
 /*
- * Row Level Security with two users on a real Postgres (PGlite) with the
- * migrations of supabase/migrations: A never reads, changes or deletes
- * anything of B's, through the same store the app uses.
+ * Row Level Security with two users on a real Postgres (PGlite) with
+ * supabase/setup.sql, through Supabase's Data API as the app uses it (a
+ * stand-in of it: rest-standin.ts): each user with her own session, the
+ * operator with the service role key. Ana never reads, changes or deletes
+ * anything of Bea's.
  */
 
 let db: PGlite;
 let server: PGLiteSocketServer;
-let sql: Sql;
+let rest: Awaited<ReturnType<typeof startRestStandin>>;
+let asAna: Db;
+let asBea: Db;
+let anon: Db;
+let admin: Db;
 let a = "";
 let b = "";
 
@@ -48,98 +59,102 @@ function freePort(): Promise<number> {
   });
 }
 
+const as = (userId: string): Db => createClient<Database>(rest.url, rest.anonKey, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: `Bearer ${userToken(userId)}` } } });
+
 beforeAll(async () => {
   db = await testDatabase();
   const port = await freePort();
   server = new PGLiteSocketServer({ db, port, host: "127.0.0.1" });
   await server.start();
-  sql = connect(`postgres://postgres:postgres@127.0.0.1:${port}/postgres`, { max: 1 });
+  rest = await startRestStandin(`postgres://postgres:postgres@127.0.0.1:${port}/postgres`);
   a = await createUser(db, "ana@example.com", { name: "Ana", locale: "es", terms_version: TERMS_VERSION, privacy_version: PRIVACY_VERSION });
   b = await createUser(db, "bea@example.com", { name: "Bea" });
-  await recordRun(sql, a, { id: "01J0000000000000000000000A", kind: "inspection", targetUrl: "https://www.ana.example/", pagesRequested: 20 });
-  await recordRun(sql, b, { id: "01J0000000000000000000000B", kind: "inspection", targetUrl: "https://bea.example/", pagesRequested: 10 });
-  await joinWaitlist(sql, b, "bea@example.com", "pro");
-  await asUser(sql, b, async (tx) => {
-    await tx`insert into public.projects (user_id, name) values (${b}, 'tienda')`;
-  });
+  asAna = as(a);
+  asBea = as(b);
+  anon = createClient<Database>(rest.url, rest.anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  admin = serviceClient(rest.url, rest.serviceRoleKey);
+  await recordRun(asAna, a, { id: "01J0000000000000000000000A", kind: "inspection", targetUrl: "https://www.ana.example/", pagesRequested: 20 });
+  await recordRun(asBea, b, { id: "01J0000000000000000000000B", kind: "inspection", targetUrl: "https://bea.example/", pagesRequested: 10 });
+  await joinWaitlist(asBea, b, "bea@example.com", "pro");
+  await joinWaitlist(asBea, b, "bea@example.com", "pro");
+  expect((await asBea.from("projects").insert({ user_id: b, name: "tienda" })).error).toBeNull();
 });
 
 afterAll(async () => {
-  await sql.end();
+  await rest.close();
   await server.stop();
   await db.close();
 });
 
 describe("new accounts", () => {
   it("get a Free profile with the sign-up data, and the accepted legal versions with their date", async () => {
-    const p = await getProfile(sql, a);
+    const p = await getProfile(asAna, a);
     expect(p).toMatchObject({ displayName: "Ana", locale: "es", plan: "free", termsVersion: TERMS_VERSION, privacyVersion: PRIVACY_VERSION });
     expect(p?.termsAcceptedAt).not.toBeNull();
-    const consents = await asUser(sql, a, async (tx) => tx`select document, version from public.consents order by document`);
-    expect([...consents]).toEqual([
+    const consents = await asAna.from("consents").select("document, version").order("document");
+    expect(consents.data).toEqual([
       { document: "privacy", version: PRIVACY_VERSION },
       { document: "terms", version: TERMS_VERSION },
     ]);
   });
+
+  it("an OAuth sign-up accepts the legal texts afterwards (accept_legal)", async () => {
+    expect((await getProfile(asBea, b))?.termsVersion).toBeNull();
+    await acceptLegal(asBea, TERMS_VERSION, PRIVACY_VERSION);
+    expect(await getProfile(asBea, b)).toMatchObject({ termsVersion: TERMS_VERSION, privacyVersion: PRIVACY_VERSION });
+  });
 });
 
-describe("Row Level Security: A never sees, changes or deletes B's data", () => {
-  it("reads only its own rows in every table", async () => {
-    await asUser(sql, a, async (tx) => {
-      for (const table of ["profiles", "consents", "projects", "runs", "waitlist"]) {
-        const rows = await tx.unsafe(`select * from public.${table}`);
-        for (const row of rows) expect(row["user_id"] ?? row["id"], table).toBe(a);
-      }
-      expect((await tx`select * from public.profiles where id = ${b}`).length).toBe(0);
-      expect((await tx`select * from public.runs where user_id = ${b}`).length).toBe(0);
-    });
-    expect(await ownsRun(sql, a, "01J0000000000000000000000B")).toBe(false);
-    expect(await ownsRun(sql, a, "01J0000000000000000000000A")).toBe(true);
+describe("Row Level Security: Ana never sees, changes or deletes Bea's data", () => {
+  it("reads only her own rows in every table", async () => {
+    for (const table of ["profiles", "consents", "projects", "runs", "waitlist"] as const) {
+      const { data, error } = await asAna.from(table).select("*");
+      expect(error, table).toBeNull();
+      for (const row of data ?? []) expect((row as Record<string, unknown>)["user_id"] ?? (row as Record<string, unknown>)["id"], table).toBe(a);
+    }
+    expect((await asAna.from("profiles").select("*").eq("id", b)).data).toEqual([]);
+    expect((await asAna.from("runs").select("*").eq("user_id", b)).data).toEqual([]);
+    expect(await ownsRun(asAna, "01J0000000000000000000000B")).toBe(false);
+    expect(await ownsRun(asAna, "01J0000000000000000000000A")).toBe(true);
   });
 
-  it("cannot update or delete B's rows (nothing is touched)", async () => {
-    await asUser(sql, a, async (tx) => {
-      expect((await tx`update public.runs set status = 'failed' where id = '01J0000000000000000000000B'`).count).toBe(0);
-      expect((await tx`delete from public.runs where user_id = ${b}`).count).toBe(0);
-      expect((await tx`delete from public.projects`).count).toBe(0);
-      expect((await tx`update public.profiles set display_name = 'x' where id = ${b}`).count).toBe(0);
-      expect((await tx`delete from public.waitlist`).count).toBe(0);
-    });
+  it("cannot update or delete Bea's rows (nothing is touched)", async () => {
+    expect((await asAna.from("runs").update({ status: "failed" }).eq("id", "01J0000000000000000000000B").select()).data).toEqual([]);
+    expect((await asAna.from("runs").delete().eq("user_id", b).select()).data).toEqual([]);
+    expect((await asAna.from("projects").delete().neq("name", "").select()).data).toEqual([]);
+    expect((await asAna.from("profiles").update({ display_name: "x" }).eq("id", b).select("id")).data).toEqual([]);
+    expect((await asAna.from("waitlist").delete().neq("plan", "").select()).data).toEqual([]);
     const still = await db.query<{ status: string }>("select status from public.runs where id = '01J0000000000000000000000B'");
     expect(still.rows[0]?.status).toBe("queued");
     expect((await db.query("select * from public.projects")).rows.length).toBe(1);
   });
 
-  it("cannot write rows in B's name", async () => {
-    await expect(asUser(sql, a, async (tx) => tx`insert into public.runs (id, user_id, kind, target_url, site) values ('x1', ${b}, 'inspection', 'https://x.example', 'x.example')`)).rejects.toThrow(/row-level security/);
-    await expect(asUser(sql, a, async (tx) => tx`insert into public.projects (user_id, name) values (${b}, 'p')`)).rejects.toThrow(/row-level security/);
-    await expect(asUser(sql, a, async (tx) => tx`insert into public.waitlist (user_id, email, plan) values (${b}, 'a@example.com', 'pro')`)).rejects.toThrow(/row-level security/);
-    await expect(asUser(sql, a, async (tx) => tx`update public.runs set user_id = ${b} where id = '01J0000000000000000000000A'`)).rejects.toThrow(/row-level security/);
+  it("cannot write rows in Bea's name", async () => {
+    expect((await asAna.from("runs").insert({ id: "x1", user_id: b, kind: "inspection", target_url: "https://x.example", site: "x.example" })).error?.message).toMatch(/row-level security/);
+    expect((await asAna.from("projects").insert({ user_id: b, name: "p" })).error?.message).toMatch(/row-level security/);
+    expect((await asAna.from("waitlist").insert({ user_id: b, email: "a@example.com", plan: "pro" })).error?.message).toMatch(/row-level security/);
+    expect((await asAna.from("runs").update({ user_id: b }).eq("id", "01J0000000000000000000000A")).error?.message).toMatch(/row-level security/);
   });
 
-  it("cannot give itself a plan, write consents or touch the rate limits", async () => {
-    await expect(asUser(sql, a, async (tx) => tx`update public.profiles set plan = 'enterprise' where id = ${a}`)).rejects.toThrow(/permission denied/);
-    await expect(asUser(sql, a, async (tx) => tx`insert into public.consents (user_id, document, version) values (${a}, 'terms', 'v')`)).rejects.toThrow(/permission denied/);
-    await expect(asUser(sql, a, async (tx) => tx`select * from public.rate_limits`)).rejects.toThrow(/permission denied/);
-    expect((await getProfile(sql, a))?.plan).toBe("free");
+  it("cannot give herself a plan, write consents, touch the rate limits or call the operator's functions", async () => {
+    expect((await asAna.from("profiles").update({ plan: "enterprise" }).eq("id", a)).error?.message).toMatch(/permission denied/);
+    expect((await asAna.from("consents").insert({ user_id: a, document: "terms", version: "v" })).error?.message).toMatch(/permission denied/);
+    expect((await asAna.from("rate_limits").select("*")).error?.message).toMatch(/permission denied/);
+    expect((await asAna.rpc("consume_rate_limit", { p_key: "x", p_limit: 1, p_window_seconds: 1 })).error?.message).toMatch(/permission denied/);
+    expect((await getProfile(asAna, a))?.plan).toBe("free");
   });
 
-  it("an anonymous visitor reads nothing", async () => {
-    await expect(
-      sql.begin(async (tx) => {
-        await tx`set local role anon`;
-        return tx`select * from public.runs`;
-      }),
-    ).rejects.toThrow(/permission denied/);
+  it("an anonymous visitor (the public anon key alone) reads nothing", async () => {
+    for (const table of ["profiles", "runs", "waitlist"] as const) expect((await anon.from(table).select("*")).error?.message, table).toMatch(/permission denied/);
   });
 
-  it("updates its own profile, but not its plan", async () => {
-    await updateProfile(sql, a, { displayName: "Ana M.", theme: "dark" });
-    expect(await getProfile(sql, a)).toMatchObject({ displayName: "Ana M.", theme: "dark", locale: "es", plan: "free" });
+  it("updates her own profile, but not her plan", async () => {
+    await updateProfile(asAna, a, { displayName: "Ana M.", theme: "dark" });
+    expect(await getProfile(asAna, a)).toMatchObject({ displayName: "Ana M.", theme: "dark", locale: "es", plan: "free" });
   });
 
-  it("exports only its own data", async () => {
-    const json = JSON.stringify(await exportAccount(sql, a));
+  it("exports only her own data", async () => {
+    const json = JSON.stringify(await exportAccount(asAna));
     expect(json).toContain("ana.example");
     expect(json).not.toContain("bea");
     expect(json).not.toContain(b);
@@ -148,7 +163,7 @@ describe("Row Level Security: A never sees, changes or deletes B's data", () => 
 
 describe("plan limits (checked on the server before any job starts)", () => {
   it("usage counts this month's inspections, pages and sites", async () => {
-    expect(await usage(sql, a)).toEqual({ inspections: 1, pages: 20, aiUsd: 0, sites: ["ana.example"] });
+    expect(await usage(asAna)).toEqual({ inspections: 1, pages: 20, aiUsd: 0, sites: ["ana.example"] });
   });
 
   it("Free: 5 inspections a month, 20 pages, 1 site, no search by meaning", () => {
@@ -170,18 +185,31 @@ describe("plan limits (checked on the server before any job starts)", () => {
   });
 
   it("only the operator changes a plan", async () => {
-    await setPlan(sql, b, "pro");
-    expect((await getProfile(sql, b))?.plan).toBe("pro");
+    await setPlan(admin, b, "pro");
+    expect((await getProfile(asBea, b))?.plan).toBe("pro");
   });
 });
 
-describe("rate limits", () => {
+describe("rate limits (the operator's client)", () => {
   it("allows `limit` attempts per window, then refuses with the wait", async () => {
     const results = [];
-    for (let i = 0; i < 4; i++) results.push(await consumeRateLimit(sql, "signin:1.2.3.4", 3, 600));
+    for (let i = 0; i < 4; i++) results.push(await consumeRateLimit(admin, "signin:1.2.3.4", 3, 600));
     expect(results.map((r) => r.allowed)).toEqual([true, true, true, false]);
     expect(results[3]?.retryAfterSeconds).toBeGreaterThan(0);
-    expect((await consumeRateLimit(sql, "signin:5.6.7.8", 3, 600)).allowed).toBe(true);
+    expect((await consumeRateLimit(admin, "signin:5.6.7.8", 3, 600)).allowed).toBe(true);
+  });
+});
+
+describe("the CLI's claim-local (the operator's client)", () => {
+  it("finds the first account or one by email, and records runs once", async () => {
+    expect(await findClaimant(admin, null)).toEqual({ id: a, email: "ana@example.com" });
+    expect(await findClaimant(admin, "BEA@example.com")).toEqual({ id: b, email: "bea@example.com" });
+    expect(await findClaimant(admin, "nadie@example.com")).toBeNull();
+    const runs = [{ id: "01J00000000000000000000CLI", kind: "inspection" as const, targetUrl: "https://ana.example/cli", createdAt: "2026-09-01T10:00:00.000Z", pagesRequested: 20 }];
+    expect(await adoptRuns(admin, a, runs)).toBe(1);
+    expect(await adoptRuns(admin, a, runs)).toBe(0);
+    expect(await ownsRun(asAna, "01J00000000000000000000CLI")).toBe(true);
+    expect(await ownsRun(asBea, "01J00000000000000000000CLI")).toBe(false);
   });
 });
 
@@ -202,12 +230,12 @@ describe("helpers", () => {
 
 describe("deleting an account", () => {
   it("removes the user and, by cascade, every row of theirs", async () => {
-    await deleteUser(sql, b);
+    await deleteUser(admin, b);
     for (const table of ["profiles", "projects", "runs", "waitlist", "consents"]) {
       const rows = await db.query(`select * from public.${table} where ${table === "profiles" ? "id" : "user_id"} = $1`, [b]);
       expect(rows.rows.length, table).toBe(0);
     }
     expect((await db.query("select * from auth.users where id = $1", [b])).rows.length).toBe(0);
-    expect(await getProfile(sql, a)).not.toBeNull();
+    expect(await getProfile(asAna, a)).not.toBeNull();
   });
 });

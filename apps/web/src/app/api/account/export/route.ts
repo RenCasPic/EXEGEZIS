@@ -1,6 +1,6 @@
 import { exportAccount, userDirs, zipAccount } from "@exegezis/accounts";
 import { NextResponse, type NextRequest } from "next/server";
-import { db, getUser } from "@/lib/auth";
+import { getUser, supabase } from "@/lib/auth";
 import { dataDir } from "@/lib/user-workspace";
 
 /**
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const user = await getUser();
   if (user === null) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const dirs = userDirs(dataDir(), user.id);
-  const json = { exportedAt: new Date().toISOString(), user: { id: user.id, email: user.email, providers: user.providers }, ...(await exportAccount(db(), user.id)) };
+  const json = { exportedAt: new Date().toISOString(), user: { id: user.id, email: user.email, providers: user.providers }, ...(await exportAccount(await supabase())) };
   const zip = await zipAccount(json, [
     { name: "runs", path: dirs.runs },
     { name: "access", path: dirs.access },

@@ -9,19 +9,22 @@ import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import { AccessStore, osProtector, ServerKeyProtector } from "@exegezis/access";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createUser, testDatabase } from "../../../packages/accounts/test/database.js";
+import { startRestStandin } from "../../../packages/accounts/test/rest-standin.js";
 import { main } from "../src/main.js";
 import type { CliIo } from "../src/shared.js";
 
 /*
- * `exegezis account claim-local` on a real Postgres (PGlite): the local runs,
- * saved accesses and search settings become the first account's — copied,
- * re-encrypted with the cloud key, recorded in the database.
+ * `exegezis account claim-local` on a real Postgres (PGlite) behind a stand-in
+ * of Supabase's Data API: the local runs, saved accesses and search settings
+ * become the first account's — copied, re-encrypted with the app's key,
+ * recorded in the database with the service role key.
  */
 
 let db: PGlite;
 let server: PGLiteSocketServer;
+let rest: Awaited<ReturnType<typeof startRestStandin>>;
 let work = "";
-let url = "";
+let supabase: Record<string, string> = {};
 
 function io(): CliIo & { out: () => string; err: () => string } {
   let out = "";
@@ -45,26 +48,28 @@ beforeAll(async () => {
   });
   server = new PGLiteSocketServer({ db, port, host: "127.0.0.1" });
   await server.start();
-  url = `postgres://postgres:postgres@127.0.0.1:${port}/postgres`;
+  rest = await startRestStandin(`postgres://postgres:postgres@127.0.0.1:${port}/postgres`);
+  supabase = { NEXT_PUBLIC_SUPABASE_URL: rest.url, NEXT_PUBLIC_SUPABASE_ANON_KEY: rest.anonKey, SUPABASE_SERVICE_ROLE_KEY: rest.serviceRoleKey };
   work = await mkdtemp(join(tmpdir(), "exegezis-claim-"));
 });
 
 afterAll(async () => {
+  await rest.close();
   await server.stop();
   await db.close();
   await rm(work, { recursive: true, force: true });
 });
 
 describe("exegezis account claim-local", () => {
-  it("refuses without DATABASE_URL", async () => {
+  it("refuses without the Supabase project in .env", async () => {
     const o = io();
     expect(await main(["--lang", "en", "account", "claim-local"], o, {})).toBe(2);
-    expect(o.err()).toContain("DATABASE_URL");
+    expect(o.err()).toContain("SUPABASE_SERVICE_ROLE_KEY");
   });
 
   it("says so when there is no account yet", async () => {
     const o = io();
-    expect(await main(["--lang", "en", "account", "claim-local"], o, { DATABASE_URL: url })).toBe(1);
+    expect(await main(["--lang", "en", "account", "claim-local"], o, supabase)).toBe(1);
     expect(o.err()).toContain("no account yet");
   });
 
@@ -84,7 +89,7 @@ describe("exegezis account claim-local", () => {
     await createUser(db, "second@example.com");
     const key = randomBytes(32).toString("base64");
     const env = {
-      DATABASE_URL: url,
+      ...supabase,
       EXEGEZIS_DATA_DIR: join(work, "data"),
       EXEGEZIS_RUNS_DIR: runs,
       EXEGEZIS_SEARCH_DIR: searchDir,

@@ -1,4 +1,4 @@
-import { appConfig, connect, safeNext, type AppConfig, type Sql } from "@exegezis/accounts";
+import { appConfig, safeNext, serviceClient, type AppConfig, type Database, type Db } from "@exegezis/accounts";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
@@ -6,8 +6,10 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 
 /*
- * Accounts (docs/13-accounts.md), as in any web app: Supabase Auth for
- * sign-in and sessions, Postgres with Row Level Security for each user's data.
+ * Accounts (docs/13-accounts.md), as in any Supabase app: Supabase Auth for
+ * sign-in and sessions, and each user's data through Supabase's Data API with
+ * their own session, so Row Level Security applies (`supabase()`). Only the
+ * operator's tasks use the service role key (`adminDb()`).
  */
 
 /** The app's settings (.env); a clear error listing what is missing otherwise. */
@@ -17,12 +19,12 @@ export function config(): AppConfig {
   return c.config;
 }
 
-const globalDb = globalThis as unknown as { __exegezisDb?: Sql };
+const globalDb = globalThis as unknown as { __exegezisAdmin?: Db };
 
-/** One pool per server process (kept across hot reloads in development). */
-export function db(): Sql {
-  globalDb.__exegezisDb ??= connect(config().databaseUrl);
-  return globalDb.__exegezisDb;
+/** The operator's client (service role key): rate limits and deleting an account, never a user's own data. */
+export function adminDb(): Db {
+  globalDb.__exegezisAdmin ??= serviceClient(config().supabaseUrl, config().supabaseServiceRoleKey);
+  return globalDb.__exegezisAdmin;
 }
 
 /**
@@ -45,7 +47,7 @@ export function sessionCookieOptions(options: CookieOptions = {}): CookieOptions
 export async function supabase() {
   const c = config();
   const store = await cookies();
-  return createServerClient(c.supabaseUrl, c.supabaseAnonKey, {
+  return createServerClient<Database>(c.supabaseUrl, c.supabaseAnonKey, {
     cookies: {
       getAll: () => store.getAll(),
       setAll: (list) => {

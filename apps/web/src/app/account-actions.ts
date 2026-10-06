@@ -10,7 +10,7 @@ import { z } from "zod";
 import { LOCALE_COOKIE } from "@/i18n/locales";
 import { loadMessages } from "@/i18n/messages";
 import { rateLimited, requireAccount, sameOrigin } from "@/lib/account";
-import { config, db, supabase } from "@/lib/auth";
+import { adminDb, config, supabase } from "@/lib/auth";
 import { dataDir } from "@/lib/user-workspace";
 
 /*
@@ -53,7 +53,7 @@ export async function updateProfileAction(_prev: AccountState, form: FormData): 
   const parsed = Profile.safeParse({ displayName: text(form, "displayName"), locale: text(form, "locale"), theme: text(form, "theme") });
   if (!parsed.success) return { error: t("errors.unexpected") };
   const { user } = await requireAccount();
-  await updateProfile(db(), user.id, parsed.data);
+  await updateProfile(await supabase(), user.id, parsed.data);
   (await cookies()).set(LOCALE_COOKIE, parsed.data.locale, { path: "/", sameSite: "lax", maxAge: 60 * 60 * 24 * 365 });
   return { error: null, done: t("settings.saved") };
 }
@@ -118,7 +118,7 @@ export async function joinWaitlistAction(form: FormData): Promise<void> {
   const plan = text(form, "plan");
   if (plan !== "pro" && plan !== "team" && plan !== "enterprise") redirect("/settings/account#plan");
   const { user } = await requireAccount();
-  await joinWaitlist(db(), user.id, user.email, plan);
+  await joinWaitlist(await supabase(), user.id, user.email, plan);
   redirect("/settings/account?notice=waitlist#plan");
 }
 
@@ -135,6 +135,6 @@ export async function deleteAccountAction(_prev: AccountState, form: FormData): 
   if (text(form, "confirm").trim().toLowerCase() !== user.email.toLowerCase()) return { error: t("settings.delete.mismatch") };
   await rm(userDirs(dataDir(), user.id).root, { recursive: true, force: true });
   await (await supabase()).auth.signOut({ scope: "global" });
-  await deleteUser(db(), user.id);
+  await deleteUser(adminDb(), user.id);
   redirect("/login?notice=deleted");
 }

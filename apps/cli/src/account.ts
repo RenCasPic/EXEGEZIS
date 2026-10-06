@@ -2,7 +2,7 @@ import { cp, readdir, readFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { AccessStore, defaultAccessDir, osProtector, systemProtector } from "@exegezis/access";
-import { adoptRuns, connect, findClaimant, userDirs, type RunKind } from "@exegezis/accounts";
+import { adoptRuns, appConfig, findClaimant, serviceClient, userDirs, type RunKind } from "@exegezis/accounts";
 import { searchDataDir } from "@exegezis/search/light";
 import { EXIT, parseArgsError, UsageError } from "./args.js";
 import { t } from "./i18n.js";
@@ -99,58 +99,55 @@ async function exists(path: string): Promise<boolean> {
 
 export async function accountCommand(command: AccountCommand, io: CliIo, env: NodeJS.ProcessEnv = process.env): Promise<number> {
   const out = (line: string) => io.stdout.write(`${line}\n`);
-  const databaseUrl = (env["DATABASE_URL"] ?? "").trim();
-  if (databaseUrl === "") {
-    io.stderr.write(`${t("account.needsDatabase")}\n`);
+  // The same Supabase project as the app (.env): its URL and the service role key.
+  const config = appConfig(env);
+  if (!config.ok) {
+    io.stderr.write(`${t("account.needsSupabase", { missing: config.missing.join(", ") })}\n`);
     return EXIT.usage;
   }
   const dataDir = resolve((env["EXEGEZIS_DATA_DIR"] ?? "").trim() || join(process.cwd(), "data"));
   const runsDir = resolve((env["EXEGEZIS_RUNS_DIR"] ?? "").trim() || join(process.cwd(), "runs"));
-  const sql = connect(databaseUrl, { max: 1 });
-  try {
-    const user = await findClaimant(sql, command.email);
-    if (user === null) {
-      io.stderr.write(`${command.email === null ? t("account.noAccounts") : t("account.noSuchEmail", { email: command.email })}\n`);
-      return EXIT.expectationFailed;
-    }
-    const dirs = userDirs(dataDir, user.id);
-    const runs = await findRuns(runsDir);
-    const source = new AccessStore(defaultAccessDir(), osProtector());
-    const entries = await source.index().catch(() => []);
-    const searchDir = searchDataDir();
-    out(t("account.claimFor", { email: user.email, id: user.id }));
-    out(t("account.from", { runs: runsDir, access: source.dir, search: searchDir }));
-    out(t("account.to", { dir: dirs.root }));
-    out(t("account.found", { runs: runs.length, access: entries.length }));
-    if (command.dryRun) {
-      out(t("account.dryRun"));
-      return EXIT.ok;
-    }
-
-    // 1. Artifacts: copied, never overwriting what the account already has.
-    if (await exists(runsDir)) await cp(runsDir, dirs.runs, { recursive: true, force: false, errorOnExist: false });
-    if (await exists(searchDir)) await cp(searchDir, dirs.search, { recursive: true, force: false, errorOnExist: false });
-    // 2. Saved accesses: decrypted with this machine's key, encrypted again with the cloud one.
-    const target = new AccessStore(dirs.access, systemProtector());
-    let moved = 0;
-    const unreadable: string[] = [];
-    for (const entry of entries) {
-      try {
-        const secrets = await source.get(entry.origin);
-        if (secrets === null) continue;
-        await target.put(entry.origin, secrets);
-        await target.touch(entry.origin, { settings: entry.settings, expired: entry.expired, lastUsedAt: entry.lastUsedAt });
-        moved++;
-      } catch {
-        unreadable.push(entry.origin);
-      }
-    }
-    // 3. Metadata: the runs are the account's (usage, ownership).
-    const added = await adoptRuns(sql, user.id, runs);
-    out(t("account.done", { runs: added, access: moved }));
-    if (unreadable.length > 0) out(t("account.unreadable", { origins: unreadable.join(", ") }));
-    return EXIT.ok;
-  } finally {
-    await sql.end();
+  const admin = serviceClient(config.config.supabaseUrl, config.config.supabaseServiceRoleKey);
+  const user = await findClaimant(admin, command.email);
+  if (user === null) {
+    io.stderr.write(`${command.email === null ? t("account.noAccounts") : t("account.noSuchEmail", { email: command.email })}\n`);
+    return EXIT.expectationFailed;
   }
+  const dirs = userDirs(dataDir, user.id);
+  const runs = await findRuns(runsDir);
+  const source = new AccessStore(defaultAccessDir(), osProtector());
+  const entries = await source.index().catch(() => []);
+  const searchDir = searchDataDir();
+  out(t("account.claimFor", { email: user.email, id: user.id }));
+  out(t("account.from", { runs: runsDir, access: source.dir, search: searchDir }));
+  out(t("account.to", { dir: dirs.root }));
+  out(t("account.found", { runs: runs.length, access: entries.length }));
+  if (command.dryRun) {
+    out(t("account.dryRun"));
+    return EXIT.ok;
+  }
+
+  // 1. Artifacts: copied, never overwriting what the account already has.
+  if (await exists(runsDir)) await cp(runsDir, dirs.runs, { recursive: true, force: false, errorOnExist: false });
+  if (await exists(searchDir)) await cp(searchDir, dirs.search, { recursive: true, force: false, errorOnExist: false });
+  // 2. Saved accesses: decrypted with this machine's key, encrypted again with the cloud one.
+  const target = new AccessStore(dirs.access, systemProtector());
+  let moved = 0;
+  const unreadable: string[] = [];
+  for (const entry of entries) {
+    try {
+      const secrets = await source.get(entry.origin);
+      if (secrets === null) continue;
+      await target.put(entry.origin, secrets);
+      await target.touch(entry.origin, { settings: entry.settings, expired: entry.expired, lastUsedAt: entry.lastUsedAt });
+      moved++;
+    } catch {
+      unreadable.push(entry.origin);
+    }
+  }
+  // 3. Metadata: the runs are the account's (usage, ownership).
+  const added = await adoptRuns(admin, user.id, runs);
+  out(t("account.done", { runs: added, access: moved }));
+  if (unreadable.length > 0) out(t("account.unreadable", { origins: unreadable.join(", ") }));
+  return EXIT.ok;
 }

@@ -192,15 +192,19 @@ importers:
 
   packages/accounts:
     dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.117.2
+        version: 2.117.2
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
-      postgres:
-        specifier: ^3.4.9
-        version: 3.4.9
       zod:
         specifier: ^4.6.5
         version: 4.6.5
+    devDependencies:
+      postgres:
+        specifier: ^3.4.9
+        version: 3.4.9
 
   packages/adapter-browser:
     dependencies:

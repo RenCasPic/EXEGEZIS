@@ -1,6 +1,9 @@
-import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import postgres from "postgres";
+import { restHandler, signJwt, standinKeys, verifyJwt } from "../../../../packages/accounts/test/rest-standin.ts";
+
+export { signJwt, STANDIN_JWT_SECRET } from "../../../../packages/accounts/test/rest-standin.ts";
 
 /*
  * A stand-in for Supabase Auth (GoTrue), for the cloud-mode tests on a
@@ -10,12 +13,12 @@ import postgres from "postgres";
  * recovery, resend, OAuth (simulated provider) and identities — and keeps the
  * users in auth.users of the same Postgres the app uses (through the socket,
  * never in-process: PGlite is one session). The emails it would send are kept
- * in a mailbox (GET /mailbox), like Mailpit does with a real `supabase start`.
+ * in a mailbox (GET /mailbox) instead of being sent.
+ * The same server answers the Data API (/rest/v1) and the admin users API
+ * (packages/accounts/test/rest-standin.ts), like a real Supabase project.
  *
- * Tests only. With a real Supabase (EXEGEZIS_TEST_SUPABASE=1) it is not used.
+ * Tests only.
  */
-
-export const STANDIN_JWT_SECRET = "exegezis-standin-jwt-secret-not-for-production";
 
 export interface Mail {
   to: string;
@@ -51,27 +54,12 @@ interface UserRow {
 
 const b64url = (b: Buffer | string) => Buffer.from(b).toString("base64url");
 
-export function signJwt(payload: Record<string, unknown>, secret = STANDIN_JWT_SECRET): string {
-  const head = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const body = b64url(JSON.stringify(payload));
-  const sig = createHmac("sha256", secret).update(`${head}.${body}`).digest("base64url");
-  return `${head}.${body}.${sig}`;
-}
-
-function verifyJwt(token: string): Record<string, unknown> | null {
-  const [head, body, sig] = token.split(".");
-  if (head === undefined || body === undefined || sig === undefined) return null;
-  if (createHmac("sha256", STANDIN_JWT_SECRET).update(`${head}.${body}`).digest("base64url") !== sig) return null;
-  const payload = JSON.parse(Buffer.from(body, "base64url").toString()) as Record<string, unknown>;
-  if (typeof payload["exp"] === "number" && payload["exp"] < Date.now() / 1000) return null;
-  return payload;
-}
-
 const hash = (password: string) => `standin$${createHash("sha256").update(password).digest("hex")}`;
 
 export interface AuthStandin {
   url: string;
   anonKey: string;
+  serviceRoleKey: string;
   mailbox: Mail[];
   /** The latest mail to `email` of `type` (waits for it a little). */
   lastMail(email: string, type: Mail["type"]): Promise<Mail>;
@@ -88,6 +76,7 @@ export async function startAuthStandin(databaseUrl: string): Promise<AuthStandin
   const mailbox: Mail[] = [];
   let oauthPerson = { email: "oauth@example.test", name: "OAuth Person", provider: "github" as "github" | "google" };
   let base = "";
+  const rest = restHandler(sql);
 
   async function findUser(by: { id?: string; email?: string }): Promise<UserRow | null> {
     const rows =
@@ -189,6 +178,7 @@ export async function startAuthStandin(databaseUrl: string): Promise<AuthStandin
       const path = url.pathname.replace(/^\/auth\/v1/, "");
       const redirectTo = url.searchParams.get("redirect_to") ?? "";
       try {
+        if (await rest(req, res)) return;
         if (url.pathname === "/mailbox") return send(res, 200, mailbox);
         if (req.method === "GET" && path === "/settings") return send(res, 200, { external: { email: true, github: true, google: true }, mailer_autoconfirm: false });
 
@@ -351,11 +341,12 @@ export async function startAuthStandin(databaseUrl: string): Promise<AuthStandin
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   base = `http://127.0.0.1:${typeof address === "object" && address !== null ? address.port : 0}`;
-  const anonKey = signJwt({ role: "anon", iss: "exegezis-standin", iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 10 * 365 * 86400 });
+  const { anonKey, serviceRoleKey } = standinKeys();
 
   return {
     url: base,
     anonKey,
+    serviceRoleKey,
     mailbox,
     async lastMail(email, type) {
       for (let i = 0; i < 50; i++) {
