@@ -21,7 +21,7 @@ const host = (url: string) => {
 export function pageDocument(e: PageEvidence): NetworkExchangeEvidence | null {
   const doc = [...e.network.exchanges]
     .reverse()
-    .find((x) => x.request.isNavigation && x.request.resourceType === "document" && x.response !== undefined && (x.response.status < 300 || x.response.status >= 400));
+    .find((x) => x.request.isNavigation && x.request.mainFrame !== false && x.request.resourceType === "document" && x.response !== undefined && (x.response.status < 300 || x.response.status >= 400));
   if (doc === undefined || !sameSite(host(doc.request.url), host(e.page))) return null;
   return doc;
 }

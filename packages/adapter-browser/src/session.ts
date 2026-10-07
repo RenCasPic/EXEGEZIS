@@ -129,10 +129,17 @@ export class BrowserSession implements AdapterSession {
     switch (action.type) {
       case "navigate":
         this.site ??= safeHost(action.url);
-        await page.goto(action.url, {
-          waitUntil: action.waitUntil ?? "load",
-          timeout: timeout ?? this.options.navigationTimeoutMs,
-        });
+        try {
+          await page.goto(action.url, {
+            waitUntil: action.waitUntil ?? "load",
+            timeout: timeout ?? this.options.navigationTimeoutMs,
+          });
+        } catch (error) {
+          // Inspections: the document arrived but DOMContentLoaded did not (its own CSS or scripts hang).
+          // The page is there to inspect; the readiness wait that follows marks it as not settled.
+          if (!(this.options.readiness === "first-party" && action.waitUntil === "domcontentloaded" && error instanceof Error && error.name === "TimeoutError" && this.documentArrived())) throw error;
+          this.logger.warn("DOMContentLoaded did not come in time; inspecting the page as it is", { url: action.url });
+        }
         return;
       case "click":
         await toLocator(page, action.target).click({ timeout: timeout ?? this.options.actionTimeoutMs });
@@ -642,6 +649,13 @@ export class BrowserSession implements AdapterSession {
    * readyTimeoutMs. Third-party requests are not waited for. Returns which
    * signals were reached (not reaching them is a fact about the page).
    */
+  /** The page's own document answered (the navigation got past its first response). */
+  private documentArrived(): boolean {
+    const doc = this.exchanges.find((x) => x.request.isNavigation && x.request.mainFrame !== false && x.response !== undefined && (x.response.status < 300 || x.response.status >= 400));
+    // Committed: the page left about:blank for the document.
+    return doc !== undefined && this.page.url() !== "about:blank";
+  }
+
   private async waitReady(): Promise<{ network: boolean; dom: boolean }> {
     const page = this.page;
     const deadline = Date.now() + this.options.readyTimeoutMs;
@@ -715,6 +729,7 @@ export class BrowserSession implements AdapterSession {
         url: this.url(request.url()),
         resourceType: request.resourceType(),
         isNavigation: request.isNavigationRequest(),
+        ...(request.isNavigationRequest() ? { mainFrame: mainFrameOf(request, this.page) } : {}),
         // Provisional headers; replaced below with the full set (incl. cookies).
         headers: redactHeaders(request.headers(), this.recorder.secrets),
       },
@@ -890,6 +905,15 @@ export function parseSetCookies(value: string, url: string): SetCookieFacts[] {
       };
     })
     .filter((c) => c.name !== "");
+}
+
+/** Whether a navigation is the page's own (not an iframe's). Service worker requests have no frame. */
+function mainFrameOf(request: Request, page: Page): boolean {
+  try {
+    return request.frame() === page.mainFrame();
+  } catch {
+    return false;
+  }
 }
 
 function safeHost(url: string): string {

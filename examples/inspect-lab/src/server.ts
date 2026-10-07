@@ -19,6 +19,8 @@ import { handleSearch } from "./search.ts";
  * Also: /forms has a POST form and buttons that POST (the inspection must
  * never trigger them) and posts /api/track by itself on load (a page write);
  * /private/* is disallowed by robots.txt; /blocked/ is a CAPTCHA wall;
+ * /slow-assets/ has its own stylesheet and script that take 20 s (the page is
+ * still inspected, not settled).
  * /healthy/ is a healthy section (0 findings expected): every security
  * header, nothing heavy, listed in a valid sitemap named in robots.txt; the
  * site answers unknown addresses with a real 404.
@@ -226,6 +228,13 @@ function handler(secure: boolean) {
       case "/api/subscribe":
       case "/api/like":
         return send(res, method === "POST" ? 200 : 405, "application/json", '{"ok":true}');
+      case "/slow-assets/":
+        // Its own stylesheet hangs for 20 s: DOMContentLoaded comes late (as on the-internet.herokuapp.com).
+        return send(res, 200, "text/html; charset=utf-8", page("Slow assets", "<main><h1>Slow assets</h1><p>The stylesheet of this page takes 20 s.</p></main>", '<link rel="stylesheet" href="/slow-assets/style.css"><script src="/slow-assets/app.js"></script>'));
+      case "/slow-assets/style.css":
+      case "/slow-assets/app.js":
+        setTimeout(() => send(res, 200, url.pathname.endsWith(".css") ? "text/css" : "text/javascript", ""), 20_000);
+        return;
       case "/__lab/health":
         return send(res, 200, "application/json", '{"ok":true}');
       case "/__lab/stats":

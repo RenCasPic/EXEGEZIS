@@ -8,7 +8,7 @@ export function evidence(patch: {
   device?: Device;
   messages?: Partial<ConsoleMessageEvidence>[];
   pageErrors?: Partial<PageErrorEvidence>[];
-  exchanges?: { method?: string; url: string; status?: number; failure?: string; isNavigation?: boolean; resourceType?: string; responseHeaders?: Record<string, string>; bytes?: number; ttfbMs?: number }[];
+  exchanges?: { method?: string; url: string; status?: number; failure?: string; isNavigation?: boolean; resourceType?: string; responseHeaders?: Record<string, string>; bytes?: number; ttfbMs?: number; mainFrame?: boolean }[];
   inspection?: Partial<PageInspectionFile>;
   links?: PageEvidence["links"];
 }): PageEvidence {
@@ -33,7 +33,7 @@ export function evidence(patch: {
         (x, i): NetworkExchangeEvidence => ({
           kind: "network_exchange",
           id: `net-${i}`,
-          request: { timestamp: at, method: x.method ?? "GET", url: x.url, resourceType: x.resourceType ?? "fetch", isNavigation: x.isNavigation ?? false, headers: {} },
+          request: { timestamp: at, method: x.method ?? "GET", url: x.url, resourceType: x.resourceType ?? "fetch", isNavigation: x.isNavigation ?? false, ...(x.mainFrame === undefined ? {} : { mainFrame: x.mainFrame }), headers: {} },
           ...(x.status === undefined ? {} : { response: { timestamp: at, status: x.status, statusText: "", headers: x.responseHeaders ?? {}, fromServiceWorker: false } }),
           ...(x.failure === undefined ? {} : { failure: { timestamp: at, errorText: x.failure } }),
           ...(x.bytes === undefined ? {} : { sizes: { body: x.bytes, headers: 300 } }),

@@ -530,7 +530,7 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
 /** What the visit measured: the document's time to first byte, the browser's paints and shifts, bytes and requests. */
 export function visitMetrics(network: NetworkFile, inspection: PageInspectionFile): PageMetrics {
   // The page's document: the last navigation of the main frame that answered (after any redirects).
-  const doc = [...network.exchanges].reverse().find((x) => x.request.isNavigation && x.request.resourceType === "document" && x.response !== undefined && (x.response.status < 300 || x.response.status >= 400));
+  const doc = [...network.exchanges].reverse().find((x) => x.request.isNavigation && x.request.mainFrame !== false && x.request.resourceType === "document" && x.response !== undefined && (x.response.status < 300 || x.response.status >= 400));
   const p = inspection.performance;
   return {
     ttfbMs: doc?.ttfbMs ?? null,

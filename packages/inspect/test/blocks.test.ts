@@ -18,15 +18,25 @@ const sig = (patch: Partial<Signals> = {}): Signals => ({
   ...patch,
 });
 const LOGIN_FORM_ONLY = { visiblePassword: true, wordsOutsideForms: 12, mainContent: false };
+/** A page that is little more than a challenge: a few words, no main content. */
+const CHALLENGE_ONLY = { visiblePassword: false, wordsOutsideForms: 8, mainContent: false };
 
 interface Doc {
   status: number;
   url?: string;
   headers?: Record<string, string>;
+  mainFrame?: boolean;
 }
 function classify(docs: Doc[], signals: Partial<Signals> = {}, opts: { requested?: string; sessionUsed?: boolean; navigationError?: string } = {}) {
   const e = evidence({
-    exchanges: docs.map((d) => ({ url: d.url ?? "https://site.test/account", status: d.status, isNavigation: true, resourceType: "document", ...(d.headers === undefined ? {} : { responseHeaders: d.headers }) })),
+    exchanges: docs.map((d) => ({
+      url: d.url ?? "https://site.test/account",
+      status: d.status,
+      isNavigation: true,
+      resourceType: "document",
+      ...(d.headers === undefined ? {} : { responseHeaders: d.headers }),
+      ...(d.mainFrame === undefined ? {} : { mainFrame: d.mainFrame }),
+    })),
     inspection: { blockSignals: sig(signals) },
   });
   return classifyVisit({
@@ -47,7 +57,7 @@ describe("each block kind is detected with its evidence", () => {
   });
 
   it("BOT_CHALLENGE: DOM markers, cf-mitigated, or a challenge status with signals; cookie names as evidence only", () => {
-    expect(kind(classify([{ status: 200 }], { markers: ["turnstile iframe"] }))).toBe("BOT_CHALLENGE");
+    expect(kind(classify([{ status: 200 }], { markers: ["turnstile iframe"], login: CHALLENGE_ONLY }))).toBe("BOT_CHALLENGE");
     expect(kind(classify([{ status: 403, headers: { "cf-mitigated": "challenge" } }]))).toBe("BOT_CHALLENGE");
     expect(kind(classify([{ status: 403, headers: { server: "cloudflare" } }], { cookieNames: ["__cf_bm", "sessionid"] }))).toBe("BOT_CHALLENGE");
     const c = classify([{ status: 403, headers: { "x-datadome": "protected" } }]);
@@ -112,6 +122,21 @@ describe("LOGIN_WALL: only a real wall, never a page that merely has a login box
   it("with a saved session, the same wall is SESSION_EXPIRED", () => {
     const c = classify([{ status: 302 }, { status: 200, url: "https://site.test/login" }], {}, { sessionUsed: true });
     expect(c.block?.kind).toBe("SESSION_EXPIRED");
+  });
+});
+
+describe("no false walls (found on real sites)", () => {
+  it("a CAPTCHA on a page with content of its own (a contact form, an invisible reCAPTCHA, an ad) is not a challenge", () => {
+    expect(classify([{ status: 200 }], { markers: ["recaptcha iframe", ".g-recaptcha"] })).toMatchObject({ status: "OK", block: null });
+    expect(classify([{ status: 200 }], { markers: ["recaptcha iframe"], login: { visiblePassword: false, wordsOutsideForms: 400, mainContent: false } })).toMatchObject({ status: "OK" });
+  });
+
+  it("an ad's iframe navigation is not the page's document (automationexercise.com)", () => {
+    const c = classify([
+      { status: 200, url: "https://site.test/account" },
+      { status: 200, url: "https://googleads.g.doubleclick.net/pagead/ads?client=x", mainFrame: false },
+    ]);
+    expect(c).toMatchObject({ status: "OK", finalUrl: "https://site.test/account" });
   });
 });
 

@@ -30,6 +30,8 @@ const UNREACHABLE = /ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|ERR_ADDRESS|ERR_INTERN
 const TIMEOUT = /Timeout \d+ms exceeded|timed out|TimeoutError/i;
 /** Markers that only a challenge page has (iframes, challenge containers, #px-captcha…). */
 const STRONG_MARKER = /iframe$|^\.|^#/;
+/** Words of its own (outside forms, menus, header and footer) that make a page more than a challenge. */
+const CONTENT_WORDS = 150;
 const LOGIN_PATH = /(^|\/)(login|log-in|signin|sign-in|auth|account\/login|users\/sign_in|sso)(\/|$|\?)|[?&](next|returnurl|return_to|redirect_uri)=/i;
 /** Cookies that anti-bot services set: evidence (names only), never a trigger on their own. */
 const CHALLENGE_COOKIE = /^(cf_clearance|__cf_bm|datadome|_abck|bm_sz|ak_bmsc|_px\w*|_pxhd)$/;
@@ -89,7 +91,10 @@ function detectBlock(facts: VisitFacts, document: Document | undefined): { kind:
   const headers = document?.headers ?? {};
   const signals = facts.inspection?.blockSignals;
   const markers = signals?.markers ?? [];
-  const strong = markers.filter((m) => STRONG_MARKER.test(m));
+  // A CAPTCHA widget or iframe on a page with content of its own (a contact form, an invisible
+  // reCAPTCHA, an ad) is not a wall: only a page that is little more than the challenge is.
+  const content = signals !== undefined && (signals.login.mainContent || signals.login.wordsOutsideForms >= CONTENT_WORDS);
+  const strong = content ? [] : markers.filter((m) => STRONG_MARKER.test(m));
   const challengeCookies = (signals?.cookieNames ?? []).filter((n) => CHALLENGE_COOKIE.test(n));
 
   // 1. HTTP_AUTH
@@ -213,7 +218,8 @@ function block(kind: BlockKind, message: EngineMessage, document: Document | und
 /** The last navigation response of the main document (after redirects). */
 function mainDocument(network: NetworkFile | null): Document | undefined {
   if (network === null) return undefined;
-  const navigations = network.exchanges.filter((x) => x.request.isNavigation && x.request.resourceType === "document" && x.response !== undefined);
+  // The page's own navigations: an ad's or a widget's iframe is not the page.
+  const navigations = network.exchanges.filter((x) => x.request.isNavigation && x.request.mainFrame !== false && x.request.resourceType === "document" && x.response !== undefined);
   const final = navigations.filter((x) => (x.response?.status ?? 0) < 300 || (x.response?.status ?? 0) >= 400).at(-1) ?? navigations.at(-1);
   if (final?.response === undefined) return undefined;
   const headers: Record<string, string> = {};

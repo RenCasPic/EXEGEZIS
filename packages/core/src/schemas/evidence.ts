@@ -91,6 +91,8 @@ export const NetworkExchangeEvidence = z.strictObject({
     url: z.string(),
     resourceType: z.string(),
     isNavigation: z.boolean(),
+    /** A navigation of the page itself, not of an iframe (ads, widgets). Absent in older evidence: taken as the page's. */
+    mainFrame: z.boolean().optional(),
     headers: Headers,
     body: BodyCapture.optional(),
   }),

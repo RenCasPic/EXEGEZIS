@@ -170,6 +170,14 @@ describe("the site with seeded problems (HTTPS, 3 runs)", () => {
   }, 300_000);
 });
 
+describe("a page whose own CSS and scripts hang (found on the-internet.herokuapp.com)", () => {
+  it("is inspected as it is instead of a TIMEOUT of the whole site", async () => {
+    const report = await run(`${http}slow-assets/`, { runs: 1, pageTimeoutMs: 4000, checks: SEEDED_CHECKS });
+    expect(report.status).toBe("COMPLETED");
+    expect(report.pages[0]).toMatchObject({ status: "OK", httpStatus: 200 });
+  }, 120_000);
+});
+
 describe("the healthy site", () => {
   it("has 0 findings, with every check (the backend, site and performance ones too) on desktop and mobile", async () => {
     const report = await run(`${http}healthy/`, { runs: 3, devices: ["desktop", "mobile"] });
