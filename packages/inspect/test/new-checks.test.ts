@@ -142,7 +142,12 @@ describe("link checks (found on practicetestautomation.com)", () => {
   it("the site's own 403 or 404, and another site's 404, still count", () => {
     expect(linkStatus(`${O}/private`, O, { ok: true, status: 403, finalUrl: `${O}/private`, contentType: null, text: null })).toMatchObject({ checked: true, status: 403 });
     expect(linkStatus(`${O}/old`, O, { ok: true, status: 404, finalUrl: "https://other.example/gone", contentType: null, text: null })).toMatchObject({ checked: true, status: 404 });
-    expect(linkStatus(`${O}/x`, O, { ok: false, error: "ECONNRESET" })).toMatchObject({ checked: true, error: "ECONNRESET" });
+    expect(linkStatus(`${O}/x`, O, { ok: false, error: "certificate has expired" })).toMatchObject({ checked: true, error: "certificate has expired" });
+  });
+  it("the site's own host failing at the network level is this computer's connection, not a broken link (sandbox.oxylabs.io)", () => {
+    for (const error of ["apiRequestContext.get: connect ETIMEDOUT 2606:4700::1:443", "apiRequestContext.get: getaddrinfo ENOTFOUND site.test", "apiRequestContext.get: read ECONNRESET"]) {
+      expect(linkStatus(`${O}/products/7`, O, { ok: false, error })).toMatchObject({ checked: false, error: null });
+    }
   });
 });
 

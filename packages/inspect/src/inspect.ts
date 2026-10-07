@@ -32,12 +32,18 @@ export const INSPECTION_REPORT_FILE = "inspection-report.json";
 /** Answers another site gives automated requests rather than people (bot protection, rate limits). */
 const REFUSALS = new Set([401, 403, 429, 503, 999]);
 
+/** Network-level failures of our own requests (not answers of the site). */
+const OWN_NETWORK_ERROR = /ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENETUNREACH|EHOSTUNREACH|ERR_INTERNET_DISCONNECTED|ERR_NETWORK_CHANGED|socket hang up/i;
+
 /**
  * What a link's GET says about it. A link of the site that redirects to
  * another site which turns automated requests away (Udemy, LinkedIn…) is not
  * broken: what that site would answer a person is unknown, so it is not checked.
  */
 export function linkStatus(url: string, origin: string, r: ProbeResult): LinkStatus {
+  // The site's own host failing at the network level, right after its pages loaded, is this
+  // computer's connection (DNS, timeouts, resets), not a broken link.
+  if (!r.ok && new URL(url).origin === origin && OWN_NETWORK_ERROR.test(r.error)) return { url, status: null, error: null, checked: false };
   if (!r.ok) return { url, status: null, error: r.error, checked: true };
   if (new URL(r.finalUrl).origin !== origin && REFUSALS.has(r.status)) return { url, status: null, error: null, checked: false };
   return { url, status: r.status, error: null, checked: true };
