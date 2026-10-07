@@ -45,7 +45,9 @@ export const mobileTapTargets: Check = {
   run(e) {
     const layout = layoutOf(e);
     if (layout === null) return [];
-    return layout.smallTargets.map(
+    // Not short once rounded (23.6 px is 24), or visually hidden (under 2 px): not a small target on the screen.
+    // The collector skips both now; older layouts may still list them.
+    return layout.smallTargets.filter((t) => (t.width < 24 || t.height < 24) && t.width >= 2 && t.height >= 2).map(
       (t): InspectionObservation => ({
         fingerprint: fingerprintOf(this.id, t.selector),
         title: `Touch target smaller than 24×24 px: ${t.text === "" ? t.selector : `«${t.text}»`}`.slice(0, 200),

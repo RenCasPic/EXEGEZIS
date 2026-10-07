@@ -1,4 +1,4 @@
-import type { Finding, InspectionReport, IssueGroup } from "@exegezis/core";
+import { INSPECTABLE, type Finding, type InspectionReport, type IssueGroup } from "@exegezis/core";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { DeviceScope } from "@/components/inspection/device-scope";
@@ -21,6 +21,8 @@ function Swatch({ fg, bg, label }: { fg: string; bg: string; label: string }) {
 }
 
 function selectorOf(f: Finding): string | null {
+  // A small touch target: its detail starts with "<selector> is <w>×<h> px".
+  if (f.checkId === "mobile-tap-targets") return /^([\s\S]*?) is \d/.exec(f.detail)?.[1] ?? null;
   const i = f.title.indexOf("): ");
   return f.checkId === "a11y" && i >= 0 ? f.title.slice(i + 3) : null;
 }
@@ -62,6 +64,10 @@ export function IssueGroupItem({ inspectionId, group, report }: { inspectionId: 
   const examples = group.examples.map((id) => byId.get(id)).filter((f): f is Finding => f !== undefined);
   const specs = group.findings.filter((id) => byId.get(id)?.spec !== null).length;
   const c = group.contrast;
+  const tap = group.tapTarget;
+  // On every inspected page: most likely a shared template, fixed in one place.
+  const inspected = new Set(report.pages.filter((p) => INSPECTABLE.includes(p.status)).map((p) => p.url)).size;
+  const global = inspected > 1 && group.pages.length >= inspected;
   return (
     <li className="border-b border-line last:border-b-0">
       <details className="group">
@@ -74,6 +80,11 @@ export function IssueGroupItem({ inspectionId, group, report }: { inspectionId: 
             </span>
           )}
           <span className="min-w-0 flex-1 basis-64 text-[13px] font-medium break-words text-fg">{groupTitle(ti, locale, group)}</span>
+          {global && (
+            <span title={t("globalHelp")} className="rounded border border-line-strong px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap text-fg">
+              {t("global")}
+            </span>
+          )}
           <DeviceScope findings={report.findings.filter((f) => group.findings.includes(f.id))} inspected={report.options.devices} />
           <span className="font-mono text-[12px] whitespace-nowrap text-muted">
             {t("counts", { elements: group.elements, pages: group.pages.length })}
@@ -82,6 +93,8 @@ export function IssueGroupItem({ inspectionId, group, report }: { inspectionId: 
         </summary>
         <div className="flex flex-col gap-4 border-t border-line bg-panel-2 px-4 py-4">
           {group.verdict === "MIXED" && <p className="text-[13px] text-fg">{t("mixed", { verified: group.verified, elements: group.elements, intermittent: group.intermittent })}</p>}
+          {global && <p className="text-[13px] text-fg">{t("globalHelp")}</p>}
+          {tap !== null && <p className="text-[13px] text-fg">{t("tapSuggestion", { x: tap.padding.x, y: tap.padding.y })}</p>}
           {c !== null && (
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2">

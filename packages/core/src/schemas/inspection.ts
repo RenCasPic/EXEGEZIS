@@ -2,7 +2,7 @@ import { z } from "zod";
 import { Assertion } from "./assertion.js";
 import { EngineErrorInfo } from "../engine.js";
 import { canonicalJson } from "../hash.js";
-import { deriveIssueGroups } from "../issue-groups.js";
+import { deriveIssueGroups, groupsConsistent } from "../issue-groups.js";
 import { EngineMessage } from "../messages.js";
 import { Timestamp } from "./common.js";
 import { EvidenceRef } from "./verification.js";
@@ -227,6 +227,19 @@ export const IssueGroup = z.strictObject({
       suggestion: z.strictObject({ color: z.string(), ratio: z.number() }).nullable(),
     })
     .nullable(),
+  /** Small touch targets (mobile-tap-targets): what they are, where, and their measured size. */
+  tapTarget: z
+    .strictObject({
+      kind: z.enum(["link", "button", "field", "element"]),
+      place: z.enum(["menu", "header", "footer", "page"]),
+      /** Measured size in CSS px; null for a side that already reaches 24 px. */
+      width: z.int().nullable(),
+      height: z.int().nullable(),
+      /** Padding to add on each side to reach 24×24 px. */
+      padding: z.strictObject({ x: z.int().nonnegative(), y: z.int().nonnegative() }),
+    })
+    .nullable()
+    .default(null),
 });
 export type IssueGroup = z.infer<typeof IssueGroup>;
 
@@ -321,11 +334,14 @@ export const InspectionReport = z
     message: "the summary must follow from the findings, pages and page writes",
     path: ["summary"],
   })
-  .refine((r) => (r.groups === undefined ? r.schemaVersion === "exegezis.inspection-report/v1" : canonicalJson(r.groups) === canonicalJson(deriveIssueGroups(r.findings))), {
+  // The stored groups must be an honest grouping of the findings. How findings
+  // are grouped may have improved since (they are re-derived below), so a
+  // report written before a better grouping still loads, grouped the current way.
+  .refine((r) => (r.groups === undefined ? r.schemaVersion === "exegezis.inspection-report/v1" : groupsConsistent(r.groups, r.findings)), {
     message: "the issue groups must follow from the findings (v2 reports must carry them)",
     path: ["groups"],
   })
-  .transform((r) => ({ ...r, groups: r.groups ?? deriveIssueGroups(r.findings) }));
+  .transform((r) => ({ ...r, groups: deriveIssueGroups(r.findings) }));
 export type InspectionReport = z.output<typeof InspectionReport>;
 export type InspectionReportInput = z.input<typeof InspectionReport>;
 

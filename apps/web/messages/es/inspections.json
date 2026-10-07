@@ -41,7 +41,21 @@
     "mobileText": "Texto de menos de 12 px en {count, plural, one {# sitio} other {# sitios}}",
     "mobileNoViewport": "Sin meta viewport: el móvil muestra la página de escritorio encogida",
     "mobileZoom": "El meta viewport impide hacer zoom",
-    "mobileFixed": "Los elementos fijos tapan el {percent} % de la pantalla"
+    "mobileFixed": "Los elementos fijos tapan el {percent} % de la pantalla",
+    "tapGroup": "{what} {size}: el mínimo es 24×24 px",
+    "tapKind": {
+      "link": "enlaces",
+      "button": "botones",
+      "field": "campos",
+      "element": "objetivos táctiles"
+    },
+    "tapWhat": {
+      "menu": "{kind} del menú",
+      "header": "{kind} de la cabecera",
+      "footer": "{kind} del pie de página",
+      "page": "{kind}"
+    },
+    "tapSize": "{shape, select, both {de {width}×{height} px} tall {de {height} px de alto} other {de {width} px de ancho}}"
   },
   "color": {
     "color": "color",
@@ -79,7 +93,10 @@
     "specs": "{count, plural, one {# spec de Playwright} other {# specs de Playwright}}, uno por elemento verificado",
     "viewElement": "Ver el elemento",
     "shotAlt": "Captura de {page}",
-    "shotAltMarked": "Captura de {page} con los elementos afectados marcados"
+    "shotAltMarked": "Captura de {page} con los elementos afectados marcados",
+    "tapSuggestion": "Sugerencia: que midan al menos 24×24 px, por ejemplo con padding: {y} px {x} px, o que haya al menos 24 px entre el centro de cada uno y el de su vecino (WCAG 2.2, 2.5.8).",
+    "global": "En todas las páginas",
+    "globalHelp": "Aparece en todas las páginas inspeccionadas: seguramente es una plantilla compartida (menú, cabecera o pie) y se corrige en un solo sitio."
   },
   "list": {
     "title": "Inspecciones",

@@ -106,7 +106,15 @@ export function findingTitle(t: InspectionsT, locale: string, checkId: string, t
 }
 
 /** An issue group's title in the reader's language. */
-export function groupTitle(t: InspectionsT, locale: string, g: Pick<IssueGroup, "checkId" | "title" | "contrast">): string {
+export function groupTitle(t: InspectionsT, locale: string, g: Pick<IssueGroup, "checkId" | "title" | "contrast"> & { tapTarget?: IssueGroup["tapTarget"] }): string {
+  const tap = g.tapTarget ?? null;
+  if (tap !== null) {
+    const what = say(t, `title.tapWhat.${tap.place}`, { kind: say(t, `title.tapKind.${tap.kind}`) });
+    const shape = tap.width !== null && tap.height !== null ? "both" : tap.height !== null ? "tall" : "wide";
+    const size = say(t, "title.tapSize", { shape, width: tap.width ?? 0, height: tap.height ?? 0 });
+    const title = say(t, "title.tapGroup", { what, size });
+    return title.charAt(0).toLocaleUpperCase(locale) + title.slice(1);
+  }
   if (g.contrast !== null) {
     const c = g.contrast;
     const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });

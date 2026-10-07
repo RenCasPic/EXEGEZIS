@@ -94,8 +94,13 @@ export const LAYOUT_FACTS_SCRIPT = `(() => {
   for (const el of document.querySelectorAll(interactive)) {
     if (targets.length >= 30) break;
     if (!shown(el)) continue;
-    const r = el.getBoundingClientRect();
-    if (r.width >= 24 && r.height >= 24) continue;
+    // A field inside its <label>: the label is what a finger taps.
+    const lab = /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) ? el.closest("label") : null;
+    const r = (lab && shown(lab) ? lab : el).getBoundingClientRect();
+    // Compared as recorded (whole pixels): 23.6 px is reported as 24 and is not short.
+    if (Math.round(r.width) >= 24 && Math.round(r.height) >= 24) continue;
+    // Visually hidden (sr-only, a styled checkbox's real input): not a target on the screen.
+    if (r.width < 2 || r.height < 2) continue;
     // WCAG exception: a link inside a sentence or a block of text.
     if (el.tagName === "A") {
       const parent = el.parentElement;

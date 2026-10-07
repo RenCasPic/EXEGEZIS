@@ -7,6 +7,7 @@ import {
   deriveSummary,
   InspectionReport,
   normalizeSelector,
+  tapFacts,
   parseHex,
   suggestForeground,
   type CheckResult,
@@ -30,16 +31,29 @@ function contrastObs(selector: string, fg: string, bg: string, ratio: number, re
   };
 }
 
+/** What mobile-tap-targets records for one small target. */
+function tapObs(selector: string, width: number, height: number, text = ""): InspectionObservation {
+  return {
+    fingerprint: `mobile-tap-targets:${selector}`,
+    title: `Touch target smaller than 24×24 px: ${text === "" ? selector : `«${text}»`}`,
+    detail: `${selector} is ${width}×${height} px; WCAG 2.2 (2.5.8, Target Size Minimum) asks for at least 24×24 px, or enough space around it.`,
+    severity: "moderate",
+    thirdParty: false,
+    evidence: [],
+    assertion: null,
+  };
+}
+
 function consoleObs(normalized: string): InspectionObservation {
   return { fingerprint: `console-errors:${normalized}`, title: `Console error: ${normalized}`, detail: "", severity: "moderate", thirdParty: false, evidence: [], assertion: null };
 }
 
 /** A report with `runs` runs over `pages`; `observe(page, run)` says what each check saw. */
-function report(pages: string[], runs: number, observe: (p: string, run: number) => InspectionObservation[]) {
+function report(pages: string[], runs: number, observe: (p: string, run: number) => InspectionObservation[], checkId = "a11y") {
   const visits: PageVisit[] = pages.flatMap((p, i) =>
     Array.from({ length: runs }, (_, r) => ({ url: page(p), depth: i === 0 ? 0 : 1, run: r + 1, status: "OK" as const, finalUrl: page(p), httpStatus: 200, settled: true, reason: null, runPath: `pages/run-${r + 1}/${i}`, blockedWrites: 0, block: null, device: "desktop" as const })),
   );
-  const checks: CheckResult[] = visits.map((v) => ({ checkId: "a11y", checkVersion: "1.0.0", page: v.url, run: v.run, status: "ran", error: null, observations: observe(v.url.slice(SITE.length), v.run), device: "desktop" }));
+  const checks: CheckResult[] = visits.map((v) => ({ checkId, checkVersion: "1.0.0", page: v.url, run: v.run, status: "ran", error: null, observations: observe(v.url.slice(SITE.length), v.run), device: "desktop" }));
   const options = { maxPages: 20, maxDepth: 2, runs, pageTimeoutMs: 30000, totalTimeoutMs: 600000, delayMs: 0, checks: ["a11y"], strictReadonly: false, ignoreRobots: false, storageState: false };
   const { groups } = deriveFindings(checks, visits, runs, false);
   const findings = buildFindings(groups, () => ({ checkVersion: "1.0.0", reproduction: [], spec: null, settled: true }));
@@ -166,5 +180,67 @@ describe("report v2: groups are re-derived when a report loads", () => {
   it("a v1 report loads and gets its groups derived", () => {
     const v1 = InspectionReport.parse({ ...good, groups: undefined, schemaVersion: "exegezis.inspection-report/v1" });
     expect(v1.groups).toEqual(good.groups);
+  });
+});
+
+describe("small touch targets on a phone, grouped like contrast", () => {
+  // The same menu on every page: 4 icons of 18×18 px, at different positions; text links 18 px tall but of different widths.
+  const menu = (p: string) => [
+    ...[1, 2, 3, 4].map((i) => tapObs(`header > nav > ul > li:nth-of-type(${i}) > a`, 18, 18, `Icon ${i}`)),
+    tapObs("footer > div > a:nth-of-type(1)", 64, 18, "Privacy"),
+    tapObs("footer > div > a:nth-of-type(2)", 92, 18, "Terms of use"),
+    ...(p === "b" ? [tapObs("main > form > button", 20, 30, "Go")] : []),
+  ];
+  const r = report(["", "a", "b"], 3, menu, "mobile-tap-targets");
+
+  it("one group per component and size, with its elements, pages and a plain title", () => {
+    const tap = r.groups.filter((g) => g.checkId === "mobile-tap-targets");
+    expect(tap.map((g) => g.title)).toEqual([
+      "Menu links of 18×18 px: the minimum is 24×24 px",
+      "Footer links 18 px tall: the minimum is 24×24 px",
+      "Buttons 20 px wide: the minimum is 24×24 px",
+    ]);
+    expect(tap.map((g) => [g.elements, g.pages.length])).toEqual([
+      [12, 3],
+      [6, 3],
+      [1, 1],
+    ]);
+    expect(tap[0]?.tapTarget).toEqual({ kind: "link", place: "menu", width: 18, height: 18, padding: { x: 3, y: 3 } });
+    expect(tap[1]?.tapTarget).toMatchObject({ kind: "link", place: "footer", width: null, height: 18, padding: { x: 0, y: 3 } });
+    expect(tap[2]?.tapTarget).toMatchObject({ kind: "button", place: "page", width: 20, height: null, padding: { x: 2, y: 0 } });
+    // Up to 5 examples, one per page first.
+    expect(tap[0]?.examples).toHaveLength(5);
+    const pagesOf = (ids: string[]) => ids.map((id) => r.findings.find((f) => f.id === id)?.page);
+    expect(new Set(pagesOf((tap[0]?.examples ?? []).slice(0, 3))).size).toBe(3);
+  });
+
+  it("reads the size back from the recorded detail", () => {
+    expect(tapFacts("nav > a:nth-of-type(2) is 17.6×18.4 px; WCAG …")).toMatchObject({ selector: "nav > a", width: 18, height: 18 });
+    expect(tapFacts("something else")).toBeNull();
+  });
+
+  it("a report grouped the old way (one group per element) still loads, and is grouped the new way", () => {
+    const oldGroups = r.findings.map((f) => ({
+      id: `G-${f.id.slice(-12).toLowerCase().padStart(12, "0").replace(/[^0-9a-f]/g, "0")}`,
+      key: `${f.checkId}|${f.fingerprint}`,
+      checkId: f.checkId,
+      rule: null,
+      title: f.title,
+      severity: f.severity,
+      verdict: f.verdict === "VERIFIED" ? ("VERIFIED" as const) : ("INTERMITTENT" as const),
+      verified: f.verdict === "VERIFIED" ? 1 : 0,
+      intermittent: f.verdict === "VERIFIED" ? 0 : 1,
+      elements: 1,
+      pages: [f.page],
+      findings: [f.id],
+      examples: [f.id],
+      contrast: null,
+    }));
+    const loaded = InspectionReport.parse({ ...r, groups: oldGroups });
+    expect(loaded.groups).toEqual(r.groups);
+    expect(loaded.groups.filter((g) => g.checkId === "mobile-tap-targets")).toHaveLength(3);
+    // Still refused when the old groups lie about their findings.
+    expect(InspectionReport.safeParse({ ...r, groups: oldGroups.slice(1) }).success).toBe(false);
+    expect(InspectionReport.safeParse({ ...r, groups: oldGroups.map((g, i) => (i === 0 ? { ...g, elements: 2 } : g)) }).success).toBe(false);
   });
 });

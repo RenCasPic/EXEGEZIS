@@ -25,7 +25,9 @@ import { handleSearch } from "./search.ts";
  * sideways (a 600 px table), has a 16×16 button, 10 px text, a meta viewport
  * that blocks zoom and a fixed banner over half the screen; a console error
  * only on wide screens ("desktop only") and one on every screen ("both").
- * /devices/fine is the same page done right (0 mobile findings).
+ * /devices/fine is the same page done right (0 mobile findings): its small
+ * checkbox is inside a tall label, a visually hidden link and one 23.6 px tall
+ * (24 once rounded) are not small targets.
  * /groups/ (3 pages) repeats one low-contrast card (#9ca3af on white) on
  * every page, adds a second colour pair (#c4862a on white) on /groups/b, and
  * logs a console error whose numbers change on every load: issue grouping
@@ -119,7 +121,10 @@ const DEVICES_BAD = `<!doctype html>
 
 const DEVICES_FINE = page(
   "Devices · fine",
-  `<main><h1>Done right</h1><p>Readable text, big enough targets, nothing over the content.</p><a href="/devices/" style="display:inline-block;padding:12px">Back</a></main>`,
+  `<main><h1>Done right</h1><p>Readable text, big enough targets, nothing over the content.</p><a href="/devices/" style="display:inline-block;padding:12px">Back</a>
+   <form><label style="display:inline-flex;align-items:center;gap:8px;padding:6px 0"><input type="checkbox" style="width:13px;height:13px"> A small box inside a tall label</label></form>
+   <a href="/devices/" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Visually hidden</a>
+   <a href="/devices/" style="display:inline-block;width:120px;height:23.6px">Almost 24 px</a></main>`,
 );
 
 const HEALTHY_ABOUT = page("Healthy · About", `<main><h1>About the healthy site</h1><a href="/healthy/">Back</a></main>`);

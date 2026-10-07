@@ -41,7 +41,21 @@
     "mobileText": "Text under 12 px in {count, plural, one {# place} other {# places}}",
     "mobileNoViewport": "No meta viewport: phones show the desktop page shrunk",
     "mobileZoom": "The meta viewport keeps people from zooming",
-    "mobileFixed": "Fixed elements cover {percent} % of the screen"
+    "mobileFixed": "Fixed elements cover {percent} % of the screen",
+    "tapGroup": "{what} {size}: the minimum is 24×24 px",
+    "tapKind": {
+      "link": "links",
+      "button": "buttons",
+      "field": "fields",
+      "element": "touch targets"
+    },
+    "tapWhat": {
+      "menu": "menu {kind}",
+      "header": "header {kind}",
+      "footer": "footer {kind}",
+      "page": "{kind}"
+    },
+    "tapSize": "{shape, select, both {of {width}×{height} px} tall {{height} px tall} other {{width} px wide}}"
   },
   "color": {
     "color": "colour",
@@ -79,7 +93,10 @@
     "specs": "{count, plural, one {# Playwright spec} other {# Playwright specs}}, one per verified element",
     "viewElement": "View the element",
     "shotAlt": "Screenshot of {page}",
-    "shotAltMarked": "Screenshot of {page} with the affected elements marked"
+    "shotAltMarked": "Screenshot of {page} with the affected elements marked",
+    "tapSuggestion": "Suggestion: make them at least 24×24 px, for example with padding: {y} px {x} px, or leave at least 24 px between the centre of each one and its neighbour's (WCAG 2.2, 2.5.8).",
+    "global": "On every page",
+    "globalHelp": "It appears on every inspected page: most likely a shared template (menu, header or footer), fixed in one place."
   },
   "list": {
     "title": "Inspections",

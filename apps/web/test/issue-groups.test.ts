@@ -21,6 +21,17 @@ describe("plain-language group titles", () => {
     expect(groupTitle(en, "en", g)).toMatch(/^Text .*gray #9CA3AF on white #FFFFFF: contrast 2.54:1, minimum 4.5:1$/);
   });
 
+  it("small touch targets: what, where and the size, in plain words", () => {
+    const tap = (tapTarget: object) => ({ checkId: "mobile-tap-targets", title: "", contrast: null, tapTarget }) as unknown as IssueGroup;
+    const menu = tap({ kind: "link", place: "menu", width: 18, height: 18, padding: { x: 3, y: 3 } });
+    expect(groupTitle(es, "es", menu)).toBe("Enlaces del menú de 18×18 px: el mínimo es 24×24 px");
+    expect(groupTitle(en, "en", menu)).toBe("Menu links of 18×18 px: the minimum is 24×24 px");
+    const footer = tap({ kind: "link", place: "footer", width: null, height: 18, padding: { x: 0, y: 3 } });
+    expect(groupTitle(es, "es", footer)).toBe("Enlaces del pie de página de 18 px de alto: el mínimo es 24×24 px");
+    expect(groupTitle(en, "en", footer)).toBe("Footer links 18 px tall: the minimum is 24×24 px");
+    expect(groupTitle(es, "es", tap({ kind: "button", place: "page", width: 20, height: null, padding: { x: 2, y: 0 } }))).toBe("Botones de 20 px de ancho: el mínimo es 24×24 px");
+  });
+
   it("rewords the engine's English titles; the page's own text and axe rule ids stay as recorded", () => {
     expect(findingTitle(es, "es", "console-errors", "Console error: Failed to load")).toBe("Error de consola: Failed to load");
     expect(findingTitle(en, "en", "console-errors", "Console error: Failed to load")).toBe("Console error: Failed to load");

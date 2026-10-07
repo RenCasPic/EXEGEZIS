@@ -254,6 +254,7 @@ Los hallazgos (uno por elemento y página) siguen siendo la fuente de verdad. Lo
 **Clave de agrupación:**
 - `color-contrast`: regla + color del texto + color de fondo + tamaño. «Grande» cuando axe exige 3:1 (≥ 18 pt, o ≥ 14 pt en negrita).
 - Otras reglas de axe: regla + selector normalizado, sin `:nth-child` ni otras posiciones y sin ids con dígitos.
+- Objetivos táctiles pequeños (`mobile-tap-targets`): selector normalizado + tamaño medido (redondeado al píxel). Un lado que ya llega a 24 px no cuenta, así que los enlaces de texto de anchos distintos y la misma altura quedan juntos. El título lo dice en lenguaje llano, por ejemplo «Enlaces del menú de 18×18 px: el mínimo es 24×24 px», y el grupo lleva el tipo (enlace, botón, campo), el lugar (menú, cabecera, pie, página) y el padding que falta por lado.
 - Errores de consola y excepciones JS: el mensaje normalizado (sin números, hashes ni query strings).
 - Peticiones fallidas: método + URL sin query + estado.
 - Enlaces rotos: la URL de destino.
@@ -264,11 +265,17 @@ Los hallazgos (uno por elemento y página) siguen siendo la fuente de verdad. Lo
 - la severidad máxima de sus hallazgos;
 - los elementos, las páginas y hasta 5 ejemplos (primero uno por página);
 - el veredicto: **VERIFIED** solo si todos sus hallazgos lo son, **INTERMITTENT** si ninguno lo es y **MIXED** en los demás casos. Un intermitente nunca queda escondido en un grupo verificado;
-- en los de contraste: el peor ratio medido, el ratio exigido y una **sugerencia de color** (la luminosidad más cercana que cumple, con el mismo tono y saturación), rotulada como no verificada.
+- en los de contraste: el peor ratio medido, el ratio exigido y una **sugerencia de color** (la luminosidad más cercana que cumple, con el mismo tono y saturación), rotulada como no verificada;
+- en los táctiles: la sugerencia de tamaño (24×24 px, con el padding que falta) o de separación (24 px entre centros).
+
+La app marca **«En todas las páginas»** un grupo que aparece en todas las páginas inspeccionadas: casi siempre es una plantilla compartida y se corrige en un solo sitio.
 
 **Orden por impacto:** severidad, luego número de elementos, luego número de páginas.
 
-**Esquema:** `InspectionReport` v2 guarda los grupos. Al cargar un informe, los grupos se vuelven a derivar de los hallazgos: si no cuadran, el informe no carga. Los informes v1 cargan y reciben los grupos derivados.
+**Esquema:** `InspectionReport` v2 guarda los grupos. Al cargar un informe:
+- los grupos guardados tienen que ser una agrupación honesta de los hallazgos: cada hallazgo en un solo grupo, y los recuentos, páginas, veredicto, severidad y ejemplos de cada grupo salen de sus propios hallazgos. Si no, el informe no carga;
+- después se vuelven a derivar con la regla actual. Así un informe escrito antes de una agrupación mejor (por ejemplo, los táctiles de uno en uno) carga y se agrupa igual que uno nuevo;
+- los informes v1 cargan y reciben los grupos derivados.
 
 **Desviación respecto al diseño pedido.** Los datos de contraste (colores, tamaño y ratio) se leen del texto que axe guarda en cada hallazgo, no de campos nuevos del informe. Es la única forma de que los informes v1 obtengan también sus grupos. El texto es estable porque axe-core está fijado a 4.13.0.
 
