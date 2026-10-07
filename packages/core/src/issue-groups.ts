@@ -123,7 +123,9 @@ export function issueKey(f: Pick<Finding, "checkId" | "fingerprint" | "title" | 
     const t = tapFacts(f.detail);
     if (t !== null) {
       const { selector, ...tap } = t;
-      return { key: `mobile-tap-targets|${selector}|${tap.width ?? "ok"}x${tap.height ?? "ok"}`, rule: null, contrast: null, tap };
+      // Elements known only by their own id (every field of a form, input#firstName…): one component, by its tag.
+      const component = /^[a-z][a-z0-9-]*#[^\s>]+$/.test(selector) ? selector.slice(0, selector.indexOf("#")) : selector;
+      return { key: `mobile-tap-targets|${component}|${tap.width ?? "ok"}x${tap.height ?? "ok"}`, rule: null, contrast: null, tap };
     }
   }
   if (f.checkId === "heavy-resources") {

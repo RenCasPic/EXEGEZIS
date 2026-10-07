@@ -226,6 +226,12 @@ describe("small touch targets on a phone, grouped like contrast", () => {
     expect(new Set(pagesOf((tap[0]?.examples ?? []).slice(0, 3))).size).toBe(3);
   });
 
+  it("the fields of a form, each known by its own id, make one group (found on parabank.parasoft.com)", () => {
+    const fields = report(["", "a"], 3, (p) => ["firstName", "lastName", p === "" ? "ssn" : "zipCode"].map((id) => tapObs(`input#${id}`, 200, 18)), "mobile-tap-targets");
+    const tap = fields.groups.filter((g) => g.checkId === "mobile-tap-targets");
+    expect(tap.map((g) => [g.title, g.elements, g.pages.length])).toEqual([["Fields 18 px tall: the minimum is 24×24 px", 6, 2]]);
+  });
+
   it("reads the size back from the recorded detail", () => {
     expect(tapFacts("nav > a:nth-of-type(2) is 17.6×18.4 px; WCAG …")).toMatchObject({ selector: "nav > a", width: 18, height: 18 });
     expect(tapFacts("something else")).toBeNull();

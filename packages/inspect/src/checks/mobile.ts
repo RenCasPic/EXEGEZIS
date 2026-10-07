@@ -51,7 +51,8 @@ export const mobileTapTargets: Check = {
       (t): InspectionObservation => ({
         fingerprint: fingerprintOf(this.id, t.selector),
         title: `Touch target smaller than 24×24 px: ${t.text === "" ? t.selector : `«${t.text}»`}`.slice(0, 200),
-        detail: `${t.selector} is ${t.width}×${t.height} px; WCAG 2.2 (2.5.8, Target Size Minimum) asks for at least 24×24 px, or enough space around it.`,
+        // An element known by its id alone is written with its tag (input#email): what kind of target it is.
+        detail: `${t.selector.startsWith("#") && /^[a-z][a-z0-9-]*$/.test(t.tag) ? t.tag : ""}${t.selector} is ${t.width}×${t.height} px; WCAG 2.2 (2.5.8, Target Size Minimum) asks for at least 24×24 px, or enough space around it.`,
         severity: "moderate",
         thirdParty: false,
         evidence: evidence(e, "Size of the touch target"),

@@ -174,7 +174,7 @@ export const LAYOUT_FACTS_SCRIPT = `(() => {
       const own = (el.textContent || "").replace(/\\s+/g, " ").trim();
       if (parent && text.length > own.length + 20 && getComputedStyle(el).display === "inline") continue;
     }
-    targets.push({ selector: path(el), width: Math.round(r.width), height: Math.round(r.height), text: label(el) });
+    targets.push({ selector: path(el), width: Math.round(r.width), height: Math.round(r.height), text: label(el), tag: el.tagName.toLowerCase() });
   }
 
   const small = [];

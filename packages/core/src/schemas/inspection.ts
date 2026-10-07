@@ -586,7 +586,7 @@ export const PageLayout = z.strictObject({
   /** The outermost elements that stick out sideways, not clipped by a scrolling container. */
   overflowing: z.array(z.strictObject({ selector: z.string(), right: z.number() })),
   /** Touch targets smaller than 24×24 CSS px (WCAG 2.2, 2.5.8), links inside text exempt. */
-  smallTargets: z.array(z.strictObject({ selector: z.string(), width: z.number(), height: z.number(), text: z.string() })),
+  smallTargets: z.array(z.strictObject({ selector: z.string(), width: z.number(), height: z.number(), text: z.string(), /** The element's tag (a, button, input…); empty in older files. */ tag: z.string().default("") })),
   /** Visible text under 12 px. */
   smallText: z.strictObject({ count: z.int().nonnegative(), samples: z.array(z.strictObject({ selector: z.string(), fontSize: z.number(), text: z.string() })) }),
   metaViewport: z.strictObject({ content: z.string().nullable(), blocksZoom: z.boolean() }),
