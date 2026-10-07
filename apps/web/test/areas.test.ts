@@ -5,11 +5,11 @@ import { CATALOGS } from "../src/i18n/messages";
 import { findingTitle, type InspectionsT } from "../src/lib/issue-labels";
 import { buildAreasReport, buildReport } from "./inspection-fixture";
 
-const count = (report: ReturnType<typeof buildAreasReport>) =>
+const count = (report: ReturnType<typeof buildAreasReport>): Record<string, string> =>
   Object.fromEntries(
-    organizeGroups(report.groups, report.findings).flatMap((a) => [
+    organizeGroups(report.groups, report.findings).flatMap((a): [string, string][] => [
       [a.area, `${a.problems} ${a.worst ?? "-"}`],
-      ...a.subareas.filter((s) => s.groups.length > 0).map((s) => [`${a.area}.${s.subarea}`, s.groups.map((g) => g.checkId).join(",")]),
+      ...a.subareas.filter((s) => s.groups.length > 0).map((s): [string, string] => [`${a.area}.${s.subarea}`, s.groups.map((g) => g.checkId).join(",")]),
     ]),
   );
 
