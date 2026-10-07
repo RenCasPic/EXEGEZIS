@@ -292,3 +292,51 @@ Solo en las visitas de móvil y tableta. Son funciones puras de los datos de dis
 | `mobile-fixed-overlap` | Elementos fijos o pegajosos que tapan más del 30 % de la pantalla | moderate |
 
 El sitio de prueba `examples/inspect-lab` tiene `/devices/`, con todos estos problemas, y `/devices/fine`, sin ninguno.
+
+## 11. Backend visto desde fuera
+
+Lo que el servidor responde, sin acceso a él. Por página (`packages/inspect/src/checks/backend.ts`, sobre el documento de la propia página en `network.json`):
+
+| Comprobación | Qué detecta | Severidad |
+|---|---|---|
+| `security-headers` | Falta (o está mal) Strict-Transport-Security (solo HTTPS; menos de 6 meses es corta), Content-Security-Policy (cabecera o `<meta>`; solo *report-only* no cuenta), X-Content-Type-Options: nosniff, protección contra marcos (X-Frame-Options o `frame-ancestors`), Referrer-Policy (o `<meta name="referrer">`; `unsafe-url` es mala) y Permissions-Policy. Cada una con su sugerencia | moderate / minor |
+| `cookies` | Las cookies del propio sitio (cabeceras Set-Cookie): sin Secure en HTTPS, cookie de sesión (por su nombre: sess, sid, auth, token, login…) sin HttpOnly, sin SameSite. **Solo se guardan nombre y atributos, nunca el valor**, que se descarta en el navegador antes de tachar la cabecera | moderate / minor |
+| `slow-response` | Tiempo hasta el primer byte del documento por encima de 1,8 s (umbral «malo» de Google). Solo es hallazgo si es lento en **todas** las repeticiones | moderate |
+
+Del sitio entero (`packages/inspect/src/site.ts`): una sonda por repetición, solo con GET y un saludo TLS, guardada como `site-run-N.json` y comprobada con funciones puras, como las páginas:
+
+| Comprobación | Qué detecta | Severidad |
+|---|---|---|
+| `https` | Certificado no válido (critical); caduca en menos de 30 días (moderate; menos de 7, serious); el sitio no usa HTTPS o HTTP no pasa a HTTPS; más de 2 redirecciones antes de la página. Las direcciones locales o privadas no tienen que usar HTTPS | critical … minor |
+| `site-config` | robots.txt con error 5xx (serious), ausente o que es una página HTML; sitemap ausente, con error, no válido (sin `<urlset>` ni `<sitemapindex>`) o que lista URLs que responden ≥ 400 (se piden las 10 primeras del propio sitio que robots.txt permite); «soft 404»: una dirección que no puede existir responde 200 | serious … minor |
+
+## 12. Rendimiento (laboratorio)
+
+Medidas de laboratorio desde el equipo que inspecciona, **no datos de visitantes reales**: la UI lo dice junto a la tabla.
+
+- **Qué se mide en cada visita** (adapter-browser: `PERF_OBSERVER_SCRIPT` se instala antes que los scripts de la página; `PERF_FACTS_SCRIPT` lo lee cuando está lista y antes de axe): FCP, LCP, CLS (la mayor ventana de sesión, como Core Web Vitals), Total Blocking Time después de la primera pintura (aproxima el INP en el laboratorio), DOMContentLoaded y load; y, de `network.json`, el TTFB del documento, los bytes transferidos y el número de peticiones. Se guarda en cada visita (`pages[].metrics`).
+- **La UI** muestra por página y dispositivo la **mediana** de las repeticiones y su **rango**, con los colores de los umbrales de Google (bueno / mejorable / malo).
+- **Hallazgos** (`perf-vitals`): LCP > 4 s, CLS > 0,25, TBT > 600 ms, **solo si son malos en N de N repeticiones** (`ALL_RUNS_ONLY` en core: lo malo en algunas repeticiones no se muestra como hallazgo, solo en las métricas).
+- **Recursos pesados** (`heavy-resources`): imágenes de más de 300 KB; imágenes con más del doble de los píxeles con que se dibujan en cada dirección (y ≥ 50 KB); JPEG/PNG/GIF de ≥ 100 KB en lugar de WebP o AVIF; JS y CSS de ≥ 10 KB sin `Content-Encoding`; archivos estáticos que el navegador no puede guardar (no-store, o sin Cache-Control, Expires, ETag ni Last-Modified). Los de otro sitio van a «Servicios externos».
+
+## 13. Frontend y Backend
+
+Un único mapa en core (`issue-areas.ts`) asigna cada comprobación, vieja o nueva, a su subárea. Se aplica al mostrar el informe, así que los informes antiguos se organizan igual:
+
+| Área | Subárea | Comprobaciones |
+|---|---|---|
+| Frontend | Contenido | `broken-links` |
+| | Diseño y accesibilidad | `a11y` |
+| | Funcionamiento (JS, consola) | `js-exceptions`, `console-errors` |
+| | Rendimiento | `perf-vitals`, `heavy-resources` |
+| | SEO | `seo-basics` |
+| | Móvil | `mobile-*` |
+| | Servicios externos | todo lo que viene de otro sitio (anuncios, analítica, widgets) |
+| Backend (visto desde fuera) | Respuestas del servidor | `failed-requests`, `slow-response` |
+| | Seguridad | `mixed-content`, `security-headers`, `cookies`, `https` |
+| | Configuración | `site-config` |
+| | Accesos | páginas bloqueadas, omitidas por robots.txt o por seguridad, límites de peticiones |
+
+En el detalle de la inspección: arriba dos tarjetas (Frontend y Backend, con su número de problemas y la gravedad máxima, y sus subáreas); después área → subárea → grupos. Cada grupo conserva su zona de la página (cabecera, menú, contenido, pie, si sus elementos lo dicen), si está en todas las páginas y sus dispositivos.
+
+Fixtures: `examples/inspect-lab/src/misconfigured.ts` es un sitio entero mal configurado (sin cabeceras, cookie insegura, PNG de 430 KB, JS sin comprimir ni caché, página que tarda 2,5 s, sitemap con una URL rota, soft 404, y por HTTPS un certificado que caduca en 10 días); `/healthy/` da 0 hallazgos con todas las comprobaciones, en escritorio y en móvil.
