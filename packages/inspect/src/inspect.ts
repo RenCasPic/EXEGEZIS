@@ -18,7 +18,8 @@ import {
   type PageVisit,
   type PageWrite,
 } from "@exegezis/core";
-import { selectChecks, type Check, type LinkStatus, type PageEvidence } from "./checks/index.js";
+import { selectChecks, selectSiteChecks, type Check, type LinkStatus, type PageEvidence } from "./checks/index.js";
+import { probeSite, type SiteCheck, type SiteEvidence } from "./site.js";
 import { crawlSite, type CrawlOptions, type CrawlProgress } from "./crawl.js";
 import { DEFAULT_DEVICES } from "./devices.js";
 
@@ -32,6 +33,8 @@ export interface InspectOptions extends CrawlOptions {
   checks?: string[];
   /** Internal links probed per run, beyond the pages visited. */
   maxLinkChecks?: number;
+  /** Tests only: the CA that signed the fixture's certificate, so the TLS check can trust it. */
+  tlsCa?: string;
   onProgress?: (progress: InspectionProgress) => void;
 }
 
@@ -47,6 +50,7 @@ const PLAYWRIGHT_VERSION = (require("playwright/package.json") as { version: str
  */
 export async function inspectSite(options: InspectOptions): Promise<InspectionReport> {
   const checks = selectChecks(options.checks);
+  const siteChecks = selectSiteChecks(options.checks);
   const maxLinkChecks = options.maxLinkChecks ?? 100;
   // Every page on desktop and on mobile unless told otherwise.
   return crawlSite({ ...options, devices: options.devices ?? DEFAULT_DEVICES }, async (crawl) => {
@@ -83,6 +87,23 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       }
     }
 
+    // The site as a whole (HTTPS, configuration): probed once per run, recorded against the entry page.
+    const primary = cfg.devices[0] ?? "desktop";
+    for (let run = 1; engineError === null && siteChecks.length > 0 && run <= cfg.runs; run++) {
+      const at = pages.find((p) => p.url === entry && p.run === run && p.device === primary);
+      if (at === undefined || (at.status !== "OK" && at.status !== "DEGRADED")) continue;
+      await report({ current: `${origin} (HTTPS, robots.txt, sitemap)` });
+      const facts = await probeSite(probe, entry, run, {
+        ...(options.tlsCa === undefined ? {} : { tlsCa: options.tlsCa }),
+        // Self-signed fixtures without their CA: the certificate cannot be judged.
+        skipTls: options.ignoreHTTPSErrors === true && options.tlsCa === undefined,
+        robotsAllowed: allowed,
+      });
+      const path = `site-run-${run}.json`;
+      await writeFile(join(options.dir, path), `${JSON.stringify(facts, null, 2)}\n`, "utf8");
+      for (const check of siteChecks) results.push(runSiteCheck(check, entry, run, primary, { facts, path }));
+    }
+
     // Verdicts, then specs for the VERIFIED findings.
     if (engineError === null) await report({ phase: "specs" });
     const { groups } = deriveFindings(results, pages, cfg.runs, strict);
@@ -97,7 +118,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       specs.set(group.key, onDesktop && f.assertion !== null ? await writeSpec(f.id, f.title, f.page, f.assertion, specDir, options) : null);
     }
     const findings = buildFindings(groups, (g) => ({
-      checkVersion: checks.find((c) => c.id === g.checkId)?.version ?? "",
+      checkVersion: [...checks, ...siteChecks].find((c) => c.id === g.checkId)?.version ?? "",
       reproduction: reproductionSteps(g),
       spec: specs.get(g.key) ?? null,
       settled: pages.filter((p) => p.url === g.page && g.devices.some((d) => d.device === p.device && d.occurrences.includes(p.run))).every((p) => p.settled === true),
@@ -126,7 +147,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       pageTimeoutMs: cfg.pageTimeoutMs,
       totalTimeoutMs: cfg.totalTimeoutMs,
       delayMs: cfg.delayMs,
-      checks: checks.map((c) => c.id),
+      checks: [...checks, ...siteChecks].map((c) => c.id),
       strictReadonly: strict,
       ignoreRobots: options.ignoreRobots === true,
       storageState: options.storageState !== undefined,
@@ -145,7 +166,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
         playwright: PLAYWRIGHT_VERSION,
         axe: firstAxe?.version ?? null,
         axeRules: firstAxe?.rules ?? [],
-        checks: checks.map((c) => ({ id: c.id, version: c.version })),
+        checks: [...checks, ...siteChecks].map((c) => ({ id: c.id, version: c.version })),
         browser,
       },
       robots: { respected: options.ignoreRobots !== true, fetched: crawl.robotsFetched, disallow: crawl.robots?.disallow ?? [] },
@@ -172,6 +193,15 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
 function runCheck(check: Check, v: PageVisit, evidence: PageEvidence | null): CheckResult {
   const base = { checkId: check.id, checkVersion: check.version, page: v.url, run: v.run, device: v.device };
   if (evidence === null) return { ...base, status: "skipped", error: null, observations: [] };
+  try {
+    return { ...base, status: "ran", error: null, observations: check.run(evidence) };
+  } catch (error) {
+    return { ...base, status: "error", error: error instanceof Error ? error.message : String(error), observations: [] };
+  }
+}
+
+function runSiteCheck(check: SiteCheck, entry: string, run: number, device: PageVisit["device"], evidence: SiteEvidence): CheckResult {
+  const base = { checkId: check.id, checkVersion: check.version, page: entry, run, device };
   try {
     return { ...base, status: "ran", error: null, observations: check.run(evidence) };
   } catch (error) {

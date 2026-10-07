@@ -46,6 +46,72 @@ export const MAIN_THREAD_IDLE_SCRIPT = `new Promise((resolve) => {
  * px (WCAG 2.2, 2.5.8; links inside a sentence are exempt), text smaller than
  * 12 px, the meta viewport, and fixed or sticky elements over the screen.
  */
+/**
+ * Installed before the page's own scripts (inspection mode): records the
+ * Largest Contentful Paint, layout shifts (CLS by session windows: gaps under
+ * 1 s, windows up to 5 s) and long tasks, for PERF_FACTS_SCRIPT. Top frame only.
+ */
+export const PERF_OBSERVER_SCRIPT = `(() => {
+  if (window.top !== window || window.__exegezisPerf) return;
+  const p = (window.__exegezisPerf = { lcp: null, cls: 0, win: 0, winStart: 0, last: 0, long: [] });
+  const watch = (type, each) => {
+    try {
+      new PerformanceObserver((list) => list.getEntries().forEach(each)).observe({ type, buffered: true });
+    } catch (e) {}
+  };
+  watch("largest-contentful-paint", (e) => { p.lcp = e.startTime; });
+  watch("layout-shift", (e) => {
+    if (e.hadRecentInput) return;
+    if (p.win > 0 && e.startTime - p.last < 1000 && e.startTime - p.winStart < 5000) p.win += e.value;
+    else { p.win = e.value; p.winStart = e.startTime; }
+    p.last = e.startTime;
+    if (p.win > p.cls) p.cls = p.win;
+  });
+  watch("longtask", (e) => { p.long.push([e.startTime, e.duration]); });
+})()`;
+
+/**
+ * Lab performance of the page, read once it is ready (before axe runs, which
+ * makes long tasks of its own): paints, CLS, Total Blocking Time after the
+ * first paint, DOMContentLoaded and load, and the images drawn with their
+ * file's pixels.
+ */
+export const PERF_FACTS_SCRIPT = `(() => {
+  const p = window.__exegezisPerf || null;
+  const nav = performance.getEntriesByType("navigation")[0];
+  const paint = performance.getEntriesByName("first-contentful-paint")[0];
+  const fcp = paint ? paint.startTime : null;
+  const r = (x) => (x === null || x === undefined ? null : Math.round(x * 10) / 10);
+  let tbt = null;
+  if (p) {
+    tbt = 0;
+    for (const [start, duration] of p.long) {
+      const from = fcp === null ? start : Math.max(start, fcp);
+      const blocking = start + duration - from - 50;
+      if (start + duration > (fcp || 0) && blocking > 0) tbt += Math.min(duration - 50, blocking);
+    }
+  }
+  const images = [];
+  for (const img of Array.from(document.images)) {
+    if (images.length >= 100) break;
+    const src = img.currentSrc || "";
+    if (!/^https?:/.test(src) || !img.complete || img.naturalWidth === 0) continue;
+    const b = img.getBoundingClientRect();
+    if (b.width < 1 || b.height < 1) continue;
+    images.push({ url: src, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight, width: r(b.width), height: r(b.height) });
+  }
+  return {
+    fcpMs: r(fcp),
+    lcpMs: p ? r(p.lcp) : null,
+    cls: p ? Math.round(p.cls * 1000) / 1000 : null,
+    tbtMs: tbt === null ? null : Math.round(tbt),
+    domContentLoadedMs: nav && nav.domContentLoadedEventEnd > 0 ? r(nav.domContentLoadedEventEnd) : null,
+    loadMs: nav && nav.loadEventEnd > 0 ? r(nav.loadEventEnd) : null,
+    images,
+    devicePixelRatio: window.devicePixelRatio || 1,
+  };
+})()`;
+
 export const LAYOUT_FACTS_SCRIPT = `(() => {
   const vw = document.documentElement.clientWidth;
   const vh = window.innerHeight;
@@ -252,6 +318,8 @@ export const PAGE_FACTS_SCRIPT = `(() => {
       viewport: viewport === null ? null : viewport.getAttribute("content"),
       h1Count: document.querySelectorAll("h1").length,
       protocol: location.protocol,
+      cspMeta: (document.querySelector('meta[http-equiv="Content-Security-Policy" i]') || {}).content || null,
+      referrerMeta: (document.querySelector('meta[name="referrer" i]') || {}).content || null,
     },
     links: Array.from(document.querySelectorAll("a[href]"))
       .map((a) => ({ href: a.href, text: (a.textContent || "").trim().slice(0, 80) }))
@@ -270,6 +338,8 @@ export const PageFacts = z.object({
     viewport: z.string().nullable(),
     h1Count: z.int().nonnegative(),
     protocol: z.string(),
+    cspMeta: z.string().nullable(),
+    referrerMeta: z.string().nullable(),
   }),
   links: z.array(z.object({ href: z.string(), text: z.string() })),
   markers: z.array(z.string()),

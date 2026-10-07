@@ -105,6 +105,8 @@ export const PageVisit = z.strictObject({
   /** BLOCKED (and UNREACHABLE · NETWORK_RESTRICTED) visits: the concrete kind and its evidence. */
   block: BlockInfo.nullable().default(null),
   device: Device.default("desktop"),
+  /** Lab measurements of the visit (performance). null when not measured (or reports from before). */
+  metrics: z.lazy(() => PageMetrics).nullable().default(null),
 });
 export type PageVisit = z.infer<typeof PageVisit>;
 
@@ -470,6 +472,8 @@ export function deriveFindings(
         return { device, occurrences, verdict: occurrences.length === runs ? "VERIFIED" : "INTERMITTENT" };
       });
     const verified = g.devices.find((d) => d.verdict === "VERIFIED");
+    // A measurement bad in only some runs is not a finding (the metrics show it).
+    if (verified === undefined && ALL_RUNS_ONLY.has(g.checkId)) continue;
     const most = [...g.devices].sort((a, b) => b.occurrences.length - a.occurrences.length || rank(a.device) - rank(b.device))[0];
     g.verdict = verified === undefined ? "INTERMITTENT" : "VERIFIED";
     g.occurrences = (verified ?? most)?.occurrences ?? [];
@@ -592,6 +596,61 @@ export const PageLayout = z.strictObject({
 });
 export type PageLayout = z.infer<typeof PageLayout>;
 
+/**
+ * Lab performance of one visit, measured in the browser (PERF_OBSERVER_SCRIPT
+ * + PERF_FACTS_SCRIPT): milliseconds from the start of the navigation. A
+ * metric the browser did not report is null.
+ */
+export const PagePerformance = z.strictObject({
+  fcpMs: z.number().nonnegative().nullable(),
+  lcpMs: z.number().nonnegative().nullable(),
+  /** Cumulative Layout Shift: the largest session window, as Core Web Vitals defines it. */
+  cls: z.number().nonnegative().nullable(),
+  /** Total Blocking Time: the long tasks' time over 50 ms, after the first paint (an approximation of INP in the lab). */
+  tbtMs: z.number().nonnegative().nullable(),
+  domContentLoadedMs: z.number().nonnegative().nullable(),
+  loadMs: z.number().nonnegative().nullable(),
+  /** The images shown: their file's size in pixels and the size they are drawn at (CSS px). */
+  images: z.array(z.strictObject({ url: z.string(), naturalWidth: z.int().nonnegative(), naturalHeight: z.int().nonnegative(), width: z.number().nonnegative(), height: z.number().nonnegative() })),
+  devicePixelRatio: z.number().positive(),
+});
+export type PagePerformance = z.infer<typeof PagePerformance>;
+
+/** A Set-Cookie header of the site: what it asks the browser for, never the value. */
+export const SetCookieFacts = z.strictObject({
+  name: z.string(),
+  /** The response that set it. */
+  url: z.string(),
+  secure: z.boolean(),
+  httpOnly: z.boolean(),
+  /** The SameSite attribute as written (Lax, Strict, None), or null when absent. */
+  sameSite: z.string().nullable(),
+  /** No Expires nor Max-Age: it ends with the browser session. */
+  session: z.boolean(),
+});
+export type SetCookieFacts = z.infer<typeof SetCookieFacts>;
+
+/** What a page visit measured, kept in the report: the metrics are shown as a median with their range. */
+export const PageMetrics = z.strictObject({
+  ttfbMs: z.number().nonnegative().nullable(),
+  fcpMs: z.number().nonnegative().nullable(),
+  lcpMs: z.number().nonnegative().nullable(),
+  cls: z.number().nonnegative().nullable(),
+  tbtMs: z.number().nonnegative().nullable(),
+  loadMs: z.number().nonnegative().nullable(),
+  /** Bytes transferred by every request of the visit, and how many requests. */
+  bytes: z.int().nonnegative(),
+  requests: z.int().nonnegative(),
+});
+export type PageMetrics = z.infer<typeof PageMetrics>;
+
+/**
+ * Checks whose observations are measurements that vary from run to run
+ * (lab performance): a finding only when bad in every run (N of N). One
+ * slow run is not a problem to fix; the metrics show it anyway.
+ */
+export const ALL_RUNS_ONLY: ReadonlySet<string> = new Set(["perf-vitals", "slow-response"]);
+
 /** `inspection.json`, written by the browser adapter in inspection mode. */
 export const PageInspectionFile = z.strictObject({
   schemaVersion: z.literal("exegezis.page-inspection/v1"),
@@ -603,6 +662,9 @@ export const PageInspectionFile = z.strictObject({
     viewport: z.string().nullable(),
     h1Count: z.int().nonnegative(),
     protocol: z.string(),
+    /** A Content-Security-Policy and a referrer policy set in <meta> tags (they count as the headers would). */
+    cspMeta: z.string().nullable().default(null),
+    referrerMeta: z.string().nullable().default(null),
   }),
   /** Every a[href] (resolved), http(s) only. */
   links: z.array(z.strictObject({ href: z.string(), text: z.string() })),
@@ -642,5 +704,9 @@ export const PageInspectionFile = z.strictObject({
   blockedWrites: z.array(z.strictObject({ method: z.string(), url: z.string() })),
   /** Layout facts for the mobile checks (LAYOUT_FACTS_SCRIPT). null in files from before they existed. */
   layout: PageLayout.nullable().default(null),
+  /** Lab performance of the visit (PERF_FACTS_SCRIPT). null in files from before it existed. */
+  performance: PagePerformance.nullable().default(null),
+  /** The site's own Set-Cookie headers: names and attributes only, never values. */
+  setCookies: z.array(SetCookieFacts).default([]),
 });
 export type PageInspectionFile = z.infer<typeof PageInspectionFile>;

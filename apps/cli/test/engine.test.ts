@@ -114,7 +114,9 @@ describe("without Playwright's Chromium but with a system browser", () => {
   it("the inspection works and the report says which browser it used", async (ctx) => {
     if (system.length === 0) ctx.skip();
     const out = join(WORK, "inspect-system");
-    const r = await cli(["inspect", "--url", site, "--runs", "2", "--max-pages", "1", "--delay", "0", "--devices", "desktop", "--output", out], { PLAYWRIGHT_BROWSERS_PATH: NO_BROWSERS });
+    // The checks the shop is clean for (it is a local demo without security headers): exit 0.
+    const checks = "js-exceptions,console-errors,failed-requests,broken-links,a11y,mixed-content,seo-basics";
+    const r = await cli(["inspect", "--url", site, "--runs", "2", "--max-pages", "1", "--delay", "0", "--devices", "desktop", "--checks", checks, "--output", out], { PLAYWRIGHT_BROWSERS_PATH: NO_BROWSERS });
     expect(r.code).toBe(0);
     const { report } = onlyInspection(out);
     expect(report.status).toBe("COMPLETED");

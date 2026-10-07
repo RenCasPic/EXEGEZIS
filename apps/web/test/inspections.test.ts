@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CHECKS } from "@exegezis/inspect";
+import { CHECKS, SITE_CHECKS } from "@exegezis/inspect";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "../src/app/api/artifacts/[id]/[...path]/route";
 import { discover } from "../src/lib/evidence/discover";
@@ -217,7 +217,7 @@ describe("inspection jobs", () => {
 
 describe("the inspection form", () => {
   it("offers exactly the checks the inspector has", () => {
-    expect(INSPECT_CHECKS.map((c) => c.id).sort()).toEqual(CHECKS.map((c) => c.id).sort());
+    expect(INSPECT_CHECKS.map((c) => c.id).sort()).toEqual([...CHECKS, ...SITE_CHECKS].map((c) => c.id).sort());
   });
 
   const base = { url: "https://example.com", runs: "", maxPages: "", maxDepth: "", checks: [], devices: ["desktop", "mobile"], storageState: "", strictReadonly: false, ignoreRobots: false, browserChannel: "auto", noSession: false };

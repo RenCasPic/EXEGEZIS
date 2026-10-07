@@ -19,7 +19,14 @@
     "mobile-tap-targets": "Small touch targets",
     "mobile-text-size": "Small text on mobile",
     "mobile-viewport": "Meta viewport",
-    "mobile-fixed-overlap": "Fixed elements over the content"
+    "mobile-fixed-overlap": "Fixed elements over the content",
+    "perf-vitals": "Core Web Vitals",
+    "heavy-resources": "Heavy resources",
+    "security-headers": "Security headers",
+    "cookies": "Cookies",
+    "slow-response": "Slow response",
+    "https": "HTTPS",
+    "site-config": "Site configuration"
   },
   "title": {
     "console": "Console error: {text}",

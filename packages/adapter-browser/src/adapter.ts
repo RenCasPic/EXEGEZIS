@@ -5,6 +5,7 @@ import { launchBrowser } from "./browsers.js";
 import { SUPPORTED_ASSERTIONS } from "./assertions.js";
 import { BrowserAdapterOptions, type BrowserAdapterOptionsInput } from "./options.js";
 import { BrowserSession } from "./session.js";
+import { PERF_OBSERVER_SCRIPT } from "./page-scripts.js";
 
 const require = createRequire(import.meta.url);
 const PLAYWRIGHT_VERSION = (require("playwright/package.json") as { version: string }).version;
@@ -101,6 +102,8 @@ export class BrowserAdapter implements Adapter {
       if (options.trace) {
         await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
       }
+      // Inspections measure the page's own performance: the observers go in before its scripts run.
+      if (options.inspect) await context.addInitScript(PERF_OBSERVER_SCRIPT);
       const page = await context.newPage();
       if (options.coverage) await page.coverage.startJSCoverage({ resetOnNavigation: false });
       const userAgent = await page.evaluate(() => navigator.userAgent);

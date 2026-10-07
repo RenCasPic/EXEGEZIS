@@ -19,7 +19,14 @@
     "mobile-tap-targets": "Objetivos táctiles pequeños",
     "mobile-text-size": "Texto pequeño en móvil",
     "mobile-viewport": "Meta viewport",
-    "mobile-fixed-overlap": "Elementos fijos que tapan contenido"
+    "mobile-fixed-overlap": "Elementos fijos que tapan contenido",
+    "perf-vitals": "Core Web Vitals",
+    "heavy-resources": "Recursos pesados",
+    "security-headers": "Cabeceras de seguridad",
+    "cookies": "Cookies",
+    "slow-response": "Respuesta lenta",
+    "https": "HTTPS",
+    "site-config": "Configuración del sitio"
   },
   "title": {
     "console": "Error de consola: {text}",

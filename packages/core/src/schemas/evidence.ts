@@ -106,6 +106,10 @@ export const NetworkExchangeEvidence = z.strictObject({
     .optional(),
   failure: z.strictObject({ timestamp: Timestamp, errorText: z.string() }).optional(),
   durationMs: z.number().nonnegative().optional(),
+  /** Time to the first byte of the response, from the start of the request (ms). */
+  ttfbMs: z.number().nonnegative().optional(),
+  /** Bytes on the wire: the response body as sent (compressed if it was) and its headers. */
+  sizes: z.strictObject({ body: z.int().nonnegative(), headers: z.int().nonnegative() }).optional(),
 });
 export type NetworkExchangeEvidence = z.infer<typeof NetworkExchangeEvidence>;
 

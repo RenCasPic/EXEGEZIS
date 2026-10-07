@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
 import { handleAccess } from "./access.ts";
+import { misconfiguredHandler } from "./misconfigured.ts";
 import { handleSearch } from "./search.ts";
 
 /*
@@ -18,7 +19,12 @@ import { handleSearch } from "./search.ts";
  * Also: /forms has a POST form and buttons that POST (the inspection must
  * never trigger them) and posts /api/track by itself on load (a page write);
  * /private/* is disallowed by robots.txt; /blocked/ is a CAPTCHA wall;
- * /healthy/ is a healthy section (0 findings expected).
+ * /healthy/ is a healthy section (0 findings expected): every security
+ * header, nothing heavy, listed in a valid sitemap named in robots.txt; the
+ * site answers unknown addresses with a real 404.
+ * misconfigured.ts is a whole misconfigured site on MISCONFIG_PORT (and
+ * MISCONFIG_TLS_PORT with its own certificate): headers, cookie, heavy
+ * files, a slow page, a broken sitemap, a soft 404.
  * /access/* are the access fixtures, one per block kind (see access.ts).
  * /search/* are the search fixtures (see search.ts).
  * /devices/ is the desktop and mobile fixture: on a phone it scrolls
@@ -35,6 +41,7 @@ import { handleSearch } from "./search.ts";
  *
  *   PORT=4300 node src/server.ts
  *   HTTPS_PORT=4443 TLS_KEY_FILE=key.pem TLS_CERT_FILE=cert.pem PORT=4300 node src/server.ts
+ *   MISCONFIG_PORT=4301 MISCONFIG_TLS_PORT=4444 MISCONFIG_KEY_FILE=… MISCONFIG_CERT_FILE=… PORT=4300 node src/server.ts
  */
 
 const PORT = Number(process.env["PORT"] ?? 4300);
@@ -100,7 +107,7 @@ const BLOCKED = page("Attention Required", `<main><h1>Verify you are human</h1><
 
 const HEALTHY = page(
   "Healthy",
-  `<header><nav aria-label="Main"><a href="/healthy/">Home</a> <a href="/healthy/about">About</a></nav></header>
+  `<style>nav a{display:inline-block;padding:12px 8px}</style><header><nav aria-label="Main"><a href="/healthy/">Home</a> <a href="/healthy/about">About</a></nav></header>
    <main><h1>Healthy site</h1><img src="/hero.svg" alt="Lab logo" width="120" height="40"><p>Nothing to find here.</p></main>
    <script>fetch("/api/ok");</script>`,
 );
@@ -127,7 +134,7 @@ const DEVICES_FINE = page(
    <a href="/devices/" style="display:inline-block;width:120px;height:23.6px">Almost 24 px</a></main>`,
 );
 
-const HEALTHY_ABOUT = page("Healthy · About", `<main><h1>About the healthy site</h1><a href="/healthy/">Back</a></main>`);
+const HEALTHY_ABOUT = page("Healthy · About", `<main><h1>About the healthy site</h1><a href="/healthy/" style="display:inline-block;padding:12px 8px">Back</a></main>`);
 
 /** The same low-contrast card on every /groups/ page, at a different position each time. */
 function groupsPage(name: string, extra: string, filler: number): string {
@@ -141,6 +148,15 @@ function groupsPage(name: string, extra: string, filler: number): string {
      <script>console.error("Request " + Math.floor(Math.random() * 100000) + " failed after " + Date.now() % 1000 + " ms");</script>`,
   );
 }
+
+/** What a well-configured site sends with its pages (the healthy section). */
+const SAFE_HEADERS = {
+  "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-ancestors 'self'",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "SAMEORIGIN",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "permissions-policy": "camera=(), microphone=(), geolocation=()",
+};
 
 function send(res: ServerResponse, status: number, type: string, body: string, headers: Record<string, string> = {}): void {
   res.writeHead(status, { "content-type": type, "cache-control": "no-store", ...headers });
@@ -172,13 +188,13 @@ function handler(secure: boolean) {
       case "/blocked/":
         return send(res, 403, "text/html; charset=utf-8", BLOCKED);
       case "/healthy/":
-        return send(res, 200, "text/html; charset=utf-8", HEALTHY);
+        return send(res, 200, "text/html; charset=utf-8", HEALTHY, SAFE_HEADERS);
       case "/devices/":
         return send(res, 200, "text/html; charset=utf-8", DEVICES_BAD);
       case "/devices/fine":
         return send(res, 200, "text/html; charset=utf-8", DEVICES_FINE);
       case "/healthy/about":
-        return send(res, 200, "text/html; charset=utf-8", HEALTHY_ABOUT);
+        return send(res, 200, "text/html; charset=utf-8", HEALTHY_ABOUT, SAFE_HEADERS);
       case "/groups/":
         return send(res, 200, "text/html; charset=utf-8", groupsPage("home", "", 0));
       case "/groups/a":
@@ -188,13 +204,17 @@ function handler(secure: boolean) {
       case "/private/secret":
         return send(res, 200, "text/html; charset=utf-8", page("Private", "<main><h1>Private</h1></main>"));
       case "/hero.svg":
-        return send(res, 200, "image/svg+xml", '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40"><rect width="120" height="40"/></svg>');
+        return send(res, 200, "image/svg+xml", '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40"><rect width="120" height="40"/></svg>', { "cache-control": "max-age=3600" });
       case "/insecure.js":
         return send(res, 200, "text/javascript", "window.insecureLoaded = true;");
       case "/favicon.ico":
         return send(res, 204, "image/x-icon", "");
       case "/robots.txt":
-        return send(res, 200, "text/plain", "User-agent: *\nDisallow: /private/\n");
+        return send(res, 200, "text/plain", `User-agent: *\nDisallow: /private/\nSitemap: ${secure ? "https" : "http"}://${req.headers.host ?? HOST}/sitemap.xml\n`);
+      case "/sitemap.xml": {
+        const base = `${secure ? "https" : "http"}://${req.headers.host ?? HOST}`;
+        return send(res, 200, "application/xml", `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${base}/healthy/</loc></url><url><loc>${base}/healthy/about</loc></url></urlset>\n`);
+      }
       case "/api/ok":
         return send(res, 200, "application/json", '{"ok":true}');
       case "/api/fail":
@@ -217,6 +237,14 @@ function handler(secure: boolean) {
 }
 
 createHttpServer(handler(false)).listen(PORT, HOST, () => console.log(`inspect-lab http://${HOST}:${PORT}/`));
+const MISCONFIG_PORT = process.env["MISCONFIG_PORT"];
+if (MISCONFIG_PORT !== undefined) createHttpServer(misconfiguredHandler).listen(Number(MISCONFIG_PORT), HOST);
+const MISCONFIG_TLS_PORT = process.env["MISCONFIG_TLS_PORT"];
+if (MISCONFIG_TLS_PORT !== undefined) {
+  const key = readFileSync(process.env["MISCONFIG_KEY_FILE"] ?? "", "utf8");
+  const cert = readFileSync(process.env["MISCONFIG_CERT_FILE"] ?? "", "utf8");
+  createHttpsServer({ key, cert }, misconfiguredHandler).listen(Number(MISCONFIG_TLS_PORT), HOST);
+}
 if (HTTPS_PORT !== null) {
   const key = readFileSync(process.env["TLS_KEY_FILE"] ?? "", "utf8");
   const cert = readFileSync(process.env["TLS_CERT_FILE"] ?? "", "utf8");

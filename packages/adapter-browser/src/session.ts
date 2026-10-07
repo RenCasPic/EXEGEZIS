@@ -28,6 +28,8 @@ import {
   AxeImpact,
   PageInspectionFile,
   PageLayout,
+  PagePerformance,
+  type SetCookieFacts,
   TextBlock,
   TextBlocksFile,
 } from "@exegezis/core";
@@ -36,7 +38,7 @@ import { z } from "zod";
 import { AxeBuilder } from "@axe-core/playwright";
 import { axeSelector, evaluateAssertion } from "./assertions.js";
 import { toLocator } from "./locator.js";
-import { domSettleScript, highlightScript, LAYOUT_FACTS_SCRIPT, MAIN_THREAD_IDLE_SCRIPT, MAIN_VISIBLE_SCRIPT, PAGE_FACTS_SCRIPT, PageFacts, textBlocksScript, UNHIGHLIGHT_SCRIPT } from "./page-scripts.js";
+import { domSettleScript, highlightScript, LAYOUT_FACTS_SCRIPT, MAIN_THREAD_IDLE_SCRIPT, MAIN_VISIBLE_SCRIPT, PAGE_FACTS_SCRIPT, PageFacts, PERF_FACTS_SCRIPT, textBlocksScript, UNHIGHLIGHT_SCRIPT } from "./page-scripts.js";
 import { drainWithDeadline } from "./drain.js";
 import type { BrowserAdapterOptions } from "./options.js";
 import { sameSite } from "./same-site.js";
@@ -83,6 +85,8 @@ export class BrowserSession implements AdapterSession {
   private readonly blockedRequests = new WeakSet<Request>();
   private readonly collectorFailures = new Map<string, string>();
   private readonly blockedWrites: { method: string; url: string }[] = [];
+  /** The site's Set-Cookie headers (inspection mode): names and attributes, never values. */
+  private readonly setCookies: SetCookieFacts[] = [];
   private tracing: boolean;
 
   constructor(
@@ -388,8 +392,10 @@ export class BrowserSession implements AdapterSession {
       dom = await page.evaluate<boolean>(domSettleScript(this.options.domSettleTimeoutMs)).catch(() => false);
     }
     const facts = PageFacts.parse(await page.evaluate<unknown>(PAGE_FACTS_SCRIPT));
-    // Measured before axe outlines anything on the page.
+    // Measured before axe outlines anything on the page (and before its own long tasks).
     const layout = PageLayout.safeParse(await page.evaluate<unknown>(LAYOUT_FACTS_SCRIPT).catch(() => null)).data ?? null;
+    const measured = PagePerformance.safeParse(await page.evaluate<unknown>(PERF_FACTS_SCRIPT).catch(() => null)).data ?? null;
+    const performance = measured === null ? null : { ...measured, images: measured.images.map((i) => ({ ...i, url: this.url(i.url) })) };
 
     let axe: PageInspectionFile["axe"] = null;
     let axeError: string | null = null;
@@ -444,6 +450,8 @@ export class BrowserSession implements AdapterSession {
       },
       blockedWrites: this.blockedWrites,
       layout,
+      performance,
+      setCookies: this.setCookies,
     };
     await this.recorder.writeJson("inspection", "inspection.json", PageInspectionFile.parse(file), {
       description: "Web inspection: links, metadata, axe-core results, block signals",
@@ -748,6 +756,13 @@ export class BrowserSession implements AdapterSession {
     });
     const headers = await response.allHeaders();
     evidence.response.headers = redactHeaders(headers, this.recorder.secrets);
+    // The site's cookies: what each Set-Cookie asks for (Secure, HttpOnly, SameSite), read before
+    // the header is redacted. The value is never kept.
+    if (this.options.inspect && this.site !== null && sameSite(this.site, safeHost(response.url()))) {
+      for (const h of await response.headersArray()) {
+        if (h.name.toLowerCase() === "set-cookie") this.setCookies.push(...parseSetCookies(h.value, this.url(response.url())));
+      }
+    }
   }
 
   private async onRequestFinished(request: Request): Promise<void> {
@@ -756,6 +771,11 @@ export class BrowserSession implements AdapterSession {
     if (evidence === undefined || response === null) return;
     const timing = request.timing();
     if (timing.responseEnd >= 0) evidence.durationMs = Math.round(timing.responseEnd * 1000) / 1000;
+    if (this.options.inspect) {
+      if (timing.responseStart >= 0) evidence.ttfbMs = Math.round(timing.responseStart * 10) / 10;
+      const sizes = await request.sizes().catch(() => null);
+      if (sizes !== null) evidence.sizes = { body: Math.max(0, sizes.responseBodySize), headers: Math.max(0, sizes.responseHeadersSize) };
+    }
     if (evidence.response === undefined || !this.shouldCaptureBody(request.resourceType())) return;
     const mediaType = (await response.headerValue("content-type")) ?? "application/octet-stream";
     try {
@@ -847,6 +867,29 @@ function consoleLevel(type: string): ConsoleLevel {
 
 function truncate(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max)}…`;
+}
+
+/** Set-Cookie header value(s) (one per line when joined) → names and attributes; the value is dropped here. */
+export function parseSetCookies(value: string, url: string): SetCookieFacts[] {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.includes("="))
+    .map((line) => {
+      const [pair = "", ...attributes] = line.split(";");
+      const attrs = attributes.map((a) => a.trim());
+      const lower = attrs.map((a) => a.toLowerCase());
+      const sameSiteAttr = attrs.find((a) => /^samesite\s*=/i.test(a));
+      return {
+        name: pair.slice(0, pair.indexOf("=")).trim(),
+        url,
+        secure: lower.includes("secure"),
+        httpOnly: lower.includes("httponly"),
+        sameSite: sameSiteAttr === undefined ? null : sameSiteAttr.slice(sameSiteAttr.indexOf("=") + 1).trim(),
+        session: !lower.some((a) => a.startsWith("expires=") || a.startsWith("max-age=")),
+      };
+    })
+    .filter((c) => c.name !== "");
 }
 
 function safeHost(url: string): string {

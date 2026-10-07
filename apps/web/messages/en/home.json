@@ -151,7 +151,14 @@
         "mobile-tap-targets": "Small touch targets (WCAG 2.2)",
         "mobile-text-size": "Text too small on mobile",
         "mobile-viewport": "Meta viewport missing or blocking zoom",
-        "mobile-fixed-overlap": "Content covered by fixed elements"
+        "mobile-fixed-overlap": "Content covered by fixed elements",
+        "perf-vitals": "Performance: LCP, CLS and TBT (lab)",
+        "heavy-resources": "Heavy resources (images, JS/CSS, caching)",
+        "security-headers": "Security headers",
+        "cookies": "Cookies (Secure, HttpOnly, SameSite)",
+        "slow-response": "Slow server response (TTFB)",
+        "https": "HTTPS and certificate",
+        "site-config": "robots.txt, sitemap and 404 page"
       },
       "storageState": "storageState (path to a Playwright session file on this computer; its content is not shown or kept in the report)",
       "storagePlaceholder": "e.g. ./auth/state.json",

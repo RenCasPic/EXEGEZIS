@@ -40,6 +40,29 @@ export class HttpProbe {
     return this.send("HEAD", url, false);
   }
 
+  /**
+   * Follows a URL's redirects one hop at a time (GET), up to `maxHops`, and
+   * returns every answer: where HTTP leads, how long the chain is.
+   */
+  async trace(url: string, maxHops = 10): Promise<{ hops: { url: string; status: number }[]; error: string | null }> {
+    const hops: { url: string; status: number }[] = [];
+    let current = url;
+    try {
+      for (let i = 0; i <= maxHops; i++) {
+        const response = await this.context.get(current, { failOnStatusCode: false, maxRedirects: 0 });
+        const status = response.status();
+        const location = response.headers()["location"];
+        await response.dispose();
+        hops.push({ url: current, status });
+        if (status < 300 || status >= 400 || location === undefined) return { hops, error: null };
+        current = new URL(location, current).href;
+      }
+      return { hops, error: "too many redirects" };
+    } catch (error) {
+      return { hops, error: error instanceof Error ? (error.message.split("\n")[0] ?? error.message) : String(error) };
+    }
+  }
+
   async dispose(): Promise<void> {
     await this.context.dispose();
   }

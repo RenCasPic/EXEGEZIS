@@ -40,6 +40,13 @@ export const CHECK_IDS = [
   "mobile-text-size",
   "mobile-viewport",
   "mobile-fixed-overlap",
+  "perf-vitals",
+  "heavy-resources",
+  "security-headers",
+  "cookies",
+  "slow-response",
+  "https",
+  "site-config",
 ] as const;
 
 export const isKnownCheck = (id: string): id is (typeof CHECK_IDS)[number] => (CHECK_IDS as readonly string[]).includes(id);

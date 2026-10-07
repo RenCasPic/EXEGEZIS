@@ -23,6 +23,12 @@ const WORK = join(REPO, "packages/inspect/test/.tmp-e2e");
 let lab: ChildProcess;
 let http: string;
 let https: string;
+/** The misconfigured site (misconfigured.ts), over HTTPS with a certificate that expires in 10 days, and its CA. */
+let misconfigured: string;
+let misconfiguredCa: string;
+
+/** The checks the seeded site's ground truth is about (the backend and performance ones have their own site). */
+const SEEDED_CHECKS = ["js-exceptions", "console-errors", "failed-requests", "broken-links", "a11y", "mixed-content", "seo-basics"];
 
 async function freePort(): Promise<number> {
   return new Promise((done) => {
@@ -50,12 +56,31 @@ beforeAll(async () => {
   const pems = await generate([{ name: "commonName", value: "127.0.0.1" }], { keySize: 2048 });
   writeFileSync(join(WORK, "key.pem"), pems.private);
   writeFileSync(join(WORK, "cert.pem"), pems.cert);
-  const [port, tlsPort] = [await freePort(), await freePort()];
+  // A certificate for 127.0.0.1 that expires in 10 days: the TLS check trusts it (tlsCa) and must warn.
+  const expiring = await generate([{ name: "commonName", value: "127.0.0.1" }], {
+    keySize: 2048,
+    notAfterDate: new Date(Date.now() + 10 * 86_400_000 + 3_600_000),
+    extensions: [{ name: "subjectAltName", altNames: [{ type: 7, ip: "127.0.0.1" }] }],
+  });
+  writeFileSync(join(WORK, "misconfigured-key.pem"), expiring.private);
+  writeFileSync(join(WORK, "misconfigured-cert.pem"), expiring.cert);
+  misconfiguredCa = expiring.cert;
+  const [port, tlsPort, badPort] = [await freePort(), await freePort(), await freePort()];
   http = `http://127.0.0.1:${port}/`;
   https = `https://127.0.0.1:${tlsPort}/`;
+  misconfigured = `https://127.0.0.1:${badPort}/`;
   lab = spawn(process.execPath, ["src/server.ts"], {
     cwd: LAB,
-    env: { ...process.env, PORT: String(port), HTTPS_PORT: String(tlsPort), TLS_KEY_FILE: join(WORK, "key.pem"), TLS_CERT_FILE: join(WORK, "cert.pem") },
+    env: {
+      ...process.env,
+      PORT: String(port),
+      HTTPS_PORT: String(tlsPort),
+      TLS_KEY_FILE: join(WORK, "key.pem"),
+      TLS_CERT_FILE: join(WORK, "cert.pem"),
+      MISCONFIG_TLS_PORT: String(badPort),
+      MISCONFIG_KEY_FILE: join(WORK, "misconfigured-key.pem"),
+      MISCONFIG_CERT_FILE: join(WORK, "misconfigured-cert.pem"),
+    },
     stdio: "ignore",
   });
   const deadline = Date.now() + 15_000;
@@ -78,7 +103,7 @@ afterAll(() => {
 describe("the site with seeded problems (HTTPS, 3 runs)", () => {
   let report: InspectionReport;
   beforeAll(async () => {
-    report = await run(https, { runs: 3 });
+    report = await run(https, { runs: 3, checks: SEEDED_CHECKS });
   }, 300_000);
 
   const verified = () => report.findings.filter((f) => f.verdict === "VERIFIED" && f.severity !== "info");
@@ -146,12 +171,67 @@ describe("the site with seeded problems (HTTPS, 3 runs)", () => {
 });
 
 describe("the healthy site", () => {
-  it("has 0 VERIFIED findings", async () => {
-    const report = await run(`${http}healthy/`, { runs: 3 });
+  it("has 0 findings, with every check (the backend, site and performance ones too) on desktop and mobile", async () => {
+    const report = await run(`${http}healthy/`, { runs: 3, devices: ["desktop", "mobile"] });
     expect(report.status).toBe("COMPLETED");
-    expect(report.pages.filter((p) => p.run === 1).map((p) => p.url).sort()).toEqual([`${http}healthy/`, `${http}healthy/about`]);
-    expect(report.findings.filter((f) => f.verdict === "VERIFIED")).toEqual([]);
+    expect(report.pages.filter((p) => p.run === 1 && p.device === "desktop").map((p) => p.url).sort()).toEqual([`${http}healthy/`, `${http}healthy/about`]);
+    expect(report.findings.map((f) => `${f.checkId} ${f.title}`)).toEqual([]);
+    // The site checks ran, once per run, and every page was measured.
+    expect(report.checks.filter((c) => c.checkId === "site-config" && c.status === "ran").map((c) => c.run)).toEqual([1, 2, 3]);
+    const measured = report.pages.filter((p) => p.status === "OK");
+    expect(measured.every((p) => p.metrics !== null && p.metrics.requests > 0 && p.metrics.bytes > 0 && p.metrics.ttfbMs !== null && p.metrics.fcpMs !== null)).toBe(true);
   }, 300_000);
+});
+
+describe("the misconfigured site (backend and performance, seen from outside)", () => {
+  let report: InspectionReport;
+  beforeAll(async () => {
+    report = await run(misconfigured, { runs: 3, tlsCa: misconfiguredCa });
+  }, 300_000);
+  const found = () =>
+    report.findings
+      .filter((f) => f.verdict === "VERIFIED")
+      .map((f) => `${f.checkId} ${f.fingerprint.slice(f.fingerprint.indexOf(":") + 1).replace(misconfigured, "/")}`)
+      .sort();
+
+  it("finds each problem, verified in 3 of 3 runs", () => {
+    expect(found()).toEqual(
+      expect.arrayContaining([
+        "security-headers hsts-missing",
+        "security-headers csp-missing",
+        "security-headers nosniff-missing",
+        "security-headers framing-allowed",
+        "security-headers referrer-missing",
+        "security-headers permissions-missing",
+        "cookies not-secure sessionid",
+        "cookies not-httponly sessionid",
+        "cookies no-samesite sessionid",
+        "heavy-resources heavy-image /big.png",
+        "heavy-resources legacy-format /big.png",
+        "heavy-resources uncompressed /app.js",
+        "heavy-resources no-cache /app.js",
+        "slow-response ttfb",
+        "https cert-expiring",
+        "site-config sitemap-url /gone",
+        "site-config soft-404",
+      ]),
+    );
+    expect(report.findings.find((f) => f.checkId === "https")?.title).toMatch(/^The HTTPS certificate expires in (9|10) days$/);
+    expect(report.findings.find((f) => f.checkId === "slow-response")?.page).toBe(`${misconfigured}slow`);
+  });
+
+  it("never stores a cookie's value; the site's probe is saved as evidence", () => {
+    expect(JSON.stringify(report)).not.toContain("lab-session-value");
+    expect(report.findings.find((f) => f.checkId === "site-config")?.evidence[0]?.path).toBe("site-run-1.json");
+  });
+
+  it("the metrics of every visit are kept (a median and range can be shown)", () => {
+    const slow = report.pages.filter((p) => p.url === `${misconfigured}slow` && p.status === "OK");
+    expect(slow).toHaveLength(3);
+    expect(slow.every((p) => (p.metrics?.ttfbMs ?? 0) >= 2400)).toBe(true);
+    const home = report.pages.filter((p) => p.url === misconfigured);
+    expect(home.every((p) => (p.metrics?.bytes ?? 0) > 420 * 1024)).toBe(true);
+  });
 });
 
 describe("desktop and mobile (the /devices/ section)", () => {

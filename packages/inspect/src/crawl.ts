@@ -20,6 +20,7 @@ import {
   type Device,
   type EngineErrorInfo,
   type EngineMessage,
+  type PageMetrics,
   type PageVisit,
 } from "@exegezis/core";
 import type { PageEvidence } from "./checks/index.js";
@@ -420,7 +421,7 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
 }
 
 export function skipped(url: string, depth: number, status: "SKIPPED_BUDGET" | "SKIPPED_ROBOTS", reason: EngineMessage, run = 1, device: Device = "desktop"): PageVisit {
-  return { url, depth, run, status, finalUrl: null, httpStatus: null, settled: null, reason: englishOf(reason), reasonMessage: reason, runPath: null, blockedWrites: 0, block: null, device };
+  return { url, depth, run, status, finalUrl: null, httpStatus: null, settled: null, reason: englishOf(reason), reasonMessage: reason, runPath: null, blockedWrites: 0, block: null, device, metrics: null };
 }
 
 interface VisitArgs {
@@ -514,6 +515,7 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
     blockedWrites: inspection?.blockedWrites.length ?? 0,
     block,
     device,
+    metrics: network === null || inspection === null ? null : visitMetrics(network, inspection),
   };
   const evidence =
     consoleFile !== null && network !== null && inspection !== null
@@ -523,6 +525,23 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
   const browser = b?.channel === undefined ? null : { channel: b.channel, version: b.version, system: b.system === true };
   const traceDropped = /trace discarded/.test(outcome.metadata.collectors["trace"]?.detail ?? "");
   return { visit, evidence, browser, traceDropped, textBlocks };
+}
+
+/** What the visit measured: the document's time to first byte, the browser's paints and shifts, bytes and requests. */
+export function visitMetrics(network: NetworkFile, inspection: PageInspectionFile): PageMetrics {
+  // The page's document: the last navigation of the main frame that answered (after any redirects).
+  const doc = [...network.exchanges].reverse().find((x) => x.request.isNavigation && x.request.resourceType === "document" && x.response !== undefined && (x.response.status < 300 || x.response.status >= 400));
+  const p = inspection.performance;
+  return {
+    ttfbMs: doc?.ttfbMs ?? null,
+    fcpMs: p?.fcpMs ?? null,
+    lcpMs: p?.lcpMs ?? null,
+    cls: p?.cls ?? null,
+    tbtMs: p?.tbtMs ?? null,
+    loadMs: p?.loadMs ?? null,
+    bytes: network.exchanges.reduce((n, x) => n + (x.sizes === undefined ? 0 : x.sizes.body + x.sizes.headers), 0),
+    requests: network.exchanges.filter((x) => x.response !== undefined || x.failure !== undefined).length,
+  };
 }
 
 /** Links that log out or act destructively behind a GET: never visited (docs/09-access.md §4). */

@@ -8,7 +8,7 @@ export function evidence(patch: {
   device?: Device;
   messages?: Partial<ConsoleMessageEvidence>[];
   pageErrors?: Partial<PageErrorEvidence>[];
-  exchanges?: { method?: string; url: string; status?: number; failure?: string; isNavigation?: boolean; resourceType?: string; responseHeaders?: Record<string, string> }[];
+  exchanges?: { method?: string; url: string; status?: number; failure?: string; isNavigation?: boolean; resourceType?: string; responseHeaders?: Record<string, string>; bytes?: number; ttfbMs?: number }[];
   inspection?: Partial<PageInspectionFile>;
   links?: PageEvidence["links"];
 }): PageEvidence {
@@ -36,6 +36,8 @@ export function evidence(patch: {
           request: { timestamp: at, method: x.method ?? "GET", url: x.url, resourceType: x.resourceType ?? "fetch", isNavigation: x.isNavigation ?? false, headers: {} },
           ...(x.status === undefined ? {} : { response: { timestamp: at, status: x.status, statusText: "", headers: x.responseHeaders ?? {}, fromServiceWorker: false } }),
           ...(x.failure === undefined ? {} : { failure: { timestamp: at, errorText: x.failure } }),
+          ...(x.bytes === undefined ? {} : { sizes: { body: x.bytes, headers: 300 } }),
+          ...(x.ttfbMs === undefined ? {} : { ttfbMs: x.ttfbMs }),
         }),
       ),
     },
@@ -43,7 +45,7 @@ export function evidence(patch: {
       schemaVersion: "exegezis.page-inspection/v1",
       url: page,
       settled: { network: true, dom: true },
-      meta: { title: "Page", lang: "en", viewport: "width=device-width", h1Count: 1, protocol: new URL(page).protocol },
+      meta: { title: "Page", lang: "en", viewport: "width=device-width", h1Count: 1, protocol: new URL(page).protocol, cspMeta: null, referrerMeta: null },
       links: [],
       axe: null,
       axeError: null,
@@ -51,6 +53,8 @@ export function evidence(patch: {
       blockSignals: { markers: [], passwordField: false, login: { visiblePassword: false, wordsOutsideForms: 200, mainContent: true }, consent: null, cookieNames: [] },
       blockedWrites: [],
       layout: null,
+      performance: null,
+      setCookies: [],
       ...patch.inspection,
     },
     observations: null,

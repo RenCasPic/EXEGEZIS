@@ -5,6 +5,8 @@ export { BrowserAdapterOptions, type BrowserAdapterOptionsInput } from "./option
 export { BrowserSession, TRACE_FILE } from "./session.js";
 export { sanitizeTraceArchive, type TraceSanitizeResult } from "./trace-redaction.js";
 export { HttpProbe, type HttpProbeOptions, type ProbeResult } from "./probe.js";
+export { sameSite, siteOf } from "./same-site.js";
+export { parseSetCookies } from "./session.js";
 export {
   BROWSER_CHANNELS,
   CHANNEL_LABEL,

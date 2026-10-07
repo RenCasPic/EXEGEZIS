@@ -17,6 +17,13 @@ export const INSPECT_CHECKS = [
   { id: "mobile-text-size" },
   { id: "mobile-viewport" },
   { id: "mobile-fixed-overlap" },
+  { id: "perf-vitals" },
+  { id: "heavy-resources" },
+  { id: "security-headers" },
+  { id: "cookies" },
+  { id: "slow-response" },
+  { id: "https" },
+  { id: "site-config" },
 ] as const;
 
 /** --devices values (the CLI's; their names: common.device.<id>). */
