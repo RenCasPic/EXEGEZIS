@@ -1,5 +1,5 @@
 import { assertionMessage, groupStats, SEVERITIES, type Finding, type InspectionReport } from "@exegezis/core";
-import { AlertTriangle, Download, ExternalLink, FileCode2, Globe, Info, ListChecks, Wrench } from "lucide-react";
+import { AlertTriangle, Download, ExternalLink, FileCode2, Gauge, Globe, Info, ListChecks, Wrench } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import { BlockNotice } from "@/components/access/block-notice";
 import { EngineProblem } from "@/components/ui/copy-command";
 import { FilterForm } from "@/components/ui/filter-form";
+import { AreaCards, AreaGroupList, PerformanceTable } from "@/components/inspection/areas";
 import { IssueGroupList } from "@/components/inspection/issue-groups";
 import { buttonClass, CodeBlock, EmptyState, Meta, Mono, PageHeader, Panel, Stat, tableClass } from "@/components/ui/primitives";
 import { DeleteInspection } from "@/components/inspection/delete-inspection";
@@ -269,6 +270,7 @@ export default async function InspectionPage({ params, searchParams }: { params:
   const severityOf = (sev: (typeof SEVERITIES)[number]) => labels(`severity.${sev}`);
   const tcommon = await getTranslations("common");
   const tdev = await getTranslations("inspections.devices");
+  const tperf = await getTranslations("inspections.performance");
   const all = tcommon("filter.all");
 
   return (
@@ -336,6 +338,8 @@ export default async function InspectionPage({ params, searchParams }: { params:
           <Stat label={t("intermittent")} value={stats.intermittentProblems} hint={t("intermittentHint", { count: stats.intermittentElements })} />
         </section>
 
+        <AreaCards report={report} />
+
         <nav aria-label={t("view")} className="flex flex-wrap items-center gap-1 text-[13px]">
           <Link href={viewHref("groups")} aria-current={view === "groups" ? "page" : undefined} className={view === "groups" ? "rounded-md bg-hover px-2.5 py-1 font-medium text-fg" : "rounded-md px-2.5 py-1 text-muted hover:text-fg"}>
             {t("byProblem", { count: problemGroups.length })}
@@ -376,10 +380,14 @@ export default async function InspectionPage({ params, searchParams }: { params:
               {report.status === "COMPLETED" || report.status === "PARTIAL" ? t("noVerifiedBody") : ti(`statusText.${report.status}`)}
             </EmptyState>
           ) : view === "groups" ? (
-            <IssueGroupList inspectionId={inspection.id} groups={shownGroups} report={report} empty={t("noMatchGroups")} />
+            <AreaGroupList inspectionId={inspection.id} groups={shownGroups} report={report} empty={t("noMatchGroups")} />
           ) : (
             <FindingList inspection={inspection} report={report} findings={shown} empty={t("noMatchFindings")} />
           )}
+        </Panel>
+
+        <Panel id="performance" title={tperf("title")} icon={<Gauge />} subtitle={tperf("subtitle")} bodyClassName="p-0">
+          <PerformanceTable report={report} />
         </Panel>
 
         <Panel

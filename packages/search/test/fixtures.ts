@@ -1,6 +1,6 @@
 import { deriveSearchCoverage, deriveSearchHits, deriveSearchStatus, deriveSearchSummary, observationKey, type PageVisit, type SearchObservation, type SearchReportInput } from "@exegezis/core";
 
-const page: PageVisit = { url: "https://a.test/", depth: 0, run: 1, status: "OK", finalUrl: "https://a.test/", httpStatus: 200, settled: true, reason: null, runPath: "pages/run-1/x", blockedWrites: 0, block: null, device: "desktop" };
+const page: PageVisit = { url: "https://a.test/", depth: 0, run: 1, status: "OK", finalUrl: "https://a.test/", httpStatus: 200, settled: true, reason: null, runPath: "pages/run-1/x", blockedWrites: 0, block: null, device: "desktop", metrics: null };
 
 function observation(quote: string, term: string): SearchObservation {
   const at = quote.toLowerCase().indexOf(term);

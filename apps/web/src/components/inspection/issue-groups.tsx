@@ -1,4 +1,4 @@
-import { INSPECTABLE, type Finding, type InspectionReport, type IssueGroup } from "@exegezis/core";
+import { INSPECTABLE, zoneOfGroup, type Finding, type InspectionReport, type IssueGroup } from "@exegezis/core";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { DeviceScope } from "@/components/inspection/device-scope";
@@ -68,6 +68,8 @@ export function IssueGroupItem({ inspectionId, group, report }: { inspectionId: 
   // On every inspected page: most likely a shared template, fixed in one place.
   const inspected = new Set(report.pages.filter((p) => INSPECTABLE.includes(p.status)).map((p) => p.url)).size;
   const global = inspected > 1 && group.pages.length >= inspected;
+  // Where on the page (header, menu, content, footer), when its elements say so.
+  const zone = tap?.place === "menu" || tap?.place === "header" || tap?.place === "footer" ? tap.place : zoneOfGroup(examples);
   return (
     <li className="border-b border-line last:border-b-0">
       <details className="group">
@@ -80,6 +82,7 @@ export function IssueGroupItem({ inspectionId, group, report }: { inspectionId: 
             </span>
           )}
           <span className="min-w-0 flex-1 basis-64 text-[13px] font-medium break-words text-fg">{groupTitle(ti, locale, group)}</span>
+          {zone !== null && <span className="rounded border border-line px-1.5 py-0.5 text-[11px] whitespace-nowrap text-muted">{t(`zone.${zone}`)}</span>}
           {global && (
             <span title={t("globalHelp")} className="rounded border border-line-strong px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap text-fg">
               {t("global")}

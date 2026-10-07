@@ -51,7 +51,7 @@ function consoleObs(normalized: string): InspectionObservation {
 /** A report with `runs` runs over `pages`; `observe(page, run)` says what each check saw. */
 function report(pages: string[], runs: number, observe: (p: string, run: number) => InspectionObservation[], checkId = "a11y") {
   const visits: PageVisit[] = pages.flatMap((p, i) =>
-    Array.from({ length: runs }, (_, r) => ({ url: page(p), depth: i === 0 ? 0 : 1, run: r + 1, status: "OK" as const, finalUrl: page(p), httpStatus: 200, settled: true, reason: null, runPath: `pages/run-${r + 1}/${i}`, blockedWrites: 0, block: null, device: "desktop" as const })),
+    Array.from({ length: runs }, (_, r) => ({ url: page(p), depth: i === 0 ? 0 : 1, run: r + 1, status: "OK" as const, finalUrl: page(p), httpStatus: 200, settled: true, reason: null, runPath: `pages/run-${r + 1}/${i}`, blockedWrites: 0, block: null, device: "desktop" as const, metrics: null })),
   );
   const checks: CheckResult[] = visits.map((v) => ({ checkId, checkVersion: "1.0.0", page: v.url, run: v.run, status: "ran", error: null, observations: observe(v.url.slice(SITE.length), v.run), device: "desktop" }));
   const options = { maxPages: 20, maxDepth: 2, runs, pageTimeoutMs: 30000, totalTimeoutMs: 600000, delayMs: 0, checks: ["a11y"], strictReadonly: false, ignoreRobots: false, storageState: false };

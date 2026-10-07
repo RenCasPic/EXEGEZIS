@@ -68,6 +68,7 @@ const visit = (run: number, status: PageVisit["status"] = "OK", url = PAGE, dept
   blockedWrites: 0,
   block: null,
   device: "desktop",
+  metrics: null,
 });
 const obs = (fingerprint: string, severity: InspectionObservation["severity"] = "serious"): InspectionObservation => ({
   fingerprint,

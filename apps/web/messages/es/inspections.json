@@ -62,7 +62,41 @@
       "footer": "{kind} del pie de página",
       "page": "{kind}"
     },
-    "tapSize": "{shape, select, both {de {width}×{height} px} tall {de {height} px de alto} other {de {width} px de ancho}}"
+    "tapSize": "{shape, select, both {de {width}×{height} px} tall {de {height} px de alto} other {de {width} px de ancho}}",
+    "hstsMissing": "Sin cabecera Strict-Transport-Security",
+    "hstsShort": "Strict-Transport-Security dura solo {seconds} s",
+    "cspMissing": "Sin Content-Security-Policy",
+    "nosniffMissing": "Sin X-Content-Type-Options: nosniff",
+    "framing": "Cualquier sitio puede mostrar esta página en un marco",
+    "referrerMissing": "Sin Referrer-Policy",
+    "referrerUnsafe": "Referrer-Policy: unsafe-url envía direcciones completas a otros sitios",
+    "permissionsMissing": "Sin Permissions-Policy",
+    "cookieSecure": "Cookie {name} sin Secure",
+    "cookieHttpOnly": "Cookie de sesión {name} sin HttpOnly",
+    "cookieSameSite": "Cookie {name} sin SameSite",
+    "slow": "El servidor tarda {seconds} s en empezar a responder (malo: más de 1,8 s)",
+    "lcp": "Largest Contentful Paint de {seconds} s (malo: más de 4 s)",
+    "cls": "Cumulative Layout Shift de {value} (malo: más de 0,25)",
+    "tbt": "Total Blocking Time de {ms} ms (malo: más de 600 ms)",
+    "heavyImage": "Imagen de {kb} KB: {name}",
+    "legacyFormat": "Imagen en {format} en lugar de WebP/AVIF: {name}",
+    "oversized": "Imagen de {w}×{h} px mostrada a {shownW}×{shownH} px: {name}",
+    "uncompressed": "{kind} enviado sin comprimir: {name}",
+    "noCache": "Archivo que el navegador no puede guardar en caché: {name}",
+    "httpEntry": "El sitio responde por HTTP sin pasar a HTTPS",
+    "noHttps": "El sitio no usa HTTPS",
+    "certInvalid": "El certificado HTTPS no es válido ({error})",
+    "certExpiring": "El certificado HTTPS caduca en {days, plural, one {# día} other {# días}}",
+    "httpNoRedirect": "HTTP no redirige a HTTPS",
+    "redirects": "{count} redirecciones antes de la página",
+    "robotsError": "robots.txt responde {status}",
+    "robotsMissing": "No hay robots.txt",
+    "robotsHtml": "robots.txt es una página HTML",
+    "sitemapMissing": "No hay sitemap",
+    "sitemapError": "El sitemap responde {status}",
+    "sitemapInvalid": "El sitemap no es un sitemap válido",
+    "sitemapUrl": "El sitemap incluye {path}, que responde {status}",
+    "soft404": "Las páginas que no existen responden 200 («soft 404»)"
   },
   "color": {
     "color": "color",
@@ -103,7 +137,13 @@
     "shotAltMarked": "Captura de {page} con los elementos afectados marcados",
     "tapSuggestion": "Sugerencia: que midan al menos 24×24 px, por ejemplo con padding: {y} px {x} px, o que haya al menos 24 px entre el centro de cada uno y el de su vecino (WCAG 2.2, 2.5.8).",
     "global": "En todas las páginas",
-    "globalHelp": "Aparece en todas las páginas inspeccionadas: seguramente es una plantilla compartida (menú, cabecera o pie) y se corrige en un solo sitio."
+    "globalHelp": "Aparece en todas las páginas inspeccionadas: seguramente es una plantilla compartida (menú, cabecera o pie) y se corrige en un solo sitio.",
+    "zone": {
+      "header": "Cabecera",
+      "menu": "Menú",
+      "content": "Contenido",
+      "footer": "Pie"
+    }
   },
   "list": {
     "title": "Inspecciones",
@@ -254,5 +294,76 @@
     "both": "En ambos",
     "only": "Solo en {list}",
     "inspected": "Dispositivos"
+  },
+  "areas": {
+    "label": "Frontend y backend",
+    "area": {
+      "frontend": "Frontend",
+      "backend": "Backend (visto desde fuera)"
+    },
+    "areaHint": {
+      "frontend": "lo que la página hace en el navegador",
+      "backend": "el servidor, por lo que responde"
+    },
+    "problems": "{count, plural, one {problema} other {problemas}}",
+    "worst": "Máxima:",
+    "subarea": {
+      "content": "Contenido",
+      "design": "Diseño y accesibilidad",
+      "behaviour": "Funcionamiento (JS, consola)",
+      "performance": "Rendimiento",
+      "seo": "SEO",
+      "mobile": "Móvil",
+      "external": "Servicios externos (anuncios, analítica…)",
+      "responses": "Respuestas del servidor",
+      "security": "Seguridad",
+      "config": "Configuración",
+      "access": "Accesos"
+    },
+    "access": {
+      "none": "Todas las páginas se pudieron visitar, sin bloqueos.",
+      "blocked": "{count, plural, one {# página bloqueada} other {# páginas bloqueadas}} (inicio de sesión, CAPTCHA, cortafuegos…).",
+      "robots": "{count, plural, one {# página no visitada} other {# páginas no visitadas}} porque robots.txt lo pide.",
+      "unsafe": "{count, plural, one {# enlace no visitado} other {# enlaces no visitados}} por seguridad (cerrar sesión, borrar…).",
+      "rateLimit": "El sitio pidió esperar {count, plural, one {# vez} other {# veces}} (límite de peticiones): {seconds} s en total.",
+      "session": "Se usó el acceso guardado (sesión iniciada)."
+    }
+  },
+  "performance": {
+    "title": "Rendimiento (laboratorio)",
+    "subtitle": "Medidas de laboratorio desde este equipo, no datos de visitantes reales: la mediana de las repeticiones y, debajo, su rango. Colores con los umbrales de Google: verde bueno, ámbar mejorable, rojo malo. Un valor malo solo es un problema si lo es en todas las repeticiones.",
+    "none": "No hay medidas de rendimiento en este informe (es anterior a ellas o ninguna página se pudo medir).",
+    "page": "Página",
+    "device": "Dispositivo",
+    "col": {
+      "lcpMs": "LCP",
+      "cls": "CLS",
+      "tbtMs": "TBT",
+      "ttfbMs": "TTFB",
+      "fcpMs": "FCP",
+      "loadMs": "Carga",
+      "bytes": "Peso",
+      "requests": "Peticiones"
+    },
+    "help": {
+      "lcpMs": "Largest Contentful Paint: cuándo aparece el contenido principal (bueno ≤ 2,5 s, malo > 4 s)",
+      "cls": "Cumulative Layout Shift: cuánto se mueve el contenido al cargar (bueno ≤ 0,1, malo > 0,25)",
+      "tbtMs": "Total Blocking Time: tiempo en que JavaScript bloquea la página tras la primera pintura; aproxima el INP (bueno ≤ 200 ms, malo > 600 ms)",
+      "ttfbMs": "Tiempo hasta el primer byte del documento (bueno ≤ 800 ms, malo > 1,8 s)",
+      "fcpMs": "First Contentful Paint: primera pintura con contenido (bueno ≤ 1,8 s, malo > 3 s)",
+      "loadMs": "Hasta el evento load",
+      "bytes": "Bytes transferidos por todas las peticiones de la visita",
+      "requests": "Número de peticiones de la visita"
+    },
+    "rating": {
+      "good": "bueno",
+      "needs-improvement": "mejorable",
+      "poor": "malo"
+    },
+    "deviceName": {
+      "desktop": "Escritorio",
+      "mobile": "Móvil",
+      "tablet": "Tableta"
+    }
   }
 }

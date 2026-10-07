@@ -62,7 +62,41 @@
       "footer": "footer {kind}",
       "page": "{kind}"
     },
-    "tapSize": "{shape, select, both {of {width}×{height} px} tall {{height} px tall} other {{width} px wide}}"
+    "tapSize": "{shape, select, both {of {width}×{height} px} tall {{height} px tall} other {{width} px wide}}",
+    "hstsMissing": "No Strict-Transport-Security header",
+    "hstsShort": "Strict-Transport-Security lasts only {seconds} s",
+    "cspMissing": "No Content-Security-Policy",
+    "nosniffMissing": "No X-Content-Type-Options: nosniff",
+    "framing": "Any site can show this page in a frame",
+    "referrerMissing": "No Referrer-Policy",
+    "referrerUnsafe": "Referrer-Policy: unsafe-url sends full addresses to other sites",
+    "permissionsMissing": "No Permissions-Policy",
+    "cookieSecure": "Cookie {name} without Secure",
+    "cookieHttpOnly": "Session cookie {name} without HttpOnly",
+    "cookieSameSite": "Cookie {name} without SameSite",
+    "slow": "The server takes {seconds} s to start answering (poor: over 1.8 s)",
+    "lcp": "Largest Contentful Paint {seconds} s (poor: over 4 s)",
+    "cls": "Cumulative Layout Shift {value} (poor: over 0.25)",
+    "tbt": "Total Blocking Time {ms} ms (poor: over 600 ms)",
+    "heavyImage": "Image of {kb} KB: {name}",
+    "legacyFormat": "Image in {format} instead of WebP/AVIF: {name}",
+    "oversized": "Image of {w}×{h} px shown at {shownW}×{shownH} px: {name}",
+    "uncompressed": "{kind} sent without compression: {name}",
+    "noCache": "File the browser cannot keep: {name}",
+    "httpEntry": "The site answers over HTTP without moving to HTTPS",
+    "noHttps": "The site does not use HTTPS",
+    "certInvalid": "The HTTPS certificate is not valid ({error})",
+    "certExpiring": "The HTTPS certificate expires in {days, plural, one {# day} other {# days}}",
+    "httpNoRedirect": "HTTP does not redirect to HTTPS",
+    "redirects": "{count} redirects before the page",
+    "robotsError": "robots.txt answers {status}",
+    "robotsMissing": "There is no robots.txt",
+    "robotsHtml": "robots.txt is an HTML page",
+    "sitemapMissing": "There is no sitemap",
+    "sitemapError": "The sitemap answers {status}",
+    "sitemapInvalid": "The sitemap is not a valid sitemap",
+    "sitemapUrl": "The sitemap lists {path}, which answers {status}",
+    "soft404": "Missing pages answer 200 («soft 404»)"
   },
   "color": {
     "color": "colour",
@@ -103,7 +137,13 @@
     "shotAltMarked": "Screenshot of {page} with the affected elements marked",
     "tapSuggestion": "Suggestion: make them at least 24×24 px, for example with padding: {y} px {x} px, or leave at least 24 px between the centre of each one and its neighbour's (WCAG 2.2, 2.5.8).",
     "global": "On every page",
-    "globalHelp": "It appears on every inspected page: most likely a shared template (menu, header or footer), fixed in one place."
+    "globalHelp": "It appears on every inspected page: most likely a shared template (menu, header or footer), fixed in one place.",
+    "zone": {
+      "header": "Header",
+      "menu": "Menu",
+      "content": "Content",
+      "footer": "Footer"
+    }
   },
   "list": {
     "title": "Inspections",
@@ -254,5 +294,76 @@
     "both": "On both",
     "only": "Only on {list}",
     "inspected": "Devices"
+  },
+  "areas": {
+    "label": "Frontend and backend",
+    "area": {
+      "frontend": "Frontend",
+      "backend": "Backend (seen from outside)"
+    },
+    "areaHint": {
+      "frontend": "what the page does in the browser",
+      "backend": "the server, by what it answers"
+    },
+    "problems": "{count, plural, one {problem} other {problems}}",
+    "worst": "Worst:",
+    "subarea": {
+      "content": "Content",
+      "design": "Design and accessibility",
+      "behaviour": "Behaviour (JS, console)",
+      "performance": "Performance",
+      "seo": "SEO",
+      "mobile": "Mobile",
+      "external": "External services (ads, analytics…)",
+      "responses": "Server responses",
+      "security": "Security",
+      "config": "Configuration",
+      "access": "Access"
+    },
+    "access": {
+      "none": "Every page could be visited, without blocks.",
+      "blocked": "{count, plural, one {# page blocked} other {# pages blocked}} (sign-in, CAPTCHA, firewall…).",
+      "robots": "{count, plural, one {# page not visited} other {# pages not visited}} because robots.txt asks so.",
+      "unsafe": "{count, plural, one {# link not visited} other {# links not visited}} for safety (sign out, delete…).",
+      "rateLimit": "The site asked to wait {count, plural, one {once} other {# times}} (rate limit): {seconds} s in all.",
+      "session": "The saved access was used (signed in)."
+    }
+  },
+  "performance": {
+    "title": "Performance (lab)",
+    "subtitle": "Lab measurements from this computer, not data from real visitors: the median of the runs and, below it, their range. Colours by Google's thresholds: green good, amber needs improvement, red poor. A poor value is a problem only when poor in every run.",
+    "none": "There are no performance measurements in this report (it is older than them, or no page could be measured).",
+    "page": "Page",
+    "device": "Device",
+    "col": {
+      "lcpMs": "LCP",
+      "cls": "CLS",
+      "tbtMs": "TBT",
+      "ttfbMs": "TTFB",
+      "fcpMs": "FCP",
+      "loadMs": "Load",
+      "bytes": "Weight",
+      "requests": "Requests"
+    },
+    "help": {
+      "lcpMs": "Largest Contentful Paint: when the main content appears (good ≤ 2.5 s, poor > 4 s)",
+      "cls": "Cumulative Layout Shift: how much the content moves while loading (good ≤ 0.1, poor > 0.25)",
+      "tbtMs": "Total Blocking Time: JavaScript blocking the page after the first paint; approximates INP (good ≤ 200 ms, poor > 600 ms)",
+      "ttfbMs": "Time to the document's first byte (good ≤ 800 ms, poor > 1.8 s)",
+      "fcpMs": "First Contentful Paint (good ≤ 1.8 s, poor > 3 s)",
+      "loadMs": "Up to the load event",
+      "bytes": "Bytes transferred by every request of the visit",
+      "requests": "Requests of the visit"
+    },
+    "rating": {
+      "good": "good",
+      "needs-improvement": "needs improvement",
+      "poor": "poor"
+    },
+    "deviceName": {
+      "desktop": "Desktop",
+      "mobile": "Mobile",
+      "tablet": "Tablet"
+    }
   }
 }

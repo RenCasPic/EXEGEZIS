@@ -159,7 +159,7 @@ describe("mixed-content", () => {
 describe("seo-basics", () => {
   it("is informational and silent on a complete page", () => {
     expect(seoBasics.run(evidence({}))).toEqual([]);
-    const out = seoBasics.run(evidence({ inspection: { meta: { title: "", lang: null, viewport: null, h1Count: 2, protocol: "https:" } } }));
+    const out = seoBasics.run(evidence({ inspection: { meta: { title: "", lang: null, viewport: null, h1Count: 2, protocol: "https:", cspMeta: null, referrerMeta: null } } }));
     expect(out.map((o) => o.fingerprint)).toEqual(["seo-basics:title", "seo-basics:lang", "seo-basics:viewport", "seo-basics:h1-many"]);
     expect(out.every((o) => o.severity === "info")).toBe(true);
     expect(assertionsValid(out)).toBe(true);

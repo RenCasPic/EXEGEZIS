@@ -88,6 +88,7 @@ const page = (url: string, status: PageVisit["status"], run = 1, depth = 0): Pag
   blockedWrites: 0,
   block: null,
   device: "desktop",
+  metrics: null,
 });
 
 function observation(run: number, quoteText: string, term: string): SearchObservation {

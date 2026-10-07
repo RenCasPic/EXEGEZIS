@@ -57,6 +57,62 @@ const SEO: Record<string, string> = {
   "The page has no h1": "title.noH1",
 };
 
+/**
+ * Titles of the backend and performance checks: [check, pattern, key, names of
+ * the captured values]. Numbers are passed as numbers, names as they are.
+ */
+const PATTERNS: [string, RegExp, string, string[]][] = [
+  ["security-headers", /^No Strict-Transport-Security header$/, "hstsMissing", []],
+  ["security-headers", /^Strict-Transport-Security lasts only (\d+) s$/, "hstsShort", ["seconds"]],
+  ["security-headers", /^No Content-Security-Policy$/, "cspMissing", []],
+  ["security-headers", /^No X-Content-Type-Options: nosniff$/, "nosniffMissing", []],
+  ["security-headers", /^Any site can show this page in a frame$/, "framing", []],
+  ["security-headers", /^No Referrer-Policy$/, "referrerMissing", []],
+  ["security-headers", /^Referrer-Policy: unsafe-url/, "referrerUnsafe", []],
+  ["security-headers", /^No Permissions-Policy$/, "permissionsMissing", []],
+  ["cookies", /^Cookie (.+) without Secure$/, "cookieSecure", ["name"]],
+  ["cookies", /^Session cookie (.+) without HttpOnly$/, "cookieHttpOnly", ["name"]],
+  ["cookies", /^Cookie (.+) without SameSite$/, "cookieSameSite", ["name"]],
+  ["slow-response", /^The server takes ([\d.]+) s to start answering/, "slow", ["seconds"]],
+  ["perf-vitals", /^Largest Contentful Paint ([\d.]+) s/, "lcp", ["seconds"]],
+  ["perf-vitals", /^Cumulative Layout Shift ([\d.]+)/, "cls", ["value"]],
+  ["perf-vitals", /^Total Blocking Time (\d+) ms/, "tbt", ["ms"]],
+  ["heavy-resources", /^Image of (\d+) KB: (.+)$/, "heavyImage", ["kb", "name"]],
+  ["heavy-resources", /^Image in (\w+) instead of WebP\/AVIF: (.+)$/, "legacyFormat", ["format", "name"]],
+  ["heavy-resources", /^Image of (\d+)×(\d+) px shown at (\d+)×(\d+) px: (.+)$/, "oversized", ["w", "h", "shownW", "shownH", "name"]],
+  ["heavy-resources", /^(JavaScript|CSS) sent without compression: (.+)$/, "uncompressed", ["kind", "name"]],
+  ["heavy-resources", /^File the browser cannot keep: (.+)$/, "noCache", ["name"]],
+  ["https", /^The site answers over HTTP without moving to HTTPS$/, "httpEntry", []],
+  ["https", /^The site does not use HTTPS$/, "noHttps", []],
+  ["https", /^The HTTPS certificate is not valid \((.+)\)$/, "certInvalid", ["error"]],
+  ["https", /^The HTTPS certificate expires in (-?\d+) days$/, "certExpiring", ["days"]],
+  ["https", /^HTTP does not redirect to HTTPS$/, "httpNoRedirect", []],
+  ["https", /^(\d+) redirects before the page$/, "redirects", ["count"]],
+  ["site-config", /^robots\.txt answers (\d+)$/, "robotsError", ["status"]],
+  ["site-config", /^There is no robots\.txt$/, "robotsMissing", []],
+  ["site-config", /^robots\.txt is an HTML page$/, "robotsHtml", []],
+  ["site-config", /^There is no sitemap$/, "sitemapMissing", []],
+  ["site-config", /^The sitemap answers (\d+)$/, "sitemapError", ["status"]],
+  ["site-config", /^The sitemap is not a valid sitemap$/, "sitemapInvalid", []],
+  ["site-config", /^The sitemap lists (\S+), which answers (\d+)$/, "sitemapUrl", ["path", "status"]],
+  ["site-config", /^Missing pages answer 200/, "soft404", []],
+];
+
+function patternTitle(t: InspectionsT, checkId: string, title: string): string | null {
+  for (const [check, re, key, names] of PATTERNS) {
+    if (check !== checkId) continue;
+    const m = re.exec(title);
+    if (m === null) continue;
+    const values: Record<string, string | number> = {};
+    names.forEach((n, i) => {
+      const v = m[i + 1] ?? "";
+      values[n] = /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v;
+    });
+    return say(t, `title.${key}`, values);
+  }
+  return null;
+}
+
 /** A finding's title (as the engine wrote it) in the reader's language. */
 export function findingTitle(t: InspectionsT, locale: string, checkId: string, title: string): string {
   let m: RegExpExecArray | null;
@@ -101,7 +157,7 @@ export function findingTitle(t: InspectionsT, locale: string, checkId: string, t
       m = /^Fixed elements cover (\d+) % of the screen$/.exec(title);
       return m === null ? title : say(t, "title.mobileFixed", { percent: Number(m[1]) });
     default:
-      return title;
+      return patternTitle(t, checkId, title) ?? title;
   }
 }
 
