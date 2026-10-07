@@ -1,6 +1,6 @@
 import { parseSetCookies } from "@exegezis/adapter-browser";
 import { describe, expect, it } from "vitest";
-import { cookies, heavyResources, perfVitals, securityHeaders, slowResponse } from "../src/index.js";
+import { cookies, heavyResources, linkStatus, perfVitals, securityHeaders, slowResponse } from "../src/index.js";
 import { httpsCheck, NOT_FOUND_PATH, siteConfig, type SiteFacts } from "../src/site.js";
 import { evidence } from "./evidence.js";
 
@@ -120,8 +120,29 @@ describe("heavy-resources", () => {
     expect(ids(out)).toEqual(["no-cache https://site.test/app.css", "uncompressed https://cdn.ads.example/ad.js", "uncompressed https://site.test/app.js"]);
     expect(out.find((o) => o.fingerprint.includes("ads.example"))?.thirdParty).toBe(true);
   });
+  it("an image drawn in the page from a CDN is the site's content, not a third party's", () => {
+    const performance = { fcpMs: 1, lcpMs: 1, cls: 0, tbtMs: 0, domContentLoadedMs: 1, loadMs: 1, devicePixelRatio: 1, images: [{ url: "https://i0.wp.com/site.test/hero.png", naturalWidth: 800, naturalHeight: 600, width: 800, height: 600 }] };
+    const out = heavyResources.run(evidence({ exchanges: [img("https://i0.wp.com/site.test/hero.png", 700 * 1024, "image/png")], inspection: { performance } }));
+    expect(out.map((o) => [o.fingerprint.split(" ")[0], o.thirdParty, o.severity])).toEqual([
+      ["heavy-resources:heavy-image", false, "moderate"],
+      ["heavy-resources:legacy-format", false, "minor"],
+    ]);
+  });
+
   it("an ETag or Last-Modified is enough caching", () => {
     expect(heavyResources.run(evidence({ exchanges: [{ url: "https://site.test/f.woff2", status: 200, resourceType: "font", bytes: 5000, responseHeaders: { "last-modified": "Mon, 01 Jan 2024 00:00:00 GMT" } }] }))).toEqual([]);
+  });
+});
+
+describe("link checks (found on practicetestautomation.com)", () => {
+  const O = "https://site.test";
+  it("a link that leaves for a site that refuses automated requests is not checked, not broken", () => {
+    expect(linkStatus(`${O}/course`, O, { ok: true, status: 403, finalUrl: "https://www.udemy.com/course/x/", contentType: "text/html", text: null })).toMatchObject({ checked: false, status: null });
+  });
+  it("the site's own 403 or 404, and another site's 404, still count", () => {
+    expect(linkStatus(`${O}/private`, O, { ok: true, status: 403, finalUrl: `${O}/private`, contentType: null, text: null })).toMatchObject({ checked: true, status: 403 });
+    expect(linkStatus(`${O}/old`, O, { ok: true, status: 404, finalUrl: "https://other.example/gone", contentType: null, text: null })).toMatchObject({ checked: true, status: 404 });
+    expect(linkStatus(`${O}/x`, O, { ok: false, error: "ECONNRESET" })).toMatchObject({ checked: true, error: "ECONNRESET" });
   });
 });
 

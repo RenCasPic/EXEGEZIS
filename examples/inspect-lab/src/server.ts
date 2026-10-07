@@ -69,6 +69,7 @@ function home(secure: boolean): string {
       <a href="/broken-page">Old page</a>
       <a href="/private/secret">Private</a>
       <a href="https://example.org/">Example (external)</a>
+      <a href="http://[bad">Malformed address</a>
     </nav></header>
     <main>
       <h1>Inspect Lab</h1>

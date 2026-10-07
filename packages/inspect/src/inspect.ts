@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join } from "node:path";
+import type { ProbeResult } from "@exegezis/adapter-browser";
 import { compileToPlaywright } from "@exegezis/compiler-playwright";
 import {
   buildFindings,
@@ -27,6 +28,20 @@ export { PROGRESS_FILE, unsafeLinkMatcher, userAgentFor } from "./crawl.js";
 export { DEFAULT_DEVICES, DEVICE_PROFILES } from "./devices.js";
 
 export const INSPECTION_REPORT_FILE = "inspection-report.json";
+
+/** Answers another site gives automated requests rather than people (bot protection, rate limits). */
+const REFUSALS = new Set([401, 403, 429, 503, 999]);
+
+/**
+ * What a link's GET says about it. A link of the site that redirects to
+ * another site which turns automated requests away (Udemy, LinkedIn…) is not
+ * broken: what that site would answer a person is unknown, so it is not checked.
+ */
+export function linkStatus(url: string, origin: string, r: ProbeResult): LinkStatus {
+  if (!r.ok) return { url, status: null, error: r.error, checked: true };
+  if (new URL(r.finalUrl).origin !== origin && REFUSALS.has(r.status)) return { url, status: null, error: null, checked: false };
+  return { url, status: r.status, error: null, checked: true };
+}
 
 export interface InspectOptions extends CrawlOptions {
   id: string;
@@ -68,8 +83,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       if (cached !== undefined) return cached;
       if (probes >= maxLinkChecks * cfg.runs || overBudget()) return { url, status: null, error: null, checked: false };
       probes += 1;
-      const r = await probe.get(url);
-      const status: LinkStatus = r.ok ? { url, status: r.status, error: null, checked: true } : { url, status: null, error: r.error, checked: true };
+      const status = linkStatus(url, origin, await probe.get(url));
       probed.set(key, status);
       return status;
     };
@@ -79,7 +93,7 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       const runChecks = evidence !== null && (v.status === "OK" || v.status === "DEGRADED" || (v.status === "HTTP_ERROR" && v.depth === 0));
       let links: LinkStatus[] = [];
       if (runChecks) {
-        const internal = [...new Set(evidence.inspection.links.map((l) => normalizePageUrl(l.href)).filter((u) => new URL(u).origin === origin))];
+        const internal = [...new Set(evidence.inspection.links.filter((l) => URL.canParse(l.href)).map((l) => normalizePageUrl(l.href)).filter((u) => new URL(u).origin === origin))];
         links = await Promise.all(internal.map((u) => statusOf(u, v.run)));
       }
       for (const check of checks) {

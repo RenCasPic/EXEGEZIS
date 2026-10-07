@@ -80,7 +80,8 @@ export const heavyResources: Check = {
       const h = Object.fromEntries(Object.entries(r.headers).map(([k, v]) => [k.toLowerCase(), v]));
       const type = (h["content-type"] ?? "").toLowerCase();
       const bytes = x.sizes.body;
-      const thirdParty = !sameSite(host(x.request.url), host(e.page));
+      // An image drawn in the page itself is the site's content, even from a CDN (i0.wp.com, cloudfront…).
+      const thirdParty = !sameSite(host(x.request.url), host(e.page)) && !shown.has(url);
       const name = new URL(url).pathname.split("/").pop() || url;
       const add = (rule: string, severity: Severity, title: string, detail: string) => out.push(observation(e, x, `${rule} ${url}`, severity, title, detail, thirdParty));
       const image = x.request.resourceType === "image" || type.startsWith("image/");

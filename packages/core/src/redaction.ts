@@ -77,18 +77,28 @@ export class SecretRegistry {
   addHeaderValue(name: string, value: string): void {
     const lower = name.toLowerCase();
     if (lower === "cookie") {
-      for (const pair of value.split(";")) this.add(cookieValue(pair));
+      for (const pair of value.split(";")) this.addCookieValue(cookieValue(pair));
       return;
     }
     if (lower === "set-cookie") {
       // Playwright joins multiple Set-Cookie headers with newlines.
-      for (const line of value.split("\n")) this.add(cookieValue(line.split(";")[0] ?? ""));
+      for (const line of value.split("\n")) this.addCookieValue(cookieValue(line.split(";")[0] ?? ""));
       return;
     }
     this.add(value);
     // "Bearer <token>", "Basic <b64>": track the credential part on its own.
     const match = /^\s*[A-Za-z][\w-]*\s+(\S+)\s*$/.exec(value);
     if (match?.[1] !== undefined) this.add(match[1]);
+  }
+
+  /**
+   * A cookie's value, unless it is only a public address (a landing page or a
+   * referrer some sites keep in a cookie): no session lives in a bare URL, and
+   * scrubbing it would erase the site's own links from the evidence.
+   */
+  private addCookieValue(value: string): void {
+    if (isPublicUrl(value)) return;
+    this.add(value);
   }
 
   get size(): number {
@@ -113,6 +123,17 @@ export class SecretRegistry {
       if (text.includes(value)) leaks++;
     }
     return leaks;
+  }
+}
+
+/** An absolute http(s) URL without credentials nor sensitive query parameters. */
+function isPublicUrl(value: string): boolean {
+  if (!/^https?:\/\/\S+$/i.test(value)) return false;
+  try {
+    const u = new URL(value);
+    return u.username === "" && u.password === "" && ![...u.searchParams.keys()].some((k) => isSensitiveKey(k));
+  } catch {
+    return false;
   }
 }
 

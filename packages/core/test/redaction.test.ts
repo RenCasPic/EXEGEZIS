@@ -59,6 +59,16 @@ describe("SecretRegistry", () => {
     expect(registry.scrub("abc 1")).toBe("abc 1");
   });
 
+  it("a cookie whose value is only a public address is not a secret (found on webscraper.io): the site's links stay readable", () => {
+    const registry = new SecretRegistry();
+    registry.addHeaderValue("set-cookie", "landing=https://shop.example/test-sites/e-commerce/allinone; Path=/\nsid=abcdef123456; HttpOnly");
+    registry.addHeaderValue("cookie", "back=https://shop.example/?token=abcdefgh123; theme=https://shop.example/dark");
+    expect(registry.scrub("https://shop.example/test-sites/e-commerce/allinone/computers")).toBe("https://shop.example/test-sites/e-commerce/allinone/computers");
+    expect(registry.scrub("sid abcdef123456")).toBe(`sid ${REDACTED}`);
+    // An address carrying a sensitive parameter is still a secret.
+    expect(registry.scrub("https://shop.example/?token=abcdefgh123")).toBe(REDACTED);
+  });
+
   it("replaces longer secrets first when one contains another", () => {
     const registry = new SecretRegistry();
     registry.add("secret-value");
