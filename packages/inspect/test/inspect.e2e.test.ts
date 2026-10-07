@@ -170,6 +170,13 @@ describe("the site with seeded problems (HTTPS, 3 runs)", () => {
   }, 300_000);
 });
 
+describe("a contact form with a CAPTCHA (found on practicetestautomation.com/contact)", () => {
+  it("is the form's CAPTCHA, not a bot wall: the page is inspected", async () => {
+    const report = await run(`${http}contact-captcha/`, { runs: 1, checks: SEEDED_CHECKS });
+    expect(report.pages[0]).toMatchObject({ status: "OK", block: null });
+  }, 120_000);
+});
+
 describe("a page whose own CSS and scripts hang (found on the-internet.herokuapp.com)", () => {
   it("is inspected as it is instead of a TIMEOUT of the whole site", async () => {
     const report = await run(`${http}slow-assets/`, { runs: 1, pageTimeoutMs: 4000, checks: SEEDED_CHECKS });

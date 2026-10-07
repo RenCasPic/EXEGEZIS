@@ -129,6 +129,10 @@ describe("heavy-resources", () => {
     ]);
   });
 
+  it("an address with a redacted part is skipped, never a crash (practicetestautomation.com)", () => {
+    expect(heavyResources.run(evidence({ exchanges: [img("https://luma.com[REDACTED]", 400 * 1024)] }))).toEqual([]);
+  });
+
   it("an ETag or Last-Modified is enough caching", () => {
     expect(heavyResources.run(evidence({ exchanges: [{ url: "https://site.test/f.woff2", status: 200, resourceType: "font", bytes: 5000, responseHeaders: { "last-modified": "Mon, 01 Jan 2024 00:00:00 GMT" } }] }))).toEqual([]);
   });

@@ -231,9 +231,15 @@ export const LAYOUT_FACTS_SCRIPT = `(() => {
 export const PAGE_FACTS_SCRIPT = `(() => {
   const text = (document.body ? document.body.innerText : "").slice(0, 5000);
   const markers = [];
+  // A CAPTCHA inside a form with fields of its own (contact, sign-up) belongs to that form: no wall.
+  const inForm = (el) => {
+    const form = el.closest("form");
+    return form !== null && form.querySelectorAll("input:not([type=hidden]):not([type=submit]), textarea, select").length >= 2;
+  };
   // Only a CAPTCHA the visitor sees, at a widget's size: the hidden iframes of an invisible
   // reCAPTCHA or of ads (0×0, size=invisible) are no challenge.
   const frames = Array.from(document.querySelectorAll("iframe"))
+    .filter((f) => !inForm(f))
     .filter((f) => {
       const r = f.getBoundingClientRect();
       const st = getComputedStyle(f);
@@ -245,7 +251,8 @@ export const PAGE_FACTS_SCRIPT = `(() => {
   const dd = frames.some((src) => /captcha-delivery\\.com/i.test(src));
   if (dd) markers.push("datadome iframe");
   for (const selector of [".g-recaptcha", ".h-captcha", ".cf-turnstile", "#challenge-form", "#cf-challenge-running", "#challenge-stage", "#px-captcha"]) {
-    if (document.querySelector(selector) !== null) markers.push(selector);
+    const found = document.querySelector(selector);
+    if (found !== null && !inForm(found)) markers.push(selector);
   }
   const phrases = [
     /verify you are (a )?human/i,

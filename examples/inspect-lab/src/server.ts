@@ -229,6 +229,9 @@ function handler(secure: boolean) {
       case "/api/subscribe":
       case "/api/like":
         return send(res, method === "POST" ? 200 : 405, "application/json", '{"ok":true}');
+      case "/contact-captcha/":
+        // A short contact page whose form has a CAPTCHA: the form's, not a wall (practicetestautomation.com/contact).
+        return send(res, 200, "text/html; charset=utf-8", page("Contact", '<main><h1>Contact</h1><form><label>Name <input name="name"></label><label>Email <input name="email" type="email"></label><label>Message <textarea name="message"></textarea></label><div class="g-recaptcha" data-sitekey="lab" style="width:304px;height:78px"></div><button type="submit">Send</button></form></main>'));
       case "/slow-assets/":
         // Its own stylesheet hangs for 20 s: DOMContentLoaded comes late (as on the-internet.herokuapp.com).
         return send(res, 200, "text/html; charset=utf-8", page("Slow assets", "<main><h1>Slow assets</h1><p>The stylesheet of this page takes 20 s.</p></main>", '<link rel="stylesheet" href="/slow-assets/style.css"><script src="/slow-assets/app.js"></script>'));

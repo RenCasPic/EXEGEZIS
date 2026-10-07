@@ -75,7 +75,8 @@ export const heavyResources: Check = {
       const r = x.response;
       if (r === undefined || r.status !== 200 || x.sizes === undefined || x.request.method !== "GET") continue;
       const url = noQuery(x.request.url);
-      if (!/^https?:/.test(url) || seen.has(url)) continue;
+      // An address with a redacted part is not a usable address (found on practicetestautomation.com).
+      if (!/^https?:/.test(url) || !URL.canParse(url) || seen.has(url)) continue;
       seen.add(url);
       const h = Object.fromEntries(Object.entries(r.headers).map(([k, v]) => [k.toLowerCase(), v]));
       const type = (h["content-type"] ?? "").toLowerCase();
