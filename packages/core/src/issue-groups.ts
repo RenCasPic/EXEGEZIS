@@ -126,6 +126,11 @@ export function issueKey(f: Pick<Finding, "checkId" | "fingerprint" | "title" | 
       return { key: `mobile-tap-targets|${selector}|${tap.width ?? "ok"}x${tap.height ?? "ok"}`, rule: null, contrast: null, tap };
     }
   }
+  if (f.checkId === "heavy-resources") {
+    // The same problem on files that differ only by an id in their path (/product_picture/29, /7…): one group.
+    const rest = f.fingerprint.slice(f.checkId.length + 1);
+    return { key: `heavy-resources|${rest.replace(/\/\d+(?=\/|$)/g, "/<n>")}`, rule: null, contrast: null, tap: null };
+  }
   if (f.checkId === "a11y") {
     const rule = axeRuleOf(f.title);
     if (rule === "color-contrast") {

@@ -162,6 +162,14 @@ describe("issue groups", () => {
   });
 });
 
+describe("heavy resources by their path pattern (found on automationexercise.com)", () => {
+  it("files that differ only by an id in their path make one group", () => {
+    const obs = (id: number): InspectionObservation => ({ fingerprint: `heavy-resources:no-cache https://shop.test/get_product_picture/${id}`, title: `File the browser cannot keep: ${id}`, detail: "", severity: "minor", thirdParty: false, evidence: [], assertion: null });
+    const r = report(["", "a"], 3, (p) => (p === "" ? [obs(1), obs(7)] : [obs(29)]), "heavy-resources");
+    expect(r.groups.map((g) => [g.elements, g.pages.length])).toEqual([[3, 2]]);
+  });
+});
+
 describe("report v2: groups are re-derived when a report loads", () => {
   const good = report(["", "a"], 3, () => [contrastObs(".x", "#9ca3af", "#ffffff", 2.54)]);
 

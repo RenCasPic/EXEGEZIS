@@ -9,7 +9,8 @@ export const brokenLinks: Check = {
   severity: "serious",
   run(e) {
     return e.links
-      .filter((l) => l.checked && (l.error !== null || (l.status !== null && l.status >= 400)))
+      // 405: the address exists, for another method (an API endpoint listed as a link): not broken.
+      .filter((l) => l.checked && (l.error !== null || (l.status !== null && l.status >= 400 && l.status !== 405)))
       .map((l) => {
         const outcome = l.error ?? String(l.status);
         const text = e.inspection.links.find((a) => a.href.replace(/#.*$/, "") === l.url)?.text ?? "";

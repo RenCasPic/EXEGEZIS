@@ -1,6 +1,6 @@
 import { parseSetCookies } from "@exegezis/adapter-browser";
 import { describe, expect, it } from "vitest";
-import { cookies, heavyResources, linkStatus, perfVitals, securityHeaders, slowResponse } from "../src/index.js";
+import { brokenLinks, cookies, heavyResources, linkStatus, perfVitals, securityHeaders, slowResponse, unsafeLinkMatcher } from "../src/index.js";
 import { httpsCheck, NOT_FOUND_PATH, siteConfig, type SiteFacts } from "../src/site.js";
 import { evidence } from "./evidence.js";
 
@@ -131,6 +131,21 @@ describe("heavy-resources", () => {
 
   it("an ETag or Last-Modified is enough caching", () => {
     expect(heavyResources.run(evidence({ exchanges: [{ url: "https://site.test/f.woff2", status: 200, resourceType: "font", bytes: 5000, responseHeaders: { "last-modified": "Mon, 01 Jan 2024 00:00:00 GMT" } }] }))).toEqual([]);
+  });
+});
+
+describe("links found on automationexercise.com", () => {
+  it("an API address that answers 405 to a GET exists: not a broken link", () => {
+    const links = [
+      { url: "https://site.test/api/createAccount", status: 405, error: null, checked: true },
+      { url: "https://site.test/gone", status: 404, error: null, checked: true },
+    ];
+    expect(brokenLinks.run(evidence({ links })).map((o) => o.title)).toEqual(["Broken link to /gone (404)"]);
+  });
+  it("destructive names glued to the next word are never requested (deleteAccount, removeItem, log_out_user)", () => {
+    const unsafe = unsafeLinkMatcher([]);
+    for (const url of ["https://site.test/api/deleteAccount", "https://site.test/cart/removeItem?id=3", "https://site.test/log_out", "https://site.test/user/logOutAll"]) expect(unsafe(url, ""), url).not.toBeNull();
+    for (const url of ["https://site.test/deleted-scenes", "https://site.test/removals", "https://site.test/cancellation-policy"]) expect(unsafe(url, ""), url).toBeNull();
   });
 });
 

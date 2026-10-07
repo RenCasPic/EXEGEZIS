@@ -231,7 +231,15 @@ export const LAYOUT_FACTS_SCRIPT = `(() => {
 export const PAGE_FACTS_SCRIPT = `(() => {
   const text = (document.body ? document.body.innerText : "").slice(0, 5000);
   const markers = [];
-  const frames = Array.from(document.querySelectorAll("iframe")).map((f) => f.src || "");
+  // Only a CAPTCHA the visitor sees, at a widget's size: the hidden iframes of an invisible
+  // reCAPTCHA or of ads (0×0, size=invisible) are no challenge.
+  const frames = Array.from(document.querySelectorAll("iframe"))
+    .filter((f) => {
+      const r = f.getBoundingClientRect();
+      const st = getComputedStyle(f);
+      return r.width >= 100 && r.height >= 50 && st.visibility !== "hidden" && st.display !== "none" && !/size=invisible/i.test(f.src || "");
+    })
+    .map((f) => f.src || "");
   const framePatterns = [["recaptcha", /recaptcha/i], ["hcaptcha", /hcaptcha/i], ["turnstile", /challenges\\.cloudflare\\.com|turnstile/i]];
   for (const [name, pattern] of framePatterns) if (frames.some((src) => pattern.test(src))) markers.push(name + " iframe");
   const dd = frames.some((src) => /captcha-delivery\\.com/i.test(src));

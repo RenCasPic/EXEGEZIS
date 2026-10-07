@@ -549,6 +549,8 @@ export function visitMetrics(network: NetworkFile, inspection: PageInspectionFil
 /** Links that log out or act destructively behind a GET: never visited (docs/09-access.md §4). */
 const UNSAFE_WORDS = "logout|log-out|log_out|signout|sign-out|sign_out|cerrar-sesion|cerrar_sesion|salir|delete|remove|destroy|unsubscribe|cancel|revoke|deactivate|borrar|eliminar|darse-de-baja";
 const UNSAFE_PATH = new RegExp(`(^|[/._?=&-])(${UNSAFE_WORDS})([/._?=&-]|$)`, "i");
+/** The same words glued to the next one in camelCase or snake_case: /api/deleteAccount, /removeItem, /log_out_user. */
+const UNSAFE_GLUED = /(^|[/._?=&-])(logout|logOut|signout|signOut|delete|remove|destroy|unsubscribe|cancel|revoke|deactivate)([A-Z_]|Account|All)/;
 const UNSAFE_TEXT = /^\s*(log ?out|sign ?out|cerrar sesi[oó]n|salir|delete|remove|unsubscribe|cancel|borrar|eliminar|darse de baja)\b/i;
 
 export function unsafeLinkMatcher(extra: readonly string[]): (url: string, text: string) => string | null {
@@ -561,7 +563,7 @@ export function unsafeLinkMatcher(extra: readonly string[]): (url: string, text:
     } catch {
       // keep the raw value
     }
-    const path = UNSAFE_PATH.exec(target);
+    const path = UNSAFE_PATH.exec(target) ?? UNSAFE_GLUED.exec(target);
     if (path !== null) return `looks like a logout or destructive action (${path[2]?.toLowerCase() ?? ""})`;
     if (UNSAFE_TEXT.test(text)) return `link text "${text.trim().slice(0, 40)}" looks like a logout or destructive action`;
     const hit = custom.find((p) => target.toLowerCase().includes(p));
