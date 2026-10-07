@@ -80,12 +80,15 @@ describe("inspection mode", () => {
 describe("HttpProbe", () => {
   it("can only GET and HEAD", async () => {
     const methods = Object.getOwnPropertyNames(HttpProbe.prototype).filter((m) => m !== "constructor");
-    expect(methods.sort()).toEqual(["dispose", "get", "head", "send"]);
+    // trace() follows redirects one hop at a time, with GET as well.
+    expect(methods.sort()).toEqual(["dispose", "get", "head", "send", "trace"]);
     const probe = await HttpProbe.create({ userAgent: UA, timeoutMs: 5_000 });
     try {
       expect(await probe.get(`${server.url}/assertions`)).toMatchObject({ ok: true, status: 200 });
       expect(await probe.head(`${server.url}/missing-page`)).toMatchObject({ ok: true, status: 404 });
       expect(await probe.get("http://127.0.0.1:1/")).toMatchObject({ ok: false });
+      expect(await probe.trace(`${server.url}/missing-page`)).toEqual({ hops: [{ url: `${server.url}/missing-page`, status: 404 }], error: null });
+      expect((await probe.trace("http://127.0.0.1:1/")).error).not.toBeNull();
     } finally {
       await probe.dispose();
     }
