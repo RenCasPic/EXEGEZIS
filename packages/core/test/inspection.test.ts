@@ -48,6 +48,8 @@ describe("page-health assertions (additive)", () => {
 describe("normalization", () => {
   it("drops fragments from page URLs and volatile parts from messages", () => {
     expect(normalizePageUrl("http://a.test/x?q=1#top")).toBe("http://a.test/x?q=1");
+    // Found on parabank.parasoft.com: the session id in the path is not part of the address.
+    expect(normalizePageUrl("https://a.test/bank/about.htm;jsessionid=ABC123DEF?x=1")).toBe("https://a.test/bank/about.htm?x=1");
     expect(normalizeMessage("Failed to load http://a.test/api?id=42 with status 500 (req 9f8e7d6c5b4a)")).toBe(
       "Failed to load http://a.test/api with status <n> (req <id>)",
     );

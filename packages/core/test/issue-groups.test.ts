@@ -155,6 +155,10 @@ describe("issue groups", () => {
     expect(normalizeSelector('.story[lang="en"]:nth-child(10) > div:nth-child(2) > button[type="button"]')).toBe('.story[lang="en"] > div > button[type="button"]');
     expect(normalizeSelector("#radix-12ab > .menu")).toBe(".menu");
     expect(normalizeSelector("div > #item-3 > a")).toBe("div > a");
+    // Found on demo.realworld.show: one avatar component, one group, whoever the author is.
+    expect(normalizeSelector('.article-meta > a[href$="johndoe"] > img')).toBe(".article-meta > a > img");
+    expect(normalizeSelector('.comment-author[href$="janesmith"] > .comment-author-img')).toBe(".comment-author > .comment-author-img");
+    expect(normalizeSelector('img[src="/a.png"][alt=""]')).toBe("img");
   });
 });
 

@@ -32,6 +32,8 @@ const TIMEOUT = /Timeout \d+ms exceeded|timed out|TimeoutError/i;
 const STRONG_MARKER = /iframe$|^\.|^#/;
 /** Words of its own (outside forms, menus, header and footer) that make a page more than a challenge. */
 const CONTENT_WORDS = 150;
+/** A sign-up page: a form by design, never a wall in front of other content. */
+const SIGNUP_PATH = /(^|\/)(register|registration|signup|sign-up|join|registro|registrarse|crear-cuenta)(\/|$|\?|\.)/i;
 const LOGIN_PATH = /(^|\/)(login|log-in|signin|sign-in|auth|account\/login|users\/sign_in|sso)(\/|$|\?)|[?&](next|returnurl|return_to|redirect_uri)=/i;
 /** Cookies that anti-bot services set: evidence (names only), never a trigger on their own. */
 const CHALLENGE_COOKIE = /^(cf_clearance|__cf_bm|datadome|_abck|bm_sz|ak_bmsc|_px\w*|_pxhd)$/;
@@ -139,12 +141,20 @@ function detectBlock(facts: VisitFacts, document: Document | undefined): { kind:
  * itself is never a wall; a login box next to visible content is not either.
  */
 function loginWall(facts: VisitFacts, document: Document | undefined): EngineMessage | null {
-  if (isLoginUrl(facts.requestedUrl)) return null;
+  if (isLoginUrl(facts.requestedUrl) || isSignupUrl(facts.requestedUrl)) return null;
   if (document !== undefined && isLoginUrl(document.url) && samePlace(facts.requestedUrl, document.url) === false) return msg("loginRedirected", { url: document.url });
   const login = facts.inspection?.blockSignals.login;
   if (login !== undefined && login.visiblePassword && login.wordsOutsideForms < 60 && !login.mainContent) return msg("loginForm");
   if (document?.status === 401 && document.headers["www-authenticate"] === undefined) return msg("login401");
   return null;
+}
+
+function isSignupUrl(url: string): boolean {
+  try {
+    return SIGNUP_PATH.test(new URL(url).pathname);
+  } catch {
+    return false;
+  }
 }
 
 export function isLoginUrl(url: string): boolean {

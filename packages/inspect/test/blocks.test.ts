@@ -126,6 +126,12 @@ describe("LOGIN_WALL: only a real wall, never a page that merely has a login box
 });
 
 describe("no false walls (found on real sites)", () => {
+  it("a sign-up page is a form by design, not a login wall (demo.realworld.show/register)", () => {
+    expect(classify([{ status: 200, url: "https://site.test/register" }], { passwordField: true, login: LOGIN_FORM_ONLY }, { requested: "https://site.test/register" })).toMatchObject({ status: "OK" });
+    expect(classify([{ status: 200, url: "https://site.test/registro" }], { passwordField: true, login: LOGIN_FORM_ONLY }, { requested: "https://site.test/registro" })).toMatchObject({ status: "OK" });
+    expect(kind(classify([{ status: 200 }], { passwordField: true, login: LOGIN_FORM_ONLY }))).toBe("LOGIN_WALL");
+  });
+
   it("a CAPTCHA on a page with content of its own (a contact form, an invisible reCAPTCHA, an ad) is not a challenge", () => {
     expect(classify([{ status: 200 }], { markers: ["recaptcha iframe", ".g-recaptcha"] })).toMatchObject({ status: "OK", block: null });
     expect(classify([{ status: 200 }], { markers: ["recaptcha iframe"], login: { visiblePassword: false, wordsOutsideForms: 400, mainContent: false } })).toMatchObject({ status: "OK" });

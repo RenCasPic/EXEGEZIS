@@ -52,6 +52,8 @@ export function normalizeSelector(selector: string): string {
     .replace(/:nth-(?:child|of-type|last-child|last-of-type)\([^)]*\)/g, "")
     .replace(/#[A-Za-z_-]*\d[\w-]*/g, "") // ids containing digits are usually generated
     .replace(/\[(?:id|data-[\w-]*id)="[^"]*"\]/g, "")
+    // Where a link goes or which picture it shows is content, not the component (a[href$="johndoe"] > img).
+    .replace(/\[(?:href|src|alt|title|aria-label)[~|^$*]?=(?:"[^"]*"|'[^']*'|[^\]]*)\]/g, "")
     .replace(/\s*>\s*/g, " > ")
     .replace(/\s+/g, " ")
     .replace(/(?:> )+>/g, ">") // a removed compound leaves "> >"

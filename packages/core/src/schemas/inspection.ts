@@ -356,6 +356,8 @@ export function normalizePageUrl(url: string): string {
   try {
     const u = new URL(url);
     u.hash = "";
+    // A session id in the path (Java's ;jsessionid=…) is not part of the page's address.
+    u.pathname = u.pathname.replace(/;jsessionid=[^/]*/gi, "");
     return u.toString();
   } catch {
     return url;

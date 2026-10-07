@@ -93,7 +93,8 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       const runChecks = evidence !== null && (v.status === "OK" || v.status === "DEGRADED" || (v.status === "HTTP_ERROR" && v.depth === 0));
       let links: LinkStatus[] = [];
       if (runChecks) {
-        const internal = [...new Set(evidence.inspection.links.filter((l) => URL.canParse(l.href)).map((l) => normalizePageUrl(l.href)).filter((u) => new URL(u).origin === origin))];
+        // An address with a redacted part (a session id in the URL) cannot be requested as it was.
+        const internal = [...new Set(evidence.inspection.links.filter((l) => URL.canParse(l.href)).map((l) => normalizePageUrl(l.href)).filter((u) => new URL(u).origin === origin && !/\[REDACTED\]|%5BREDACTED%5D/i.test(u)))];
         links = await Promise.all(internal.map((u) => statusOf(u, v.run)));
       }
       for (const check of checks) {
