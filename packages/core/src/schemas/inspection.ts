@@ -695,8 +695,14 @@ export const PageInspectionFile = z.strictObject({
     passwordField: z.boolean(),
     /** Visible password field, and how much the page is more than a login form. */
     login: z
-      .strictObject({ visiblePassword: z.boolean(), wordsOutsideForms: z.int().nonnegative(), mainContent: z.boolean() })
-      .default({ visiblePassword: false, wordsOutsideForms: 0, mainContent: false }),
+      .strictObject({
+        visiblePassword: z.boolean(),
+        wordsOutsideForms: z.int().nonnegative(),
+        mainContent: z.boolean(),
+        /** Visible forms without a password field and with 2 or more fields (contact, search): the page's own content. */
+        otherForms: z.int().nonnegative().default(0),
+      })
+      .default({ visiblePassword: false, wordsOutsideForms: 0, mainContent: false, otherForms: 0 }),
     /** A cookie/consent dialog: vendor (if known), share of the viewport it covers, scroll locked. */
     consent: z.strictObject({ vendor: z.string().nullable(), coverage: z.number(), scrollLocked: z.boolean() }).nullable().default(null),
     /** Names (never values) of the cookies the context holds. */

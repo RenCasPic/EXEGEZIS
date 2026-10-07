@@ -7,7 +7,7 @@ import { evidence } from "./evidence.js";
 const sig = (patch: Partial<PageInspectionFile["blockSignals"]>): PageInspectionFile["blockSignals"] => ({
   markers: [],
   passwordField: false,
-  login: { visiblePassword: false, wordsOutsideForms: 200, mainContent: true },
+  login: { visiblePassword: false, wordsOutsideForms: 200, mainContent: true, otherForms: 0 },
   consent: null,
   cookieNames: [],
   ...patch,
@@ -29,7 +29,7 @@ describe("classifyVisit", () => {
     expect(classifyVisit(facts({}, "page.goto: Timeout 30000ms exceeded.")).status).toBe("TIMEOUT");
   });
   it("BLOCKED on CAPTCHA widgets, challenge pages, 451 and login walls; never bypassed", () => {
-    expect(classifyVisit(facts({ exchanges: [doc(200)], inspection: { blockSignals: sig({ markers: ["turnstile iframe"], passwordField: false }) } })).status).toBe("BLOCKED");
+    expect(classifyVisit(facts({ exchanges: [doc(200)], inspection: { blockSignals: sig({ markers: ["turnstile iframe"], passwordField: false, login: { visiblePassword: false, wordsOutsideForms: 6, mainContent: false, otherForms: 0 } }) } })).status).toBe("BLOCKED");
     expect(classifyVisit(facts({ exchanges: [doc(403)], inspection: { blockSignals: sig({ markers: ["text: Verify you are human"], passwordField: false }) } })).status).toBe("BLOCKED");
     expect(classifyVisit(facts({ exchanges: [doc(451)] })).status).toBe("BLOCKED");
     const login = facts({ exchanges: [doc(302), doc(200, "https://site.test/login?next=/account")], inspection: { blockSignals: sig({ markers: [], passwordField: true }) } });

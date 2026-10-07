@@ -144,7 +144,8 @@ function loginWall(facts: VisitFacts, document: Document | undefined): EngineMes
   if (isLoginUrl(facts.requestedUrl) || isSignupUrl(facts.requestedUrl)) return null;
   if (document !== undefined && isLoginUrl(document.url) && samePlace(facts.requestedUrl, document.url) === false) return msg("loginRedirected", { url: document.url });
   const login = facts.inspection?.blockSignals.login;
-  if (login !== undefined && login.visiblePassword && login.wordsOutsideForms < 60 && !login.mainContent) return msg("loginForm");
+  // A login box beside a form of the page's own (contact, search: parabank.parasoft.com) does not replace it.
+  if (login !== undefined && login.visiblePassword && login.wordsOutsideForms < 60 && !login.mainContent && login.otherForms === 0) return msg("loginForm");
   if (document?.status === 401 && document.headers["www-authenticate"] === undefined) return msg("login401");
   return null;
 }

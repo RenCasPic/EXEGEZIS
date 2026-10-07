@@ -282,6 +282,10 @@ export const PAGE_FACTS_SCRIPT = `(() => {
     clone.querySelectorAll("form, script, style, noscript, template, nav, header, footer").forEach((e) => e.remove());
     wordsOutsideForms = words(clone);
   }
+  // Forms of the page's own (contact, search…): a login box beside one does not replace the content.
+  const otherForms = Array.from(document.querySelectorAll("form")).filter(
+    (f) => visible(f) && f.querySelector('input[type="password"]') === null && Array.from(f.querySelectorAll("input:not([type=hidden]):not([type=submit]):not([type=button]), textarea, select")).filter(visible).length >= 2,
+  ).length;
   const mainContent = Array.from(document.querySelectorAll("main, article, [role=main]")).some((el) => {
     const c = el.cloneNode(true);
     c.querySelectorAll("form, script, style").forEach((f) => f.remove());
@@ -341,7 +345,7 @@ export const PAGE_FACTS_SCRIPT = `(() => {
       .filter((l) => /^https?:/.test(l.href)),
     markers,
     passwordField: document.querySelector('input[type="password"]') !== null,
-    login: { visiblePassword, wordsOutsideForms, mainContent },
+    login: { visiblePassword, wordsOutsideForms, mainContent, otherForms },
     consent: consent === null ? null : { vendor: consent.vendor, coverage: consent.coverage, scrollLocked: locked(document.body) || locked(document.documentElement) },
   };
 })()`;
@@ -359,7 +363,7 @@ export const PageFacts = z.object({
   links: z.array(z.object({ href: z.string(), text: z.string() })),
   markers: z.array(z.string()),
   passwordField: z.boolean(),
-  login: z.object({ visiblePassword: z.boolean(), wordsOutsideForms: z.int().nonnegative(), mainContent: z.boolean() }),
+  login: z.object({ visiblePassword: z.boolean(), wordsOutsideForms: z.int().nonnegative(), mainContent: z.boolean(), otherForms: z.int().nonnegative() }),
   consent: z.object({ vendor: z.string().nullable(), coverage: z.number(), scrollLocked: z.boolean() }).nullable(),
 });
 export type PageFacts = z.infer<typeof PageFacts>;

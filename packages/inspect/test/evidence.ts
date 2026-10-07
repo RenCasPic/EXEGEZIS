@@ -50,7 +50,7 @@ export function evidence(patch: {
       axe: null,
       axeError: null,
       highlight: null,
-      blockSignals: { markers: [], passwordField: false, login: { visiblePassword: false, wordsOutsideForms: 200, mainContent: true }, consent: null, cookieNames: [] },
+      blockSignals: { markers: [], passwordField: false, login: { visiblePassword: false, wordsOutsideForms: 200, mainContent: true, otherForms: 0 }, consent: null, cookieNames: [] },
       blockedWrites: [],
       layout: null,
       performance: null,

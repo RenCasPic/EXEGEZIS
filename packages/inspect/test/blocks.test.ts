@@ -12,14 +12,14 @@ type Signals = PageInspectionFile["blockSignals"];
 const sig = (patch: Partial<Signals> = {}): Signals => ({
   markers: [],
   passwordField: false,
-  login: { visiblePassword: false, wordsOutsideForms: 200, mainContent: true },
+  login: { visiblePassword: false, wordsOutsideForms: 200, mainContent: true, otherForms: 0 },
   consent: null,
   cookieNames: [],
   ...patch,
 });
-const LOGIN_FORM_ONLY = { visiblePassword: true, wordsOutsideForms: 12, mainContent: false };
+const LOGIN_FORM_ONLY = { visiblePassword: true, wordsOutsideForms: 12, mainContent: false, otherForms: 0 };
 /** A page that is little more than a challenge: a few words, no main content. */
-const CHALLENGE_ONLY = { visiblePassword: false, wordsOutsideForms: 8, mainContent: false };
+const CHALLENGE_ONLY = { visiblePassword: false, wordsOutsideForms: 8, mainContent: false, otherForms: 0 };
 
 interface Doc {
   status: number;
@@ -104,7 +104,7 @@ describe("LOGIN_WALL: only a real wall, never a page that merely has a login box
   });
 
   it("a login box in the header next to visible content is NOT a wall", () => {
-    const c = classify([{ status: 200 }], { passwordField: true, login: { visiblePassword: true, wordsOutsideForms: 450, mainContent: true } });
+    const c = classify([{ status: 200 }], { passwordField: true, login: { visiblePassword: true, wordsOutsideForms: 450, mainContent: true, otherForms: 0 } });
     expect(c).toMatchObject({ status: "OK", block: null });
   });
 
@@ -126,6 +126,10 @@ describe("LOGIN_WALL: only a real wall, never a page that merely has a login box
 });
 
 describe("no false walls (found on real sites)", () => {
+  it("a login box beside a form of the page's own is not a wall (parabank.parasoft.com/contact.htm)", () => {
+    expect(classify([{ status: 200 }], { passwordField: true, login: { ...LOGIN_FORM_ONLY, otherForms: 1 } })).toMatchObject({ status: "OK" });
+  });
+
   it("a sign-up page is a form by design, not a login wall (demo.realworld.show/register)", () => {
     expect(classify([{ status: 200, url: "https://site.test/register" }], { passwordField: true, login: LOGIN_FORM_ONLY }, { requested: "https://site.test/register" })).toMatchObject({ status: "OK" });
     expect(classify([{ status: 200, url: "https://site.test/registro" }], { passwordField: true, login: LOGIN_FORM_ONLY }, { requested: "https://site.test/registro" })).toMatchObject({ status: "OK" });
@@ -134,7 +138,7 @@ describe("no false walls (found on real sites)", () => {
 
   it("a CAPTCHA on a page with content of its own (a contact form, an invisible reCAPTCHA, an ad) is not a challenge", () => {
     expect(classify([{ status: 200 }], { markers: ["recaptcha iframe", ".g-recaptcha"] })).toMatchObject({ status: "OK", block: null });
-    expect(classify([{ status: 200 }], { markers: ["recaptcha iframe"], login: { visiblePassword: false, wordsOutsideForms: 400, mainContent: false } })).toMatchObject({ status: "OK" });
+    expect(classify([{ status: 200 }], { markers: ["recaptcha iframe"], login: { visiblePassword: false, wordsOutsideForms: 400, mainContent: false, otherForms: 0 } })).toMatchObject({ status: "OK" });
   });
 
   it("an ad's iframe navigation is not the page's document (automationexercise.com)", () => {
