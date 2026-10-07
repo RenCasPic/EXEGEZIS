@@ -39,6 +39,62 @@ async function visibleText(page: Page): Promise<string> {
   });
 }
 
+/**
+ * Why a header does not fit at this size: sideways scroll, a control past the
+ * edge or covering another, a text cut or wrapped onto a second line, or the
+ * header taller than its one row. Empty: it fits.
+ */
+async function headerProblems(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const problems: string[] = [];
+    const root = document.documentElement;
+    if (root.scrollWidth > root.clientWidth) problems.push(`sideways scroll (${root.scrollWidth - root.clientWidth} px)`);
+    const header = document.querySelector("header");
+    if (header === null) return ["no header"];
+    if (header.getBoundingClientRect().height > 80) problems.push(`header ${Math.round(header.getBoundingClientRect().height)} px tall`);
+    const shown = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      const s = getComputedStyle(el);
+      return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && el.closest("[hidden], details:not([open]) > :not(summary), .sr-only") === null;
+    };
+    const controls = [...header.querySelectorAll("a, button, summary, label, [role=radiogroup]")].filter(shown).filter((el) => el.parentElement?.closest("a, button, summary, label") == null);
+    const name = (el: Element) => `${el.tagName.toLowerCase()} «${(el.textContent ?? el.getAttribute("aria-label") ?? "").trim().slice(0, 24)}»`;
+    for (const el of controls) {
+      const r = el.getBoundingClientRect();
+      if (r.left < 0 || r.right > root.clientWidth) problems.push(`${name(el)} past the edge`);
+      const h = el as HTMLElement;
+      if (h.scrollWidth > h.clientWidth + 1 && getComputedStyle(h).overflowX !== "visible") problems.push(`${name(el)} cut`);
+      const line = parseFloat(getComputedStyle(h).lineHeight) || parseFloat(getComputedStyle(h).fontSize) * 1.5;
+      // Each visible text on one line (the text alone: an icon beside it is not a second line).
+      const walker = document.createTreeWalker(h, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n !== null; n = walker.nextNode()) {
+        if ((n.textContent ?? "").trim() === "" || n.parentElement === null || !shown(n.parentElement) || n.parentElement.closest("select, option") !== null) continue;
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        const rects = [...range.getClientRects()].filter((c) => c.width > 0);
+        const tops = rects.map((c) => c.top);
+        if (rects.length > 1 && Math.max(...tops) - Math.min(...tops) > line / 2) problems.push(`${name(el)} on ${rects.length} lines`);
+      }
+    }
+    for (let i = 0; i < controls.length; i++) {
+      for (let j = i + 1; j < controls.length; j++) {
+        const a = controls[i] as Element;
+        const b = controls[j] as Element;
+        if (a.contains(b) || b.contains(a)) continue;
+        const r = a.getBoundingClientRect();
+        const q = b.getBoundingClientRect();
+        const x = Math.min(r.right, q.right) - Math.max(r.left, q.left);
+        const y = Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top);
+        if (x > 1 && y > 1) problems.push(`${name(a)} covers ${name(b)}`);
+      }
+    }
+    return [...new Set(problems)];
+  });
+}
+
+/** The widths of a laptop and a desktop: the headers must fit at each one. */
+const HEADER_WIDTHS = [1024, 1152, 1280, 1366, 1440] as const;
+
 beforeAll(async () => {
   app = await startTestApp({ dist: ".next-e2e", log: "site-server.log" });
   base = app.base;
@@ -140,6 +196,43 @@ describe("the public pages", () => {
       await ctx.close();
     }
   });
+
+  it("the headers fit at 1024, 1152, 1280, 1366 and 1440 px: both languages, both themes, with and without a session", async () => {
+    const failures: string[] = [];
+    const email = `header-${Date.now()}@example.com`;
+    const setup = await context();
+    const signer = await setup.newPage();
+    await signUp(app, signer, { name: "Maximiliana Fernández de la Concepción", email });
+    await verify(app, signer, email);
+    const session = await setup.storageState();
+    await setup.close();
+    for (const signedIn of [false, true]) {
+      for (const locale of ["es", "en"] as const) {
+        for (const theme of ["light", "dark"] as const) {
+          const ctx = await (browser as Browser).newContext({ viewport: { width: 1440, height: 900 }, locale: locale === "en" ? "en-US" : "es-ES", colorScheme: theme, ...(signedIn ? { storageState: session } : {}) });
+          await ctx.addCookies([{ name: "EXEGEZIS_LOCALE", value: locale, url: base }]);
+          await ctx.addInitScript((t) => {
+            try {
+              localStorage.setItem("exegezis-theme", t);
+            } catch {
+              // No storage: the OS theme (colorScheme) applies.
+            }
+          }, theme);
+          const page = await ctx.newPage();
+          for (const path of ["/", LANDING[locale]]) {
+            await page.goto(`${base}${path}`, { waitUntil: "networkidle", timeout: 180_000 });
+            for (const width of HEADER_WIDTHS) {
+              await page.setViewportSize({ width, height: 900 });
+              await page.waitForTimeout(50);
+              for (const p of await headerProblems(page)) failures.push(`${signedIn ? "signed in" : "visitor"} ${locale} ${theme} ${width} ${path}: ${p}`);
+            }
+          }
+          await ctx.close();
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  }, 900_000);
 
   it("works with the keyboard: skip link first and a visible focus on everything; every FAQ answer is shown", async () => {
     const ctx = await context();

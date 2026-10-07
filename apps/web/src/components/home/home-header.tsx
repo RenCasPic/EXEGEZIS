@@ -46,7 +46,8 @@ function useTheme() {
 /**
  * The home's header (docs/design/home-app.html): logo · Home, Inspections,
  * Investigations, Root causes, Benchmarks, Settings · Light / Dark / System ·
- * language · project. Below 1280 px the sections go into a menu and the theme
+ * language · project. From 1280 px to 1536 px the theme buttons show only
+ * their icons, so everything fits on one row. Below 1280 px the sections go into a menu and the theme
  * is one button, as in home-app-mobile.html.
  */
 export function HomeHeader({ projects, project, account }: { projects: { id: string; label: string }[]; project: string | null; account: AccountSummary }) {
@@ -78,8 +79,8 @@ export function HomeHeader({ projects, project, account }: { projects: { id: str
 
   const projectSelect = (
     <label className={cn("relative flex h-9 items-center gap-2 rounded-lg border border-line bg-panel px-3 text-[13px] text-fg", pending && "opacity-60")}>
-      <span className="text-muted">{t("project")}</span>
-      <span className="font-medium">{current}</span>
+      <span className="text-muted whitespace-nowrap">{t("project")}</span>
+      <span className="max-w-40 truncate font-medium whitespace-nowrap">{current}</span>
       <ChevronDown className="size-3.5 text-muted" aria-hidden />
       <select value={project ?? ""} disabled={pending} aria-label={t("project")} onChange={(e) => pick(e.target.value)} className="absolute inset-0 cursor-pointer appearance-none opacity-0">
         <option value="">{t("allProjects")}</option>
@@ -94,8 +95,8 @@ export function HomeHeader({ projects, project, account }: { projects: { id: str
 
   return (
     <header className="relative border-b border-line bg-bg">
-      <div className="flex h-14 items-center justify-between pr-2 pl-4 xl:h-16 xl:px-12">
-        <div className="flex items-center gap-10">
+      <div className="flex h-14 items-center justify-between gap-4 pr-2 pl-4 xl:h-16 xl:px-6 2xl:px-12">
+        <div className="flex items-center gap-6 2xl:gap-10">
           <Link href="/" className="flex items-center gap-2 text-heading xl:gap-2.5">
             <HomeLogo className="size-5 text-fg xl:size-[22px]" />
             <span className="font-mono text-[14px] font-semibold tracking-[0.14em] xl:text-[15px]">EXEGEZIS</span>
@@ -106,14 +107,14 @@ export function HomeHeader({ projects, project, account }: { projects: { id: str
                 key={l.href}
                 href={l.href}
                 aria-current={l.href === "/" ? "page" : undefined}
-                className={cn("rounded-lg px-3 py-2", l.href === "/" ? "panel-frame bg-panel font-medium text-fg" : "border-[length:var(--panel-border-width)] border-transparent text-muted hover:text-fg")}
+                className={cn("rounded-lg px-2.5 py-2 whitespace-nowrap 2xl:px-3", l.href === "/" ? "panel-frame bg-panel font-medium text-fg" : "border-[length:var(--panel-border-width)] border-transparent text-muted hover:text-fg")}
               >
                 {l.label}
               </Link>
             ))}
           </nav>
         </div>
-        <div className="hidden items-center gap-3 xl:flex">
+        <div className="hidden items-center gap-2 xl:flex 2xl:gap-3">
           <LanguageSwitcher />
           <div role="radiogroup" aria-label={theme("label")} className="flex gap-0.5 rounded-[10px] border border-line bg-sunken p-[3px]">
             {THEME_PREFERENCES.map((p) => {
@@ -124,11 +125,14 @@ export function HomeHeader({ projects, project, account }: { projects: { id: str
                   type="button"
                   role="radio"
                   aria-checked={pref === p}
+                  aria-label={theme(p)}
+                  title={theme(p)}
                   onClick={() => choose(p)}
-                  className={cn("flex h-[30px] items-center gap-1.5 rounded-[7px] px-2.5 text-[13px]", pref === p ? "bg-panel font-medium text-fg shadow-[0_1px_2px_rgba(0,0,0,0.14)]" : "text-muted hover:text-fg")}
+                  className={cn("flex h-[30px] items-center gap-1.5 rounded-[7px] px-2 text-[13px] whitespace-nowrap 2xl:px-2.5", pref === p ? "bg-panel font-medium text-fg shadow-[0_1px_2px_rgba(0,0,0,0.14)]" : "text-muted hover:text-fg")}
                 >
                   <Icon className="size-[15px]" aria-hidden />
-                  {theme(p)}
+                  {/* Below 1536 px only the icon fits (its name is the label and the tooltip). */}
+                  <span className="hidden 2xl:inline">{theme(p)}</span>
                 </button>
               );
             })}
