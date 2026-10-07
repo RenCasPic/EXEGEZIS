@@ -330,8 +330,10 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
           if (v.evidence === null || (v.visit.status !== "OK" && v.visit.status !== "DEGRADED")) continue;
           for (const link of v.evidence.inspection.links) {
             // A link that is not a valid address (or was redacted) is skipped, never a crash.
-            if (!URL.canParse(link.href) || /\[REDACTED\]|%5BREDACTED%5D/i.test(link.href)) continue;
+            if (!URL.canParse(link.href)) continue;
+            // Normalized first: a redacted session id in the path (;jsessionid=…) goes away with it.
             const url = normalizePageUrl(link.href);
+            if (/\[REDACTED\]|%5BREDACTED%5D/i.test(url)) continue;
             if (new URL(url).origin !== origin) {
               if (!externalLinks.has(url)) externalLinks.set(url, from.url);
               continue;

@@ -133,6 +133,10 @@ describe("heavy-resources", () => {
     expect(heavyResources.run(evidence({ exchanges: [img("https://luma.com[REDACTED]", 400 * 1024)] }))).toEqual([]);
   });
 
+  it("a tracking pixel without caching is not worth reporting (google.com/pagead, facebook.com/tr)", () => {
+    expect(heavyResources.run(evidence({ exchanges: [img("https://www.facebook.com/tr/", 43, "image/gif", {})] }))).toEqual([]);
+  });
+
   it("an ETag or Last-Modified is enough caching", () => {
     expect(heavyResources.run(evidence({ exchanges: [{ url: "https://site.test/f.woff2", status: 200, resourceType: "font", bytes: 5000, responseHeaders: { "last-modified": "Mon, 01 Jan 2024 00:00:00 GMT" } }] }))).toEqual([]);
   });

@@ -50,6 +50,7 @@ export const HEAVY_IMAGE_BYTES = 300 * 1024;
 const MODERN_FORMAT_MIN_BYTES = 100 * 1024;
 const OVERSIZED_MIN_BYTES = 50 * 1024;
 const UNCOMPRESSED_MIN_BYTES = 10 * 1024;
+const NO_CACHE_MIN_BYTES = 2 * 1024;
 
 const STATIC_TYPES = new Set(["script", "stylesheet", "image", "font"]);
 
@@ -103,7 +104,8 @@ export const heavyResources: Check = {
       if (text && bytes >= UNCOMPRESSED_MIN_BYTES && (h["content-encoding"] ?? "identity").toLowerCase() === "identity") {
         add("uncompressed", "minor", `${/css/.test(type) || x.request.resourceType === "stylesheet" ? "CSS" : "JavaScript"} sent without compression: ${name}`, `${url} travels uncompressed (${kb(bytes)}, no Content-Encoding). gzip or Brotli usually cut a text file by 70 % or more.`);
       }
-      if (STATIC_TYPES.has(x.request.resourceType) && uncacheable(h)) {
+      // A tracking pixel or a tiny icon: caching it would not change anything.
+      if (STATIC_TYPES.has(x.request.resourceType) && bytes >= NO_CACHE_MIN_BYTES && uncacheable(h)) {
         add("no-cache", "minor", `File the browser cannot keep: ${name}`, `${url} (${x.request.resourceType}) comes with ${h["cache-control"] === undefined ? "no Cache-Control, Expires, ETag or Last-Modified" : `Cache-Control: ${h["cache-control"]}`}: it is downloaded again on every visit. Suggested: Cache-Control: max-age=31536000, immutable for versioned files, or at least an ETag.`);
       }
     }
