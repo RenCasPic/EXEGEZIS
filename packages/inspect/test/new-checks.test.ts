@@ -1,6 +1,6 @@
 import { parseSetCookies } from "@exegezis/adapter-browser";
 import { describe, expect, it } from "vitest";
-import { brokenLinks, cookies, heavyResources, linkStatus, perfVitals, securityHeaders, slowResponse, unsafeLinkMatcher } from "../src/index.js";
+import { brokenLinks, cookies, failedRequests, heavyResources, linkStatus, mixedContent, perfVitals, securityHeaders, slowResponse, unsafeLinkMatcher } from "../src/index.js";
 import { httpsCheck, NOT_FOUND_PATH, siteConfig, type SiteFacts } from "../src/site.js";
 import { evidence } from "./evidence.js";
 
@@ -139,6 +139,14 @@ describe("heavy-resources", () => {
 
   it("an ETag or Last-Modified is enough caching", () => {
     expect(heavyResources.run(evidence({ exchanges: [{ url: "https://site.test/f.woff2", status: 200, resourceType: "font", bytes: 5000, responseHeaders: { "last-modified": "Mon, 01 Jan 2024 00:00:00 GMT" } }] }))).toEqual([]);
+  });
+});
+
+describe("one resource, one finding (found on books.toscrape.com)", () => {
+  it("a script blocked as mixed content is reported by mixed-content only, not again as a failed request", () => {
+    const e = evidence({ exchanges: [{ url: "http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js", failure: "mixed-content", resourceType: "script" }] });
+    expect(failedRequests.run(e)).toEqual([]);
+    expect(mixedContent.run(e).length).toBe(1);
   });
 });
 

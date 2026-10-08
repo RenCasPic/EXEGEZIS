@@ -6,7 +6,8 @@ import { pageEvidence, portableUrl, sameOrigin, type Check } from "./types.js";
  * Not counted: requests blocked by --strict-readonly (the inspection's own
  * doing), requests the browser cancelled (ERR_ABORTED), and the document of
  * a page reached through a link (that is a broken link, reported once, from
- * the page that links to it).
+ * the page that links to it), and requests blocked as mixed content (the
+ * mixed-content check reports those).
  */
 export const failedRequests: Check = {
   id: "failed-requests",
@@ -18,6 +19,8 @@ export const failedRequests: Check = {
       if (x.request.isNavigation && (e.depth > 0 || normalizePageUrl(x.request.url) !== e.page)) return [];
       const failure = x.failure?.errorText;
       if (failure !== undefined && (/strict-readonly/.test(failure) || /ERR_ABORTED/.test(failure))) return [];
+      // Blocked as mixed content: the mixed-content check reports it, once (found on books.toscrape.com).
+      if (failure !== undefined && /mixed[-_ ]content/i.test(failure)) return [];
       const status = x.response?.status;
       if (failure === undefined && (status === undefined || status < 400)) return [];
       const thirdParty = !sameOrigin(x.request.url, e.origin);
