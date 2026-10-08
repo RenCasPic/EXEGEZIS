@@ -27,7 +27,7 @@ interface Doc {
   headers?: Record<string, string>;
   mainFrame?: boolean;
 }
-function classify(docs: Doc[], signals: Partial<Signals> = {}, opts: { requested?: string; sessionUsed?: boolean; navigationError?: string } = {}) {
+function classify(docs: Doc[], signals: Partial<Signals> = {}, opts: { requested?: string; sessionUsed?: boolean; navigationError?: string; entry?: boolean } = {}) {
   const e = evidence({
     exchanges: docs.map((d) => ({
       url: d.url ?? "https://site.test/account",
@@ -46,6 +46,7 @@ function classify(docs: Doc[], signals: Partial<Signals> = {}, opts: { requested
     requestedUrl: opts.requested ?? "https://site.test/account",
     strictReadonly: false,
     sessionUsed: opts.sessionUsed ?? false,
+    entry: opts.entry ?? false,
   });
 }
 const kind = (c: ReturnType<typeof classify>) => (c.status === "BLOCKED" || c.status === "UNREACHABLE" ? (c.block?.kind ?? null) : null);
@@ -122,6 +123,17 @@ describe("LOGIN_WALL: only a real wall, never a page that merely has a login box
   it("with a saved session, the same wall is SESSION_EXPIRED", () => {
     const c = classify([{ status: 302 }, { status: 200, url: "https://site.test/login" }], {}, { sessionUsed: true });
     expect(c.block?.kind).toBe("SESSION_EXPIRED");
+  });
+});
+
+describe("a sign-in form at the address given (found on saucedemo.com)", () => {
+  it("its public page is inspected (OK) with the notice to save the access; deeper, or after a redirect, it is still a wall", () => {
+    const entry = classify([{ status: 200 }], { passwordField: true, login: LOGIN_FORM_ONLY }, { entry: true });
+    expect(entry).toMatchObject({ status: "OK", block: { kind: "LOGIN_WALL" } });
+    expect(entry.block?.detail).toMatch(/its public page is inspected/);
+    expect(kind(classify([{ status: 200 }], { passwordField: true, login: LOGIN_FORM_ONLY }))).toBe("LOGIN_WALL");
+    expect(kind(classify([{ status: 302 }, { status: 200, url: "https://site.test/login" }], { passwordField: true, login: LOGIN_FORM_ONLY }, { entry: true }))).toBe("LOGIN_WALL");
+    expect(kind(classify([{ status: 200 }], { passwordField: true, login: LOGIN_FORM_ONLY }, { entry: true, sessionUsed: true }))).toBe("SESSION_EXPIRED");
   });
 });
 

@@ -524,7 +524,7 @@ async function visitPage(args: VisitArgs): Promise<Visit> {
     options.extract === undefined ? Promise.resolve(null) : read("text-blocks.json", TextBlocksFile),
   ]);
   const navigationError = outcome.metadata.error?.phase === "action" ? outcome.metadata.error.message : null;
-  const c = classifyVisit({ navigationError, network, inspection, requestedUrl: url, strictReadonly: strict, sessionUsed: args.sessionUsed === true });
+  const c = classifyVisit({ navigationError, network, inspection, requestedUrl: url, strictReadonly: strict, sessionUsed: args.sessionUsed === true, entry: depth === 0 });
   const shot = observations?.screenshots[0];
   // The screenshot of the blocked page is the block's evidence.
   const block = c.block === null ? null : { ...c.block, evidence: { ...c.block.evidence, screenshot: shot === undefined ? null : `${runPath}/${shot.path}` } };

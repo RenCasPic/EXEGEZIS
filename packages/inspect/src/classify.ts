@@ -9,6 +9,8 @@ export interface VisitFacts {
   strictReadonly: boolean;
   /** A saved session was used for this visit (a login wall then means it expired). */
   sessionUsed?: boolean;
+  /** The address the user gave (depth 0). */
+  entry?: boolean;
 }
 
 export interface Classification {
@@ -76,6 +78,13 @@ export function classifyVisit(facts: VisitFacts): Classification {
   if (appError !== null) return classified("UNREACHABLE", httpStatus, finalUrl, msg("pageAppError", { marker: appError }));
 
   const kind = detectBlock(facts, document);
+  // The address given IS a sign-in form, with no redirect (saucedemo.com): its public page is
+  // inspected as it is, and the notice to save the access stays with it.
+  if (kind?.kind === "LOGIN_WALL" && facts.entry === true && facts.sessionUsed !== true && document !== undefined && samePlace(facts.requestedUrl, document.url) !== false) {
+    const headers = pick(document.headers);
+    const message = msg("loginEntry");
+    return { status: "OK", httpStatus, finalUrl, reason: null, block: block("LOGIN_WALL", message, document, facts, headers) };
+  }
   if (kind !== null) {
     const headers = pick(document?.headers ?? {});
     return classified("BLOCKED", httpStatus, finalUrl, kind.message, block(kind.kind, kind.message, document, facts, headers, retryAfter(headers["retry-after"])));
