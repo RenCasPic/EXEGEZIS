@@ -162,6 +162,22 @@ describe("issue groups", () => {
   });
 });
 
+describe("form fields without a label (found on parabank.parasoft.com)", () => {
+  it("every field of the forms, each with its own id, is one group per rule", () => {
+    const label = (selector: string): InspectionObservation => ({
+      fingerprint: `a11y:label ${selector}`,
+      title: `Form elements must have labels (label): ${selector}`,
+      detail: "",
+      severity: "critical",
+      thirdParty: false,
+      evidence: [],
+      assertion: { kind: "a11y", rule: "label", selector, expected: "no_violation" },
+    });
+    const r = report(["", "a"], 3, (p) => (p === "" ? [label("#customer\\.ssn"), label("#firstName")] : [label('input[name="username"]'), label("select")]));
+    expect(r.groups.map((g) => [g.title, g.elements, g.pages.length])).toEqual([["Form elements must have labels (label): form fields", 4, 2]]);
+  });
+});
+
 describe("heavy resources by their path pattern (found on automationexercise.com)", () => {
   it("files that differ only by an id in their path make one group", () => {
     const obs = (id: number): InspectionObservation => ({ fingerprint: `heavy-resources:no-cache https://shop.test/get_product_picture/${id}`, title: `File the browser cannot keep: ${id}`, detail: "", severity: "minor", thirdParty: false, evidence: [], assertion: null });

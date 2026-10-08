@@ -139,7 +139,7 @@ export function issueKey(f: Pick<Finding, "checkId" | "fingerprint" | "title" | 
       const c = contrastFacts(f.detail);
       if (c !== null) return { key: `a11y|color-contrast|${c.foreground}|${c.background}|${c.textSize}`, rule, contrast: c, tap: null };
     }
-    return { key: `a11y|${rule ?? "?"}|${normalizeSelector(selectorOf(f.title))}`, rule, contrast: null, tap: null };
+    return { key: `a11y|${rule ?? "?"}|${fieldComponent(rule, selectorOf(f.title)) ?? normalizeSelector(selectorOf(f.title))}`, rule, contrast: null, tap: null };
   }
   // The other checks already fingerprint what identifies the problem
   // independently of the page: a normalized message (console, exceptions),
@@ -148,12 +148,27 @@ export function issueKey(f: Pick<Finding, "checkId" | "fingerprint" | "title" | 
   return { key: `${f.checkId}|${f.fingerprint.slice(f.checkId.length + 1)}`, rule: null, contrast: null, tap: null };
 }
 
+/** Rules about one form field at a time. */
+const FIELD_RULES = new Set(["label", "select-name", "input-button-name", "autocomplete-valid"]);
+
+/**
+ * A form field known by its own id or attributes (#firstName, input[name="ssn"], select): every
+ * field of the site's forms is the same component, one group (found on parabank.parasoft.com).
+ */
+function fieldComponent(rule: string | null, selector: string): string | null {
+  if (rule === null || !FIELD_RULES.has(rule)) return null;
+  const s = selector.trim();
+  return /^(#[^\s>]+|(input|select|textarea)(\[[^\]]*\]|[.#][\w.-]+)*)$/.test(s) ? FORM_FIELDS : null;
+}
+
+const FORM_FIELDS = "form fields";
+
 function plainTitle(first: Finding, rule: string | null, contrast: ContrastFacts | null, tap: TapFacts | null): string {
   if (tap !== null) return tapTitle(tap);
   if (contrast !== null) {
     return `Text ${contrast.foreground} on ${contrast.background}: contrast ${contrast.ratio}:1, minimum ${contrast.required}:1${contrast.textSize === "large" ? " (large text)" : ""}`;
   }
-  if (first.checkId === "a11y") return `${first.title.replace(/\s*\([a-z0-9-]+\):.*$/, "")} (${rule ?? "axe"}): ${normalizeSelector(selectorOf(first.title))}`;
+  if (first.checkId === "a11y") return `${first.title.replace(/\s*\([a-z0-9-]+\):.*$/, "")} (${rule ?? "axe"}): ${fieldComponent(rule, selectorOf(first.title)) ?? normalizeSelector(selectorOf(first.title))}`;
   // The group spans messages that differ only in numbers or ids: show the normalized form.
   const normalized = first.fingerprint.slice(first.checkId.length + 1);
   if (first.checkId === "console-errors") return `Console error: ${normalized}`;
