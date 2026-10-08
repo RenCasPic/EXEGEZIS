@@ -4,6 +4,7 @@ import { createServer as createHttpsServer } from "node:https";
 import { handleAccess } from "./access.ts";
 import { misconfiguredHandler } from "./misconfigured.ts";
 import { handleSearch } from "./search.ts";
+import { handleTraps, trapHits } from "./traps.ts";
 
 /*
  * inspect-lab: the fixture of `exegezis inspect`.
@@ -29,6 +30,7 @@ import { handleSearch } from "./search.ts";
  * files, a slow page, a broken sitemap, a soft 404.
  * /access/* are the access fixtures, one per block kind (see access.ts).
  * /search/* are the search fixtures (see search.ts).
+ * /traps/ links to endpoints that act (see traps.ts): an inspection calls none.
  * /devices/ is the desktop and mobile fixture: on a phone it scrolls
  * sideways (a 600 px table), has a 16×16 button, 10 px text, a meta viewport
  * that blocks zoom and a fixed banner over half the screen; a console error
@@ -176,6 +178,7 @@ function handler(secure: boolean) {
       return;
     }
     if ((url.pathname.startsWith("/search/") || url.pathname === "/__lab/search-reset") && handleSearch(res, url)) return;
+    if (handleTraps(res, url)) return;
     const method = req.method ?? "GET";
     if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
       const key = `${method} ${url.pathname}`;
@@ -242,7 +245,7 @@ function handler(secure: boolean) {
       case "/__lab/health":
         return send(res, 200, "application/json", '{"ok":true}');
       case "/__lab/stats":
-        return send(res, 200, "application/json", JSON.stringify({ writes: Object.fromEntries(writes), flakyCalls }));
+        return send(res, 200, "application/json", JSON.stringify({ writes: Object.fromEntries(writes), flakyCalls, traps: trapHits() }));
       default:
         return send(res, 404, "text/plain", "Not found");
     }

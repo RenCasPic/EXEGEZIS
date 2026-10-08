@@ -26,6 +26,7 @@ import {
 import type { PageEvidence } from "./checks/index.js";
 import { classifyVisit } from "./classify.js";
 import { DEVICE_PROFILES, runFolder } from "./devices.js";
+import { ACTION_TEXT, actionReason } from "./link-safety.js";
 import { isAllowed, parseRobots, type RobotsRules } from "./robots.js";
 
 /*
@@ -320,7 +321,7 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
           await report({ pagesDone: ++done });
           return v;
         });
-        const following: { url: string; depth: number }[] = [];
+        const following: { url: string; depth: number; from: string }[] = [];
         for (const [i, v] of results.entries()) {
           const from = now[i] as { url: string; depth: number };
           if (from.depth === 0 && ["BLOCKED", "UNREACHABLE", "TIMEOUT"].includes(v.visit.status)) {
@@ -340,6 +341,11 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
             }
             if (seen.has(url)) continue;
             seen.add(url);
+            // rel="nofollow": the site asks robots not to follow it (often sign-in, cart or comment links).
+            if (/(^|\s)nofollow(\s|$)/i.test(link.rel)) {
+              skippedForSafety.set(url, { url, from: from.url, reason: 'rel="nofollow"' });
+              continue;
+            }
             const danger = unsafe(url, link.text);
             if (danger !== null) {
               // Never followed: logging out or a destructive action behind a GET.
@@ -350,10 +356,27 @@ export async function crawlSite<T>(options: CrawlOptions, use: (crawl: Crawl) =>
               skip(skipped(url, from.depth + 1, "SKIPPED_ROBOTS", msg("pageRobots"), 1, primary));
               continue;
             }
-            if (from.depth + 1 <= cfg.maxDepth) following.push({ url, depth: from.depth + 1 });
+            if (from.depth + 1 <= cfg.maxDepth) following.push({ url, depth: from.depth + 1, from: from.url });
           }
         }
-        level = following;
+        // Before the browser goes there: a page that redirects to an action (/go → /logout) is never
+        // visited, because a browser follows redirects by itself. Its redirects are followed here
+        // first, with HEAD, one hop at a time, stopping before any address the policy refuses.
+        const safe: { url: string; depth: number }[] = [];
+        for (const next of following) {
+          // Beyond the page budget nothing is visited (only listed as skipped): no need to ask.
+          if (targets.length + safe.length >= cfg.maxPages) {
+            safe.push(next);
+            continue;
+          }
+          const r = await probe.check(next.url, (u) => unsafe(u, ""));
+          if (r.ok === false && r.refused !== undefined) {
+            skippedForSafety.set(next.url, { url: next.url, from: next.from, reason: `redirects to an address never requested: ${r.refused}` });
+            continue;
+          }
+          safe.push(next);
+        }
+        level = safe;
       }
 
       // Runs 2..N: the same pages, fresh contexts. No re-discovery: a stable page set.
@@ -548,13 +571,7 @@ export function visitMetrics(network: NetworkFile, inspection: PageInspectionFil
   };
 }
 
-/** Links that log out or act destructively behind a GET: never visited (docs/09-access.md §4). */
-const UNSAFE_WORDS = "logout|log-out|log_out|signout|sign-out|sign_out|cerrar-sesion|cerrar_sesion|salir|delete|remove|destroy|unsubscribe|cancel|revoke|deactivate|borrar|eliminar|darse-de-baja";
-const UNSAFE_PATH = new RegExp(`(^|[/._?=&-])(${UNSAFE_WORDS})([/._?=&-]|$)`, "i");
-/** The same words glued to the next one in camelCase or snake_case: /api/deleteAccount, /removeItem, /log_out_user. */
-const UNSAFE_GLUED = /(^|[/._?=&-])(logout|logOut|signout|signOut|delete|remove|destroy|unsubscribe|cancel|revoke|deactivate)([A-Z_]|Account|All)/;
-const UNSAFE_TEXT = /^\s*(log ?out|sign ?out|cerrar sesi[oó]n|salir|delete|remove|unsubscribe|cancel|borrar|eliminar|darse de baja)\b/i;
-
+/** Addresses an inspection never requests (link-safety.ts; docs/07-web-inspection.md §4). */
 export function unsafeLinkMatcher(extra: readonly string[]): (url: string, text: string) => string | null {
   const custom = extra.filter((p) => p.trim() !== "").map((p) => p.trim().toLowerCase());
   return (url, text) => {
@@ -565,9 +582,9 @@ export function unsafeLinkMatcher(extra: readonly string[]): (url: string, text:
     } catch {
       // keep the raw value
     }
-    const path = UNSAFE_PATH.exec(target) ?? UNSAFE_GLUED.exec(target);
-    if (path !== null) return `looks like a logout or destructive action (${path[2]?.toLowerCase() ?? ""})`;
-    if (UNSAFE_TEXT.test(text)) return `link text "${text.trim().slice(0, 40)}" looks like a logout or destructive action`;
+    const action = actionReason(url);
+    if (action !== null) return action;
+    if (ACTION_TEXT.test(text)) return `link text "${text.trim().slice(0, 40)}" is an action, not a page`;
     const hit = custom.find((p) => target.toLowerCase().includes(p));
     return hit === undefined ? null : `matches the site's pattern "${hit}"`;
   };

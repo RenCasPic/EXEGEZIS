@@ -41,6 +41,38 @@ export class HttpProbe {
   }
 
   /**
+   * Whether a link works, as safely as HTTP allows: HEAD first; GET only when
+   * the server does not support HEAD (405, 501). Redirects are followed one hop
+   * at a time and stop before any address `refuse` turns down (an action, a
+   * technical route): that hop is never requested.
+   */
+  async check(url: string, refuse: (url: string) => string | null, maxHops = 10): Promise<ProbeResult & { refused?: string }> {
+    let current = url;
+    let method: "HEAD" | "GET" = "HEAD";
+    try {
+      for (let i = 0; i <= maxHops; i++) {
+        const reason = refuse(current);
+        if (reason !== null) return { ok: false, error: `not requested: ${reason}`, refused: reason };
+        const response = method === "HEAD" ? await this.context.head(current, { failOnStatusCode: false, maxRedirects: 0 }) : await this.context.get(current, { failOnStatusCode: false, maxRedirects: 0 });
+        const status = response.status();
+        const location = response.headers()["location"];
+        const contentType = response.headers()["content-type"] ?? null;
+        await response.dispose();
+        if (method === "HEAD" && (status === 405 || status === 501)) {
+          method = "GET";
+          i--;
+          continue;
+        }
+        if (status < 300 || status >= 400 || location === undefined) return { ok: true, status, finalUrl: current, contentType, text: null };
+        current = new URL(location, current).href;
+      }
+      return { ok: false, error: "too many redirects" };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? (error.message.split("\n")[0] ?? error.message) : String(error) };
+    }
+  }
+
+  /**
    * Follows a URL's redirects one hop at a time (GET), up to `maxHops`, and
    * returns every answer: where HTTP leads, how long the chain is.
    */

@@ -669,7 +669,7 @@ export const PageInspectionFile = z.strictObject({
     referrerMeta: z.string().nullable().default(null),
   }),
   /** Every a[href] (resolved), http(s) only. */
-  links: z.array(z.strictObject({ href: z.string(), text: z.string() })),
+  links: z.array(z.strictObject({ href: z.string(), text: z.string(), /** rel, lower case (nofollow…); empty in older files. */ rel: z.string().default("") })),
   axe: z
     .strictObject({
       version: z.string(),

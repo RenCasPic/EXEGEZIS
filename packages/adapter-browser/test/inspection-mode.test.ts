@@ -1,3 +1,5 @@
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { readFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -81,7 +83,7 @@ describe("HttpProbe", () => {
   it("can only GET and HEAD", async () => {
     const methods = Object.getOwnPropertyNames(HttpProbe.prototype).filter((m) => m !== "constructor");
     // trace() follows redirects one hop at a time, with GET as well.
-    expect(methods.sort()).toEqual(["dispose", "get", "head", "send", "trace"]);
+    expect(methods.sort()).toEqual(["check", "dispose", "get", "head", "send", "trace"]);
     const probe = await HttpProbe.create({ userAgent: UA, timeoutMs: 5_000 });
     try {
       expect(await probe.get(`${server.url}/assertions`)).toMatchObject({ ok: true, status: 200 });
@@ -92,5 +94,38 @@ describe("HttpProbe", () => {
     } finally {
       await probe.dispose();
     }
+  }, 60_000);
+});
+
+describe("HttpProbe.check: links checked safely (docs/07 §4)", () => {
+  it("HEAD first, GET only when HEAD is not supported, and a redirect towards a refused address is never followed", async () => {
+    const calls: string[] = [];
+    const site = createServer((req, res) => {
+      calls.push(`${req.method ?? ""} ${req.url ?? ""}`);
+      if (req.url === "/no-head" && req.method === "HEAD") {
+        res.writeHead(405);
+        res.end();
+      } else if (req.url === "/go") {
+        res.writeHead(302, { location: "/logout" });
+        res.end();
+      } else {
+        res.writeHead(200, { "content-type": "text/plain" });
+        res.end("ok");
+      }
+    });
+    await new Promise<void>((done) => site.listen(0, "127.0.0.1", done));
+    const base = `http://127.0.0.1:${(site.address() as AddressInfo).port}`;
+    const probe = await HttpProbe.create({ userAgent: UA, timeoutMs: 5_000 });
+    const refuse = (url: string) => (url.endsWith("/logout") ? "an action" : null);
+    try {
+      expect(await probe.check(`${base}/page`, refuse)).toMatchObject({ ok: true, status: 200 });
+      expect(await probe.check(`${base}/no-head`, refuse)).toMatchObject({ ok: true, status: 200 });
+      expect(await probe.check(`${base}/go`, refuse)).toMatchObject({ ok: false, refused: "an action" });
+      expect(await probe.check(`${base}/logout`, refuse)).toMatchObject({ ok: false, refused: "an action" });
+    } finally {
+      await probe.dispose();
+      site.close();
+    }
+    expect(calls).toEqual(["HEAD /page", "HEAD /no-head", "GET /no-head", "HEAD /go"]);
   }, 60_000);
 });

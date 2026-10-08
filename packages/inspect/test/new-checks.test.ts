@@ -153,7 +153,9 @@ describe("links found on automationexercise.com", () => {
   it("destructive names glued to the next word are never requested (deleteAccount, removeItem, log_out_user)", () => {
     const unsafe = unsafeLinkMatcher([]);
     for (const url of ["https://site.test/api/deleteAccount", "https://site.test/cart/removeItem?id=3", "https://site.test/log_out", "https://site.test/user/logOutAll"]) expect(unsafe(url, ""), url).not.toBeNull();
-    for (const url of ["https://site.test/deleted-scenes", "https://site.test/removals", "https://site.test/cancellation-policy"]) expect(unsafe(url, ""), url).toBeNull();
+    // Ordinary pages stay; a word that starts with an unmistakable action (deleted-scenes) is left out on purpose (link-safety.ts).
+    for (const url of ["https://site.test/removals", "https://site.test/cancellation-policy", "https://site.test/blog/how-to-save-money"]) expect(unsafe(url, ""), url).toBeNull();
+    expect(unsafe("https://site.test/deleted-scenes", "")).not.toBeNull();
   });
 });
 

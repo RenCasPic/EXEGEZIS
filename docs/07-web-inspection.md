@@ -69,6 +69,38 @@ Las verificaciones y las investigaciones (planes con acciones) siguen esperando 
   - **Transparencia:** el reporte incluye una sección de **escrituras de la página** con cada petición no-GET que hizo la página (método, URL, estado y página de origen). En la UI aparece un aviso visible si hay alguna.
   - **`--strict-readonly`** bloquea también las escrituras de la página con `context.route`. Una página con peticiones bloqueadas queda `DEGRADED` y **sus hallazgos de esa ejecución se descartan**. Se cuentan como "descartados por la política", pero no se reportan: no se puede separar qué parte depende de lo bloqueado.
 - **Dominios externos:** nunca se visitan. Los enlaces externos se listan en el reporte, pero no se comprueban.
+
+### Política de enlaces (segura por diseño)
+
+Una inspección de una web ajena no puede pulsar un botón sin querer. En la campaña de webs reales (docs/14) la comprobación de enlaces hizo un `GET /api/deleteAccount`: no borró nada, pero una lista de nombres prohibidos siempre deja alguno fuera. La política (`packages/inspect/src/link-safety.ts`) decide qué direcciones se piden y cómo:
+
+1. **Solo navegación normal.** Se siguen únicamente los `<a href>` http(s). Nunca:
+   - el `action` de un formulario, un `onclick` o un `data-href`: no se leen;
+   - los enlaces con `download`;
+   - los enlaces con `rel="nofollow"`: ni se visitan ni se comprueban, sean del sitio o externos.
+2. **Nunca se piden** (ni GET ni HEAD), y aparecen en «Omitidos por seguridad» con el motivo:
+   - **rutas técnicas**: `/api/`, `/ajax/`, `/admin/`, `/administrator/`, `/wp-admin/`, `/wp-json/`, `/wp-login.php`, `/xmlrpc.php`, `/graphql`, `/rest/`, `/rpc/`, `/cgi-bin/`, `/webhook`, `/callback`, `/oauth`…;
+   - **palabras de acción** en la ruta o en los parámetros, enteras, con guiones o guiones bajos, pegadas en camelCase o al principio de otra palabra:
+     - fuertes, en cualquier parte: `delete`, `remove`, `destroy`, `erase`, `purge`, `wipe`, `truncate`, `logout`, `logoff`, `signout`, `unsubscribe`, `unregister`, `deactivate`, `revoke`, `terminate`, `borrar`, `eliminar`, `cerrar sesión`, `darse de baja`;
+     - débiles, en un tramo corto de la dirección (`/cart/save`, `/confirm-email`, `?step=pay`), no en el título de un artículo: `cancel`, `confirm`, `reset`, `clear`, `empty`, `approve`, `reject`, `verify`, `activate`, `update`, `save`, `submit`, `send`, `pay`, `checkout`, `buy`, `vote`, `like`, `follow`, `subscribe`…;
+     - añadir al carrito o a la lista de deseos (`add-to-cart`, `addToBasket`, `/wishlist/add`);
+   - **parámetros de acción o de un solo uso**: `action`, `do`, `cmd`, `op`, `method`, `_method`, `task`, `_wpnonce`, `nonce`, `csrf`, `token`…;
+   - un enlace cuyo **texto** es una acción («Log out», «Delete», «Darse de baja», «Añadir al carrito»);
+   - los patrones que el usuario añade para su sitio.
+3. **Comprobar un enlace sin visitarlo**: primero **HEAD**; **GET solo si el servidor no admite HEAD** (405 o 501). Las redirecciones se siguen a mano, salto a salto, y la comprobación se detiene **antes** de pedir un salto que la política rechaza.
+4. **Antes de visitar una página descubierta**, se siguen sus redirecciones del mismo modo. Una página que redirige a una acción (`/go` → `/logout`) no se visita, porque el navegador seguiría la redirección por su cuenta.
+5. La muestra del sitemap y las sondas del sitio siguen la misma política.
+
+El precio de esta política es asumido: alguna página normal con una de esas palabras en un tramo corto no se inspecciona. Siempre aparece en «Omitidos por seguridad», nunca se pierde en silencio.
+
+**Prueba:** `examples/inspect-lab/src/traps.ts` sirve `/traps/` con 15 enlaces trampa que cuentan cada llamada, con cualquier método:
+- endpoints de acción;
+- rutas técnicas;
+- un formulario, un `onclick` y un `data-href`;
+- un `nofollow` y una descarga;
+- una redirección a cerrar sesión.
+
+La e2e (`inspect.e2e.test.ts`) rastrea la página en escritorio y en móvil y luego solo comprueba sus enlaces, y exige **0 llamadas** a todas las trampas.
 - **`robots.txt`:** se respeta por defecto (`Disallow` para `*`) y `--ignore-robots` lo desactiva para sitios propios, como los staging con `Disallow: /`. **La URL inicial se visita siempre**: robots solo limita lo que se descubre recorriendo el sitio, incluidas las comprobaciones de enlaces. El reporte lista las páginas que se saltaron por robots.
 - **User-Agent:** `EXEGEZIS-Inspector/<versión>` en todas las peticiones, tanto las del navegador como las de la sonda.
 - **TLS:** un error de certificado da `UNREACHABLE`. `ignoreHTTPSErrors` existe solo como opción del adaptador, que usan los tests. El CLI no tiene ningún flag para ello.

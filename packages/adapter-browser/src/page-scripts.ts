@@ -340,8 +340,9 @@ export const PAGE_FACTS_SCRIPT = `(() => {
       cspMeta: (document.querySelector('meta[http-equiv="Content-Security-Policy" i]') || {}).content || null,
       referrerMeta: (document.querySelector('meta[name="referrer" i]') || {}).content || null,
     },
-    links: Array.from(document.querySelectorAll("a[href]"))
-      .map((a) => ({ href: a.href, text: (a.textContent || "").trim().slice(0, 80) }))
+    // Only links of ordinary navigation: <a href>, never a download (forms, onclick and data-href are never read).
+    links: Array.from(document.querySelectorAll("a[href]:not([download])"))
+      .map((a) => ({ href: a.href, text: (a.textContent || "").trim().slice(0, 80), rel: (a.getAttribute("rel") || "").toLowerCase() }))
       .filter((l) => /^https?:/.test(l.href)),
     markers,
     passwordField: document.querySelector('input[type="password"]') !== null,
@@ -360,7 +361,7 @@ export const PageFacts = z.object({
     cspMeta: z.string().nullable(),
     referrerMeta: z.string().nullable(),
   }),
-  links: z.array(z.object({ href: z.string(), text: z.string() })),
+  links: z.array(z.object({ href: z.string(), text: z.string(), rel: z.string() })),
   markers: z.array(z.string()),
   passwordField: z.boolean(),
   login: z.object({ visiblePassword: z.boolean(), wordsOutsideForms: z.int().nonnegative(), mainContent: z.boolean(), otherForms: z.int().nonnegative() }),

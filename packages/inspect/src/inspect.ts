@@ -89,7 +89,9 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       if (cached !== undefined) return cached;
       if (probes >= maxLinkChecks * cfg.runs || overBudget()) return { url, status: null, error: null, checked: false };
       probes += 1;
-      const status = linkStatus(url, origin, await probe.get(url));
+      const r = await probe.check(url, (u) => unsafe(u, ""));
+      // A redirect towards an action or a technical route is not followed: the link is not checked.
+      const status = r.ok === false && r.refused !== undefined ? { url, status: null, error: null, checked: false } : linkStatus(url, origin, r);
       probed.set(key, status);
       return status;
     };
@@ -100,7 +102,8 @@ export async function inspectSite(options: InspectOptions): Promise<InspectionRe
       let links: LinkStatus[] = [];
       if (runChecks) {
         // An address with a redacted part (a session id in the URL) cannot be requested as it was.
-        const internal = [...new Set(evidence.inspection.links.filter((l) => URL.canParse(l.href)).map((l) => normalizePageUrl(l.href)).filter((u) => new URL(u).origin === origin && !/\[REDACTED\]|%5BREDACTED%5D/i.test(u)))];
+        // rel="nofollow" links are neither visited nor checked.
+        const internal = [...new Set(evidence.inspection.links.filter((l) => URL.canParse(l.href) && !/(^|\s)nofollow(\s|$)/i.test(l.rel)).map((l) => normalizePageUrl(l.href)).filter((u) => new URL(u).origin === origin && !/\[REDACTED\]|%5BREDACTED%5D/i.test(u)))];
         links = await Promise.all(internal.map((u) => statusOf(u, v.run)));
       }
       for (const check of checks) {

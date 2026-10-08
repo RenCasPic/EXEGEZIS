@@ -2,6 +2,7 @@ import { isIP } from "node:net";
 import { connect } from "node:tls";
 import type { HttpProbe } from "@exegezis/adapter-browser";
 import { fingerprintOf, type EvidenceRef, type InspectionObservation, type Severity } from "@exegezis/core";
+import { actionReason } from "./link-safety.js";
 
 /*
  * The site as a whole, seen from outside: its HTTPS (certificate, the way
@@ -130,8 +131,9 @@ export async function probeSite(probe: HttpProbe, entry: string, run: number, op
       }
     });
     const sampled: Hop[] = [];
-    for (const l of own.slice(0, SAMPLED_SITEMAP_URLS)) {
-      const r = await probe.get(l);
+    // Only pages, never an action or a technical route; HEAD first (link-safety.ts).
+    for (const l of own.filter((x) => actionReason(x) === null).slice(0, SAMPLED_SITEMAP_URLS)) {
+      const r = await probe.check(l, actionReason);
       if (r.ok) sampled.push({ url: l, status: r.status });
     }
     sitemap = { url: sitemapUrl, status: sm.status, valid, locs: locs.length, sampled, error: null };

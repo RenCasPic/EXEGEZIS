@@ -39,8 +39,8 @@ async function freePort(): Promise<number> {
   });
 }
 
-async function stats(): Promise<{ writes: Record<string, number>; flakyCalls: number }> {
-  return (await (await fetch(`${http}__lab/stats`)).json()) as { writes: Record<string, number>; flakyCalls: number };
+async function stats(): Promise<{ writes: Record<string, number>; flakyCalls: number; traps: Record<string, number> }> {
+  return (await (await fetch(`${http}__lab/stats`)).json()) as { writes: Record<string, number>; flakyCalls: number; traps: Record<string, number> };
 }
 
 let counter = 0;
@@ -167,6 +167,21 @@ describe("the site with seeded problems (HTTPS, 3 runs)", () => {
       const result = await runCompiledSpec({ specPath, steps: [], baseUrl: http, outputDir: join(dir, "spec-results", f.id) });
       expect(result.status, `${f.id} ${f.title}: ${result.message ?? ""}`).toBe("failed");
     }
+  }, 300_000);
+});
+
+describe("link safety by design: the trap links of /traps/ (docs/07 §4)", () => {
+  it("visits and checks only pages: every trap (actions, technical routes, a form, onclick, data-href, nofollow, a download, a redirect to logging out) is called 0 times", async () => {
+    // Depth 1: the crawl visits what it may; depth 0: the links are only checked (HEAD first).
+    const crawled = await run(`${http}traps/`, { runs: 2, devices: ["desktop", "mobile"], maxDepth: 1, checks: SEEDED_CHECKS });
+    const checked = await run(`${http}traps/`, { runs: 2, maxDepth: 0, checks: SEEDED_CHECKS });
+    expect((await stats()).traps).toEqual({});
+    // The ordinary page was visited; the rest listed as skipped for safety, with why.
+    expect(crawled.pages.filter((p) => p.status === "OK").map((p) => p.url)).toContain(`${http}traps/ok`);
+    const skipped = new Map(crawled.skippedForSafety.map((s) => [s.url.replace(http, "/"), s.reason]));
+    for (const trap of ["/traps/api/deleteAccount", "/traps/account/deleteaccount", "/traps/log-out", "/traps/orders/9/cancel", "/traps/nofollow", "/traps/go"]) expect(skipped.has(trap), trap).toBe(true);
+    expect(skipped.get("/traps/go")).toMatch(/^redirects to an address never requested/);
+    expect(checked.status).toBe("COMPLETED");
   }, 300_000);
 });
 
