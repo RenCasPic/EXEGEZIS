@@ -423,9 +423,27 @@ export class BrowserSession implements AdapterSession {
             selector: axeSelector(n.target as (string | string[])[]),
             html: n.html.slice(0, 500),
             summary: (n.failureSummary ?? "").slice(0, 500),
+            frameUrl: null as string | null,
           })),
         })),
       };
+      // Nodes inside an iframe (a target of several levels): the address of that iframe, to tell a
+      // cookie banner's, a chat's or an ad's content from the page's own.
+      const frames = new Map<string, string>();
+      results.violations.forEach((v, vi) =>
+        v.nodes.forEach((n, ni) => {
+          const target = n.target as (string | string[])[];
+          const first = target[0];
+          if (target.length > 1 && typeof first === "string") frames.set(`${vi}:${ni}`, first);
+        }),
+      );
+      for (const [key, frameSelector] of frames) {
+        const raw = await page.locator(frameSelector).first().getAttribute("src", { timeout: 1000 }).catch(() => null);
+        const src = raw === null || raw === "" ? null : new URL(raw, page.url()).href;
+        const [vi, ni] = key.split(":").map(Number);
+        const node = axe.violations[vi ?? -1]?.nodes[ni ?? -1];
+        if (node !== undefined) node.frameUrl = src === null ? null : this.url(src);
+      }
       const selectors = axe.violations.flatMap((v) => v.nodes.map((n) => n.selector)).filter((s) => !s.includes(">>>")).slice(0, 10);
       if (selectors.length > 0) {
         await page.evaluate(highlightScript(selectors));

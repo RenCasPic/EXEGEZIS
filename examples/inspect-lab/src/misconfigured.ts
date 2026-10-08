@@ -95,6 +95,9 @@ export function misconfiguredHandler(req: IncomingMessage, res: ServerResponse):
       res.writeHead(404, { "content-type": "text/plain" });
       res.end("Gone");
       return;
+    case "/widget":
+      // Another site's widget (a chat, a cookie banner) with a button without a name.
+      return html('<!doctype html><html lang="en"><head><title>Widget</title></head><body><button type="button"></button></body></html>');
     case "/favicon.ico":
       res.writeHead(204);
       res.end();

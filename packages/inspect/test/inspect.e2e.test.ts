@@ -185,6 +185,17 @@ describe("link safety by design: the trap links of /traps/ (docs/07 §4)", () =>
   }, 300_000);
 });
 
+describe("another site's iframe (found on webscraper.io)", () => {
+  it("its accessibility problems are a third party's, reported apart; the page's own are the page's", async () => {
+    const report = await run(`${http}iframes/`, { runs: 1, checks: ["a11y"] });
+    const names = report.findings.filter((f) => f.title.includes("(button-name)"));
+    expect(names.map((f) => [f.title.replace(/^.*\): /, ""), f.thirdParty]).sort()).toEqual([
+      ["#own", false],
+      ["iframe button", true],
+    ]);
+  }, 120_000);
+});
+
 describe("a contact form with a CAPTCHA (found on practicetestautomation.com/contact)", () => {
   it("is the form's CAPTCHA, not a bot wall: the page is inspected", async () => {
     const report = await run(`${http}contact-captcha/`, { runs: 1, checks: SEEDED_CHECKS });

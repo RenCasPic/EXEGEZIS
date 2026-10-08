@@ -681,7 +681,15 @@ export const PageInspectionFile = z.strictObject({
           impact: AxeImpact.nullable(),
           help: z.string(),
           helpUrl: z.string(),
-          nodes: z.array(z.strictObject({ selector: z.string(), html: z.string(), summary: z.string() })),
+          nodes: z.array(
+            z.strictObject({
+              selector: z.string(),
+              html: z.string(),
+              summary: z.string(),
+              /** The node is inside an iframe: that iframe's address (null in the page itself, or in older files). */
+              frameUrl: z.string().nullable().default(null),
+            }),
+          ),
         }),
       ),
     })

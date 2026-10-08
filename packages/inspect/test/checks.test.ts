@@ -57,6 +57,36 @@ describe("console-errors", () => {
     ]);
     expect(assertionsValid(out)).toBe(true);
   });
+
+  it("another site's iframe (a cookie banner, a chat) and markup injected by ads are third parties, reported apart (webscraper.io, automationexercise.com)", () => {
+    const node = (selector: string, frameUrl: string | null) => ({ selector, html: "<button>", summary: "Fix", frameUrl });
+    const out = a11y.run(
+      evidence({
+        inspection: {
+          axe: {
+            version: "4.13.0",
+            rules: ["button-name"],
+            violations: [
+              {
+                id: "button-name",
+                impact: "critical",
+                help: "Buttons must have discernible text",
+                helpUrl: "https://dequeuniversity.com/rules/axe/4.13/button-name",
+                nodes: [
+                  node("iframe[data-cy=\"FrameComponent\"] button", "https://beacon-v2.helpscout.net/frame"),
+                  node("iframe#same button", "https://site.test/widget"),
+                  node(".google-anno-sc > span", null),
+                  node("#menu-toggle", null),
+                ],
+              },
+            ],
+          },
+          highlight: null,
+        },
+      }),
+    );
+    expect(out.map((o) => o.thirdParty)).toEqual([true, false, true, false]);
+  });
 });
 
 describe("failed-requests", () => {
@@ -123,8 +153,8 @@ describe("a11y", () => {
                 help: "Images must have alternative text",
                 helpUrl: "https://dequeuniversity.com/rules/axe/4.13/image-alt",
                 nodes: [
-                  { selector: "#hero", html: "<img id=hero>", summary: "Fix: add alt" },
-                  { selector: "#logo", html: "<img id=logo>", summary: "Fix: add alt" },
+                  { selector: "#hero", html: "<img id=hero>", summary: "Fix: add alt", frameUrl: null },
+                  { selector: "#logo", html: "<img id=logo>", summary: "Fix: add alt", frameUrl: null },
                 ],
               },
             ],

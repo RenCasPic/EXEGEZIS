@@ -232,6 +232,11 @@ function handler(secure: boolean) {
       case "/api/subscribe":
       case "/api/like":
         return send(res, method === "POST" ? 200 : 405, "application/json", '{"ok":true}');
+      case "/iframes/": {
+        // Its own nameless button, and another site's widget in an iframe with one too.
+        const widget = process.env["MISCONFIG_TLS_PORT"] === undefined ? "about:blank" : `https://localhost:${process.env["MISCONFIG_TLS_PORT"]}/widget`;
+        return send(res, 200, "text/html; charset=utf-8", page("Iframes", `<main><h1>A page with a widget</h1><button type="button" id="own"></button><iframe src="${widget}" title="Chat" width="300" height="120"></iframe></main>`));
+      }
       case "/contact-captcha/":
         // A short contact page whose form has a CAPTCHA: the form's, not a wall (practicetestautomation.com/contact).
         return send(res, 200, "text/html; charset=utf-8", page("Contact", '<main><h1>Contact</h1><form><label>Name <input name="name"></label><label>Email <input name="email" type="email"></label><label>Message <textarea name="message"></textarea></label><div class="g-recaptcha" data-sitekey="lab" style="width:304px;height:78px"></div><button type="submit">Send</button></form></main>'));
