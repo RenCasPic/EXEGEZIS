@@ -185,6 +185,15 @@ describe("link safety by design: the trap links of /traps/ (docs/07 §4)", () =>
   }, 300_000);
 });
 
+describe("the app's error page (found on jesushealingministry.net)", () => {
+  it("is a failed visit with its reason, and none of its missing title, h1, lang or viewport becomes a finding", async () => {
+    const report = await run(`${http}app-error/`, { runs: 1, devices: ["desktop", "mobile"] });
+    expect(report.pages.map((p) => p.status)).toEqual(["UNREACHABLE"]);
+    expect(report.pages[0]?.reason).toMatch(/app's error page/);
+    expect(report.findings).toEqual([]);
+  }, 120_000);
+});
+
 describe("another site's iframe (found on webscraper.io)", () => {
   it("its accessibility problems are a third party's, reported apart; the page's own are the page's", async () => {
     const report = await run(`${http}iframes/`, { runs: 1, checks: ["a11y"] });

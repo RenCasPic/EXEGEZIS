@@ -125,6 +125,14 @@ describe("LOGIN_WALL: only a real wall, never a page that merely has a login box
   });
 });
 
+describe("the app's error page instead of the page (found on jesushealingministry.net)", () => {
+  it("is a failed visit (UNREACHABLE), not a page whose missing title, h1 or viewport would be findings", () => {
+    const e = evidence({ exchanges: [{ url: "https://site.test/live", status: 200, isNavigation: true, resourceType: "document" }], inspection: { appError: "Next.js error page" } });
+    const c = classifyVisit({ navigationError: null, network: e.network, inspection: e.inspection, requestedUrl: "https://site.test/live", strictReadonly: false, sessionUsed: false });
+    expect(c).toMatchObject({ status: "UNREACHABLE", reason: expect.stringMatching(/app's error page \(Next\.js error page\)/) });
+  });
+});
+
 describe("no false walls (found on real sites)", () => {
   it("a login box beside a form of the page's own is not a wall (parabank.parasoft.com/contact.htm)", () => {
     expect(classify([{ status: 200 }], { passwordField: true, login: { ...LOGIN_FORM_ONLY, otherForms: 1 } })).toMatchObject({ status: "OK" });

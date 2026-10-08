@@ -46,6 +46,7 @@ export function evidence(patch: {
       url: page,
       settled: { network: true, dom: true },
       meta: { title: "Page", lang: "en", viewport: "width=device-width", h1Count: 1, protocol: new URL(page).protocol, cspMeta: null, referrerMeta: null },
+      appError: null,
       links: [],
       axe: null,
       axeError: null,

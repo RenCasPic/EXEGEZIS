@@ -70,6 +70,11 @@ export function classifyVisit(facts: VisitFacts): Classification {
     );
   }
 
+  // The app's error page in place of the page: the visit failed. Nothing on it (no title, no h1,
+  // no viewport) is a finding about the page (found on jesushealingministry.net after a dropped connection).
+  const appError = facts.inspection?.appError ?? null;
+  if (appError !== null) return classified("UNREACHABLE", httpStatus, finalUrl, msg("pageAppError", { marker: appError }));
+
   const kind = detectBlock(facts, document);
   if (kind !== null) {
     const headers = pick(document?.headers ?? {});

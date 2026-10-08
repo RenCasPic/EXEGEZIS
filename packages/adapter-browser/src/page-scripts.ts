@@ -341,6 +341,15 @@ export const PAGE_FACTS_SCRIPT = `(() => {
       referrerMeta: (document.querySelector('meta[name="referrer" i]') || {}).content || null,
     },
     // Only links of ordinary navigation: <a href>, never a download (forms, onclick and data-href are never read).
+    // The app's own error page instead of the page (a failed chunk after a dropped connection…).
+    appError:
+      document.documentElement.id === "__next_error__"
+        ? "Next.js error page"
+        : /Application error: a (client|server)-side exception has occurred/i.test(text)
+          ? "Next.js «Application error»"
+          : document.querySelector("#__nuxt .nuxt-error-page, .__nuxt-error-page") !== null
+            ? "Nuxt error page"
+            : null,
     links: Array.from(document.querySelectorAll("a[href]:not([download])"))
       .map((a) => ({ href: a.href, text: (a.textContent || "").trim().slice(0, 80), rel: (a.getAttribute("rel") || "").toLowerCase() }))
       .filter((l) => /^https?:/.test(l.href)),
@@ -361,6 +370,7 @@ export const PageFacts = z.object({
     cspMeta: z.string().nullable(),
     referrerMeta: z.string().nullable(),
   }),
+  appError: z.string().nullable(),
   links: z.array(z.object({ href: z.string(), text: z.string(), rel: z.string() })),
   markers: z.array(z.string()),
   passwordField: z.boolean(),

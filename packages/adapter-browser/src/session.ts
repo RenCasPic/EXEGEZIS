@@ -461,6 +461,7 @@ export class BrowserSession implements AdapterSession {
       url: this.url(page.url()),
       settled: { network, dom },
       meta: facts.meta,
+      appError: facts.appError,
       links: facts.links.map((l) => ({ href: this.url(l.href), text: l.text, rel: l.rel })),
       axe,
       axeError,

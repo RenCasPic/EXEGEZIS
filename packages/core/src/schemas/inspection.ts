@@ -668,6 +668,8 @@ export const PageInspectionFile = z.strictObject({
     cspMeta: z.string().nullable().default(null),
     referrerMeta: z.string().nullable().default(null),
   }),
+  /** The page ended on the app's own error page (Next.js __next_error__…): a failed visit. null in older files. */
+  appError: z.string().nullable().default(null),
   /** Every a[href] (resolved), http(s) only. */
   links: z.array(z.strictObject({ href: z.string(), text: z.string(), /** rel, lower case (nofollow…); empty in older files. */ rel: z.string().default("") })),
   axe: z
