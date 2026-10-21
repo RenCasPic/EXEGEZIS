@@ -85,6 +85,8 @@ export class BrowserSession implements AdapterSession {
   private readonly blockedRequests = new WeakSet<Request>();
   private readonly collectorFailures = new Map<string, string>();
   private readonly blockedWrites: { method: string; url: string }[] = [];
+  /** The last first-party readiness wait (observation), reused when the page did not settle. */
+  private readyResult: { network: boolean; dom: boolean } | null = null;
   /** The site's Set-Cookie headers (inspection mode): names and attributes, never values. */
   private readonly setCookies: SetCookieFacts[] = [];
   private tracing: boolean;
@@ -129,6 +131,16 @@ export class BrowserSession implements AdapterSession {
     switch (action.type) {
       case "navigate":
         this.site ??= safeHost(action.url);
+        // Inspections: the navigation ends when the document arrives; DOMContentLoaded then gets at most
+        // the readiness cap, not the whole page timeout (the-internet.herokuapp.com: 614 s → its own CSS
+        // and scripts hang 30 s on every visit).
+        if (this.options.readiness === "first-party" && action.waitUntil === "domcontentloaded") {
+          await page.goto(action.url, { waitUntil: "commit", timeout: timeout ?? this.options.navigationTimeoutMs });
+          await page.waitForLoadState("domcontentloaded", { timeout: this.options.readyTimeoutMs }).catch(() => {
+            this.logger.warn("DOMContentLoaded did not come within the readiness cap; inspecting the page as it is", { url: action.url });
+          });
+          return;
+        }
         try {
           await page.goto(action.url, {
             waitUntil: action.waitUntil ?? "load",
@@ -220,7 +232,8 @@ export class BrowserSession implements AdapterSession {
 
     let settled = false;
     if (this.options.readiness === "first-party") {
-      settled = (await this.waitReady()).network;
+      this.readyResult = await this.waitReady();
+      settled = this.readyResult.network;
     } else {
       try {
         await page.waitForLoadState("networkidle", { timeout: this.options.settleTimeoutMs });
@@ -389,7 +402,8 @@ export class BrowserSession implements AdapterSession {
     let network = true;
     let dom: boolean;
     if (this.options.readiness === "first-party") {
-      ({ network, dom } = await this.waitReady());
+      // Already waited for in the observation and the page did not settle: the budget is spent.
+      ({ network, dom } = this.readyResult !== null && !this.readyResult.network ? this.readyResult : await this.waitReady());
     } else {
       try {
         await page.waitForLoadState("networkidle", { timeout: this.options.settleTimeoutMs });
@@ -445,7 +459,7 @@ export class BrowserSession implements AdapterSession {
         if (node !== undefined) node.frameUrl = src === null ? null : this.url(src);
       }
       const selectors = axe.violations.flatMap((v) => v.nodes.map((n) => n.selector)).filter((s) => !s.includes(">>>")).slice(0, 10);
-      if (selectors.length > 0) {
+      if (selectors.length > 0 && (await this.painting())) {
         await page.evaluate(highlightScript(selectors));
         const image = await page.screenshot({ fullPage: true });
         const entry = await this.recorder.writeBinary("screenshot", "screenshots/axe-highlight.png", image, "image/png");
@@ -528,6 +542,8 @@ export class BrowserSession implements AdapterSession {
   }
 
   private async captureAccessibility(url: string, title: string): Promise<string> {
+    // The accessibility snapshot needs a laid-out page, like a screenshot.
+    if (!(await this.painting())) throw new Error("the page does not paint (a stylesheet or script of its own is still loading): no accessibility snapshot");
     const raw: unknown = await this.page.ariaSnapshotJSON({ timeout: this.options.actionTimeoutMs });
     const tree = z.array(AccessibilityNode).parse(normalizeAriaNodes(raw));
     const snapshot: AccessibilitySnapshotEvidence = {
@@ -555,7 +571,19 @@ export class BrowserSession implements AdapterSession {
     return id;
   }
 
+  /**
+   * Inspections: whether the page paints at all. A stylesheet of its own that hangs blocks every
+   * frame, and a screenshot would wait for it until its timeout (found on the-internet.herokuapp.com).
+   */
+  private async painting(): Promise<boolean> {
+    if (!this.options.inspect) return true;
+    return this.page
+      .evaluate<boolean>("new Promise((resolve) => { const t = setTimeout(() => resolve(false), 1000); requestAnimationFrame(() => { clearTimeout(t); resolve(true); }); })")
+      .catch(() => false);
+  }
+
   private async captureScreenshot(reason: ScreenshotEvidence["reason"], label: string, fullPage: boolean): Promise<string> {
+    if (!(await this.painting())) throw new Error("the page does not paint (a stylesheet or script of its own is still loading): no screenshot");
     const image = await this.page.screenshot({ fullPage, timeout: this.options.actionTimeoutMs });
     const id = this.recorder.ids.next("shot");
     const safeLabel = label.toLowerCase().replace(/[^a-z0-9-]+/g, "-").slice(0, 48);
@@ -641,10 +669,13 @@ export class BrowserSession implements AdapterSession {
   }
 
   private async drainPending(): Promise<void> {
-    const left = await drainWithDeadline(this.pending, this.options.captureDrainTimeoutMs);
+    // A page that never settled (its own requests hang) has used its whole readiness budget: its hung
+    // captures get the short wait, not another long one.
+    const cap = this.readyResult?.network === false ? this.options.thirdPartyDrainTimeoutMs : this.options.captureDrainTimeoutMs;
+    const left = await drainWithDeadline(this.pending, cap);
     if (left > 0) {
       // The recorded network/console evidence is incomplete: say so, never wait forever.
-      this.collectorFailures.set("network", `${left} capture(s) still pending after ${this.options.captureDrainTimeoutMs} ms; the network evidence is incomplete`);
+      this.collectorFailures.set("network", `${left} capture(s) still pending after ${cap} ms; the network evidence is incomplete`);
     }
     // Ads and analytics that never finish do not hold the page: a short wait, then what has arrived is written.
     await drainWithDeadline(this.pendingThirdParty, this.options.thirdPartyDrainTimeoutMs);
@@ -693,7 +724,10 @@ export class BrowserSession implements AdapterSession {
     // The page's own work after its requests (hydration, rendering): wait until its main thread is idle,
     // and for the load event, briefly (third-party iframes and ads can hold it back for a long time).
     await page.evaluate<boolean>(MAIN_THREAD_IDLE_SCRIPT).catch(() => false);
-    await page.waitForLoadState("load", { timeout: Math.max(0, Math.min(this.options.loadGraceMs, deadline - Date.now())) }).catch(() => undefined);
+    // At least 1 ms: in Playwright a timeout of 0 means no limit at all (a page whose own CSS hangs
+    // would then hold the visit until its load event, 30 s on the-internet.herokuapp.com).
+    const grace = Math.min(this.options.loadGraceMs, deadline - Date.now());
+    if (grace > 0) await page.waitForLoadState("load", { timeout: Math.max(1, grace) }).catch(() => undefined);
     const left = Math.max(quietMs + 100, deadline - Date.now());
     const dom = await page.evaluate<boolean>(domSettleScript(Math.min(left, this.options.domSettleTimeoutMs))).catch(() => false);
     await page.evaluate<boolean>(MAIN_THREAD_IDLE_SCRIPT).catch(() => false);

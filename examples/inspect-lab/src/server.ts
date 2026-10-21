@@ -20,8 +20,8 @@ import { handleTraps, trapHits } from "./traps.ts";
  * Also: /forms has a POST form and buttons that POST (the inspection must
  * never trigger them) and posts /api/track by itself on load (a page write);
  * /private/* is disallowed by robots.txt; /blocked/ is a CAPTCHA wall;
- * /slow-assets/ has its own stylesheet and script that take 20 s (the page is
- * still inspected, not settled).
+ * /slow-assets/ has its own stylesheet and script that take 40 s (the page is
+ * still inspected, within the readiness caps rather than the page timeout).
  * /healthy/ is a healthy section (0 findings expected): every security
  * header, nothing heavy, listed in a valid sitemap named in robots.txt; the
  * site answers unknown addresses with a real 404.
@@ -244,11 +244,11 @@ function handler(secure: boolean) {
         // A short contact page whose form has a CAPTCHA: the form's, not a wall (practicetestautomation.com/contact).
         return send(res, 200, "text/html; charset=utf-8", page("Contact", '<main><h1>Contact</h1><form><label>Name <input name="name"></label><label>Email <input name="email" type="email"></label><label>Message <textarea name="message"></textarea></label><div class="g-recaptcha" data-sitekey="lab" style="width:304px;height:78px"></div><button type="submit">Send</button></form></main>'));
       case "/slow-assets/":
-        // Its own stylesheet hangs for 20 s: DOMContentLoaded comes late (as on the-internet.herokuapp.com).
-        return send(res, 200, "text/html; charset=utf-8", page("Slow assets", "<main><h1>Slow assets</h1><p>The stylesheet of this page takes 20 s.</p></main>", '<link rel="stylesheet" href="/slow-assets/style.css"><script src="/slow-assets/app.js"></script>'));
+        // Its own stylesheet hangs for 40 s: DOMContentLoaded comes late (as on the-internet.herokuapp.com).
+        return send(res, 200, "text/html; charset=utf-8", page("Slow assets", "<main><h1>Slow assets</h1><p>The stylesheet of this page takes 40 s.</p></main>", '<link rel="stylesheet" href="/slow-assets/style.css"><script src="/slow-assets/app.js"></script>'));
       case "/slow-assets/style.css":
       case "/slow-assets/app.js":
-        setTimeout(() => send(res, 200, url.pathname.endsWith(".css") ? "text/css" : "text/javascript", ""), 20_000);
+        setTimeout(() => send(res, 200, url.pathname.endsWith(".css") ? "text/css" : "text/javascript", ""), 40_000);
         return;
       case "/__lab/health":
         return send(res, 200, "application/json", '{"ok":true}');

@@ -218,6 +218,12 @@ describe("a page whose own CSS and scripts hang (found on the-internet.herokuapp
     expect(report.status).toBe("COMPLETED");
     expect(report.pages[0]).toMatchObject({ status: "OK", httpStatus: 200 });
   }, 120_000);
+
+  it("is bounded by the readiness caps (about 30 s in all), not by its hanging files (43 s before; the-internet: 614 s for 8 pages)", async () => {
+    const report = await run(`${http}slow-assets/`, { runs: 1, checks: SEEDED_CHECKS });
+    expect(report.pages[0]?.status).toBe("OK");
+    expect(Date.parse(report.finishedAt) - Date.parse(report.startedAt)).toBeLessThan(36_000);
+  }, 120_000);
 });
 
 describe("the healthy site", () => {
