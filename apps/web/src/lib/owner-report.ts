@@ -6,6 +6,7 @@ import { CATALOGS } from "@/i18n/messages";
 import type { Locale } from "@/i18n/locales";
 import { shortUrl } from "@/lib/inspection-labels";
 import { groupTitle, type InspectionsT } from "@/lib/issue-labels";
+import { PRINT } from "@/lib/report-theme";
 import { isInside } from "@/lib/workspace";
 
 /*
@@ -207,21 +208,21 @@ export async function ownerReportHtml({ report, dir, id, locale }: OwnerReportIn
 <title>${esc(t("documentTitle", { site: new URL(report.target.url).host }))}</title>
 <style>
   @page { size: A4; }
-  body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; color: #1b2433; font-size: 11pt; line-height: 1.45; margin: 0; }
-  h1 { font-size: 20pt; margin: 0 0 4pt; } h2 { font-size: 15pt; margin: 18pt 0 6pt; border-bottom: 1px solid #c9d1de; padding-bottom: 3pt; }
+  body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; color: ${PRINT.text}; font-size: 11pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 20pt; margin: 0 0 4pt; } h2 { font-size: 15pt; margin: 18pt 0 6pt; border-bottom: 1px solid ${PRINT.line}; padding-bottom: 3pt; }
   h3 { font-size: 12.5pt; margin: 12pt 0 4pt; } h4 { font-size: 11pt; margin: 0 0 4pt; }
-  .muted { color: #4a566b; } .small { font-size: 9pt; } .lead { font-size: 12.5pt; font-weight: 600; }
-  .cover { border-bottom: 3px solid #1b3157; padding-bottom: 10pt; margin-bottom: 6pt; }
-  .brand { font-family: Consolas, monospace; letter-spacing: 2pt; font-weight: 700; color: #1b3157; }
+  .muted { color: ${PRINT.muted}; } .small { font-size: 9pt; } .lead { font-size: 12.5pt; font-weight: 600; }
+  .cover { border-bottom: 3px solid ${PRINT.brand}; padding-bottom: 10pt; margin-bottom: 6pt; }
+  .brand { font-family: Consolas, monospace; letter-spacing: 2pt; font-weight: 700; color: ${PRINT.brand}; }
   .badge { display: inline-block; border: 1px solid; border-radius: 3pt; padding: 0 4pt; font-size: 8.5pt; font-weight: 700; text-transform: uppercase; }
-  .badge.critical { color: #8a1020; border-color: #8a1020; } .badge.serious { color: #a3361a; border-color: #a3361a; }
-  .badge.moderate { color: #7a5600; border-color: #7a5600; } .badge.minor { color: #3d4b63; border-color: #3d4b63; }
+  .badge.critical { color: ${PRINT.critical}; border-color: ${PRINT.critical}; } .badge.serious { color: ${PRINT.serious}; border-color: ${PRINT.serious}; }
+  .badge.moderate { color: ${PRINT.moderate}; border-color: ${PRINT.moderate}; } .badge.minor { color: ${PRINT.minor}; border-color: ${PRINT.minor}; }
   ul.sev { list-style: none; padding: 0; display: flex; gap: 14pt; }
-  .areas { display: flex; gap: 10pt; } .area { flex: 1; border: 1px solid #c9d1de; border-radius: 4pt; padding: 6pt 8pt; }
-  .problem { border: 1px solid #d5dbe6; border-radius: 4pt; padding: 7pt 9pt; margin: 6pt 0; break-inside: avoid; }
-  figure { margin: 6pt 0 0; } img { max-width: 100%; max-height: 95mm; object-fit: cover; object-position: top; border: 1px solid #c9d1de; }
-  figcaption { font-size: 8.5pt; color: #4a566b; }
-  table { border-collapse: collapse; width: 100%; font-size: 9.5pt; } th, td { border-bottom: 1px solid #d5dbe6; text-align: left; padding: 3pt 4pt; }
+  .areas { display: flex; gap: 10pt; } .area { flex: 1; border: 1px solid ${PRINT.line}; border-radius: 4pt; padding: 6pt 8pt; }
+  .problem { border: 1px solid ${PRINT.lineSoft}; border-radius: 4pt; padding: 7pt 9pt; margin: 6pt 0; break-inside: avoid; }
+  figure { margin: 6pt 0 0; } img { max-width: 100%; max-height: 95mm; object-fit: cover; object-position: top; border: 1px solid ${PRINT.line}; }
+  figcaption { font-size: 8.5pt; color: ${PRINT.muted}; }
+  table { border-collapse: collapse; width: 100%; font-size: 9.5pt; } th, td { border-bottom: 1px solid ${PRINT.lineSoft}; text-align: left; padding: 3pt 4pt; }
   details summary { font-weight: 600; } ol { margin: 2pt 0 4pt 16pt; padding: 0; }
   .break { break-before: page; }
 </style>
