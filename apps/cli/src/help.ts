@@ -85,6 +85,7 @@ Usage:
                          [--storage-state <file>] [--strict-readonly] [--ignore-robots] [--concurrency 3]
                          [--devices desktop,mobile] [options]
   exegezis doctor        [--install] [--json]
+  exegezis pdf           --html <file> --output <file.pdf>
   exegezis session login|list|delete|http-auth|waf-token|set --url <site> [options]
   exegezis search        --url <site> (--terms "a, b" | --meaning "<text>" | --template <id>) [options]
   exegezis search suggest|export|templates …
@@ -138,6 +139,9 @@ Commands:
               strict read-only unless --allow-page-writes.
 ${SEARCH_HELP_EN.slice(1)}
 ${ACCOUNT_HELP_EN.slice(1)}
+  pdf         Print a self-contained HTML document to a tagged PDF (the web
+              app's owner report uses it). No JavaScript, no network: images
+              must be inside the HTML.
   doctor      Check this machine: Node.js, pnpm and the browsers EXEGEZIS can
               drive (Playwright's Chromium, Google Chrome, Microsoft Edge), with
               their versions, and say what is missing and how to install it.
@@ -205,6 +209,7 @@ Uso:
   exegezis inspect       --url <url> [--runs 3] [--max-pages 20] [--max-depth 2] [--checks a,b]
                          [--storage-state <archivo>] [--strict-readonly] [--ignore-robots] [opciones]
   exegezis doctor        [--install] [--json]
+  exegezis pdf           --html <archivo> --output <archivo.pdf>
   exegezis session login|list|delete|http-auth|waf-token|set --url <sitio> [opciones]
   exegezis search        --url <sitio> (--terms "a, b" | --meaning "<texto>" | --template <id>) [opciones]
   exegezis search suggest|export|templates …
@@ -262,6 +267,9 @@ Comandos:
               sesión es solo lectura estricta salvo con --allow-page-writes.
 ${SEARCH_HELP_ES.slice(1)}
 ${ACCOUNT_HELP_ES.slice(1)}
+  pdf         Imprime un documento HTML autocontenido como PDF etiquetado (lo
+              usa el informe para el propietario de la app web). Sin JavaScript
+              ni red: las imágenes tienen que ir dentro del HTML.
   doctor      Comprueba este equipo: Node.js, pnpm y los navegadores que EXEGEZIS
               puede usar (Chromium de Playwright, Google Chrome, Microsoft Edge),
               con sus versiones, y dice qué falta y cómo instalarlo. No se

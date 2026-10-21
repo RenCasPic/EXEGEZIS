@@ -16,6 +16,7 @@ import { benchmarkCommand } from "./benchmark.js";
 import { aiVerifyCommand, generatePlanCommand } from "./ai-commands.js";
 import { inspectCommand } from "./inspect.js";
 import { doctorCommand, printEngineError } from "./doctor.js";
+import { pdfCommand } from "./pdf.js";
 import { rootCauseCommand } from "./root-cause.js";
 import { accountCommand } from "./account.js";
 import { searchCommand } from "./search.js";
@@ -64,6 +65,8 @@ export async function main(argv: readonly string[], io: CliIo, env: NodeJS.Proce
         return await inspectCommand({ ...command, exegezisVersion }, io);
       case "doctor":
         return await doctorCommand(command, io, VERSION);
+      case "pdf":
+        return await pdfCommand(command, io);
       case "session":
         return await sessionCommand(command, io, VERSION);
       case "search":

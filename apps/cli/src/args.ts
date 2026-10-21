@@ -51,6 +51,7 @@ export type Command =
   | ({ kind: "root-cause"; suite: string; runs?: number; caseIds?: string[] } & Common)
   | ({ kind: "inspect" } & InspectArgs & Common)
   | { kind: "doctor"; install: boolean; json: boolean }
+  | { kind: "pdf"; html: string; output: string }
   | SessionCommand
   | SearchCommand
   | AccountCommand;
@@ -128,7 +129,7 @@ export const EXIT = {
 export const MAX_RUNS = 100;
 
 
-const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify", "root-cause", "inspect", "doctor", "session"] as const;
+const COMMANDS = ["observe", "run", "reproduce", "compile", "verify", "validate", "benchmark", "generate-plan", "ai-verify", "root-cause", "inspect", "doctor", "session", "pdf"] as const;
 const PLANNERS: readonly Planner[] = ["anthropic", "mock"];
 
 export function parseCliArgs(argv: readonly string[]): Command {
@@ -168,6 +169,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
         "ignore-robots": { type: "boolean", default: false },
         "browser-channel": { type: "string" },
         install: { type: "boolean", default: false },
+        html: { type: "string" },
         "no-session": { type: "boolean", default: false },
         "allow-page-writes": { type: "boolean", default: false },
         "done-file": { type: "string" },
@@ -219,6 +221,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
     inspect: ["url", "runs", "max-pages", "max-depth", "page-timeout", "total-timeout", "delay", "concurrency", "devices", "checks", "storage-state", "strict-readonly", "ignore-robots", "browser-channel", "no-session", "allow-page-writes"],
     session: ["url", "browser-channel", "done-file", "stdin", "rotate", "robots-owner", "unsafe-pattern", "json"],
     doctor: ["install", "json"],
+    pdf: ["html"],
   };
   for (const option of [
     "url",
@@ -255,6 +258,7 @@ export function parseCliArgs(argv: readonly string[]): Command {
     "rotate",
     "robots-owner",
     "unsafe-pattern",
+    "html",
   ] as const) {
     const value = values[option];
     if (value === undefined || value === false) continue;
@@ -287,6 +291,11 @@ export function parseCliArgs(argv: readonly string[]): Command {
       return { kind: "compile", planFile: requirePlan(values.plan), output: values.output };
     case "doctor":
       return { kind: "doctor", install: values.install, json: values.json };
+    case "pdf": {
+      if (values.html === undefined || values.html === "") throw new UsageError(t("args.missingFor", { option: "--html <file>", command: "pdf" }));
+      if (!/\.pdf$/i.test(values.output)) throw new UsageError(t("args.missingFor", { option: "--output <file.pdf>", command: "pdf" }));
+      return { kind: "pdf", html: values.html, output: values.output };
+    }
     case "session": {
       const act = action as SessionAction;
       if (act !== "list" && (values.url === undefined || values.url === "")) throw new UsageError(t("args.missingFor", { option: "--url <site>", command: `session ${act}` }));
