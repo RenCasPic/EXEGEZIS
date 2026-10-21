@@ -237,7 +237,9 @@ function handler(secure: boolean) {
         const widget = process.env["MISCONFIG_TLS_PORT"] === undefined ? "about:blank" : `https://localhost:${process.env["MISCONFIG_TLS_PORT"]}/widget`;
         // And one without an address, filled by a script with another site's widget (as HelpScout's or Termly's).
         const script = process.env["MISCONFIG_TLS_PORT"] === undefined ? "" : `https://localhost:${process.env["MISCONFIG_TLS_PORT"]}/widget.js`;
-        const filled = `<iframe id="scripted" title="Help" width="300" height="120"></iframe><script>(() => { const d = document.getElementById("scripted").contentDocument; const s = d.createElement("script"); s.src = "${script}"; d.head.appendChild(s); const b = d.createElement("button"); b.type = "button"; d.body.appendChild(b); })();</script>`;
+        const filled = `<iframe id="scripted" title="Help" width="300" height="120"></iframe><script>(() => { const d = document.getElementById("scripted").contentDocument; const s = d.createElement("script"); s.src = "${script}"; d.head.appendChild(s); const b = d.createElement("button"); b.type = "button"; d.body.appendChild(b); })();</script>`
+          // A chat widget mounted like HelpScout's Beacon: an empty iframe filled from the page, no resources of its own.
+          + `<div id="beacon-container"><div class="Beacon"><iframe id="beacon" title="Beacon" width="60" height="60"></iframe></div></div><script>(() => { const d = document.getElementById("beacon").contentDocument; const b = d.createElement("button"); b.type = "button"; d.body.appendChild(b); })();</script>`;
         return send(res, 200, "text/html; charset=utf-8", page("Iframes", `<main><h1>A page with a widget</h1><button type="button" id="own"></button><iframe id="chat" src="${widget}" title="Chat" width="300" height="120"></iframe>${filled}</main>`));
       }
       case "/app-error/":

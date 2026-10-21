@@ -19,6 +19,8 @@ const host = (url: string) => {
  */
 export function thirdPartyNode(node: { selector: string; frameUrl: string | null }, page: string): boolean {
   if (node.frameUrl !== null && /^https?:/.test(node.frameUrl) && !sameSite(host(node.frameUrl), host(page))) return true;
+  // A known widget's iframe without an address (widget:beacon, widget:termly…): the session recognized it.
+  if (node.frameUrl !== null && node.frameUrl.startsWith("widget:")) return true;
   return INJECTED.test(node.selector);
 }
 

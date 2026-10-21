@@ -199,6 +199,8 @@ describe("another site's iframe (found on webscraper.io)", () => {
     const report = await run(`${http}iframes/`, { runs: 1, checks: ["a11y"] });
     const names = report.findings.filter((f) => f.title.includes("(button-name)"));
     expect(names.map((f) => [f.title.replace(/^.*\): /, ""), f.thirdParty]).sort()).toEqual([
+      // A known widget's empty iframe, filled from the page (HelpScout's Beacon on webscraper.io).
+      ["#beacon button", true],
       ["#chat button", true],
       ["#own", false],
       // No address of its own, filled by another site's script (HelpScout, Termly on webscraper.io).

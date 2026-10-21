@@ -461,6 +461,14 @@ export class BrowserSession implements AdapterSession {
           const frame = await (await frameElement.elementHandle({ timeout: 1000 }).catch(() => null))?.contentFrame().catch(() => null);
           const sources = frame === null || frame === undefined ? [] : await frame.evaluate<string[]>("Array.from(document.querySelectorAll('script[src], link[rel=stylesheet][href]')).map((e) => e.src || e.href)").catch(() => []);
           src = sources.find((s) => /^https?:/.test(s) && this.site !== null && !sameSite(this.site, safeHost(s))) ?? null;
+          // Or the container it is mounted in: known chat, help and cookie widgets leave their name
+          // in ids, classes and data- attributes (HelpScout's #beacon-container on webscraper.io).
+          if (src === null) {
+            const widget = await frameElement
+              .evaluate<string | null, undefined>(`(el) => { for (let e = el, i = 0; e && i < 8; e = e.parentElement, i++) { const text = [e.id, typeof e.className === "string" ? e.className : "", ...Array.from(e.attributes).filter((a) => a.name.startsWith("data-")).map((a) => a.name + " " + a.value)].join(" "); const m = ${WIDGET_PATTERN}.exec(text); if (m) return m[0].toLowerCase(); } return null; }`)
+              .catch(() => null);
+            if (widget !== null) src = `widget:${widget}`;
+          }
         }
         const [vi, ni] = key.split(":").map(Number);
         const node = axe.violations[vi ?? -1]?.nodes[ni ?? -1];
@@ -967,6 +975,13 @@ export function parseSetCookies(value: string, url: string): SetCookieFacts[] {
     })
     .filter((c) => c.name !== "");
 }
+
+/**
+ * Chat, help, cookie-consent and social widgets that mount their content in an iframe without an
+ * address (recognized by their containers' ids, classes and data- attributes). Used only to say whose
+ * content it is (External services), never for safety.
+ */
+const WIDGET_PATTERN = String.raw`/(beacon|helpscout|hsds|termly|onetrust|optanon|cookiebot|cybot|cookieyes|usercentrics|didomi|quantcast|intercom|drift|hubspot|hs-chat|crisp|tawk|zendesk|zopim|livechat|tidio|olark|freshchat|freshworks|chatwoot|tiktok|fb-root|fb_dialog|twitter-widget|instagram-media|disqus|trustpilot|recaptcha)/i`;
 
 /** Whether a navigation is the page's own (not an iframe's). Service worker requests have no frame. */
 function mainFrameOf(request: Request, page: Page): boolean {
