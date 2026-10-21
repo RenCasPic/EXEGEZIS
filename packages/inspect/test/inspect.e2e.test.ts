@@ -199,8 +199,10 @@ describe("another site's iframe (found on webscraper.io)", () => {
     const report = await run(`${http}iframes/`, { runs: 1, checks: ["a11y"] });
     const names = report.findings.filter((f) => f.title.includes("(button-name)"));
     expect(names.map((f) => [f.title.replace(/^.*\): /, ""), f.thirdParty]).sort()).toEqual([
+      ["#chat button", true],
       ["#own", false],
-      ["iframe button", true],
+      // No address of its own, filled by another site's script (HelpScout, Termly on webscraper.io).
+      ["#scripted button", true],
     ]);
   }, 120_000);
 });

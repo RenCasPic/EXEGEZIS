@@ -452,8 +452,16 @@ export class BrowserSession implements AdapterSession {
         }),
       );
       for (const [key, frameSelector] of frames) {
-        const raw = await page.locator(frameSelector).first().getAttribute("src", { timeout: 1000 }).catch(() => null);
-        const src = raw === null || raw === "" ? null : new URL(raw, page.url()).href;
+        const frameElement = page.locator(frameSelector).first();
+        const raw = await frameElement.getAttribute("src", { timeout: 1000 }).catch(() => null);
+        let src = raw === null || raw === "" || raw === "about:blank" ? null : new URL(raw, page.url()).href;
+        if (src === null) {
+          // An iframe without an address of its own, filled by a script (a chat's or a cookie banner's,
+          // found on webscraper.io): whose it is shows in where its own scripts and styles come from.
+          const frame = await (await frameElement.elementHandle({ timeout: 1000 }).catch(() => null))?.contentFrame().catch(() => null);
+          const sources = frame === null || frame === undefined ? [] : await frame.evaluate<string[]>("Array.from(document.querySelectorAll('script[src], link[rel=stylesheet][href]')).map((e) => e.src || e.href)").catch(() => []);
+          src = sources.find((s) => /^https?:/.test(s) && this.site !== null && !sameSite(this.site, safeHost(s))) ?? null;
+        }
         const [vi, ni] = key.split(":").map(Number);
         const node = axe.violations[vi ?? -1]?.nodes[ni ?? -1];
         if (node !== undefined) node.frameUrl = src === null ? null : this.url(src);
