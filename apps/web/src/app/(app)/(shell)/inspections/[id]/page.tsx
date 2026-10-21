@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { BlockNotice } from "@/components/access/block-notice";
 import { EngineProblem } from "@/components/ui/copy-command";
@@ -271,6 +271,8 @@ export default async function InspectionPage({ params, searchParams }: { params:
   const tcommon = await getTranslations("common");
   const tdev = await getTranslations("inspections.devices");
   const tperf = await getTranslations("inspections.performance");
+  const tr = await getTranslations("report");
+  const locale = await getLocale();
   const all = tcommon("filter.all");
 
   return (
@@ -284,7 +286,19 @@ export default async function InspectionPage({ params, searchParams }: { params:
             <Mono>{inspection.id}</Mono>
           </>
         }
-        actions={<DeleteInspection id={inspection.id} site={report.target.url} from="detail" />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* The owner's report (PDF), in the reader's language, and the other one. */}
+            <a href={`/api/inspections/${encodeURIComponent(inspection.id)}/report?lang=${locale}`} download className={buttonClass("primary")}>
+              <Download aria-hidden />
+              {tr("download")}
+            </a>
+            <a href={`/api/inspections/${encodeURIComponent(inspection.id)}/report?lang=${locale === "es" ? "en" : "es"}`} download lang={locale === "es" ? "en" : "es"} className="text-[12px] text-accent-text underline">
+              {tr("downloadOther")}
+            </a>
+            <DeleteInspection id={inspection.id} site={report.target.url} from="detail" />
+          </div>
+        }
       />
 
       {report.engineError !== null && (

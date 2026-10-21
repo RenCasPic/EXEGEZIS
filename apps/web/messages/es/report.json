@@ -1,0 +1,137 @@
+{
+  "title": "Informe de revisión del sitio web",
+  "documentTitle": "Informe de revisión de {site}",
+  "date": "Revisado el {date} (UTC)",
+  "scopeLine": "{pages, plural, one {# página} other {# páginas}} · {devices} · {runs} repeticiones",
+  "download": "Descargar informe",
+  "downloadOther": "English version",
+  "summaryTitle": "Resumen",
+  "summaryScope": "Revisamos {pages, plural, one {# página pública} other {# páginas públicas}} de {site} en {devices}, {runs} veces cada una con un navegador nuevo.",
+  "summaryNone": "No encontramos problemas confirmados: nada falló en todas las repeticiones.",
+  "summaryFound": "Encontramos {count, plural, one {# problema confirmado} other {# problemas confirmados}}: {count, plural, one {aparece} other {aparecen}} en todas las repeticiones, no son casualidades.",
+  "summaryTop": "Lo más importante",
+  "area": {
+    "frontend": "Frontend: lo que ven y usan los visitantes",
+    "backend": "Backend: el servidor, visto desde fuera"
+  },
+  "areaHint": {
+    "frontend": "Diseño, accesibilidad, funcionamiento, rendimiento, móvil y contenido.",
+    "backend": "Seguridad, respuestas del servidor y configuración."
+  },
+  "problems": "{count, plural, one {problema} other {problemas}}",
+  "worst": "gravedad máxima:",
+  "severityLegend": "Gravedad: crítica (impide usar algo o lo expone), grave (afecta a muchas personas), moderada (molesta o perjudica), menor (conviene corregirla).",
+  "where": {
+    "pages": "{count, plural, one {en # página} other {en # páginas}}",
+    "everyPage": "en todas las páginas revisadas: probablemente una plantilla común"
+  },
+  "zone": {
+    "header": "en la cabecera",
+    "menu": "en el menú",
+    "content": "en el contenido",
+    "footer": "en el pie"
+  },
+  "elements": "{count, plural, one {# elemento} other {# elementos}}",
+  "nOfN": "{seen} de {runs} repeticiones",
+  "fixTitle": "Cómo arreglarlo:",
+  "stepsTitle": "Cómo comprobarlo",
+  "steps": {
+    "open": "Abre {page} en {devices}, en una ventana privada (sin cookies ni caché).",
+    "wait": "Espera a que la página termine de cargar.",
+    "see": "Se ve: {what}."
+  },
+  "pagesTitle": "Páginas:",
+  "more": "y {count} más",
+  "shotAlt": "Captura de {page} con el problema",
+  "shotCaption": "Captura de {page}. Si el problema es de accesibilidad, los elementos afectados aparecen marcados.",
+  "perfTitle": "Rendimiento (medidas de laboratorio)",
+  "perfNote": "Medidas desde el equipo que hizo la revisión, no datos de visitantes reales: la mediana de las repeticiones, con la valoración de los umbrales de Google. Solo cuenta como problema lo que es malo en todas las repeticiones.",
+  "perfPage": "Página",
+  "perfDevice": "Dispositivo",
+  "rating": {
+    "good": "bueno",
+    "needs-improvement": "mejorable",
+    "poor": "malo"
+  },
+  "device": {
+    "desktop": "escritorio",
+    "mobile": "móvil",
+    "tablet": "tableta"
+  },
+  "and": "y",
+  "methodTitle": "Cómo se hizo esta revisión",
+  "passive": "Fue una revisión pasiva, como la de un visitante atento: no se tocó nada del sitio.",
+  "passivePublic": "Solo se visitaron páginas públicas, sin iniciar sesión.",
+  "passiveNoActions": "No se enviaron formularios ni se pulsaron botones: solo se abrieron páginas y se pidieron direcciones con GET o HEAD. Los enlaces que parecen acciones (cerrar sesión, borrar, darse de baja, añadir al carrito…) y las rutas técnicas (/api/, /admin/…) no se pidieron nunca.",
+  "passiveRobots": "Se respetó robots.txt.",
+  "passiveVerified": "Un problema solo aparece aquí si se vio en las {runs} repeticiones. Los que se vieron solo a veces no se incluyen.",
+  "passiveLab": "El rendimiento se midió en laboratorio desde el equipo que hizo la revisión; los visitantes reales pueden tener otros tiempos.",
+  "passiveSession": "Se usó un acceso guardado por el propietario para ver páginas con sesión iniciada.",
+  "footer": "Generado por EXEGEZIS {version} · inspección {id}",
+  "noProblems": "No hay problemas confirmados que listar.",
+  "fix": {
+    "generic": "Revisa el detalle en EXEGEZIS y corrige la causa en el sitio.",
+    "contrast": "Usa un color de texto con un contraste de al menos {required}:1 sobre su fondo.",
+    "contrastColor": "Cambia el color del texto por {color} (contraste {ratio}:1; el mínimo es {required}:1). Es una sugerencia calculada: revísala con tu diseño.",
+    "tap": "Haz que cada elemento mida al menos 24×24 px, por ejemplo con un padding de {y} px arriba y abajo y {x} px a los lados, o deja 24 px entre los centros de dos elementos vecinos.",
+    "a11y": "Corrige el elemento según la regla de accesibilidad {rule} (WCAG). Explicación y ejemplos: {link}",
+    "js-exceptions": "Un error de JavaScript interrumpe la página. Pide a quien la desarrolla que lo corrija: el mensaje exacto está en el detalle de la inspección.",
+    "console-errors": "La página registra un error. Pide a quien la desarrolla que revise su causa (el mensaje exacto está en el detalle).",
+    "failed-requests": "Un archivo o servicio del sitio no responde bien. Comprueba que exista y que el servidor lo sirva sin error.",
+    "broken-links": "Corrige o quita el enlace, o redirige (301) la dirección antigua a la nueva.",
+    "mixed-content": "Carga ese recurso por https:// (o desde una copia en tu propio sitio).",
+    "mobile-scroll": "Haz que ningún elemento sea más ancho que la pantalla: imágenes y tablas con max-width: 100 % o con su propio desplazamiento.",
+    "mobile-text-size": "Usa un tamaño de texto de al menos 12 px (mejor 16 px para el texto principal).",
+    "mobile-viewport": {
+      "missing": "Añade en la cabecera (head) la etiqueta meta viewport con content=\"width=device-width, initial-scale=1\".",
+      "blocks-zoom": "Quita user-scalable=no y maximum-scale del meta viewport para que se pueda ampliar."
+    },
+    "mobile-fixed-overlap": "Reduce los elementos fijos (barras, banners) para que no tapen el contenido en el móvil, o deja que se cierren.",
+    "perf-vitals": {
+      "lcp": "El contenido principal tarda en aparecer: comprime y reduce las imágenes grandes, sirve el contenido sin esperar a scripts y usa un alojamiento o CDN más rápido.",
+      "cls": "El contenido se mueve al cargar: da ancho y alto a imágenes, anuncios e incrustados, y no insertes contenido por encima de lo que ya se ve.",
+      "tbt": "El JavaScript bloquea la página: elimina o retrasa los scripts que no hacen falta al cargar y divide las tareas largas."
+    },
+    "heavy-resources": {
+      "heavy-image": "Comprime la imagen y sírvela en WebP o AVIF, al tamaño en que se muestra.",
+      "legacy-format": "Convierte la imagen a WebP o AVIF: suelen pesar entre un 25 y un 50 % menos con la misma calidad.",
+      "oversized-image": "Sirve una versión más pequeña de la imagen (srcset) para el tamaño al que se muestra.",
+      "uncompressed": "Activa la compresión gzip o Brotli en el servidor para JavaScript y CSS.",
+      "no-cache": "Añade cabeceras de caché: Cache-Control: max-age=31536000, immutable para archivos con versión, o al menos un ETag."
+    },
+    "slow-response": "El servidor tarda en empezar a responder: revisa el alojamiento, activa la caché de páginas o usa una CDN.",
+    "security-headers": {
+      "hsts-missing": "Añade la cabecera Strict-Transport-Security: max-age=31536000; includeSubDomains.",
+      "hsts-short": "Alarga Strict-Transport-Security a max-age=31536000 (un año).",
+      "csp-missing": "Añade una Content-Security-Policy, empezando por: default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self', y amplíala para lo que usa el sitio.",
+      "nosniff-missing": "Añade la cabecera X-Content-Type-Options: nosniff.",
+      "framing-allowed": "Impide que otros sitios muestren tus páginas en un marco: Content-Security-Policy: frame-ancestors 'self' (y X-Frame-Options: SAMEORIGIN).",
+      "referrer-missing": "Añade Referrer-Policy: strict-origin-when-cross-origin.",
+      "referrer-unsafe": "Cambia Referrer-Policy a strict-origin-when-cross-origin.",
+      "permissions-missing": "Añade una Permissions-Policy, por ejemplo: camera=(), microphone=(), geolocation=()."
+    },
+    "cookies": {
+      "not-secure": "Marca la cookie con el atributo Secure.",
+      "not-httponly": "Marca la cookie de sesión con HttpOnly para que ningún script pueda leerla.",
+      "no-samesite": "Añade SameSite=Lax a la cookie (o Strict)."
+    },
+    "https": {
+      "no-https": "Instala un certificado HTTPS (por ejemplo, gratuito con Let's Encrypt) y redirige todo el tráfico a https://.",
+      "http-entry-no-redirect": "Redirige (301) todas las direcciones http:// a su versión https:// y añade HSTS.",
+      "http-no-redirect": "Redirige (301) http:// a https:// en todo el sitio y añade HSTS.",
+      "cert-invalid": "Renueva o corrige el certificado HTTPS (cadena y nombres): los navegadores avisan a los visitantes de que el sitio no es seguro.",
+      "cert-expiring": "Renueva el certificado HTTPS antes de que caduque, o automatiza la renovación.",
+      "long-redirects": "Enlaza directamente a la dirección final para evitar redirecciones encadenadas."
+    },
+    "site-config": {
+      "robots-error": "Haz que /robots.txt responda 200 (o 404 si no existe), nunca un error del servidor.",
+      "robots-missing": "Crea un robots.txt con «User-agent: *», «Allow: /» y la dirección del sitemap.",
+      "robots-html": "Sirve un robots.txt de texto real en /robots.txt.",
+      "sitemap-missing": "Crea un sitemap.xml con las páginas del sitio y nómbralo en robots.txt.",
+      "sitemap-error": "Haz que el sitemap responda sin error.",
+      "sitemap-invalid": "Corrige el sitemap: tiene que ser un XML con urlset o sitemapindex.",
+      "sitemap-url": "Quita del sitemap las páginas que ya no existen.",
+      "soft-404": "Haz que las direcciones que no existen respondan con el código 404 (o 410), no 200."
+    }
+  }
+}

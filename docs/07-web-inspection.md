@@ -372,3 +372,19 @@ Un único mapa en core (`issue-areas.ts`) asigna cada comprobación, vieja o nue
 En el detalle de la inspección: arriba dos tarjetas (Frontend y Backend, con su número de problemas y la gravedad máxima, y sus subáreas); después área → subárea → grupos. Cada grupo conserva su zona de la página (cabecera, menú, contenido, pie, si sus elementos lo dicen), si está en todas las páginas y sus dispositivos.
 
 Fixtures: `examples/inspect-lab/src/misconfigured.ts` es un sitio entero mal configurado (sin cabeceras, cookie insegura, PNG de 430 KB, JS sin comprimir ni caché, página que tarda 2,5 s, sitemap con una URL rota, soft 404, y por HTTPS un certificado que caduca en 10 días); `/healthy/` da 0 hallazgos con todas las comprobaciones, en escritorio y en móvil.
+
+## 14. Informe para el propietario (PDF)
+
+En el detalle de la inspección, **Descargar informe** da un PDF en el idioma de la interfaz; el enlace de al lado da la versión en el otro idioma. Es para el dueño del sitio, no para un desarrollador:
+
+- **Resumen**: qué se revisó (páginas públicas, dispositivos, repeticiones), cuántos problemas confirmados hay por gravedad, los tres más importantes y las tarjetas Frontend y Backend con su gravedad máxima.
+- **Problemas**: solo los VERIFIED (vistos en todas las repeticiones), por área y subárea y de más a menos grave. Cada uno lleva:
+  - dónde está (páginas, si está en todas, zona de la página);
+  - **N de N** y los dispositivos;
+  - **cómo arreglarlo**: una recomendación por comprobación y regla, con el color sugerido en el contraste y el padding que falta en los objetivos táctiles;
+  - cómo comprobarlo, paso a paso;
+  - una **captura** (la marcada por axe si la hay).
+- **Rendimiento**: la mediana de laboratorio por página, con la nota de que no son datos de visitantes reales.
+- **Cómo se hizo**: la nota de **revisión pasiva**. Solo páginas públicas, sin enviar formularios ni pulsar botones, solo GET y HEAD, la política de enlaces (§4), robots.txt respetado y solo lo visto en todas las repeticiones.
+
+Cómo se genera: la web compone un HTML autocontenido (`apps/web/src/lib/owner-report.ts`, textos en `messages/<idioma>/report.json`, capturas como `data:`) y `exegezis pdf --html <archivo> --output <archivo.pdf>` lo imprime con Chromium, sin JavaScript y sin red, como PDF etiquetado y con índice. Así ningún navegador corre dentro del servidor web. La ruta es `/api/inspections/<id>/report?lang=es|en`; con `&format=html` devuelve el documento. Solo el dueño de la inspección puede descargarlo: los demás reciben 404.

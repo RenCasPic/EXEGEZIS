@@ -70,4 +70,30 @@ describe("the inspection detail by area", () => {
     }
     expect(failures).toEqual([]);
   }, 900_000);
+
+  it("«Download report» gives the owner's report as a PDF, in either language, to its owner only", async () => {
+    const ctx = await (browser as Browser).newContext({ locale: "es-ES", storageState: session });
+    await ctx.addCookies([{ name: "EXEGEZIS_LOCALE", value: "es", url: app.base }]);
+    const page = await ctx.newPage();
+    await page.goto(`${app.base}/inspections/${report.id}`, { waitUntil: "load", timeout: 180_000 });
+    const button = page.getByRole("link", { name: "Descargar informe" });
+    await expect(button.getAttribute("href")).resolves.toBe(`/api/inspections/${report.id}/report?lang=es`);
+    await expect(page.getByRole("link", { name: "English version" }).count()).resolves.toBe(1);
+    for (const lang of ["es", "en"]) {
+      const pdf = await page.request.get(`${app.base}/api/inspections/${report.id}/report?lang=${lang}`, { timeout: 180_000 });
+      expect(pdf.status(), lang).toBe(200);
+      expect(pdf.headers()["content-type"]).toBe("application/pdf");
+      expect(pdf.headers()["content-disposition"]).toMatch(lang === "es" ? /^attachment; filename="informe-shop\.example-2026-10-07\.pdf"$/ : /^attachment; filename="report-shop\.example-2026-10-07\.pdf"$/);
+      expect((await pdf.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    }
+    const html = await (await page.request.get(`${app.base}/api/inspections/${report.id}/report?lang=en&format=html`)).text();
+    expect(html).toContain("Website review report");
+    await ctx.close();
+    // Someone else (signed in as another user) cannot get it.
+    const other = await signedInUser(app, browser as Browser, { name: "Other", email: `other-${Date.now()}@example.com` });
+    const otherCtx = await (browser as Browser).newContext({ storageState: other.storageState });
+    const denied = await otherCtx.request.get(`${app.base}/api/inspections/${report.id}/report?lang=en`);
+    expect(denied.status()).toBe(404);
+    await otherCtx.close();
+  }, 600_000);
 });
