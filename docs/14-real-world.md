@@ -89,13 +89,32 @@ Cada uno con su test. La web se volvió a inspeccionar después.
 - el LCP de 6 s en /books de la web de René;
 - webscraper.io envía todas las cabeceras de seguridad, así que 0 hallazgos ahí es correcto.
 
+## Segunda ronda: seguridad de enlaces y mejoras (21 de octubre de 2026)
+
+**Seguridad de enlaces por diseño** (9236577). El `GET /api/deleteAccount` de automationexercise no puede repetirse. La política, en docs/07 §4:
+- solo se siguen `<a href>` de navegación normal;
+- las rutas técnicas, las palabras de acción (también pegadas o con guiones) y los parámetros de acción nunca se piden;
+- HEAD primero, y GET solo si el servidor no admite HEAD;
+- las redirecciones se siguen a mano y nunca hacia una acción, y una página que redirige a una acción no se visita;
+- se respeta `rel="nofollow"`.
+
+El laboratorio tiene 15 enlaces trampa que cuentan cada llamada, y una e2e exige 0.
+
+Las mejoras pendientes, hechas y comprobadas en la web real donde salieron:
+
+| Mejora | Commit | Resultado en la web real |
+|---|---|---|
+| Contenido de iframes de terceros y marcado que inyectan los anuncios: aparte, como «Servicios externos» | f390e56, 6c41abf, dffc8e9 | webscraper.io: los botones del chat de HelpScout (iframe sin dirección, rellenado desde la página) ya son de terceros. automationexercise: 17 grupos de anuncios y anotaciones de Google aparte |
+| Visita que acaba en la página de error de la app (Next.js, Nuxt): visita fallida, no fuente de avisos | 29a062b | Sin avisos en cascada de título, h1 ni viewport |
+| Contenido mixto contado una sola vez | 555dcad | books.toscrape: 0 duplicados |
+| Campos sin etiqueta: un grupo por regla, no uno por campo | 8d78291 | ParaBank: 70 → 40 grupos |
+| Login en la portada: se inspecciona la página pública y se conserva el aviso de guardar el acceso | eb9469e | saucedemo: de bloqueada a 1 página revisada (9 problemas) |
+| Webs lentas: la visita ya no espera el tope completo por archivos colgados. Un `timeout: 0` de Playwright esperaba sin límite al evento load | 8c8c2e6 | the-internet: **614 s → 126 s** |
+
+**Informe para el propietario (PDF)** (2f1019c, f13f464): botón «Descargar informe» en el detalle, en español e inglés (docs/07 §14).
+
 ## Mejoras pendientes, por impacto
 
-1. **Contenido de iframes de terceros** (banners de cookies, chats, vídeos): axe lo revisa como si fuera de la página (botones sin nombre dentro de los iframes de Termly o HelpScout en webscraper.io; Juice Shop). Debería ir a «Servicios externos».
-2. **Campos sin etiqueta** (axe `label`): siguen siendo un grupo por campo cuando cada uno tiene su propio id (ParaBank: 45 grupos de diseño). Agruparlos por formulario.
-3. **Visitas que acaban en la página de error de la aplicación** (Next.js `__next_error__` tras un `ChunkLoadError` por un corte de red, en la web de René): generan intermitentes en cascada (sin viewport, sin h1, sin título). Esa visita debería contar como fallida, no como página.
-4. **Login en la portada** (saucedemo): ahora es un muro de login con el aviso de guardar el acceso, como está documentado. Se podría inspeccionar además la propia página de login pública.
-5. **Contenido mixto contado dos veces** (books.toscrape): el jQuery bloqueado por HTTP aparece como contenido mixto y como petición fallida.
-6. **Anotaciones que Google inyecta** (`.google-anno-sc`, `.goog-rentries` en automationexercise): axe las revisa como propias. Son de terceros aunque estén en el documento.
-7. **Webs lentas**: the-internet tardó 614 s porque cada visita espera hasta 30 s a archivos que cuelgan. Un tope por página más corto cuando el documento ya llegó lo acortaría.
-8. **Webs de René**: solo se probó jesushealingministry.net. Falta la lista de sus otras webs.
+1. **Webs de René**: no hacen falta más; con esta campaña es suficiente.
+2. **Ruido que queda en accesibilidad**: los contrastes de muchos pares de colores distintos siguen siendo un grupo por par (es lo correcto: cada par se corrige por separado), pero en webs con mucho diseño (webscraper.io: 94 grupos) convendría resumirlos por color de texto.
+3. **Intermitentes por cortes de red de este equipo**: se marcan bien como visitas fallidas, pero repetir automáticamente una visita cortada por `ERR_INTERNET_DISCONNECTED` o `ERR_NETWORK_CHANGED` evitaría informes parciales.
